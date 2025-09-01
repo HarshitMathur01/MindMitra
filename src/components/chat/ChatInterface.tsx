@@ -3,6 +3,8 @@ import { Send, Mic, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Message {
   id: string;
@@ -21,30 +23,64 @@ const ChatInterface = () => {
     },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return;
 
-    const newMessage: Message = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue,
       sender: "user",
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => [...prev, userMessage]);
+    const messageContent = inputValue;
     setInputValue("");
+    setIsLoading(true);
 
-    // Simulate AI response (replace with actual Groq integration)
-    setTimeout(() => {
+    try {
+      // Get conversation history (last 10 messages for context)
+      const conversationHistory = messages.slice(-10);
+      
+      const { data, error } = await supabase.functions.invoke('chat-with-groq', {
+        body: {
+          message: messageContent,
+          conversationHistory
+        }
+      });
+
+      if (error) throw error;
+
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: "Thank you for your message! I understand you're looking for psychological insights. While I'm not a replacement for professional therapy, I can offer general guidance and help you explore different psychological concepts. What specific area would you like to explore?",
+        content: data.response || "I apologize, but I'm having trouble responding right now. Please try again.",
         sender: "ai",
         timestamp: new Date(),
       };
+
       setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get AI response. Please try again.",
+        variant: "destructive",
+      });
+
+      // Remove loading state and restore input if error
+      const errorResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
+        sender: "ai",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -128,10 +164,14 @@ const ChatInterface = () => {
           </div>
           <Button
             onClick={handleSendMessage}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || isLoading}
             className="gradient-primary hover-glow"
           >
-            <Send className="h-4 w-4" />
+            {isLoading ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>

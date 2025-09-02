@@ -15,7 +15,7 @@ const Games = () => {
       icon: Brain,
       difficulty: "Medium",
       duration: "5-10 min",
-      available: false,
+      available: true,
     },
     {
       id: "decision",
@@ -90,9 +90,11 @@ const Games = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="font-semibold text-lg">{game.title}</h3>
-                      <span className="bg-accent/20 text-accent text-xs px-2 py-1 rounded-full">
-                        Coming Soon
-                      </span>
+                      {!game.available && (
+                        <span className="bg-accent/20 text-accent text-xs px-2 py-1 rounded-full">
+                          Coming Soon
+                        </span>
+                      )}
                     </div>
                     <p className="text-muted-foreground text-sm mb-3">
                       {game.description}
@@ -109,9 +111,9 @@ const Games = () => {
                 <Button 
                   className="w-full"
                   disabled={!game.available}
-                  variant="ghost"
+                  onClick={() => game.available && game.id === 'memory' && navigate('/memory-challenge')}
                 >
-                  Coming Soon
+                  {game.available ? 'Play Now' : 'Coming Soon'}
                 </Button>
               </Card>
             );

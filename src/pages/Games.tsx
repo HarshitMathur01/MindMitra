@@ -1,7 +1,7 @@
 import Header from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Puzzle, Brain, Target, Zap, ArrowLeft } from "lucide-react";
+import { Puzzle, Brain, Target, Zap, ArrowLeft, Smile } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Games = () => {
@@ -15,6 +15,15 @@ const Games = () => {
       icon: Brain,
       difficulty: "Medium",
       duration: "5-10 min",
+      available: true,
+    },
+    {
+      id: "emoji-match",
+      title: "Emoji Match",
+      description: "Find all the matching emoji pairs! Improve your memory and concentration skills",
+      icon: Smile,
+      difficulty: "Easy",
+      duration: "3-8 min",
       available: true,
     },
     {
@@ -111,7 +120,12 @@ const Games = () => {
                 <Button 
                   className="w-full"
                   disabled={!game.available}
-                  onClick={() => game.available && game.id === 'memory' && navigate('/memory-challenge')}
+                  onClick={() => {
+                    if (game.available) {
+                      if (game.id === 'memory') navigate('/memory-challenge');
+                      if (game.id === 'emoji-match') navigate('/emoji-match');
+                    }
+                  }}
                 >
                   {game.available ? 'Play Now' : 'Coming Soon'}
                 </Button>

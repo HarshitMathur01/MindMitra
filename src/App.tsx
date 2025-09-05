@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import QATests from "./pages/QATests";
 import Games from "./pages/Games";
 import MemoryChallenge from "./pages/MemoryChallenge";
+import EmojiMatch from "./pages/EmojiMatch";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/qa-tests" element={<QATests />} />
             <Route path="/games" element={<Games />} />
             <Route path="/memory-challenge" element={<MemoryChallenge />} />
+            <Route path="/emoji-match" element={<EmojiMatch />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

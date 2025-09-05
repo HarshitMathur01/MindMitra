@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Send, Mic, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,17 +14,87 @@ interface Message {
 }
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      content: "Hello! I'm your MindMate AI assistant. I'm here to help you with psychological insights, answer questions about mental health, and guide you through our interactive experiences. How can I assist you today?",
-      sender: "ai",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Load messages from database
+  useEffect(() => {
+    loadMessages();
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user?.id || null);
+  };
+
+  const loadMessages = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // Show welcome message for unauthenticated users
+        setMessages([{
+          id: "welcome",
+          content: "Hello! I'm your MindMate AI assistant. I'm here to help you with psychological insights, answer questions about mental health, and guide you through our interactive experiences. How can I assist you today?",
+          sender: "ai",
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const loadedMessages = data.map(msg => ({
+          id: msg.id,
+          content: msg.content,
+          sender: msg.sender as "user" | "ai",
+          timestamp: new Date(msg.created_at),
+        }));
+        setMessages(loadedMessages);
+      } else {
+        // Show welcome message for new users
+        setMessages([{
+          id: "welcome",
+          content: "Hello! I'm your MindMate AI assistant. I'm here to help you with psychological insights, answer questions about mental health, and guide you through our interactive experiences. How can I assist you today?",
+          sender: "ai",
+          timestamp: new Date(),
+        }]);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
+
+  const saveMessage = async (message: Message) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return; // Don't save messages for unauthenticated users
+
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          user_id: user.id,
+          content: message.content,
+          sender: message.sender,
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -37,6 +107,10 @@ const ChatInterface = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // Save user message to database
+    await saveMessage(userMessage);
+    
     const messageContent = inputValue;
     setInputValue("");
     setIsLoading(true);
@@ -62,6 +136,9 @@ const ChatInterface = () => {
       };
 
       setMessages(prev => [...prev, aiResponse]);
+      
+      // Save AI response to database
+      await saveMessage(aiResponse);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -78,6 +155,9 @@ const ChatInterface = () => {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorResponse]);
+      
+      // Save error response to database
+      await saveMessage(errorResponse);
     } finally {
       setIsLoading(false);
     }

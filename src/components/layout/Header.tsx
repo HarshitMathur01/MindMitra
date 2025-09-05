@@ -1,9 +1,12 @@
-import { Brain, MessageSquare, Puzzle, BookOpen } from "lucide-react";
+import { Brain, MessageSquare, Puzzle, BookOpen, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Header = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -38,14 +41,35 @@ const Header = () => {
             </Button>
           </nav>
 
-          {/* CTA */}
+          {/* Auth Section */}
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">
-              Sign In
-            </Button>
-            <Button size="sm" className="gradient-primary hover-glow">
-              Get Started
-            </Button>
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      {user.email?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium hidden md:inline">
+                    {user.email}
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={() => navigate('/auth')}>
+                  Sign In
+                </Button>
+                <Button size="sm" className="gradient-primary hover-glow" onClick={() => navigate('/auth')}>
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

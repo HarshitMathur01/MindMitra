@@ -1,10 +1,9 @@
 import Header from "@/components/layout/Header";
 import WelcomeHero from "@/components/sections/WelcomeHero";
 import FeaturesPreview from "@/components/sections/FeaturesPreview";
-import ChatInterface from "@/components/chat/ChatInterface";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Brain, MessageSquare } from "lucide-react";
+import { Brain, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -28,37 +27,77 @@ const Index = () => {
       <main>
         <WelcomeHero />
         
-        {/* Interactive Chat Section */}
-        <section className="py-20 bg-background">
+        {/* Advanced Chat Call-to-Action */}
+        <section className="py-20 bg-gradient-to-br from-primary/5 via-accent/5 to-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Start Your Conversation
+                Experience Advanced AI Psychology Chat
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Begin chatting with your AI psychology assistant right now. Ask questions, 
-                get insights, or explore your mental wellness journey.
+                Dive deep into personalized conversations with our enhanced AI assistant. 
+                Get professional insights, explore your mental wellness, and track your progress.
               </p>
             </div>
             
             <div className="max-w-4xl mx-auto">
-              {user ? (
-                <ChatInterface />
-              ) : (
-                <div className="text-center py-12 gradient-chat rounded-xl border">
-                  <MessageSquare className="h-16 w-16 text-primary mx-auto mb-6" />
-                  <h3 className="text-xl font-semibold mb-4">Sign in to start chatting</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    Create an account or sign in to save your conversations and get personalized insights.
-                  </p>
-                  <Button 
-                    onClick={() => navigate('/auth')} 
-                    className="gradient-primary hover-glow"
-                  >
-                    Get Started
-                  </Button>
+              <div className="grid md:grid-cols-2 gap-8 mb-12">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                    </div>
+                    <h3 className="font-semibold">Advanced Features</h3>
+                  </div>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• Voice input and transcription</li>
+                    <li>• Message search and organization</li>
+                    <li>• Quick topic categories</li>
+                    <li>• Conversation history</li>
+                  </ul>
                 </div>
-              )}
+                
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
+                      <Brain className="h-4 w-4 text-accent" />
+                    </div>
+                    <h3 className="font-semibold">Psychology Focus</h3>
+                  </div>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• Mental health insights</li>
+                    <li>• Personality analysis</li>
+                    <li>• Stress management guidance</li>
+                    <li>• Therapeutic techniques</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="text-center">
+                {user ? (
+                  <Button 
+                    onClick={() => navigate('/chat')} 
+                    className="gradient-primary hover-glow text-lg px-8 py-6 h-auto"
+                  >
+                    <MessageSquare className="h-5 w-5 mr-2" />
+                    Start Advanced Chat
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <Button 
+                      onClick={() => navigate('/auth')} 
+                      className="gradient-primary hover-glow text-lg px-8 py-6 h-auto"
+                    >
+                      Sign In to Start Chatting
+                      <ArrowRight className="h-5 w-5 ml-2" />
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Create a free account to save your conversations and get personalized insights
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>

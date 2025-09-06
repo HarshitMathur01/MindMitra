@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Chat from "./pages/Chat";
 import QATests from "./pages/QATests";
 import Games from "./pages/Games";
 import MemoryChallenge from "./pages/MemoryChallenge";
@@ -24,6 +25,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/qa-tests" element={<QATests />} />
             <Route path="/games" element={<Games />} />
             <Route path="/memory-challenge" element={<MemoryChallenge />} />

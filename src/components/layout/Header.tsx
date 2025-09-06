@@ -27,7 +27,7 @@ const Header = () => {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" className="gap-2" onClick={() => navigate('/')}>
+            <Button variant="ghost" className="gap-2" onClick={() => navigate('/chat')}>
               <MessageSquare className="h-4 w-4" />
               Chat
             </Button>

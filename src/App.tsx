@@ -12,6 +12,8 @@ import WellnessCheckIn from "./pages/WellnessCheckIn";
 import Games from "./pages/Games";
 import MemoryChallenge from "./pages/MemoryChallenge";
 import EmojiMatch from "./pages/EmojiMatch";
+import MoodMountain from "./pages/MoodMountain";
+import ThoughtDetective from "./pages/ThoughtDetective";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/games" element={<Games />} />
             <Route path="/memory-challenge" element={<MemoryChallenge />} />
             <Route path="/emoji-match" element={<EmojiMatch />} />
+            <Route path="/mood-mountain" element={<MoodMountain />} />
+            <Route path="/thought-detective" element={<ThoughtDetective />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

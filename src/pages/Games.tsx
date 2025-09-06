@@ -27,6 +27,24 @@ const Games = () => {
       available: true,
     },
     {
+      id: "mood-mountain",
+      title: "Mood Mountain 🏔️",
+      description: "Climb virtual mountains through positive activities and mood regulation exercises",
+      icon: Target,
+      difficulty: "Easy",
+      duration: "10-15 min",
+      available: true,
+    },
+    {
+      id: "thought-detective",
+      title: "Thought Detective 🕵️‍♀️",
+      description: "Investigate and reframe negative thoughts using cognitive restructuring techniques",
+      icon: Brain,
+      difficulty: "Medium",
+      duration: "8-12 min",
+      available: true,
+    },
+    {
       id: "decision",
       title: "Decision Making Lab",
       description: "Explore your decision-making patterns through interactive scenarios",
@@ -124,6 +142,8 @@ const Games = () => {
                     if (game.available) {
                       if (game.id === 'memory') navigate('/memory-challenge');
                       if (game.id === 'emoji-match') navigate('/emoji-match');
+                      if (game.id === 'mood-mountain') navigate('/mood-mountain');
+                      if (game.id === 'thought-detective') navigate('/thought-detective');
                     }
                   }}
                 >

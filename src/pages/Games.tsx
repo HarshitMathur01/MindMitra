@@ -27,15 +27,6 @@ const Games = () => {
       available: true,
     },
     {
-      id: "emotion-match",
-      title: "Emotion Match Maker",
-      description: "Build emotional intelligence through emotion-based card matching and learning",
-      icon: Brain,
-      difficulty: "Easy",
-      duration: "5-15 min",
-      available: true,
-    },
-    {
       id: "mood-mountain",
       title: "Mood Mountain 🏔️",
       description: "Climb virtual mountains through positive activities and mood regulation exercises",
@@ -151,7 +142,6 @@ const Games = () => {
                     if (game.available) {
                       if (game.id === 'memory') navigate('/memory-challenge');
                       if (game.id === 'emoji-match') navigate('/emoji-match');
-                      if (game.id === 'emotion-match') navigate('/emotion-match');
                       if (game.id === 'mood-mountain') navigate('/mood-mountain');
                       if (game.id === 'thought-detective') navigate('/thought-detective');
                     }

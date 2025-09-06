@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useVoiceRecording } from "@/hooks/useVoiceRecording";
 
 interface Message {
   id: string;
@@ -19,6 +20,7 @@ const ChatInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
 
   // Load messages from database
   useEffect(() => {
@@ -163,6 +165,22 @@ const ChatInterface = () => {
     }
   };
 
+  const handleVoiceInput = async () => {
+    try {
+      const transcribedText = await toggleRecording();
+      if (transcribedText) {
+        setInputValue(transcribedText);
+      }
+    } catch (error) {
+      console.error('Error with voice input:', error);
+      toast({
+        title: "Voice input failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -237,9 +255,17 @@ const ChatInterface = () => {
             <Button
               size="sm"
               variant="ghost"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+              className={`absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 ${
+                isRecording ? 'text-red-500 bg-red-50' : ''
+              }`}
+              onClick={handleVoiceInput}
+              disabled={isProcessing}
             >
-              <Mic className="h-4 w-4" />
+              {isProcessing ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''}`} />
+              )}
             </Button>
           </div>
           <Button

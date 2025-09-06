@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
 import QATests from "./pages/QATests";
+import WellnessCheckIn from "./pages/WellnessCheckIn";
 import Games from "./pages/Games";
 import MemoryChallenge from "./pages/MemoryChallenge";
 import EmojiMatch from "./pages/EmojiMatch";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/qa-tests" element={<QATests />} />
+            <Route path="/wellness-checkin" element={<WellnessCheckIn />} />
             <Route path="/games" element={<Games />} />
             <Route path="/memory-challenge" element={<MemoryChallenge />} />
             <Route path="/emoji-match" element={<EmojiMatch />} />

@@ -110,6 +110,7 @@ const QATests = () => {
                   className="w-full"
                   disabled={!test.available}
                   variant={test.available ? "default" : "ghost"}
+                  onClick={() => test.available && test.id === "wellness-checkin" && navigate('/wellness-checkin')}
                 >
                   {test.available ? "Start Test" : "Coming Soon"}
                 </Button>

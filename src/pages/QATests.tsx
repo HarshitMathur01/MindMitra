@@ -1,13 +1,22 @@
 import Header from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Brain, Heart, Users, ArrowLeft } from "lucide-react";
+import { BookOpen, Brain, Heart, Users, ArrowLeft, Sprout } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const QATests = () => {
   const navigate = useNavigate();
 
   const tests = [
+    {
+      id: "wellness-checkin",
+      title: "Wellness Check-In",
+      description: "Take a moment to check in with yourself through fun metaphors and emojis. A gentle way to explore how you're feeling right now.",
+      icon: Sprout,
+      duration: "3 min",
+      questions: 10,
+      available: true,
+    },
     {
       id: "personality",
       title: "Big Five Personality Test",

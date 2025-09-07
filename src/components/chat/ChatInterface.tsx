@@ -1,11 +1,17 @@
-import { useState, useEffect } from "react";
-import { Send, Mic, Bot, User } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Send, Mic, Bot, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
+import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -14,39 +20,61 @@ interface Message {
   timestamp: Date;
 }
 
-const ChatInterface = () => {
+interface ChatSession {
+  id: string;
+  title: string;
+  lastMessage: string;
+  timestamp: Date;
+}
+
+const suggestedPrompts = [
+  "Help me understand my personality type",
+  "I'm feeling anxious, what can I do?",
+  "Can you analyze my mood patterns?",
+  "What are some stress management techniques?",
+  "Tell me about different types of therapy",
+  "How can I improve my mental wellness?",
+];
+
+const quickCategories = [
+  { label: "Mental Health", icon: "🧠", color: "bg-blue-100 text-blue-800" },
+  { label: "Personality", icon: "🎭", color: "bg-purple-100 text-purple-800" },
+  { label: "Stress Relief", icon: "🌿", color: "bg-green-100 text-green-800" },
+  { label: "Relationships", icon: "💖", color: "bg-pink-100 text-pink-800" },
+  { label: "Self-Care", icon: "✨", color: "bg-yellow-100 text-yellow-800" },
+  { label: "Therapy", icon: "💬", color: "bg-indigo-100 text-indigo-800" },
+];
+
+const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
   const { toast } = useToast();
   const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
+  const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load messages from database
-  useEffect(() => {
-    loadMessages();
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUser(user?.id || null);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    loadMessages();
+  }, [user, navigate]);
 
   const loadMessages = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        // Show welcome message for unauthenticated users
-        setMessages([{
-          id: "welcome",
-          content: "Hello! I'm your MindMate AI assistant. I'm here to help you with psychological insights, answer questions about mental health, and guide you through our interactive experiences. How can I assist you today?",
-          sender: "ai",
-          timestamp: new Date(),
-        }]);
-        return;
-      }
+      if (!user) return;
 
       const { data, error } = await supabase
         .from('chat_messages')
@@ -65,10 +93,9 @@ const ChatInterface = () => {
         }));
         setMessages(loadedMessages);
       } else {
-        // Show welcome message for new users
         setMessages([{
           id: "welcome",
-          content: "Hello! I'm your MindMate AI assistant. I'm here to help you with psychological insights, answer questions about mental health, and guide you through our interactive experiences. How can I assist you today?",
+          content: "Welcome to your advanced MindMate chat! I'm here to provide deep psychological insights, help with mental health questions, and guide you through personalized exercises. What would you like to explore today?",
           sender: "ai",
           timestamp: new Date(),
         }]);
@@ -80,9 +107,7 @@ const ChatInterface = () => {
 
   const saveMessage = async (message: Message) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) return; // Don't save messages for unauthenticated users
+      if (!user || message.id === "welcome") return;
 
       const { error } = await supabase
         .from('chat_messages')
@@ -98,32 +123,29 @@ const ChatInterface = () => {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+  const handleSendMessage = async (messageText?: string) => {
+    const textToSend = messageText || inputValue;
+    if (!textToSend.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputValue,
+      content: textToSend,
       sender: "user",
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    
-    // Save user message to database
     await saveMessage(userMessage);
     
-    const messageContent = inputValue;
     setInputValue("");
     setIsLoading(true);
 
     try {
-      // Get conversation history (last 10 messages for context)
       const conversationHistory = messages.slice(-10);
       
       const { data, error } = await supabase.functions.invoke('chat-with-groq', {
         body: {
-          message: messageContent,
+          message: textToSend,
           conversationHistory
         }
       });
@@ -138,8 +160,6 @@ const ChatInterface = () => {
       };
 
       setMessages(prev => [...prev, aiResponse]);
-      
-      // Save AI response to database
       await saveMessage(aiResponse);
     } catch (error) {
       console.error('Error sending message:', error);
@@ -148,18 +168,6 @@ const ChatInterface = () => {
         description: "Failed to get AI response. Please try again.",
         variant: "destructive",
       });
-
-      // Remove loading state and restore input if error
-      const errorResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
-        sender: "ai",
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorResponse]);
-      
-      // Save error response to database
-      await saveMessage(errorResponse);
     } finally {
       setIsLoading(false);
     }
@@ -188,101 +196,290 @@ const ChatInterface = () => {
     }
   };
 
+  const copyMessage = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast({
+      title: "Copied!",
+      description: "Message copied to clipboard.",
+    });
+  };
+
+  const filteredMessages = messages.filter(message =>
+    searchQuery === "" || 
+    message.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const startNewChat = () => {
+    setMessages([{
+      id: "welcome-new",
+      content: "Starting a fresh conversation! What would you like to discuss today?",
+      sender: "ai",
+      timestamp: new Date(),
+    }]);
+    setSearchQuery("");
+  };
+
+  if (!user) {
+    return null; // Will redirect to auth
+  }
+
   return (
-    <div className="flex flex-col h-[600px] bg-card rounded-2xl border shadow-lg">
-      {/* Chat Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-gradient-chat rounded-t-2xl">
-        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-          <Bot className="h-5 w-5 text-primary" />
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Header - Fixed at top */}
+      <header className="border-b bg-card/50 backdrop-blur-sm z-50 flex-shrink-0">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate('/')}>
+                ← Back
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                  <MessageSquare className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold">Advanced Chat</h1>
+                  <p className="text-sm text-muted-foreground">AI Psychology Assistant</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={startNewChat}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Chat
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => toast({ title: "Feature coming soon!", description: "Export functionality will be available soon." })}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Chat
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold">MindMate Assistant</h3>
-          <p className="text-sm text-muted-foreground">Online • Ready to help</p>
+      </header>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Fixed Sidebar */}
+        <div className="w-80 flex-shrink-0 border-r bg-card/30 p-4 overflow-hidden">
+          <div className="h-full flex flex-col space-y-4">
+            {/* Search - Always visible */}
+            <div className="flex-shrink-0">
+              <Card className="p-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search messages..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </Card>
+            </div>
+
+            {/* Quick Categories - Always visible */}
+            <div className="flex-shrink-0">
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3">Quick Topics</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {quickCategories.map((category) => (
+                    <Button
+                      key={category.label}
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-2 flex flex-col items-center gap-1 hover:bg-muted"
+                      onClick={() => handleSendMessage(`Tell me about ${category.label.toLowerCase()}`)}
+                    >
+                      <span className="text-lg">{category.icon}</span>
+                      <span className="text-xs">{category.label}</span>
+                    </Button>
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            {/* Suggested Prompts - Always visible */}
+            <div className="flex-shrink-0">
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3">Suggested Questions</h3>
+                <div className="space-y-2">
+                  {suggestedPrompts.slice(0, 4).map((prompt, index) => (
+                    <Button
+                      key={index}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-left justify-start h-auto p-2 text-xs hover:bg-muted"
+                      onClick={() => handleSendMessage(prompt)}
+                    >
+                      {prompt}
+                    </Button>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Chat Header - Fixed */}
+          <div className="flex items-center gap-3 p-4 border-b bg-gradient-chat flex-shrink-0">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <Bot className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">MindMate Assistant</h3>
+              <p className="text-sm text-muted-foreground">
+                Online • {filteredMessages.length} messages
+              </p>
+            </div>
+            {isLoading && (
+              <Badge variant="secondary" className="animate-pulse">
+                Thinking...
+              </Badge>
+            )}
+          </div>
+
+          {/* Messages - Scrollable area with padding for fixed input */}
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="p-4 space-y-4 pb-32">
+                {filteredMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex gap-3 ${
+                      message.sender === "user" ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    {message.sender === "ai" && (
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Bot className="h-4 w-4 text-primary" />
+                      </div>
+                    )}
+                    
+                    <div className="group relative max-w-[80%]">
+                      {message.sender === "user" ? (
+                        <div className="chat-bubble-user">
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs opacity-70">
+                              {message.timestamp.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                                onClick={() => copyMessage(message.content)}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-2">
+                          <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">{message.content}</p>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="text-xs text-muted-foreground">
+                              {message.timestamp.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                                onClick={() => copyMessage(message.content)}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                <ThumbsUp className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                <ThumbsDown className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {message.sender === "user" && (
+                      <div className="w-8 h-8 bg-secondary/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-secondary" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+          </div>
         </div>
       </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex gap-3 ${
-                message.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              {message.sender === "ai" && (
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Bot className="h-4 w-4 text-primary" />
-                </div>
-              )}
-              
-              <div
-                className={`${
-                  message.sender === "user" ? "chat-bubble-user" : "chat-bubble-ai"
+      {/* Input Area - Fixed at bottom of viewport */}
+      <div className="fixed bottom-0 left-80 right-0 bg-background/95 backdrop-blur-sm border-t z-40">
+        <div className="p-4">
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask anything about psychology, mental health, or request personalized insights..."
+                className="pr-12 bg-background"
+                disabled={isLoading}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                className={`absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 ${
+                  isRecording ? 'text-red-500 bg-red-50' : ''
                 }`}
+                onClick={handleVoiceInput}
+                disabled={isProcessing || isLoading}
               >
-                <p className="text-sm">{message.content}</p>
-                <span className="text-xs opacity-70 mt-1 block">
-                  {message.timestamp.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-
-              {message.sender === "user" && (
-                <div className="w-8 h-8 bg-secondary/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="h-4 w-4 text-secondary" />
-                </div>
-              )}
+                {isProcessing ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : (
+                  <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''}`} />
+                )}
+              </Button>
             </div>
-          ))}
-        </div>
-      </ScrollArea>
-
-      {/* Input Area */}
-      <div className="p-4 border-t bg-muted/30">
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask me about psychology, mental health, or take a personality test..."
-              className="pr-12 bg-background"
-            />
             <Button
-              size="sm"
-              variant="ghost"
-              className={`absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 ${
-                isRecording ? 'text-red-500 bg-red-50' : ''
-              }`}
-              onClick={handleVoiceInput}
-              disabled={isProcessing}
+              onClick={() => handleSendMessage()}
+              disabled={!inputValue.trim() || isLoading}
+              className="gradient-primary hover-glow"
             >
-              {isProcessing ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              {isLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
-                <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''}`} />
+                <Send className="h-4 w-4" />
               )}
             </Button>
           </div>
-          <Button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
-            className="gradient-primary hover-glow"
-          >
-            {isLoading ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
         </div>
       </div>
     </div>
   );
 };
 
-export default ChatInterface;
+export default Chat;

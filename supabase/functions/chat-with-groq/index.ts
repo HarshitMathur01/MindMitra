@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const groqApiKey = Deno.env.get('GROQ_API_KEY');
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,8 +17,8 @@ serve(async (req) => {
   try {
     const { message, conversationHistory = [] } = await req.json();
 
-    if (!groqApiKey) {
-      throw new Error('GROQ_API_KEY not found');
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY not found');
     }
 
     // Build messages array with conversation history
@@ -37,14 +37,14 @@ serve(async (req) => {
       }
     ];
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${groqApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'moonshotai/kimi-k2-instruct',
+        model: 'gpt-3.5-turbo',
         messages: messages,
         temperature: 0.7,
         max_tokens: 1000,
@@ -54,8 +54,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Groq API Error:', errorText);
-      throw new Error(`Groq API Error: ${response.status} - ${errorText}`);
+      console.error('OpenAI API Error:', errorText);
+      throw new Error(`OpenAI API Error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();

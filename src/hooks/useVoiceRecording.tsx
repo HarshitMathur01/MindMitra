@@ -1,40 +1,43 @@
 import { useState, useRef, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+
+// Extend Window interface for Speech Recognition
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 export const useVoiceRecording = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
 
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-        }
-      });
+      // Check if browser supports Speech Recognition
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        toast({
+          title: "Not supported",
+          description: "Speech recognition is not supported in this browser. Please use Chrome or Edge.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
 
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.start();
-      mediaRecorderRef.current = mediaRecorder;
+      recognitionRef.current = recognition;
       setIsRecording(true);
+
+      recognition.start();
 
       toast({
         title: "Recording started",
@@ -45,7 +48,7 @@ export const useVoiceRecording = () => {
       console.error('Error starting recording:', error);
       toast({
         title: "Recording error",
-        description: "Could not access microphone. Please check permissions.",
+        description: "Could not start speech recognition. Please check permissions.",
         variant: "destructive",
       });
     }
@@ -53,82 +56,53 @@ export const useVoiceRecording = () => {
 
   const stopRecording = useCallback(async (): Promise<string | null> => {
     return new Promise((resolve) => {
-      if (!mediaRecorderRef.current || !isRecording) {
+      if (!recognitionRef.current || !isRecording) {
         resolve(null);
         return;
       }
 
-      mediaRecorderRef.current.onstop = async () => {
-        setIsRecording(false);
-        setIsProcessing(true);
+      setIsProcessing(true);
 
-        try {
-          // Create audio blob from chunks
-          const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-          
-          // Convert to base64
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            try {
-              const base64Audio = (reader.result as string).split(',')[1];
-              
-              // Send to transcription service
-              const { data, error } = await supabase.functions.invoke('speech-to-text', {
-                body: { audio: base64Audio }
-              });
-
-              if (error) throw error;
-
-              const transcribedText = data?.text || '';
-              
-              if (transcribedText.trim()) {
-                toast({
-                  title: "Transcription complete",
-                  description: `"${transcribedText.substring(0, 50)}${transcribedText.length > 50 ? '...' : ''}"`,
-                });
-                resolve(transcribedText);
-              } else {
-                toast({
-                  title: "No speech detected",
-                  description: "Please try speaking more clearly.",
-                  variant: "destructive",
-                });
-                resolve(null);
-              }
-            } catch (error) {
-              console.error('Error transcribing audio:', error);
-              toast({
-                title: "Transcription failed",
-                description: "Please try again.",
-                variant: "destructive",
-              });
-              resolve(null);
-            } finally {
-              setIsProcessing(false);
-            }
-          };
-
-          reader.readAsDataURL(audioBlob);
-
-        } catch (error) {
-          console.error('Error processing recording:', error);
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        
+        if (transcript.trim()) {
           toast({
-            title: "Processing failed",
-            description: "Please try again.",
+            title: "Transcription complete",
+            description: `"${transcript.substring(0, 50)}${transcript.length > 50 ? '...' : ''}"`
+          });
+          resolve(transcript);
+        } else {
+          toast({
+            title: "No speech detected",
+            description: "Please try speaking more clearly.",
             variant: "destructive",
           });
-          setIsProcessing(false);
           resolve(null);
         }
-
-        // Clean up media streams
-        const stream = mediaRecorderRef.current?.stream;
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-        }
+        
+        setIsRecording(false);
+        setIsProcessing(false);
       };
 
-      mediaRecorderRef.current.stop();
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        toast({
+          title: "Transcription failed",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+        setIsRecording(false);
+        setIsProcessing(false);
+        resolve(null);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+        setIsProcessing(false);
+      };
+
+      recognitionRef.current.stop();
     });
   }, [isRecording, toast]);
 

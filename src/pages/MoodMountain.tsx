@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Mountain, Sun, Cloud, CloudRain, Flower } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
+import { useGameDataSaver } from '@/lib/gameDataSaver';
 
 interface Activity {
   id: string;
@@ -20,6 +21,8 @@ interface Weather {
 }
 
 const MoodMountain = () => {
+  const { saveMoodMountain } = useGameDataSaver(); // ADD THIS
+
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -32,6 +35,19 @@ const MoodMountain = () => {
     icon: Sun,
     description: 'Clear skies ahead!'
   });
+  const handleLevelComplete = async (
+    currentLevel: number, 
+    emotionsFound: string[], 
+    duration: number, 
+    exercisesCompleted: string[]
+  ) => {
+    try {
+      await saveMoodMountain(currentLevel, emotionsFound, duration, exercisesCompleted);
+      console.log('✅ Mood mountain progress saved!');
+    } catch (error) {
+      console.error('Failed to save game result:', error);
+    }
+  };
 
   const activities: Activity[] = [
     { id: '1', name: 'Take a 10-minute walk', points: 10, category: 'exercise' },
@@ -62,23 +78,34 @@ const MoodMountain = () => {
 
   const completeActivity = (activity: Activity) => {
     if (completedActivities.includes(activity.id)) return;
-    
+
+    const newProgress = Math.min(progress + activity.points, 100);
+
     setCompletedActivities(prev => [...prev, activity.id]);
-    setProgress(prev => Math.min(prev + activity.points, 100));
-    
-    // Plant a garden every 30 points
-    if ((progress + activity.points) % 30 === 0) {
+    setProgress(newProgress);
+
+    if (newProgress % 30 === 0) {
       setGardens(prev => prev + 1);
       toast({
         title: "Garden Planted! 🌸",
         description: "You've planted a beautiful garden along your path!",
       });
     }
-    
+
     toast({
       title: "Great work!",
       description: `You climbed ${activity.points} steps up the mountain!`,
     });
+
+    // ✅ Trigger save when level completed
+    if (newProgress === 100) {
+      handleLevelComplete(
+        1, // currentLevel (example: 1 for now)
+        ["happy", "motivated"], // emotionsFound (example placeholder)
+        10, // duration in minutes
+        completedActivities // pass the activities done
+      );
+    }
   };
 
   const updateMood = (newMood: number) => {

@@ -107,7 +107,7 @@ export default function BalloonPositivityGame() {
   const maxBalloons = useMemo(() => Math.min(8, 4 + Math.floor(level * 0.8)), [level]);
   const playTimeUpSound = () => {
     const audio = new Audio("/sounds/timesup.mp3");
-    audio.volume = 0.6; // adjust volume
+    audio.volume = 0.6; 
     audio.play();
   };
 
@@ -214,11 +214,11 @@ export default function BalloonPositivityGame() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden font-sans text-slate-900">
-      {/* Joyful Background */}
+      
       <div className="absolute inset-0 bg-gradient-to-br from-yellow-100 via-pink-100 to-sky-100" />
 
       <header className="relative z-10 flex items-center justify-between px-4 pt-4 md:px-8">
-        {/* Left: Back button */}
+        
         <div>
           <button
             onClick={() => navigate("/games")}
@@ -229,12 +229,12 @@ export default function BalloonPositivityGame() {
           </button>
         </div>
 
-        {/* Center: Title */}
+        
         <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-3xl font-bold tracking-tight text-center text-pink-600 drop-shadow-sm">
           MoodBloom
         </h1>
 
-        {/* Right: Controls */}
+       
         <div className="flex items-center gap-2">
           {!running ? (
             <button
@@ -277,7 +277,7 @@ export default function BalloonPositivityGame() {
         <Stat label="Time" value={`${timeLeft}s`} />
       </div>
 
-      {/* Instructions */}
+      
       <div className="relative z-10 mx-auto mt-2 w-full max-w-5xl px-4 text-center text-slate-700">
         <p>
           Remove the {" "}
@@ -301,7 +301,7 @@ export default function BalloonPositivityGame() {
           ))}
         </AnimatePresence>
 
-        {/* End Modal */}
+        
         {(!running && (lives <= 0 || timeLeft <= 0)) && (
           <div className="absolute inset-0 grid place-items-center bg-white/70 backdrop-blur-sm">
             <div className="rounded-3xl bg-gradient-to-br from-pink-100 to-yellow-100 p-6 text-center shadow-lg max-w-md">
@@ -325,7 +325,7 @@ export default function BalloonPositivityGame() {
         )}
       </div>
 
-      {/* Floating Message */}
+      
       <AnimatePresence>
   {message && (
     <motion.div

@@ -54,6 +54,15 @@ const Games = () => {
       available: true,
     },
     {
+      id: "balloon",
+      title: "Pop the Negativity",
+      description: "Pop balloons to reveal positive affirmations and boost your mood",
+      icon: Target,
+      difficulty: "Easy",
+      duration: "15 sec", 
+      available: true,
+    },
+    {
       id: "decision",
       title: "Decision Making Lab",
       description: "Explore your decision-making patterns through interactive scenarios",
@@ -80,6 +89,7 @@ const Games = () => {
       duration: "10-20 min", 
       available: false,
     },
+    
   ];
 
   const getDifficultyColor = (difficulty: string) => {
@@ -154,6 +164,7 @@ const Games = () => {
                       if (game.id === 'emotion-match') navigate('/emotion-match');
                       if (game.id === 'mood-mountain') navigate('/mood-mountain');
                       if (game.id === 'thought-detective') navigate('/thought-detective');
+                      if (game.id === 'balloon') navigate('/balloon-pop');
                     }
                   }}
                 >

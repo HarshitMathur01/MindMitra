@@ -16,6 +16,7 @@ import EmotionMatch from "./pages/EmotionMatch";
 import MoodMountain from "./pages/MoodMountain";
 import ThoughtDetective from "./pages/ThoughtDetective";
 import NotFound from "./pages/NotFound";
+import BalloonPositivityGame from "./pages/BalloonPositivityGame";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/emotion-match" element={<EmotionMatch />} />
             <Route path="/mood-mountain" element={<MoodMountain />} />
             <Route path="/thought-detective" element={<ThoughtDetective />} />
+            <Route path="/balloon-pop" element={<BalloonPositivityGame />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

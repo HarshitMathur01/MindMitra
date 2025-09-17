@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
+import { useGameDataSaver } from '@/lib/gameDataSaver';
 
 interface Question {
   id: number;
@@ -142,19 +143,37 @@ const questions: Question[] = [
 
 const WellnessCheckIn = () => {
   const navigate = useNavigate();
+  const { saveWellnessCheckIn } = useGameDataSaver();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
+  const [startTime] = useState<number>(Date.now());
 
   const handleAnswer = (value: number) => {
     setAnswers(prev => ({ ...prev, [questions[currentQuestion].id]: value }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
     } else {
       setShowResults(true);
+      
+      // Save wellness check-in data
+      try {
+        const totalScore = Object.values(answers).reduce((sum, score) => sum + score, 0);
+        const averageScore = totalScore / Object.keys(answers).length;
+        const categories = questions.map(q => q.metaphor);
+        const duration = Date.now() - startTime;
+        
+        await saveWellnessCheckIn(
+          answers,
+          Math.round(averageScore * 20), // Convert to 0-100 scale
+          categories
+        );
+      } catch (error) {
+        console.error('Failed to save WellnessCheckIn data:', error);
+      }
     }
   };
 

@@ -1,6 +1,7 @@
 import Header from "@/components/layout/Header";
 import WelcomeHero from "@/components/sections/WelcomeHero";
 import FeaturesPreview from "@/components/sections/FeaturesPreview";
+import StatsSection from "@/components/sections/StatsSection";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Brain, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
@@ -102,6 +103,7 @@ const Index = () => {
           </div>
         </section>
 
+        <StatsSection />
         <FeaturesPreview />
       </main>
     </div>

@@ -3,17 +3,12 @@ import { ArrowRight, Sparkles, Shield, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useIntersectionObserver } from "@/hooks/useScrollAnimations";
+import { motion } from "framer-motion";
 
 const WelcomeHero = () => {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 500], [0, 150]);
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
-  const [heroRef, heroInView] = useIntersectionObserver({ threshold: 0.3, triggerOnce: true });
 
   // Calming background themes for slideshow
   const heroSlides = [
@@ -44,8 +39,8 @@ const WelcomeHero = () => {
   }, []);
 
   return (
-    <section ref={heroRef} className="relative py-20 overflow-hidden min-h-screen flex items-center">
-      {/* Animated Background Slideshow with Parallax */}
+    <section className="relative py-20 overflow-hidden min-h-screen flex items-center">
+      {/* Animated Background Slideshow */}
       {heroSlides.map((slide, index) => (
         <motion.div
           key={index}
@@ -53,10 +48,9 @@ const WelcomeHero = () => {
           initial={{ opacity: 0, scale: 1.1 }}
           animate={{ 
             opacity: currentSlide === index ? 1 : 0,
-            scale: currentSlide === index ? 1 : 1.1
+            scale: currentSlide === index ? 1 : 1.05
           }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
-          style={{ y: currentSlide === index ? y : 0 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
         />
       ))}
 
@@ -69,94 +63,75 @@ const WelcomeHero = () => {
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        {/* Main Content with Advanced Animations */}
-        <motion.div 
-          className="text-center max-w-4xl mx-auto z-20 relative"
-          style={{ opacity }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: heroInView ? 1 : 0 }}
-          transition={{ duration: 1, delay: 0.3 }}
-        >
-          {/* Animated Badge */}
+        <div className="text-center max-w-4xl mx-auto">
+          {/* Badge */}
           <motion.div 
-            className="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-md rounded-full px-6 py-3 mb-8 border border-white/20"
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: heroInView ? 1 : 0, y: heroInView ? 0 : -20, scale: heroInView ? 1 : 0.9 }}
-            transition={{ duration: 0.8, delay: 0.5, type: "spring", stiffness: 100 }}
+            className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6 hover-lift"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
             <Sparkles className="h-4 w-4" />
             AI-Powered Psychology Hub
           </motion.div>
 
-          {/* Dynamic Title with Slide Content and Advanced Animation */}
+          {/* Dynamic Title with Slide Content */}
           <motion.h1 
             className="text-5xl md:text-6xl font-bold mb-6 text-gradient"
             key={currentSlide}
-            initial={{ opacity: 0, y: 50, rotateX: 15 }}
-            animate={{ opacity: 1, y: 0, rotateX: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut", type: "spring", stiffness: 80 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
           >
             {heroSlides[currentSlide].title}
           </motion.h1>
           
-          {/* Dynamic Subtitle with Advanced Animation */}
+          {/* Dynamic Subtitle */}
           <motion.p 
             className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed"
             key={`subtitle-${currentSlide}`}
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.3, type: "spring", stiffness: 80 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
             {heroSlides[currentSlide].subtitle}
           </motion.p>
 
-          {/* Enhanced Breathing Indicator */}
+          {/* Breathing Indicator */}
           <motion.div 
             className="flex justify-center mb-8"
-            initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{ duration: 0.8, delay: 0.5, type: "spring", stiffness: 120 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
           >
             <div className="breathing-focus w-16 h-16 border-2 border-primary/50 rounded-full flex items-center justify-center">
-              <div className="w-8 h-8 bg-primary/50 rounded-full breathing-hero"></div>
+              <div className="w-8 h-8 bg-primary/50 rounded-full breathing-pulse"></div>
             </div>
           </motion.div>
 
-          {/* Enhanced CTA Buttons with Stagger */}
+          {/* CTA Buttons */}
           <motion.div 
             className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.8, type: "spring", stiffness: 100 }}
+            <Button 
+              size="lg" 
+              className="gradient-primary hover-glow text-lg px-8 py-6 transform hover:scale-105 transition-all duration-300"
+              onClick={() => navigate("/chat")}
             >
-              <Button 
-                size="lg" 
-                className="gradient-primary hover-glow text-lg px-8 py-6 transform hover:scale-105 transition-all duration-300"
-                onClick={() => navigate("/chat")}
-              >
-                Start Chatting
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.9, type: "spring", stiffness: 100 }}
+              Start Chatting
+              <ArrowRight className="h-5 w-5 ml-2" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="text-lg px-8 py-6 hover-lift bg-white/50 backdrop-blur-sm transform hover:scale-105 transition-all duration-300"
+              onClick={() => navigate("/games")}
             >
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg px-8 py-6 hover-lift bg-white/50 backdrop-blur-sm transform hover:scale-105 transition-all duration-300"
-                onClick={() => navigate("/games")}
-              >
-                Explore Features
-              </Button>
-            </motion.div>
+              Explore Features
+            </Button>
           </motion.div>
 
           {/* Feature Cards with staggered animation */}
@@ -225,7 +200,7 @@ const WelcomeHero = () => {
               <span>Professional Support</span>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Slide Indicators */}

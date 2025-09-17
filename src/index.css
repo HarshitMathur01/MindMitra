@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -18,99 +19,62 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 15%;
 
-    /* Deep psychology blue - trust and professionalism */
-    --primary: 220 75% 35%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 220 85% 65%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
 
-    /* Soft therapeutic green - growth and calm */
-    --secondary: 150 35% 60%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 84% 4.9%;
 
-    /* Muted backgrounds */
-    --muted: 240 10% 96%;
-    --muted-foreground: 240 8% 45%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 13% 37%;
 
-    /* Warm psychology purple - engagement */
-    --accent: 260 55% 65%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 84% 4.9%;
 
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 240 15% 90%;
-    --input: 240 15% 95%;
-    --ring: 220 75% 35%;
-
-    /* Modern gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-calm: linear-gradient(180deg, hsl(var(--background)), hsl(240 15% 95%));
-    --gradient-chat: linear-gradient(135deg, hsl(220 75% 35% / 0.05), hsl(260 55% 65% / 0.05));
-
-    /* Beautiful shadows */
-    --shadow-soft: 0 2px 20px hsl(var(--primary) / 0.1);
-    --shadow-chat: 0 4px 30px hsl(var(--primary) / 0.15);
-    --shadow-glow: 0 0 40px hsl(var(--accent) / 0.3);
-
-    /* Smooth animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Mental wellness color palette */
+    --calm-blue: 201 85% 85%;
+    --serene-green: 142 71% 85%;
+    --warm-purple: 262 52% 85%;
+    --soft-pink: 330 81% 90%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 84% 4.9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 212 73% 64%;
   }
 }
 
@@ -118,71 +82,343 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
+  
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Inter', sans-serif;
+  }
+  
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-gradient-to-br from-blue-50 via-white to-purple-50 text-foreground;
+    background-attachment: fixed;
+    min-height: 100vh;
   }
 }
 
 @layer components {
-  /* Chat Interface Styles */
-  .chat-bubble-user {
-    @apply bg-primary text-primary-foreground rounded-2xl rounded-br-md px-4 py-3 max-w-xs ml-auto;
-    box-shadow: var(--shadow-soft);
+/* Gentle breathing animation for wellness elements */
+.breathing-circle {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+.breathing-pulse {
+  animation: breathePulse 6s ease-in-out infinite;
+}
+
+/* Very subtle breathing for hero elements */
+.breathing-hero {
+  animation: breatheHero 8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
+@keyframes breathePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 15px rgba(59, 130, 246, 0.05);
+  }
+}
+
+@keyframes breatheHero {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.005);
+    opacity: 0.9;
+  }
+}  /* Smooth Page Transitions */
+  .page-transition {
+    animation: fadeInUp 0.6s ease-out;
   }
   
-  .chat-bubble-ai {
-    @apply bg-card border rounded-2xl rounded-bl-md px-4 py-3 max-w-xs;
-    box-shadow: var(--shadow-soft);
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-
-  /* Beautiful gradients */
-  .gradient-primary {
-    background: var(--gradient-primary);
+  
+  /* Gentle Hover Effects */
+  .gentle-hover {
+    @apply transition-all duration-300 ease-out;
   }
-
-  .gradient-calm {
-    background: var(--gradient-calm);
+  
+  .gentle-hover:hover {
+    @apply transform -translate-y-1 shadow-lg;
   }
-
-  .gradient-chat {
-    background: var(--gradient-chat);
+  
+  /* Chat Message Animations */
+  .message-slide-in {
+    animation: slideInFromBottom 0.4s ease-out;
   }
-
-  /* Smooth animations */
-  .transition-smooth {
-    transition: var(--transition-smooth);
+  
+  @keyframes slideInFromBottom {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-
-  .transition-spring {
-    transition: var(--transition-spring);
+  
+  /* Loading Animation for Therapeutic Response */
+  .typing-indicator {
+    animation: typing 1.5s ease-in-out infinite;
   }
-
-  /* Psychology-themed animations */
-  .pulse-gentle {
-    @apply animate-pulse;
-    animation-duration: 3s;
+  
+  @keyframes typing {
+    0%, 20% { opacity: 0.4; }
+    40% { opacity: 1; }
+    60% { opacity: 0.4; }
+    80%, 100% { opacity: 0.4; }
   }
+  
+  /* Wellness Card Animations */
+/* Enhanced wellness card hover effects */
+.wellness-card {
+  @apply transform transition-all duration-500 ease-out;
+}
 
-  .float-gentle {
-    animation: float 6s ease-in-out infinite;
+.wellness-card:hover {
+  @apply scale-105 shadow-2xl;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+}
+
+/* Custom scrollbar styling */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3));
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(147, 51, 234, 0.5));
+}
+
+/* Advanced scroll-triggered animations */
+.slide-in-left {
+  animation: slideInLeft 0.8s ease-out forwards;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.8s ease-out forwards;
+}
+
+.slide-in-bottom {
+  animation: slideInBottom 0.8s ease-out forwards;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100px);
   }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
+}
 
-  /* Mindful hover effects */
-  .hover-lift {
-    @apply transition-smooth hover:scale-105 hover:shadow-lg;
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
   }
-
-  .hover-glow {
-    @apply transition-smooth;
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
+}
 
-  .hover-glow:hover {
-    box-shadow: var(--shadow-glow);
+@keyframes slideInBottom {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Interactive hover effects */
+.hover-float:hover {
+  animation: floatEffect 2s ease-in-out infinite;
+}
+
+@keyframes floatEffect {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Magnetic button effect */
+.magnetic-button {
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.magnetic-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* Enhanced scroll animations */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Loading animation */
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loading-dots::before,
+.loading-dots::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: loadingDots 1.4s infinite ease-in-out both;
+}
+
+.loading-dots::before {
+  animation-delay: -0.32s;
+}
+
+.loading-dots::after {
+  animation-delay: -0.16s;
+}
+
+@keyframes loadingDots {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Chat session hover effects */
+.chat-session-card {
+  @apply transition-all duration-300 ease-out;
+}
+
+.chat-session-card:hover {
+  @apply transform scale-102 shadow-md;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+}
+
+/* Input focus animation */
+.chat-input:focus {
+  @apply scale-102;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}  /* Smooth Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+  }
+}
+
+@layer utilities {
+  /* Text Gradients for Headings */
+  .text-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .text-calm-gradient {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Glass Morphism Effects */
+  .glass {
+    @apply bg-white/20 backdrop-blur-md border border-white/20;
+  }
+  
+  .glass-dark {
+    @apply bg-black/10 backdrop-blur-md border border-white/10;
   }
 }

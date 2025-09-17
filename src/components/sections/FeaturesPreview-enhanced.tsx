@@ -1,10 +1,9 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { MessageSquare, Puzzle, BarChart, Globe, ArrowRight, MessageCircle, Brain, BookOpen, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { useIntersectionObserver } from '@/hooks/useScrollAnimations';
+import { useState, useEffect, useRef } from 'react';
+import { BookOpen, Puzzle, BarChart3, Users, MessageCircle, Brain } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const FeaturesPreview = () => {
   const navigate = useNavigate();
@@ -31,7 +30,7 @@ const FeaturesPreview = () => {
       comingSoon: false,
     },
     {
-      icon: BarChart,
+      icon: BarChart3,
       title: "Wellness Check-ins",
       description: "Regular mood tracking and progress monitoring to understand your mental health journey and celebrate growth.",
       gradient: "from-purple-400 to-pink-600",
@@ -78,8 +77,8 @@ const FeaturesPreview = () => {
     <section className="py-20 relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-50/30 to-purple-50/30"></div>
-      <div className="absolute top-10 right-10 w-40 h-40 bg-gradient-to-r from-blue-200/10 to-purple-200/10 rounded-full"></div>
-      <div className="absolute bottom-20 left-10 w-32 h-32 bg-gradient-to-r from-green-200/10 to-blue-200/10 rounded-full"></div>
+      <div className="breathing-circle absolute top-10 right-10 w-40 h-40 bg-gradient-to-r from-blue-200/20 to-purple-200/20 rounded-full"></div>
+      <div className="breathing-circle-delayed absolute bottom-20 left-10 w-32 h-32 bg-gradient-to-r from-green-200/20 to-blue-200/20 rounded-full"></div>
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
@@ -112,9 +111,9 @@ const FeaturesPreview = () => {
             >
               <Card className="wellness-card group cursor-pointer h-full" onClick={feature.action}>
                 <CardContent className="p-6 text-center h-full flex flex-col">
-                  {/* Icon with Gentle Hover Effect */}
+                  {/* Icon with Breathing Effect */}
                   <div className="mb-6">
-                    <div className={`mx-auto w-16 h-16 rounded-full bg-gradient-to-r ${feature.gradient} flex items-center justify-center text-2xl transform transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg`}>
+                    <div className={`mx-auto w-16 h-16 rounded-full bg-gradient-to-r ${feature.gradient} flex items-center justify-center text-2xl transform transition-all duration-300 group-hover:scale-110 breathing-pulse`}>
                       <feature.icon className="h-8 w-8 text-white" />
                     </div>
                   </div>

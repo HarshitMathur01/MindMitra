@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Search, Award, CheckCircle, Brain, Target, Zap } from "lucide-react";
+import { ArrowLeft, Search, Award, CheckCircle, Brain, Target, Zap, Trophy, Star } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useGameDataSaver } from '@/lib/gameDataSaver';
 

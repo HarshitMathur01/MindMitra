@@ -51,9 +51,14 @@ const ChatGPTInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [recentChats, setRecentChats] = useState<Array<{id: string, title: string, created_at: string, messageCount: number}>>([]);
+  const [loadingChats, setLoadingChats] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
+  const { isRecording, isProcessing, toggleRecording, currentTranscript } = useVoiceRecording();
+  const [voiceTempMsgId, setVoiceTempMsgId] = useState<string|null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -70,63 +75,234 @@ const ChatGPTInterface = () => {
       navigate('/auth');
       return;
     }
-    loadMessages();
   }, [user, navigate]);
 
-  const loadMessages = async () => {
+  // Initialize session from localStorage
+  useEffect(() => {
+    const savedSessionId = localStorage.getItem('currentChatSession');
+    if (savedSessionId) {
+      setCurrentSessionId(savedSessionId);
+      console.log('🔄 Restored session ID from localStorage:', savedSessionId);
+    }
+  }, []);
+
+  // Load recent chats and restore session when component mounts
+  useEffect(() => {
+    if (user) {
+      console.log('👤 User authenticated, loading chat data...');
+      
+      // Load recent chats first
+      loadRecentChats();
+      
+      // Check if there's a current session to restore
+      const savedSessionId = localStorage.getItem('currentChatSession');
+      if (savedSessionId) {
+        console.log('🔄 Restoring saved session:', savedSessionId);
+        selectRecentChat(savedSessionId);
+      } else {
+        console.log('🆕 No saved session, starting new chat');
+        startNewChat();
+      }
+    }
+  }, [user]);
+
+  // Refresh recent chats periodically to catch any new messages
+  useEffect(() => {
+    if (user) {
+      const interval = setInterval(() => {
+        loadRecentChats();
+      }, 10000); // Refresh every 10 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const saveMessage = async (message: Message, sessionId: string) => {
     try {
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const loadedMessages = data.map(msg => ({
-          id: msg.id,
-          content: msg.content,
-          sender: msg.sender as "user" | "ai",
-          timestamp: new Date(msg.created_at),
-        }));
-        setMessages(loadedMessages);
-      } else {
-        setMessages([{
-          id: "welcome",
-          content: "Hello! I'm MindMate, your AI psychology assistant. I'm here to help with mental health questions, provide insights about personality and well-being, and guide you through therapeutic exercises. What would you like to explore today?",
-          sender: "ai",
-          timestamp: new Date(),
-        }]);
-      }
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    }
-  };
-
-  const saveMessage = async (message: Message) => {
-    try {
-      if (!user || message.id === "welcome") return;
+      console.log('💾 Saving message to database:', {
+        session_id: sessionId,
+        content: message.content,
+        role: message.sender === 'user' ? 'user' : 'assistant'
+      });
 
       const { error } = await supabase
         .from('chat_messages')
         .insert({
           user_id: user.id,
+          session_id: sessionId,
           content: message.content,
           sender: message.sender,
+          role: message.sender === 'user' ? 'user' : 'assistant'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error saving message:', error);
+        throw error;
+      }
+
+      console.log('✅ Message saved successfully');
     } catch (error) {
-      console.error('Error saving message:', error);
+      console.error('❌ Failed to save message:', error);
+    }
+  };
+
+  const loadRecentChats = async () => {
+    if (!user) return;
+
+    setLoadingChats(true);
+    try {
+      console.log('🔍 Loading recent chats from chat_messages table...');
+      
+      // Get unique sessions with their latest activity and first user message
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('session_id, content, created_at, role')
+        .eq('user_id', user.id)
+        .not('session_id', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error loading chat messages:', error);
+        return;
+      }
+
+      console.log('📊 Total messages found:', data?.length || 0);
+
+      if (!data || data.length === 0) {
+        setRecentChats([]);
+        return;
+      }
+
+      // Group messages by session_id
+      const sessionMap = new Map();
+      
+      data.forEach(msg => {
+        if (!sessionMap.has(msg.session_id)) {
+          sessionMap.set(msg.session_id, {
+            id: msg.session_id,
+            messages: [],
+            firstUserMessage: null,
+            lastActivity: msg.created_at,
+            messageCount: 0
+          });
+        }
+        
+        const session = sessionMap.get(msg.session_id);
+        session.messages.push(msg);
+        session.messageCount++;
+        
+        // Update last activity if this message is newer
+        if (msg.created_at > session.lastActivity) {
+          session.lastActivity = msg.created_at;
+        }
+        
+        // Set first user message as preview
+        if (msg.role === 'user' && !session.firstUserMessage) {
+          session.firstUserMessage = msg.content;
+        }
+      });
+
+      // Convert to RecentChat array
+      const chatList = Array.from(sessionMap.values())
+        .filter(session => session.messageCount > 0) // Only show sessions with messages
+        .map(session => ({
+          id: session.id,
+          title: session.firstUserMessage ? 
+            (session.firstUserMessage.substring(0, 50) + (session.firstUserMessage.length > 50 ? '...' : '')) :
+            'New Chat',
+          created_at: session.lastActivity,
+          messageCount: session.messageCount
+        }))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 20); // Show latest 20 chats
+
+      console.log('✅ Processed chat sessions:', chatList.length);
+      setRecentChats(chatList);
+
+    } catch (error) {
+      console.error('❌ Failed to load recent chats:', error);
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
+  const selectRecentChat = async (chatId: string) => {
+    console.log('🔄 Switching to chat session:', chatId);
+    
+    // Prevent loading if already on this session and messages are loaded
+    if (currentSessionId === chatId && messages.length > 0) {
+      console.log('Already on session:', chatId);
+      return;
+    }
+    
+    // Prevent multiple simultaneous session loads
+    if (loadingSession) {
+      console.log('Session already loading, ignoring click');
+      return;
+    }
+    
+    setLoadingSession(true);
+    
+    try {
+      // Clear current messages first to prevent mixing
+      setMessages([]);
+      
+      // Load messages for this specific session first
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('id, content, role, created_at')
+        .eq('session_id', chatId)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error loading session messages:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load chat session. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Convert to Message format with validation
+      const sessionMessages: Message[] = data?.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        sender: (msg.role === 'user' ? 'user' : 'ai') as "user" | "ai",
+        timestamp: new Date(msg.created_at)
+      })) || [];
+
+      console.log('✅ Loaded messages for session:', sessionMessages.length, 'Session ID:', chatId);
+      
+      // Update session state and localStorage after successful message load
+      setCurrentSessionId(chatId);
+      localStorage.setItem('currentChatSession', chatId);
+      
+      // Set the messages
+      setMessages(sessionMessages);
+
+    } catch (error) {
+      console.error('❌ Failed to load session messages:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to switch to chat session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingSession(false);
     }
   };
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || inputValue;
     if (!textToSend.trim() || isLoading) return;
+
+    console.log('🚀 CHAT DEBUG: Sending message via ChatGPTInterface...');
+    console.log('Message:', textToSend);
+    console.log('Current session ID:', currentSessionId);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -136,34 +312,86 @@ const ChatGPTInterface = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    await saveMessage(userMessage);
-    
     setInputValue("");
     setIsLoading(true);
 
     try {
-      const conversationHistory = messages.slice(-10);
+      console.log('📡 Calling enhanced-chat-context function...');
+
+      // Get current session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke('chat-with-groq', {
+      if (!session) {
+        throw new Error('No active session found');
+      }
+
+      // Ensure we have a session ID
+      let sessionIdToUse = currentSessionId;
+      if (!sessionIdToUse) {
+        sessionIdToUse = crypto.randomUUID();
+        setCurrentSessionId(sessionIdToUse);
+        localStorage.setItem('currentChatSession', sessionIdToUse);
+        console.log('🆔 Generated new session ID:', sessionIdToUse);
+      }
+
+      // Save the user message first
+      await saveMessage(userMessage, sessionIdToUse);
+
+      // Call the enhanced-chat-context function
+      const { data, error } = await supabase.functions.invoke('enhanced-chat-context', {
         body: {
           message: textToSend,
-          conversationHistory
+          sessionId: sessionIdToUse
         }
       });
 
-      if (error) throw error;
+      console.log('📡 Function response:', { data, error });
+
+      if (error) {
+        console.error('❌ Function error:', error);
+        throw error;
+      }
+
+      if (!data || !data.message) {
+        throw new Error('Invalid response from function');
+      }
+
+      // Update session ID if it was generated by the edge function
+      if (data.sessionId && data.sessionId !== currentSessionId) {
+        setCurrentSessionId(data.sessionId);
+        localStorage.setItem('currentChatSession', data.sessionId);
+        console.log('💾 Updated session ID from server:', data.sessionId);
+      }
 
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response || "I apologize, but I'm having trouble responding right now. Please try again.",
+        content: data.message || "I apologize, but I'm having trouble responding right now. Please try again.",
         sender: "ai",
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, aiResponse]);
-      await saveMessage(aiResponse);
+      // Only add AI response if we're still on the same session
+      const currentSession = localStorage.getItem('currentChatSession');
+      if (currentSession === sessionIdToUse || currentSession === data.sessionId) {
+        setMessages(prev => [...prev, aiResponse]);
+      }
+
+      // Log debug info if available
+      if (data.debug) {
+        console.log('🔍 Debug info from enhanced function:', data.debug);
+        console.log('🎮 Activities found:', data.debug.activitiesFound);
+        console.log('🧠 Has game memory:', data.debug.hasGameMemory);
+      }
+
+      console.log('✅ Message exchange completed');
+
+      // Refresh recent chats list after successful message exchange
+      setTimeout(async () => {
+        await loadRecentChats();
+      }, 1000);
+
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error sending message:', error);
       toast({
         title: "Error",
         description: "Failed to get AI response. Please try again.",
@@ -176,21 +404,46 @@ const ChatGPTInterface = () => {
 
   const handleVoiceInput = async () => {
     try {
-      const transcribedText = await toggleRecording();
-      if (transcribedText) {
-        setInputValue(transcribedText);
+      console.log('🎤 [UI] Voice button clicked, current recording state:', isRecording);
+      console.log('🎤 [UI] Session ID:', currentSessionId);
+      console.log('🎤 [UI] About to call toggleRecording...');
+      
+      if (isRecording) {
+        // Stop recording and process result
+        const result = await toggleRecording(currentSessionId, voiceTempMsgId || undefined);
+        console.log('🎤 [UI] Received result from stopping recording:', result);
+        if (voiceTempMsgId) {
+          setMessages(msgs => msgs.filter(m => m.id !== voiceTempMsgId));
+          setVoiceTempMsgId(null);
+        }
+        if (result && result.transcript) {
+          await handleSendMessage(result.transcript);
+        }
+      } else {
+        // Start recording
+        console.log('🎤 [UI] Starting recording...');
+        // Add temporary message
+        const tempId = `voice-${Date.now()}`;
+        setVoiceTempMsgId(tempId);
+        setMessages(msgs => [...msgs, {
+          id: tempId,
+          content: '🎤 Recording...',
+          sender: 'user',
+          timestamp: new Date()
+        }]);
+        await toggleRecording(currentSessionId, tempId);
+        console.log('🎤 [UI] Recording started successfully');
       }
-    } catch (error) {
-      console.error('Error with voice input:', error);
-      toast({
-        title: "Voice input failed",
-        description: "Please try again.",
-        variant: "destructive",
-      });
+  // Update temporary voice message with live transcript
+  useEffect(() => {
+    if (isRecording && voiceTempMsgId && currentTranscript) {
+      setMessages(msgs => msgs.map(m => m.id === voiceTempMsgId ? { ...m, content: currentTranscript || '🎤 Recording...' } : m));
     }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  }, [isRecording, currentTranscript, voiceTempMsgId]);
+    } catch (error) {
+      console.error('❌ [UI] Voice input error:', error);
+    }
+  };  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -210,14 +463,21 @@ const ChatGPTInterface = () => {
     message.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const startNewChat = () => {
-    setMessages([{
-      id: "welcome-new",
-      content: "Hello! I'm MindMate, your AI psychology assistant. What would you like to discuss in this new conversation?",
-      sender: "ai",
-      timestamp: new Date(),
-    }]);
+  const startNewChat = async () => {
+    console.log('🆕 Starting new chat...');
+    
+    const newSessionId = crypto.randomUUID();
+    
+    // Clear current state first
+    setMessages([]);
+    setCurrentSessionId(newSessionId);
     setSearchQuery("");
+    localStorage.setItem('currentChatSession', newSessionId);
+    
+    console.log('✅ New chat session created:', newSessionId);
+    
+    // Immediately refresh recent chats to show new session
+    await loadRecentChats();
   };
 
   if (!user) {
@@ -265,6 +525,51 @@ const ChatGPTInterface = () => {
               <Home className="h-4 w-4 mr-3" />
               Home
             </Button>
+            
+            {/* Recent Chats Section */}
+            <div className="pt-3 pb-1 flex-shrink-0">
+              <div className="flex items-center justify-between px-3 mb-2">
+                <h3 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
+                  Recent Chats
+                </h3>
+                {(loadingChats || loadingSession) && (
+                  <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                )}
+              </div>
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {recentChats.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-gray-500 italic">
+                    No recent chats
+                  </div>
+                ) : (
+                  recentChats.map((chat) => (
+                    <Button
+                      key={chat.id}
+                      variant="ghost"
+                      disabled={loadingSession}
+                      className={`w-full text-left p-2 transition-colors text-xs hover:bg-gray-800 group relative border border-transparent ${
+                        currentSessionId === chat.id ? 'bg-gray-800 border-gray-600 text-white' : 'text-gray-300 hover:text-white hover:border-gray-700'
+                      } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => selectRecentChat(chat.id)}
+                    >
+                      <div className="flex items-start gap-2 w-full">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${
+                          currentSessionId === chat.id ? 'bg-green-500' : 'bg-gray-500'
+                        }`}></div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate leading-tight font-medium">
+                            {chat.title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {chat.messageCount || 0} messages • {new Date(chat.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </Button>
+                  ))
+                )}
+              </div>
+            </div>
             
             {/* Quick Topics Section */}
             <div className="pt-1 pb-1 flex-shrink-0">

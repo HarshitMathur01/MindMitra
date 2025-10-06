@@ -12,6 +12,9 @@ import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
+import { Avatar } from "@radix-ui/react-avatar";
+import GirlAvatar from "./GirlAvatar"
+import {useChat} from "../../hooks/useChat"
 
 interface Message {
   id: string;
@@ -49,6 +52,7 @@ const ChatGPTInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isAvatarVisible, setIsAvatarVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -61,6 +65,7 @@ const ChatGPTInterface = () => {
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string|null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const {chat} = useChat();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -370,7 +375,9 @@ const ChatGPTInterface = () => {
         timestamp: new Date(),
       };
 
+      await chat(aiResponse.content)
       // Only add AI response if we're still on the same session
+      // Insert Voice Piepline here
       const currentSession = localStorage.getItem('currentChatSession');
       if (currentSession === sessionIdToUse || currentSession === data.sessionId) {
         setMessages(prev => [...prev, aiResponse]);
@@ -658,7 +665,7 @@ const ChatGPTInterface = () => {
               variant="ghost"
               size="sm"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            >
+              >
               {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">MindMate</h1>
@@ -668,6 +675,9 @@ const ChatGPTInterface = () => {
               </Badge>
             )}
           </div>
+          <button onClick={()=>setIsAvatarVisible((state)=>!state)}>
+            Toggle Avtar
+          </button>
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -686,7 +696,9 @@ const ChatGPTInterface = () => {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-hidden bg-white dark:bg-gray-800">
+        <div className={`grid grid-rows-1 h-[80%]  ${isAvatarVisible?'grid-cols-2':'grid-cols-1'}`}>
+        {isAvatarVisible && <GirlAvatar/>}
+        <div className="flex-1 overflow-y-scroll bg-white dark:bg-gray-800">
           <ScrollArea className="h-full">
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
               {filteredMessages.map((message) => (
@@ -773,7 +785,7 @@ const ChatGPTInterface = () => {
             </div>
           </ScrollArea>
         </div>
-
+        </div>
         {/* Input Area */}
         <div className="border-t bg-white dark:bg-gray-800 p-4">
           <div className="max-w-4xl mx-auto">

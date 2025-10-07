@@ -375,6 +375,8 @@ const ChatGPTInterface = () => {
         timestamp: new Date(),
       };
 
+      console.log(`Ai Response: ${aiResponse.content}`)
+
       await chat(aiResponse.content)
       // Only add AI response if we're still on the same session
       // Insert Voice Piepline here

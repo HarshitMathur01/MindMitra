@@ -28,7 +28,7 @@ const Dots = (props) => {
   }, [loading]);
   if (!loading) return null;
   return (
-    <group {...props}>
+    <group>
       <Text fontSize={0.14} anchorX={"left"} anchorY={"bottom"}>
         {loadingText}
         <meshBasicMaterial attach="material" color="black" />

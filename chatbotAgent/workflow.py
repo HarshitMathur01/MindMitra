@@ -4,12 +4,14 @@ import time
 import logging
 import threading
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
+from supabase import create_client, Client
+from memory_architecture import UniversalMemorySystem
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -59,8 +61,204 @@ class MindMateWorkflow:
         
         # Background summarization tracking
         self._summarization_cache = {}
-        logger.info("✅ [WORKFLOW] MindMate Workflow fully initialized and ready for voice-enhanced therapy")
         self._last_summarization_count = {}
+        
+        # Initialize Supabase client
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_KEY")
+        if supabase_url and supabase_key:
+            self.supabase: Client = create_client(supabase_url, supabase_key)
+            logger.info("✅ [WORKFLOW] Supabase client initialized")
+        else:
+            self.supabase = None
+            logger.warning("⚠️ [WORKFLOW] Supabase credentials not found - memory features disabled")
+        
+        # Initialize memory system
+        try:
+            google_api_key = os.getenv('GOOGLE_API_KEY')
+            if google_api_key:
+                self.memory_system = UniversalMemorySystem(api_key=google_api_key)
+                logger.info("✅ [WORKFLOW] Memory system initialized")
+            else:
+                self.memory_system = None
+                logger.warning("⚠️ [WORKFLOW] GOOGLE_API_KEY not found - memory extraction disabled")
+        except Exception as e:
+            self.memory_system = None
+            logger.error(f"❌ [WORKFLOW] Memory system initialization failed: {e}")
+        
+        logger.info("✅ [WORKFLOW] MindMate Workflow fully initialized and ready for voice-enhanced therapy")
+    
+    def fetch_session_memories(self, session_id: str) -> Dict[str, List[Dict]]:
+        """Fetch all memories for a session from database"""
+        logger.info(f"🔍 [FETCH_MEMORIES] Starting to fetch memories for session: {session_id}")
+        
+        if not self.supabase:
+            logger.error(f"❌ [FETCH_MEMORIES] Supabase client is not initialized!")
+            return {'procedural': [], 'semantic': [], 'episodic': []}
+            
+        if not session_id:
+            logger.warning(f"⚠️ [FETCH_MEMORIES] No session_id provided")
+            return {'procedural': [], 'semantic': [], 'episodic': []}
+        
+        try:
+            logger.info(f"📊 [FETCH_MEMORIES] Querying 'memories' table for session_id: {session_id}")
+            response = self.supabase.table('memories').select('*').eq('session_id', session_id).order('created_at', desc=True).execute()
+            
+            logger.info(f"📥 [FETCH_MEMORIES] Database returned {len(response.data)} rows")
+            
+            if response.data:
+                logger.info(f"✅ [FETCH_MEMORIES] Found {len(response.data)} memory records in database")
+                # Show first memory as sample
+                sample = response.data[0]
+                logger.info(f"   Sample memory: type={sample.get('memory_type')}, created={sample.get('created_at')}")
+            else:
+                logger.warning(f"⚠️ [FETCH_MEMORIES] No memory records found in database for this session")
+                # Check if ANY memories exist at all
+                try:
+                    all_memories = self.supabase.table('memories').select('session_id', count='exact').limit(1).execute()
+                    total_count = all_memories.count if hasattr(all_memories, 'count') else 0
+                    logger.info(f"   Total memories in entire database: {total_count}")
+                except:
+                    pass
+            
+            memories = {'procedural': [], 'semantic': [], 'episodic': []}
+            for row in response.data:
+                memory_type = row.get('memory_type')
+                if memory_type in memories:
+                    # Parse the content if it's stored as JSON string
+                    content = row.get('content')
+                    if isinstance(content, str):
+                        try:
+                            content = json.loads(content)
+                        except:
+                            pass
+                    
+                    memories[memory_type].append({
+                        'memory_content': content.get('memory_content') if isinstance(content, dict) else content,
+                        'confidence': content.get('confidence') if isinstance(content, dict) else row.get('confidence'),
+                        'created_at': row.get('created_at'),
+                        'memory_id': row.get('id')
+                    })
+            
+            logger.info(f"✅ [FETCH_MEMORIES] Organized memories by type:")
+            logger.info(f"   - Procedural: {len(memories['procedural'])}")
+            logger.info(f"   - Semantic: {len(memories['semantic'])}")
+            logger.info(f"   - Episodic: {len(memories['episodic'])}")
+            
+            return memories
+        except Exception as e:
+            logger.error(f"❌ [FETCH_MEMORIES] Error fetching session memories: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {'procedural': [], 'semantic': [], 'episodic': []}
+    
+    def fetch_last_n_messages(self, session_id: str, n: int = 15) -> List[Dict]:
+        """Fetch last N unprocessed messages for a session"""
+        if not self.supabase or not session_id:
+            return []
+        
+        try:
+            response = self.supabase.table('chat_messages').select('id, role, content, created_at').eq('session_id', session_id).eq('processed_into_memory', False).order('created_at', desc=False).limit(n).execute()
+            
+            messages = []
+            for row in response.data:
+                messages.append({
+                    'id': row['id'],
+                    'role': row['role'],
+                    'content': row['content'],
+                    'timestamp': row['created_at']
+                })
+            
+            logger.info(f"📥 [WORKFLOW] Fetched {len(messages)} unprocessed messages for session {session_id}")
+            return messages
+        except Exception as e:
+            logger.error(f"❌ [WORKFLOW] Error fetching messages: {e}")
+            return []
+    
+    def trigger_memory_extraction(self, session_id: str, user_id: str):
+        """
+        Trigger memory extraction for a session (runs in background).
+        Called every 8 messages.
+        """
+        try:
+            logger.info("=" * 80)
+            logger.info(f"🧠 [MEMORY EXTRACTION] Starting Memory Extraction Process")
+            logger.info("=" * 80)
+            logger.info(f"🔗 [MEMORY] Session ID: {session_id}")
+            logger.info(f"👤 [MEMORY] User ID: {user_id}")
+            
+            # Fetch unprocessed messages
+            logger.info(f"📥 [MEMORY] Fetching last 15 messages for extraction...")
+            messages = self.fetch_last_n_messages(session_id, n=15)
+            
+            if not messages:
+                logger.warning(f"⚠️ [MEMORY] No messages found for extraction")
+                logger.info("=" * 80)
+                return
+            
+            logger.info(f"✅ [MEMORY] Retrieved {len(messages)} messages for processing")
+            
+            if not self.memory_system:
+                logger.error(f"❌ [MEMORY] Memory system not initialized - cannot extract memories")
+                logger.info("=" * 80)
+                return
+            
+            # Format as chat data
+            chat_data = {
+                'data_type': 'chat',
+                'user_id': user_id,
+                'session_id': session_id,
+                'chat_history': messages
+            }
+            
+            # Extract memories
+            logger.info(f"🔄 [MEMORY] Calling LLM to extract memories (this may take 10-30 seconds)...")
+            logger.info(f"   Using parallel extraction for 3 memory types:")
+            logger.info(f"   - Procedural (how-to knowledge)")
+            logger.info(f"   - Semantic (general knowledge)")
+            logger.info(f"   - Episodic (specific events)")
+            
+            result = self.memory_system.process_data_to_memories(chat_data)
+            
+            logger.info(f"✅ [MEMORY] LLM extraction completed!")
+            logger.info(f"📊 [MEMORY] Extraction results:")
+            logger.info(f"   - Procedural memories: {len(result['memories'].get('procedural', []))}")
+            logger.info(f"   - Semantic memories: {len(result['memories'].get('semantic', []))}")
+            logger.info(f"   - Episodic memories: {len(result['memories'].get('episodic', []))}")
+            
+            # Save to database
+            logger.info(f"💾 [MEMORY] Saving memories to database...")
+            memories_saved = 0
+            for memory_type in ['procedural', 'semantic', 'episodic']:
+                for memory in result['memories'].get(memory_type, []):
+                    try:
+                        self.supabase.table('memories').insert({
+                            'user_id': user_id,
+                            'session_id': session_id,
+                            'memory_type': memory_type,
+                            'content': json.dumps(memory),
+                            'created_at': datetime.now(timezone.utc).isoformat()
+                        }).execute()
+                        memories_saved += 1
+                    except Exception as e:
+                        logger.error(f"❌ [MEMORY] Failed to save {memory_type} memory: {e}")
+            
+            logger.info(f"✅ [MEMORY] Successfully saved {memories_saved} memories to database")
+            logger.info("=" * 80)
+
+            # Mark messages as processed
+            message_ids = [msg['id'] for msg in messages]
+            if message_ids:
+                try:
+                    self.supabase.table('chat_messages').update({'processed_into_memory': True}).in_('id', message_ids).execute()
+                    logger.info(f"✅ [MEMORY] Marked {len(message_ids)} messages as processed")
+                except Exception as e:
+                    logger.error(f"❌ [MEMORY] Failed to mark messages as processed: {e}")
+            
+            logger.info(f"✅ [MEMORY] Extraction complete: {memories_saved} memories saved")
+            
+        except Exception as e:
+            logger.error(f"❌ [MEMORY] Memory extraction failed: {e}")
     
     def _initialize_llm(self) -> ChatGoogleGenerativeAI:
         api_key = os.getenv("GOOGLE_API_KEY")
@@ -68,7 +266,7 @@ class MindMateWorkflow:
             raise ValueError("GOOGLE_API_KEY environment variable is required")
         
         return ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-2.5-flash-lite",
             google_api_key=api_key,
             timeout=30,
             max_tokens=300,  # Reduced for faster responses
@@ -172,8 +370,99 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
         recent_messages = state.get("recent_messages", [])
         conversation_summary = state.get("conversation_summary", {})
         
+        # ✅ DETAILED LOGGING FOR ACTIVITIES DATA
+        user_activities = state.get("user_activities", [])
+        logger.info("=" * 80)
+        logger.info("🔍 [WORKFLOW] DATA VERIFICATION - What LLM Will Receive")
+        logger.info("=" * 80)
+        logger.info(f"📊 [ACTIVITIES] Total activities received: {len(user_activities)}")
+        
+        if user_activities:
+            logger.info("✅ [ACTIVITIES] ✅ ✅ WORKFLOW RECEIVED ACTIVITIES! ✅ ✅")
+            
+            # Count by activity type
+            activity_types = {}
+            for activity in user_activities:
+                activity_type = activity.get('activity_type', 'unknown')
+                activity_types[activity_type] = activity_types.get(activity_type, 0) + 1
+            
+            for activity_type, count in activity_types.items():
+                logger.info(f"   - {activity_type}: {count} entries")
+            
+            # Log first 3 activities with 20-word preview
+            logger.info(f"\n📝 [ACTIVITIES] First {min(3, len(user_activities))} activities (20 words each):")
+            for i, activity in enumerate(user_activities[:3], 1):
+                logger.info(f"\n   Activity #{i}:")
+                logger.info(f"      Type: {activity.get('activity_type', 'N/A')}")
+                logger.info(f"      Score: {activity.get('score', 'N/A')}")
+                logger.info(f"      Duration: {activity.get('game_duration', activity.get('duration', 'N/A'))}")
+                logger.info(f"      Difficulty: {activity.get('difficulty_level', 'N/A')}")
+                logger.info(f"      Timestamp: {activity.get('completed_at', 'N/A')}")
+                
+                # Show 20 words of activity_data
+                activity_data = activity.get('activity_data', {})
+                if activity_data:
+                    activity_str = str(activity_data)
+                    words = activity_str.split()[:20]
+                    preview = ' '.join(words)
+                    logger.info(f"      📄 Data (20 words): {preview}...")
+                
+                # Show insights if available
+                insights = activity.get('insights_generated', '')
+                if insights:
+                    words = str(insights).split()[:20]
+                    preview = ' '.join(words)
+                    logger.info(f"      💡 Insights (20 words): {preview}...")
+        else:
+            logger.warning("⚠️ [ACTIVITIES] ❌ ❌ NO ACTIVITIES IN WORKFLOW! ❌ ❌")
+            logger.warning("   Possible reasons:")
+            logger.warning("   1. User hasn't played any games/QA sessions yet")
+            logger.warning("   2. Data not being fetched from Supabase")
+            logger.warning("   3. Data not being passed from main.py")
+        
+        logger.info("=" * 80)
+        
         # Get effective summary (cached or provided)
         effective_summary = self._get_effective_conversation_summary(user_id, conversation_summary)
+        
+        # Fetch session memories if session_id is available
+        session_memories = {'procedural': [], 'semantic': [], 'episodic': []}
+        if state.get('session_id'):
+            logger.info(f"🧠 [MEMORIES] Fetching memories for session: {state.get('session_id')}")
+            session_memories = self.fetch_session_memories(state.get('session_id'))
+            memory_count = sum(len(v) for v in session_memories.values())
+            
+            if memory_count > 0:
+                logger.info(f"✅ [MEMORIES] ✅ ✅ RETRIEVED {memory_count} MEMORIES! ✅ ✅")
+                logger.info(f"   - Procedural: {len(session_memories.get('procedural', []))}")
+                logger.info(f"   - Semantic: {len(session_memories.get('semantic', []))}")
+                logger.info(f"   - Episodic: {len(session_memories.get('episodic', []))}")
+                
+                # Log each memory type with 20-word preview - SHOW ALL MEMORIES
+                logger.info(f"\n📚 [MEMORIES] All Memory Content (20 words each):")
+                
+                for mem_type, memories in session_memories.items():
+                    if memories:
+                        logger.info(f"\n   🔹 {mem_type.upper()} MEMORIES ({len(memories)} total):")
+                        for i, memory in enumerate(memories, 1):  # Show ALL memories, not just first 3
+                            content = memory.get('memory_content', 'N/A')
+                            words = str(content).split()[:20]
+                            preview = ' '.join(words)
+                            confidence = memory.get('confidence', 'N/A')
+                            created = memory.get('created_at', 'N/A')
+                            
+                            logger.info(f"      Memory #{i}:")
+                            logger.info(f"         📝 (20 words): {preview}...")
+                            logger.info(f"         🎯 Confidence: {confidence}")
+                            logger.info(f"         📅 Created: {created}")
+
+            else:
+                logger.warning(f"⚠️ [MEMORIES] ❌ No memories found for this session yet")
+                logger.warning(f"   Memories are created after 8 messages in a session")
+        else:
+            logger.warning(f"⚠️ [MEMORIES] ❌ No session_id provided - cannot fetch memories")
+        
+        logger.info(f"📊 [CONTEXT] Processing {len(recent_messages[-5:])} recent messages, summary present: {bool(effective_summary)}")
         
         # Trigger background summarization if needed (non-blocking)
         if self._should_trigger_background_summarization(user_id, recent_messages):
@@ -193,7 +482,26 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
             state.get("user_activities", [])[:2]
         )
         
-        logger.info(f"📊 Psychology Agent 1: Processing context - {len(recent_messages[-5:])} recent messages, summary: {bool(effective_summary)}")
+        # ✅ LOG WHAT'S BEING SENT TO LLM
+        logger.info("=" * 80)
+        logger.info("� [LLM PROMPT] Data being sent to Gemini:")
+        logger.info("=" * 80)
+        logger.info(f"💬 [LLM] User message: '{state['user_message'][:150]}{'...' if len(state['user_message']) > 150 else ''}'")
+        logger.info(f"📝 [LLM] Conversation context length: {len(conversation_context)} chars")
+        logger.info(f"🎮 [LLM] Activities context: '{activities_context}'")
+        logger.info(f"🎤 [LLM] Voice analysis: {'✅ Included' if state.get('voice_analysis') else '❌ Not included'}")
+        
+        # Log memory context being sent
+        memory_context_lines = []
+        for mem_type, memories in session_memories.items():
+            if memories:
+                memory_context_lines.append(f"{mem_type.title()}: {len(memories)} memories")
+        if memory_context_lines:
+            logger.info(f"🧠 [LLM] Session memories: {', '.join(memory_context_lines)}")
+        else:
+            logger.info(f"🧠 [LLM] Session memories: ❌ None")
+        
+        logger.info("=" * 80)
         
         # COMBINED PROMPT for structured output (Gemini works better with single comprehensive prompt)
         # Replace the long combined_prompt with this simplified version
@@ -211,13 +519,25 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
             - Cultural context: {voice_analysis.get('cultural_context', 'N/A')}
             - Voice insights: {voice_analysis.get('insights', [])}"""
         
+        # Include session memories if available
+        memory_context = ""
+        if session_memories:
+            memory_count = sum(len(v) for v in session_memories.values())
+            if memory_count > 0:
+                memory_context = f"""
+            
+            SESSION MEMORIES ({memory_count} total):
+            - Procedural: {len(session_memories['procedural'])} skills/techniques learned
+            - Semantic: {len(session_memories['semantic'])} facts/preferences known
+            - Episodic: {len(session_memories['episodic'])} past experiences recorded"""
+        
         combined_prompt = f"""Analyze this user's mental health state for Indian youth (16-25 years).
 
             User's message: "{state['user_message']}"
 
             Recent context: {conversation_context[:500]}
 
-            Activities: {activities_context}{voice_context}
+            Activities: {activities_context}{voice_context}{memory_context}
 
             Provide analysis in this exact format:
             - Emotional state: [current condition]
@@ -386,17 +706,25 @@ Generate a completely natural, conversational response as MindMate."""
     
     def _format_minimal_activities_context(self, activities: List) -> str:
         """MINIMAL activity formatting for faster processing"""
+        logger.info(f"🔄 [FORMAT] Formatting activities context...")
+        logger.info(f"📥 [FORMAT] Input: {len(activities)} activities to format")
+        
         if not activities:
+            logger.warning("⚠️ [FORMAT] No activities to format - returning empty context")
             return "No recent activities"
         
         # Only most recent activities with minimal info
         context_parts = []
-        for activity in activities[:2]:
+        for i, activity in enumerate(activities[:2], 1):
             name = activity.get('activity_type', 'Unknown').replace('_', ' ')
             score = activity.get('score', 'N/A')
             context_parts.append(f"{name}: {score}")
+            logger.info(f"   [{i}] {name} (score: {score})")
         
-        return " | ".join(context_parts)
+        formatted = " | ".join(context_parts)
+        logger.info(f"✅ [FORMAT] Formatted context: '{formatted}'")
+        return formatted
+
     
     def _format_immediate_context_for_response(self, last_messages: List, current_message: str) -> str:
         """Format immediate context for response generation"""

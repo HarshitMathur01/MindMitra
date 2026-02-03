@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Brain, Mail, Lock, User, ArrowRight, Chrome } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,8 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { signIn, signUp, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
@@ -41,6 +42,12 @@ const Auth = () => {
     
     await signUp(email, password);
     setIsLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    await signInWithGoogle();
+    // Note: User will be redirected to Google, so no need to set loading to false
   };
 
   return (
@@ -114,10 +121,32 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full gradient-primary hover-glow transition-smooth"
-                    disabled={isLoading}
+                    disabled={isLoading || isGoogleLoading}
                   >
                     {isLoading ? 'Signing In...' : 'Sign In'}
                     <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full transition-smooth hover:bg-accent"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading || isGoogleLoading}
+                  >
+                    <Chrome className="mr-2 h-4 w-4" />
+                    {isGoogleLoading ? 'Connecting...' : 'Continue with Google'}
                   </Button>
                 </form>
               </TabsContent>
@@ -160,10 +189,32 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full gradient-primary hover-glow transition-smooth"
-                    disabled={isLoading}
+                    disabled={isLoading || isGoogleLoading}
                   >
                     {isLoading ? 'Creating Account...' : 'Create Account'}
                     <User className="ml-2 h-4 w-4" />
+                  </Button>
+
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full transition-smooth hover:bg-accent"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading || isGoogleLoading}
+                  >
+                    <Chrome className="mr-2 h-4 w-4" />
+                    {isGoogleLoading ? 'Connecting...' : 'Continue with Google'}
                   </Button>
                 </form>
               </TabsContent>

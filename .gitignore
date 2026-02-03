@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 venv/
 *.env
+.vercel
+chatbotAgent/__pycache__/
+chatbotAgent/__pycache__/
+__pycache__/
+*.pyc

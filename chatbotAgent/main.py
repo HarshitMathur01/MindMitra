@@ -37,7 +37,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",           # Local dev
         "https://*.vercel.app",            # Vercel preview deployments
-        "https://mindmitra.vercel.app",    # Your production URL (update after deploying)
+        "https://mindmitra-seven.vercel.app",    # Your actual production URL
     ],
     allow_credentials=True,
     allow_methods=["*"],

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
@@ -6,8 +6,14 @@ import logging
 import os
 import threading
 from collections import defaultdict
+from dotenv import load_dotenv
 from supabase import create_client, Client
 from workflow import process_user_chat, get_workflow_instance
+import jwt
+from datetime import datetime
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,13 +35,9 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     user_message: str
-    recent_messages: Optional[List[Dict[str, Any]]] = []
-    conversation_summary: Optional[Dict[str, Any]] = {}
-    user_activities: Optional[List[Dict[str, Any]]] = []
-    user_patterns: Optional[Dict[str, Any]] = {}
-    voice_analysis: Optional[Dict[str, Any]] = {}  # Add voice analysis support
-    user_id: Optional[str] = "anonymous"
     session_id: Optional[str] = None
+    voice_analysis: Optional[Dict[str, Any]] = None  # Voice analysis is optional
+    # Context will be fetched by backend, not passed from frontend
 
 class ChatResponse(BaseModel):
     message: str
@@ -45,13 +47,18 @@ class ChatResponse(BaseModel):
 
 # Initialize Supabase client
 supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
+supabase_key = os.getenv("SUPABASE_KEY")  # SERVICE_ROLE_KEY for backend operations
 supabase_client = None
 if supabase_url and supabase_key:
     supabase_client = create_client(supabase_url, supabase_key)
-    logger.info("✅ [MAIN] Supabase client initialized")
+    logger.info("✅ [MAIN] Supabase client initialized with SERVICE_ROLE_KEY")
 else:
     logger.warning("⚠️ [MAIN] Supabase credentials not found - memory features disabled")
+
+# JWT configuration for auth validation
+JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")  # From Supabase project settings
+if not JWT_SECRET:
+    logger.warning("⚠️ [MAIN] JWT_SECRET not set - will skip strict JWT validation")
 
 def get_session_message_count(session_id: str) -> int:
     """Get total message count for a session from database"""
@@ -102,6 +109,98 @@ def get_hybrid_message_count(session_id: str) -> int:
     
     return final_count
 
+async def validate_user_token(authorization: str) -> str:
+    """Validate JWT token and return user_id. Raises HTTPException if invalid."""
+    if not authorization:
+        logger.error("❌ [AUTH] No authorization header provided")
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    
+    if not authorization.startswith("Bearer "):
+        logger.error("❌ [AUTH] Invalid authorization format")
+        raise HTTPException(status_code=401, detail="Invalid authorization format")
+    
+    token = authorization.replace("Bearer ", "")
+    
+    # Validate using Supabase client
+    if not supabase_client:
+        logger.error("❌ [AUTH] Supabase client not initialized")
+        raise HTTPException(status_code=500, detail="Authentication service unavailable")
+    
+    try:
+        # Use Supabase to validate the token
+        user_response = supabase_client.auth.get_user(token)
+        if not user_response or not user_response.user:
+            logger.error("❌ [AUTH] Invalid token - user not found")
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        
+        user_id = user_response.user.id
+        logger.info(f"✅ [AUTH] User authenticated: {user_id}")
+        return user_id
+    except Exception as e:
+        logger.error(f"❌ [AUTH] Token validation failed: {e}")
+        raise HTTPException(status_code=401, detail="Authentication failed")
+
+async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
+    """Fetch user's activities, messages, and summaries from Supabase."""
+    logger.info(f"🔍 [CONTEXT] Fetching context for user {user_id}, session {session_id}")
+    
+    if not supabase_client:
+        logger.warning("⚠️ [CONTEXT] Supabase client not available")
+        return {
+            "user_activities": [],
+            "recent_messages": [],
+            "conversation_summary": {}
+        }
+    
+    try:
+        # Fetch user activities (last 50)
+        activities_response = supabase_client.table('user_activities').select('*').eq('user_id', user_id).order('completed_at', desc=True).limit(50).execute()
+        user_activities = activities_response.data or []
+        logger.info(f"📊 [CONTEXT] Fetched {len(user_activities)} activities")
+        
+        # Fetch recent messages for this session (last 20)
+        messages_response = supabase_client.table('chat_messages').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(20).execute()
+        recent_messages_raw = messages_response.data or []
+        
+        # Format messages for workflow
+        recent_messages = []
+        for msg in reversed(recent_messages_raw):  # Reverse to get chronological order
+            recent_messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
+        logger.info(f"💬 [CONTEXT] Fetched {len(recent_messages)} messages")
+        
+        # Fetch conversation summary
+        summary_response = supabase_client.table('message_summaries').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(1).execute()
+        
+        conversation_summary = {}
+        if summary_response.data:
+            summary_data = summary_response.data[0]
+            conversation_summary = {
+                "summary": summary_data.get("summary", ""),
+                "key_points": summary_data.get("key_points", []),
+                "emotional_state": summary_data.get("emotional_state", "neutral"),
+                "topics_discussed": summary_data.get("topics_discussed", [])
+            }
+            logger.info(f"📝 [CONTEXT] Fetched conversation summary")
+        else:
+            logger.info(f"📝 [CONTEXT] No summary found for session")
+        
+        return {
+            "user_activities": user_activities,
+            "recent_messages": recent_messages,
+            "conversation_summary": conversation_summary
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ [CONTEXT] Error fetching user context: {e}")
+        return {
+            "user_activities": [],
+            "recent_messages": [],
+            "conversation_summary": {}
+        }
+
 @app.get("/")
 async def root():
     return {"message": "MindMate Chatbot Agent is running"}
@@ -150,17 +249,28 @@ async def debug_session(session_id: str):
         return {"error": str(e)}
 
 @app.post("/chat")
-async def process_chat(request: ChatRequest):
+async def process_chat(
+    request: ChatRequest,
+    authorization: str = Header(None)
+):
     try:
         logger.info("=" * 80)
-        logger.info("🚀 [MAIN] NEW CHAT REQUEST RECEIVED")
+        logger.info("🚀 [MAIN] NEW CHAT REQUEST RECEIVED (DIRECT BACKEND MODE)")
         logger.info("=" * 80)
-        logger.info(f"👤 [MAIN] User: {request.user_id}")
+        
+        # Validate authentication
+        user_id = await validate_user_token(authorization)
+        logger.info(f"👤 [MAIN] Authenticated User: {user_id}")
         logger.info(f"🔗 [MAIN] Session: {request.session_id}")
         logger.info(f"💬 [MAIN] Message: '{request.user_message[:150]}{'...' if len(request.user_message) > 150 else ''}'")
         
+        # Fetch user context from Supabase
+        context = await fetch_user_context(user_id, request.session_id)
+        user_activities = context["user_activities"]
+        recent_messages = context["recent_messages"]
+        conversation_summary = context["conversation_summary"]
+        
         # Detailed activities logging with content preview
-        user_activities = request.user_activities or []
         logger.info(f"🎮 [MAIN] User activities: {len(user_activities)} total")
         if user_activities:
             logger.info("✅ [MAIN] ✅ ✅ BACKEND HAS RECEIVED USER ACTIVITIES! ✅ ✅")
@@ -214,7 +324,7 @@ async def process_chat(request: ChatRequest):
             logger.warning("⚠️ [MAIN] ❌ ❌ NO ACTIVITIES DATA RECEIVED! ❌ ❌")
             logger.warning("   Check if Edge Function is fetching activities from Supabase")
         
-        logger.info(f"📝 [MAIN] Recent messages: {len(request.recent_messages or [])} messages")
+        logger.info(f"📝 [MAIN] Recent messages: {len(recent_messages)} messages")
         logger.info(f"🎤 [MAIN] Voice analysis: {'✅ Provided' if request.voice_analysis else '❌ Not provided'}")
         
         if request.voice_analysis:
@@ -224,15 +334,15 @@ async def process_chat(request: ChatRequest):
         
         logger.info("=" * 80)
         
-        # Process with the workflow including voice analysis
+        # Process with the workflow using fetched context
         result = process_user_chat(
             user_message=request.user_message,
-            recent_messages=request.recent_messages or [],
-            conversation_summary=request.conversation_summary or {},
-            user_activities=request.user_activities or [],
-            user_patterns=request.user_patterns or {},
-            voice_analysis=request.voice_analysis or {},  # Pass voice analysis
-            user_id=request.user_id,
+            recent_messages=recent_messages,
+            conversation_summary=conversation_summary,
+            user_activities=user_activities,
+            user_patterns={},  # Can be extended later
+            voice_analysis=request.voice_analysis or {},
+            user_id=user_id,
             session_id=request.session_id
         )
         
@@ -284,6 +394,8 @@ async def process_chat(request: ChatRequest):
         logger.error(f"❌ [MAIN] Error processing chat: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
 
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")

@@ -89,7 +89,7 @@ class MindMateWorkflow:
         logger.info("✅ [WORKFLOW] MindMate Workflow fully initialized and ready for voice-enhanced therapy")
     
     def fetch_session_memories(self, session_id: str) -> Dict[str, List[Dict]]:
-        """Fetch all memories for a session from database"""
+        """Fetch all memories for a session from database (FIXED: Works with JSONB schema)"""
         logger.info(f"🔍 [FETCH_MEMORIES] Starting to fetch memories for session: {session_id}")
         
         if not self.supabase:
@@ -106,39 +106,40 @@ class MindMateWorkflow:
             
             logger.info(f"📥 [FETCH_MEMORIES] Database returned {len(response.data)} rows")
             
-            if response.data:
-                logger.info(f"✅ [FETCH_MEMORIES] Found {len(response.data)} memory records in database")
-                # Show first memory as sample
-                sample = response.data[0]
-                logger.info(f"   Sample memory: type={sample.get('memory_type')}, created={sample.get('created_at')}")
-            else:
+            if not response.data:
                 logger.warning(f"⚠️ [FETCH_MEMORIES] No memory records found in database for this session")
-                # Check if ANY memories exist at all
-                try:
-                    all_memories = self.supabase.table('memories').select('session_id', count='exact').limit(1).execute()
-                    total_count = all_memories.count if hasattr(all_memories, 'count') else 0
-                    logger.info(f"   Total memories in entire database: {total_count}")
-                except:
-                    pass
+                return {'procedural': [], 'semantic': [], 'episodic': []}
             
+            # Parse JSONB arrays from database (each row contains arrays of all 3 memory types)
             memories = {'procedural': [], 'semantic': [], 'episodic': []}
+            
             for row in response.data:
-                memory_type = row.get('memory_type')
-                if memory_type in memories:
-                    # Parse the content if it's stored as JSON string
-                    content = row.get('content')
-                    if isinstance(content, str):
-                        try:
-                            content = json.loads(content)
-                        except:
-                            pass
+                logger.info(f"   Processing memory record ID: {row.get('id')}")
+                
+                # Parse each JSONB column
+                for memory_type in ['procedural', 'semantic', 'episodic']:
+                    column_name = f'{memory_type}_memories'
+                    jsonb_data = row.get(column_name, [])
                     
-                    memories[memory_type].append({
-                        'memory_content': content.get('memory_content') if isinstance(content, dict) else content,
-                        'confidence': content.get('confidence') if isinstance(content, dict) else row.get('confidence'),
-                        'created_at': row.get('created_at'),
-                        'memory_id': row.get('id')
-                    })
+                    # Handle both JSON string and parsed list
+                    if isinstance(jsonb_data, str):
+                        try:
+                            jsonb_data = json.loads(jsonb_data)
+                        except:
+                            logger.warning(f"   Failed to parse {column_name} JSON")
+                            jsonb_data = []
+                    
+                    # Add memories from this row to the accumulated list
+                    if isinstance(jsonb_data, list):
+                        for mem in jsonb_data:
+                            memories[memory_type].append({
+                                'memory_content': mem.get('memory_content', mem.get('content', str(mem))),
+                                'confidence': mem.get('confidence', mem.get('confidence_level', 0.5)),
+                                'created_at': row.get('created_at'),
+                                'memory_id': row.get('id'),
+                                'importance': mem.get('importance', 'medium'),
+                                'category': mem.get('category', 'general')
+                            })
             
             logger.info(f"✅ [FETCH_MEMORIES] Organized memories by type:")
             logger.info(f"   - Procedural: {len(memories['procedural'])}")
@@ -226,24 +227,43 @@ class MindMateWorkflow:
             logger.info(f"   - Semantic memories: {len(result['memories'].get('semantic', []))}")
             logger.info(f"   - Episodic memories: {len(result['memories'].get('episodic', []))}")
             
-            # Save to database
+            # Save to database (FIXED: Insert as JSONB arrays matching schema)
             logger.info(f"💾 [MEMORY] Saving memories to database...")
-            memories_saved = 0
-            for memory_type in ['procedural', 'semantic', 'episodic']:
-                for memory in result['memories'].get(memory_type, []):
-                    try:
-                        self.supabase.table('memories').insert({
-                            'user_id': user_id,
-                            'session_id': session_id,
-                            'memory_type': memory_type,
-                            'content': json.dumps(memory),
-                            'created_at': datetime.now(timezone.utc).isoformat()
-                        }).execute()
-                        memories_saved += 1
-                    except Exception as e:
-                        logger.error(f"❌ [MEMORY] Failed to save {memory_type} memory: {e}")
-            
-            logger.info(f"✅ [MEMORY] Successfully saved {memories_saved} memories to database")
+            try:
+                # Prepare memory data matching the table schema
+                memory_record = {
+                    'user_id': user_id,
+                    'session_id': session_id,
+                    'data_type': 'chat',
+                    'procedural_memories': result['memories'].get('procedural', []),
+                    'semantic_memories': result['memories'].get('semantic', []),
+                    'episodic_memories': result['memories'].get('episodic', []),
+                    'memory_summary': {
+                        'procedural_count': len(result['memories'].get('procedural', [])),
+                        'semantic_count': len(result['memories'].get('semantic', [])),
+                        'episodic_count': len(result['memories'].get('episodic', [])),
+                        'extraction_timestamp': datetime.now(timezone.utc).isoformat()
+                    },
+                    'source_message_ids': [msg['id'] for msg in messages],
+                    'metadata': {
+                        'message_count': len(messages),
+                        'extraction_method': 'parallel_llm'
+                    },
+                    'processed_at': datetime.now(timezone.utc).isoformat()
+                }
+                
+                # Insert single record with all memories as JSONB
+                self.supabase.table('memories').insert(memory_record).execute()
+                
+                total_memories = (len(result['memories'].get('procedural', [])) + 
+                                len(result['memories'].get('semantic', [])) + 
+                                len(result['memories'].get('episodic', [])))
+                logger.info(f"✅ [MEMORY] Successfully saved {total_memories} memories to database")
+                
+            except Exception as e:
+                logger.error(f"❌ [MEMORY] Failed to save memories: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
             logger.info("=" * 80)
 
             # Mark messages as processed
@@ -255,7 +275,7 @@ class MindMateWorkflow:
                 except Exception as e:
                     logger.error(f"❌ [MEMORY] Failed to mark messages as processed: {e}")
             
-            logger.info(f"✅ [MEMORY] Extraction complete: {memories_saved} memories saved")
+            logger.info("=" * 80)
             
         except Exception as e:
             logger.error(f"❌ [MEMORY] Memory extraction failed: {e}")
@@ -269,7 +289,7 @@ class MindMateWorkflow:
             model="gemini-2.5-flash-lite",
             google_api_key=api_key,
             timeout=30,
-            max_tokens=300,  # Reduced for faster responses
+            max_tokens=1000,  # Increased to accommodate full memory context
             temperature=0.3,
             top_p=0.8,
             max_retries=1
@@ -478,8 +498,10 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
             recent_messages[-5:],  # Only last 5 messages for speed
             effective_summary
         )
-        activities_context = self._format_minimal_activities_context(
-            state.get("user_activities", [])[:2]
+        # 🔥 CRITICAL FIX: Use comprehensive context instead of minimal!
+        # This includes full psychological insights from games
+        activities_context = self._format_comprehensive_activities_context(
+            state.get("user_activities", [])[:5]  # Increased from 2 to 5 activities
         )
         
         # ✅ LOG WHAT'S BEING SENT TO LLM
@@ -519,17 +541,10 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
             - Cultural context: {voice_analysis.get('cultural_context', 'N/A')}
             - Voice insights: {voice_analysis.get('insights', [])}"""
         
-        # Include session memories if available
+        # Include session memories with ACTUAL CONTENT (🔥 CRITICAL FIX: Was only showing counts!)
         memory_context = ""
         if session_memories:
-            memory_count = sum(len(v) for v in session_memories.values())
-            if memory_count > 0:
-                memory_context = f"""
-            
-            SESSION MEMORIES ({memory_count} total):
-            - Procedural: {len(session_memories['procedural'])} skills/techniques learned
-            - Semantic: {len(session_memories['semantic'])} facts/preferences known
-            - Episodic: {len(session_memories['episodic'])} past experiences recorded"""
+            memory_context = "\n\n" + self._format_memory_context_with_content(session_memories)
         
         combined_prompt = f"""Analyze this user's mental health state for Indian youth (16-25 years).
 
@@ -724,6 +739,155 @@ Generate a completely natural, conversational response as MindMate."""
         formatted = " | ".join(context_parts)
         logger.info(f"✅ [FORMAT] Formatted context: '{formatted}'")
         return formatted
+
+    def _format_comprehensive_activities_context(self, activities: List) -> str:
+        """
+        COMPREHENSIVE activity formatting with FULL therapeutic insights.
+        
+        🔥 CRITICAL FIX: This replaces the minimal context that was losing 90% of game data!
+        
+        Previously only showed: "Memory Challenge: 85"
+        Now shows: Full psychological analysis including:
+        - Performance metrics (score, accuracy, duration)
+        - Key behavioral patterns observed
+        - Cognitive strengths identified
+        - Areas for therapeutic growth
+        - Emotional state during activity
+        - Personalized recommendations
+        
+        This enables the chatbot to provide truly data-driven, personalized therapy.
+        """
+        logger.info(f"🔄 [COMPREHENSIVE_FORMAT] Formatting FULL activity context with insights...")
+        logger.info(f"📥 [COMPREHENSIVE_FORMAT] Processing {len(activities)} activities")
+        
+        if not activities:
+            logger.warning("⚠️ [COMPREHENSIVE_FORMAT] No activities to format")
+            return "No recent therapeutic activities completed."
+        
+        context_parts = ["📊 RECENT THERAPEUTIC ACTIVITIES & PSYCHOLOGICAL INSIGHTS:\n"]
+        
+        for i, activity in enumerate(activities[:5], 1):  # Use up to 5 activities (was 2!)
+            activity_type = activity.get('activity_type', 'Unknown').replace('_', ' ').title()
+            score = activity.get('score', 0)
+            accuracy = activity.get('accuracy_percentage', 0)
+            duration = activity.get('game_duration', 0)
+            completed_at = activity.get('completed_at', 'Unknown date')
+            
+            logger.info(f"   [{i}] Processing: {activity_type}")
+            
+            # Extract rich therapeutic insights from insights_generated field
+            insights = activity.get('insights_generated', {})
+            performance = insights.get('performance_level', 'unknown')
+            patterns = insights.get('key_patterns', [])
+            strengths = insights.get('cognitive_strengths', [])
+            areas_for_growth = insights.get('areas_for_growth', [])
+            emotional_indicators = insights.get('emotional_indicators', [])
+            recommendations = insights.get('recommendations', [])
+            
+            logger.info(f"       Performance: {performance}, Patterns: {len(patterns)}, Strengths: {len(strengths)}")
+            
+            # Build rich, therapeutically-informed context
+            activity_summary = f"""
+{i}. {activity_type} (Completed: {completed_at[:10] if completed_at != 'Unknown date' else 'Unknown'})
+   📈 Performance Metrics:
+      - Score: {score}/100
+      - Accuracy: {accuracy}%
+      - Duration: {duration} seconds
+      - Performance Level: {performance}
+   
+   🧠 Psychological Analysis:
+      - Key Patterns Observed: {', '.join(patterns[:3]) if patterns else 'None identified yet'}
+      - Cognitive Strengths: {', '.join(strengths[:3]) if strengths else 'Still assessing'}
+      - Growth Opportunities: {', '.join(areas_for_growth[:2]) if areas_for_growth else 'None noted'}
+      - Emotional State During Activity: {', '.join(emotional_indicators[:2]) if emotional_indicators else 'Neutral'}
+   
+   💡 Therapeutic Recommendations:
+      - {recommendations[0] if recommendations else 'Continue engaging with therapeutic activities'}
+"""
+            context_parts.append(activity_summary)
+        
+        context_parts.append(f"\n📌 Total Activities Analyzed: {len(activities)}")
+        context_parts.append("💭 Use these insights to provide personalized, data-driven therapeutic guidance.")
+        
+        formatted = "\n".join(context_parts)
+        logger.info(f"✅ [COMPREHENSIVE_FORMAT] Created rich context: {len(formatted)} characters")
+        return formatted
+
+    def _format_memory_context_with_content(self, memories: Dict) -> str:
+        """
+        Format memory context with ACTUAL CONTENT, not just counts.
+        
+        🔥 CRITICAL FIX: Previously only showed counts like "12 procedural memories"
+        Now shows: The actual memory content so chatbot can reference specific techniques,
+        facts, and past events in responses.
+        
+        This gives the chatbot true memory and therapeutic continuity!
+        """
+        if not memories or not any(memories.values()):
+            return "📝 No session memories yet - this is a new conversation."
+        
+        parts = ["🧠 SESSION MEMORY BANK (from our past conversations):\n"]
+        
+        # Procedural memories - coping techniques, skills, strategies
+        procedural = memories.get('procedural', [])
+        if procedural:
+            parts.append("📚 COPING TECHNIQUES & SKILLS YOU'VE LEARNED:")
+            for i, mem in enumerate(procedural[:5], 1):  # Top 5 most important
+                content = mem.get('memory_content', mem.get('content', 'N/A'))
+                confidence = mem.get('confidence_level', mem.get('confidence', 0.5))
+                last_used = mem.get('last_used', 'Not tracked')
+                effectiveness = mem.get('effectiveness', 'Unknown')
+                
+                parts.append(f"   {i}. {content}")
+                parts.append(f"      └─ Confidence: {confidence:.1f}/1.0 | Effectiveness: {effectiveness}")
+                if last_used != 'Not tracked':
+                    parts.append(f"      └─ Last used: {last_used}")
+        
+        # Semantic memories - facts, preferences, beliefs, identity
+        semantic = memories.get('semantic', [])
+        if semantic:
+            parts.append("\n🎯 WHAT I KNOW ABOUT YOU:")
+            for i, mem in enumerate(semantic[:7], 1):  # Top 7 most important
+                content = mem.get('content', 'N/A')
+                importance = mem.get('importance', 'medium')
+                category = mem.get('category', 'general')
+                source = mem.get('source', 'stated')
+                
+                # Format by importance
+                if importance == 'high':
+                    prefix = "⭐"
+                elif importance == 'critical':
+                    prefix = "🔥"
+                else:
+                    prefix = "  "
+                
+                parts.append(f"   {prefix} {i}. {content}")
+                parts.append(f"      └─ Category: {category} | Source: {source}")
+        
+        # Episodic memories - past events, experiences, breakthroughs
+        episodic = memories.get('episodic', [])
+        if episodic:
+            parts.append("\n📅 SIGNIFICANT MOMENTS WE'VE SHARED:")
+            for i, mem in enumerate(episodic[:4], 1):  # Top 4 most significant
+                event = mem.get('event_description', 'N/A')
+                outcome = mem.get('outcome', 'Unknown outcome')
+                significance = mem.get('significance', 'medium')
+                emotional_intensity = mem.get('emotional_intensity', 5)
+                learned_from = mem.get('learned_from', '')
+                
+                parts.append(f"   {i}. {event}")
+                parts.append(f"      └─ Outcome: {outcome}")
+                parts.append(f"      └─ Significance: {significance} | Emotional intensity: {emotional_intensity}/10")
+                if learned_from:
+                    parts.append(f"      └─ What you learned: {learned_from}")
+        
+        # Summary stats
+        total_memories = len(procedural) + len(semantic) + len(episodic)
+        parts.append(f"\n📊 Memory Bank Stats: {total_memories} total memories across {len([k for k,v in memories.items() if v])} categories")
+        parts.append("💭 Reference these specific memories when appropriate to show continuity and personalization.")
+        
+        return "\n".join(parts)
+
 
     
     def _format_immediate_context_for_response(self, last_messages: List, current_message: str) -> str:

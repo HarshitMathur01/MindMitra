@@ -19,6 +19,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          memory_processed_at: string | null
+          processed_into_memory: boolean | null
           role: string | null
           sender: string
           session_id: string | null
@@ -28,6 +30,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          memory_processed_at?: string | null
+          processed_into_memory?: boolean | null
           role?: string | null
           sender: string
           session_id?: string | null
@@ -37,12 +41,172 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          memory_processed_at?: string | null
+          processed_into_memory?: boolean | null
           role?: string | null
           sender?: string
           session_id?: string | null
           user_id?: string
         }
         Relationships: []
+      }
+      memories: {
+        Row: {
+          created_at: string | null
+          data_type: string
+          episodic_memories: Json | null
+          id: string
+          memory_summary: Json | null
+          metadata: Json | null
+          procedural_memories: Json | null
+          processed_at: string | null
+          semantic_memories: Json | null
+          session_id: string
+          source_message_ids: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_type: string
+          episodic_memories?: Json | null
+          id?: string
+          memory_summary?: Json | null
+          metadata?: Json | null
+          procedural_memories?: Json | null
+          processed_at?: string | null
+          semantic_memories?: Json | null
+          session_id: string
+          source_message_ids?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data_type?: string
+          episodic_memories?: Json | null
+          id?: string
+          memory_summary?: Json | null
+          metadata?: Json | null
+          procedural_memories?: Json | null
+          processed_at?: string | null
+          semantic_memories?: Json | null
+          session_id?: string
+          source_message_ids?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_activities: {
+        Row: {
+          accuracy_percentage: number | null
+          activity_data: Json | null
+          activity_metadata: Json | null
+          activity_type: string
+          completed_at: string | null
+          difficulty_level: string | null
+          evaluation_data: Json | null
+          game_duration: number | null
+          id: string
+          insights_generated: Json | null
+          score: number | null
+          session_id: string | null
+          user_id: string
+          user_response_data: Json | null
+        }
+        Insert: {
+          accuracy_percentage?: number | null
+          activity_data?: Json | null
+          activity_metadata?: Json | null
+          activity_type: string
+          completed_at?: string | null
+          difficulty_level?: string | null
+          evaluation_data?: Json | null
+          game_duration?: number | null
+          id?: string
+          insights_generated?: Json | null
+          score?: number | null
+          session_id?: string | null
+          user_id: string
+          user_response_data?: Json | null
+        }
+        Update: {
+          accuracy_percentage?: number | null
+          activity_data?: Json | null
+          activity_metadata?: Json | null
+          activity_type?: string
+          completed_at?: string | null
+          difficulty_level?: string | null
+          evaluation_data?: Json | null
+          game_duration?: number | null
+          id?: string
+          insights_generated?: Json | null
+          score?: number | null
+          session_id?: string | null
+          user_id?: string
+          user_response_data?: Json | null
+        }
+        Relationships: []
+      }
+      voice_analytics: {
+        Row: {
+          analysis_model: string | null
+          confidence_score: number | null
+          created_at: string | null
+          cultural_context: Json | null
+          emotional_tone: string | null
+          id: string
+          message_id: string | null
+          processing_duration_ms: number | null
+          psychological_markers: Json | null
+          session_id: string
+          speech_pace: string | null
+          stress_level: string | null
+          transcript: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_model?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          cultural_context?: Json | null
+          emotional_tone?: string | null
+          id?: string
+          message_id?: string | null
+          processing_duration_ms?: number | null
+          psychological_markers?: Json | null
+          session_id: string
+          speech_pace?: string | null
+          stress_level?: string | null
+          transcript: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_model?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          cultural_context?: Json | null
+          emotional_tone?: string | null
+          id?: string
+          message_id?: string | null
+          processing_duration_ms?: number | null
+          psychological_markers?: Json | null
+          session_id?: string
+          speech_pace?: string | null
+          stress_level?: string | null
+          transcript?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_analytics_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

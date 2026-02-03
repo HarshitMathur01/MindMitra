@@ -124,10 +124,10 @@ serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(20),
       
-      // Load conversation summary
+      // Load conversation summary from message_summaries table (🔥 FIX: conversation_summaries doesn't exist!)
       supabase
-        .from('conversation_summaries')
-        .select('key_themes, progress_indicators, important_insights, created_at')
+        .from('message_summaries')
+        .select('summary_content, key_insights, therapeutic_themes, emotional_progression, created_at')
         .eq('session_id', currentSessionId)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -163,7 +163,7 @@ serve(async (req) => {
     console.log('✅ [EDGE] Context loaded successfully:')
     console.log('- Recent messages:', recentMessages.length)
     console.log('- User activities:', userActivities.length)
-    console.log('- Has conversation summary:', !!conversationSummary.key_themes)
+    console.log('- Has conversation summary:', !!conversationSummary.summary_content)
     console.log('- Voice analysis present:', !!voiceAnalysis)
 
     // CRITICAL: Call the 2-agent workflow with voice-enhanced context

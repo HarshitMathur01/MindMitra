@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { SessionManager } from "@/lib/sessionManager";
 
 const ChatContext = createContext(null);
 
@@ -19,9 +20,9 @@ export const ChatProvider = ({ children }) => {
       
       const userId = session?.user?.id || 'anonymous';
       
-      // Generate or retrieve session ID
-      const sessionId = sessionStorage.getItem('chat_session_id') || `session_${Date.now()}`;
-      sessionStorage.setItem('chat_session_id', sessionId);
+      // Use SessionManager for consistent session IDs across app
+      // This fixes the critical session fragmentation bug
+      const sessionId = SessionManager.getSessionId();
 
       console.log('Calling Edge Function with:', { userId, sessionId, message: message.substring(0, 50) });
 
@@ -68,8 +69,8 @@ export const ChatProvider = ({ children }) => {
       
       const userId = session?.user?.id || 'anonymous';
       
-      const sessionId = sessionStorage.getItem('chat_session_id') || `session_${Date.now()}`;
-      sessionStorage.setItem('chat_session_id', sessionId);
+      // Use SessionManager for consistent session IDs across app
+      const sessionId = SessionManager.getSessionId();
 
       // Convert audio blob to base64
       const reader = new FileReader();

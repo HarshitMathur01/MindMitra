@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { SessionManager } from './sessionManager';
+import { toast } from '@/hooks/use-toast';
 
 interface GameResult {
   activityType: string;
@@ -56,48 +58,43 @@ export async function saveGameResult(gameResult: GameResult, sessionId?: string)
     
     if (!user) {
       console.warn('No authenticated user, skipping game data save');
+      toast({
+        title: "⚠️ Not logged in",
+        description: "Please sign in to save your game progress.",
+        variant: "destructive"
+      });
       return;
     }
 
     // Get activity template for context
     const template = ACTIVITY_TEMPLATES[gameResult.activityType as keyof typeof ACTIVITY_TEMPLATES];
 
-    // Handle session ID - ensure it's a valid UUID or null
+    // Use SessionManager for consistent session ID across the app
+    // This fixes the critical session fragmentation bug
     let validSessionId: string | null = null;
     
     if (sessionId) {
-      // Check if it's a valid UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (uuidRegex.test(sessionId)) {
+      // If sessionId is provided, validate and use it
+      try {
+        SessionManager.setSessionId(sessionId);
         validSessionId = sessionId;
-      } else {
-        console.warn('Invalid session ID format, setting to null:', sessionId);
+        console.log('💾 [GameDataSaver] Using provided session ID:', sessionId);
+      } catch (error) {
+        console.warn('⚠️ [GameDataSaver] Invalid session ID provided, using SessionManager:', error);
+        validSessionId = SessionManager.getSessionId();
       }
-    }
-    
-    // If no valid session ID, try to get from localStorage
-    if (!validSessionId) {
-      const storedSessionId = localStorage.getItem('currentChatSession');
-      if (storedSessionId) {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (uuidRegex.test(storedSessionId)) {
-          validSessionId = storedSessionId;
-        } else {
-          console.warn('Invalid stored session ID format, creating new one:', storedSessionId);
-          // Generate a new UUID and store it
-          validSessionId = crypto.randomUUID();
-          localStorage.setItem('currentChatSession', validSessionId);
-          console.log('Generated new session UUID:', validSessionId);
-        }
-      }
+    } else {
+      // Get session ID from SessionManager (unified source)
+      validSessionId = SessionManager.getSessionId();
+      console.log('💾 [GameDataSaver] Retrieved session ID from SessionManager:', validSessionId);
     }
 
     console.log('💾 Saving game result for user:', user.id);
     console.log('🔗 Using session ID:', validSessionId);
     console.log('🎮 Activity type:', gameResult.activityType);
 
-    // Use type assertion to work around missing table types
-    const { error } = await (supabase as any)
+    // Insert game result with proper TypeScript types
+    const { error } = await supabase
       .from('user_activities')
       .insert({
         user_id: user.id,
@@ -121,11 +118,26 @@ export async function saveGameResult(gameResult: GameResult, sessionId?: string)
 
     if (error) {
       console.error('Error saving game result:', error);
+      toast({
+        title: "❌ Failed to save game result",
+        description: "Your progress couldn't be saved. Please check your connection and try again.",
+        variant: "destructive"
+      });
     } else {
       console.log('✅ Game result saved successfully:', gameResult.activityType);
+      toast({
+        title: "✅ Progress saved!",
+        description: `Your ${gameResult.activityType.replace('_', ' ')} result has been recorded.`,
+        variant: "default"
+      });
     }
   } catch (error) {
     console.error('Failed to save game result:', error);
+    toast({
+      title: "❌ Error saving progress",
+      description: "Something went wrong. Please try again later.",
+      variant: "destructive"
+    });
   }
 }
 

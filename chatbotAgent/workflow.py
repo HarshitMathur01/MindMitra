@@ -286,10 +286,10 @@ class MindMateWorkflow:
             raise ValueError("GOOGLE_API_KEY environment variable is required")
         
         return ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-2.5-flash-lite",
             google_api_key=api_key,
             timeout=30,
-            max_tokens=1000,  # Increased to accommodate full memory context
+            max_tokens=600,  # Increased to accommodate full memory context
             temperature=0.3,
             top_p=0.8,
             max_retries=1
@@ -1095,4 +1095,4 @@ def process_user_chat(
         processing_time = time.time() - start_time
         logger.error(f"❌ [ENTRY] Processing failed after {processing_time:.2f}s")
         logger.error(f"❌ [ENTRY] Error details: {str(e)}")
-        raise e# Deployment timestamp: Wed Feb  4 03:51:02 IST 2026
+        raise e# Deployment timestamp: Wed Feb  4 03:57:34 IST 2026

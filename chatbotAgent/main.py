@@ -24,10 +24,21 @@ app = FastAPI(title="MindMate Chatbot Agent", version="1.0.0")
 # In-memory message counter as fallback (survives across requests)
 session_message_counters = defaultdict(int)
 
-# Add CORS middleware
+# # Add CORS middleware
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # In production, specify your domain
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your domain
+    allow_origins=[
+        "http://localhost:5173",           # Local dev
+        "https://*.vercel.app",            # Vercel preview deployments
+        "https://mindmitra.vercel.app",    # Your production URL (update after deploying)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

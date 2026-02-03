@@ -62,7 +62,7 @@ class UniversalMemorySystem:
     into procedural, semantic, and episodic memories using Gemini LLM.
     """
     
-    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash-lite"):
         """Initialize the memory system with Gemini API."""
         if not api_key or api_key == "your_gemini_api_key_here":
             raise ValueError("Please provide a valid Gemini API key")
@@ -525,7 +525,7 @@ class UniversalMemorySystem:
             },
             "metadata": {
                 "input_data_type": data_type,
-                "processing_model": "gemini-1.5-flash",
+                "processing_model": "gemini-2.5-flash-lite",
                 "version": "2.0",
                 "auto_detected_type": data_type == self.detect_data_type(input_data)
             }

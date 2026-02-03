@@ -52,3 +52,4 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+# Force rebuild

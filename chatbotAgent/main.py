@@ -35,7 +35,9 @@ session_message_counters = defaultdict(int)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",           # Local dev
+        "http://localhost:5173",           # Local dev frontend
+        "http://localhost:8080",           # Local dev frontend (alternate port)
+        "http://localhost:3000",           # Local dev frontend (React default)
         "https://*.vercel.app",            # Vercel preview deployments
         "https://mindmitra-seven.vercel.app",    # Your actual production URL
     ],

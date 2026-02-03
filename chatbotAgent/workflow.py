@@ -286,7 +286,7 @@ class MindMateWorkflow:
             raise ValueError("GOOGLE_API_KEY environment variable is required")
         
         return ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash-lite",
+            model="gemini-1.5-flash",
             google_api_key=api_key,
             timeout=30,
             max_tokens=1000,  # Increased to accommodate full memory context

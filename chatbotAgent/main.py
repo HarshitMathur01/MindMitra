@@ -35,15 +35,15 @@ session_message_counters = defaultdict(int)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",           # Local dev frontend
-        "http://localhost:8080",           # Local dev frontend (alternate port)
-        "http://localhost:3000",           # Local dev frontend (React default)
-        "https://*.vercel.app",            # Vercel preview deployments
-        "https://mindmitra-seven.vercel.app",    # Your actual production URL
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://localhost:3000",
+        "https://mindmitra-seven.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # For Vercel preview deployments
 )
 
 class ChatRequest(BaseModel):

@@ -1095,4 +1095,4 @@ def process_user_chat(
         processing_time = time.time() - start_time
         logger.error(f"❌ [ENTRY] Processing failed after {processing_time:.2f}s")
         logger.error(f"❌ [ENTRY] Error details: {str(e)}")
-        raise e
+        raise e# Deployment timestamp: Wed Feb  4 03:51:02 IST 2026

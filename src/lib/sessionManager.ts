@@ -1,5 +1,5 @@
 /**
- * SessionManager - Unified session ID management for Mind-Mate
+ * SessionManager - Unified session ID management for MindMitra
  * 
  * Fixes the critical session fragmentation issue where games and chat
  * were using different storage mechanisms and generating different session IDs.

@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# 🚀 Mind-mate Direct Backend Startup Script
+# 🚀 MindMitra Direct Backend Startup Script
 # This script starts both backend and frontend in direct mode (no ngrok!)
 
 set -e  # Exit on error
 
 echo "🎯 =========================================="
-echo "🎯 Mind-mate Direct Backend Mode Startup"
+echo "🎯 MindMitra Direct Backend Mode Startup"
 echo "🎯 =========================================="
 echo ""
 

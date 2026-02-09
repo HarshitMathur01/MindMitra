@@ -42,7 +42,7 @@ const Header = () => {
             </motion.div>
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                MindMate
+                MindMitra
               </h1>
               <p className="text-xs text-muted-foreground">AI & Psychology Hub</p>
             </div>

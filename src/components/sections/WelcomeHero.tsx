@@ -19,7 +19,7 @@ const WelcomeHero = () => {
   const heroSlides = [
     {
       gradient: "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50",
-      title: "Welcome to MindMate",
+      title: "Welcome to MindMitra",
       subtitle: "Your personal AI-powered psychological assistant for mental wellness"
     },
     {

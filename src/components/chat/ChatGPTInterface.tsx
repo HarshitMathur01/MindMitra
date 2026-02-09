@@ -675,7 +675,7 @@ const ChatGPTInterface = () => {
               >
               {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">MindMate</h1>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">MindMitra</h1>
             {isLoading && (
               <Badge variant="secondary" className="animate-pulse">
                 Thinking...
@@ -716,7 +716,7 @@ const ChatGPTInterface = () => {
                         <Bot className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1 space-y-2">
-                        <div className="text-sm font-bold text-gray-900 dark:text-white">MindMate</div>
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">MindMitra</div>
                         <div className="prose prose-sm max-w-none dark:prose-invert">
                           <div 
                             className="text-sm leading-snug text-gray-900 dark:text-gray-100 font-medium"
@@ -801,7 +801,7 @@ const ChatGPTInterface = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Message MindMate..."
+                placeholder="Message MindMitra..."
                 className="pr-20 py-3 text-sm rounded-2xl border-2 border-gray-300 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 dark:border-gray-500 dark:text-white"
                 disabled={isLoading}
               />

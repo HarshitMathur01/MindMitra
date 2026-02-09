@@ -43,11 +43,11 @@ class ConversationSummary(BaseModel):
     stress_evolution: str = Field(description="How stress categories and levels have changed")
     intervention_history: str = Field(description="Therapeutic approaches used and their effectiveness")
 
-class MindMateWorkflow:
+class MindMitraWorkflow:
     """Psychology-focused 2-agent workflow with background summarization"""
     
     def __init__(self):
-        logger.info("🧠 [WORKFLOW] Initializing MindMate Psychology Workflow...")
+        logger.info("🧠 [WORKFLOW] Initializing MindMitra Psychology Workflow...")
         self.llm = self._initialize_llm()
         # Psychology-focused structured LLMs
         try:
@@ -86,7 +86,7 @@ class MindMateWorkflow:
             self.memory_system = None
             logger.error(f"❌ [WORKFLOW] Memory system initialization failed: {e}")
         
-        logger.info("✅ [WORKFLOW] MindMate Workflow fully initialized and ready for voice-enhanced therapy")
+        logger.info("✅ [WORKFLOW] MindMitra Workflow fully initialized and ready for voice-enhanced therapy")
     
     def fetch_session_memories(self, session_id: str) -> Dict[str, List[Dict]]:
         """Fetch all memories for a session from database (FIXED: Works with JSONB schema)"""
@@ -612,7 +612,7 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
         logger.info("📝 Psychology Agent 2: Using psychology-guided companion response generation")
         
         # PSYCHOLOGY + COMPANION STYLE SYSTEM MESSAGE for Indian youth
-        system_message = SystemMessage(content="""You are MindMate, a culturally-aware AI therapeutic companion specialized in Indian youth mental wellness (ages 16-25). Generate a response that combines professional psychology expertise with warm, companion-style delivery.
+        system_message = SystemMessage(content="""You are MindMitra, a culturally-aware AI therapeutic companion specialized in Indian youth mental wellness (ages 16-25). Generate a response that combines professional psychology expertise with warm, companion-style delivery.
 
 COMPANION COUNSELOR RESPONSE GUIDELINES:
 
@@ -663,7 +663,7 @@ CONVERSATION CONTEXT:
 
 USER'S CURRENT MESSAGE: "{user_message}"
 
-Generate a completely natural, conversational response as MindMate."""
+Generate a completely natural, conversational response as MindMitra."""
 
         human_message = HumanMessage(content=user_content)
 
@@ -689,7 +689,7 @@ Generate a completely natural, conversational response as MindMate."""
         
         formatted_messages = []
         for i, msg in enumerate(messages, 1):
-            role = "User" if msg.get('role') == 'user' else "MindMate"
+            role = "User" if msg.get('role') == 'user' else "MindMitra"
             content = msg.get('content', '')
             timestamp = msg.get('timestamp', '')[:16] if msg.get('timestamp') else f"Message {i}"
             formatted_messages.append(f"{timestamp} {role}: {content}")
@@ -897,7 +897,7 @@ Generate a completely natural, conversational response as MindMate."""
         
         context_parts = []
         for msg in last_messages:
-            role = "User" if msg.get('role') == 'user' else "MindMate"
+            role = "User" if msg.get('role') == 'user' else "MindMitra"
             content = msg.get('content', '')[:100]  # Truncate for efficiency
             context_parts.append(f"{role}: {content}")
         
@@ -1037,11 +1037,11 @@ Generate a completely natural, conversational response as MindMate."""
 # Global workflow instance
 _workflow_instance = None
 
-def get_workflow_instance() -> MindMateWorkflow:
+def get_workflow_instance() -> MindMitraWorkflow:
     """Get or create psychology-focused workflow instance"""
     global _workflow_instance
     if _workflow_instance is None:
-        _workflow_instance = MindMateWorkflow()
+        _workflow_instance = MindMitraWorkflow()
     return _workflow_instance
 
 def process_user_chat(
@@ -1056,7 +1056,7 @@ def process_user_chat(
 ) -> Dict[str, Any]:
     """Main entry point for psychology-focused 2-agent chat processing with voice analysis"""
     
-    logger.info("🚀 [ENTRY] MindMate chat processing initiated")
+    logger.info("🚀 [ENTRY] MindMitra chat processing initiated")
     logger.info(f"📝 [ENTRY] Message preview: '{user_message[:50]}{'...' if len(user_message) > 50 else ''}'")
     logger.info(f"👤 [ENTRY] User ID: {user_id}")
     logger.info(f"🔗 [ENTRY] Session ID: {session_id}")

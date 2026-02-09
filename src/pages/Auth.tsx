@@ -59,7 +59,7 @@ const Auth = () => {
             <Brain className="h-8 w-8 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold gradient-primary bg-clip-text text-transparent">
-            Welcome to MindMate
+            Welcome to MindMitra
           </h1>
           <p className="text-muted-foreground mt-2">
             Your AI Psychology Companion

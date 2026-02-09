@@ -213,7 +213,7 @@ const FeaturesPreview = () => {
               Ready to Begin Your Healing Journey?
             </h3>
             <p className="text-muted-foreground mb-6 text-lg">
-              Join thousands of Indian youth who have found support, understanding, and growth through MindMate
+              Join thousands of Indian youth who have found support, understanding, and growth through MindMitra
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 

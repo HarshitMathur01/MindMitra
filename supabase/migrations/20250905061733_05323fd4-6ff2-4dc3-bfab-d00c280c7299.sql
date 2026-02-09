@@ -1,4 +1,4 @@
--- Complete MindMate schema - fixes all chat and activity tables
+-- Complete MindMitra schema - fixes all chat and activity tables
 
 -- Ensure extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

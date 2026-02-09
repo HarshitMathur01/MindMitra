@@ -1,4 +1,4 @@
-# MindMate Chatbot Agent - Memory-Enhanced Psychology Workflow
+# MindMitra Chatbot Agent - Memory-Enhanced Psychology Workflow
 
 A FastAPI-based psychology chatbot with intelligent memory integration for Indian youth mental wellness.
 
@@ -46,7 +46,7 @@ Response:
 ```json
 {
   "status": "healthy",
-  "service": "mindmate-agent"
+  "service": "mindmitra-agent"
 }
 ```
 
@@ -304,7 +304,7 @@ See LICENSE file in root directory.
 
 ## 👥 Authors
 
-- **MindMate Team** - Mental wellness platform for Indian youth
+- **MindMitra Team** - Mental wellness platform for Indian youth
 - **Implementation**: GitHub Copilot (October 2025)
 
 ## 🔗 Links

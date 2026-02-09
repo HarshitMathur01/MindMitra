@@ -1,4 +1,4 @@
--- Migration: Add voice analytics table for MindMate voice features
+-- Migration: Add voice analytics table for MindMitra voice features
 CREATE TABLE voice_analytics (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,

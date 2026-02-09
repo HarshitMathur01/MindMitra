@@ -330,7 +330,7 @@ export function ChatInterfaceWithSessions() {
         <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
         <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
       </div>
-      <span className="text-sm text-muted-foreground">MindMate is thinking...</span>
+      <span className="text-sm text-muted-foreground">MindMitra is thinking...</span>
     </motion.div>
   );
 
@@ -582,7 +582,7 @@ export function ChatInterfaceWithSessions() {
                 )}
 
                 <p className="text-xs text-muted-foreground mt-2 text-center">
-                  Your conversations are private and secure. MindMate uses end-to-end encryption.
+                  Your conversations are private and secure. MindMitra uses end-to-end encryption.
                 </p>
               </div>
             </motion.div>
@@ -599,7 +599,7 @@ export function ChatInterfaceWithSessions() {
               <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center breathing-pulse">
                 <MessageCircle className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gradient mb-4">Welcome to MindMate</h2>
+              <h2 className="text-2xl font-bold text-gradient mb-4">Welcome to MindMitra</h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
                 Start a conversation with your AI therapy companion. Share your thoughts, feelings, and experiences in a safe, supportive environment.
               </p>

@@ -19,7 +19,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="MindMate Chatbot Agent", version="1.0.0")
+app = FastAPI(title="MindMitra Chatbot Agent", version="1.0.0")
 
 # In-memory message counter as fallback (survives across requests)
 session_message_counters = defaultdict(int)
@@ -216,11 +216,11 @@ async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
 
 @app.get("/")
 async def root():
-    return {"message": "MindMate Chatbot Agent is running"}
+    return {"message": "MindMitra Chatbot Agent is running"}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "mindmate-agent"}
+    return {"status": "healthy", "service": "mindmitra-agent"}
 
 @app.get("/debug/session/{session_id}")
 async def debug_session(session_id: str):

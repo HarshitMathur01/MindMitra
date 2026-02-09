@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Mic, Bot, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Send, Mic, Bot, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { Avatar } from "@radix-ui/react-avatar";
 import GirlAvatar from "./GirlAvatar"
 import {useChat} from "../../hooks/useChat"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface Message {
   id: string;
@@ -499,14 +500,19 @@ const ChatGPTInterface = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* ChatGPT-style Dark Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-0' : 'w-64'} transition-all duration-300 bg-gray-900 text-white flex flex-col border-r border-gray-700 overflow-hidden`}>
-        {/* Sidebar Header */}
-        <div className="p-3 border-b border-gray-700">
+    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Enhanced ChatGPT-style Sidebar with Glassmorphism */}
+      <motion.div 
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className={`${sidebarCollapsed ? 'w-0' : 'w-64'} transition-all duration-300 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col border-r border-gray-700/50 backdrop-blur-xl overflow-hidden shadow-2xl`}
+      >
+        {/* Sidebar Header with Gradient */}
+        <div className="p-3 border-b border-gray-700/50 bg-gradient-to-r from-blue-600/10 to-purple-600/10">
           <Button
             onClick={startNewChat}
-            className="w-full bg-transparent hover:bg-gray-800 border border-gray-600 text-white justify-start gap-2 text-sm"
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border-0 text-white justify-start gap-2 text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
             variant="outline"
           >
             <Plus className="h-4 w-4" />
@@ -514,15 +520,15 @@ const ChatGPTInterface = () => {
           </Button>
         </div>
 
-        {/* Search */}
-        <div className="p-3 border-b border-gray-700">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        {/* Search with Animation */}
+        <div className="p-3 border-b border-gray-700/50">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-400 transition-colors" />
             <Input
               placeholder="Search chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-gray-500 text-sm"
+              className="pl-10 bg-gray-800/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm transition-all duration-300"
             />
           </div>
         </div>
@@ -530,64 +536,84 @@ const ChatGPTInterface = () => {
         {/* Navigation & Content */}
         <div className="flex-1 overflow-hidden">
           <div className="p-2 space-y-1 h-full flex flex-col">
-            {/* Navigation Items */}
+            {/* Navigation Items with Hover Effects */}
             <Button
               variant="ghost"
-              className="w-full justify-start text-gray-300 hover:bg-gray-800 hover:text-white text-sm flex-shrink-0"
+              className="w-full justify-start text-gray-300 hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:text-white text-sm flex-shrink-0 transition-all duration-300 hover:scale-[1.02]"
               onClick={() => navigate('/')}
             >
               <Home className="h-4 w-4 mr-3" />
               Home
             </Button>
             
-            {/* Recent Chats Section */}
+            {/* Recent Chats Section with Animations */}
             <div className="pt-3 pb-1 flex-shrink-0">
               <div className="flex items-center justify-between px-3 mb-2">
-                <h3 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-wider">
                   Recent Chats
                 </h3>
                 {(loadingChats || loadingSession) && (
-                  <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                 )}
               </div>
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {recentChats.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-gray-500 italic">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="px-3 py-2 text-xs text-gray-500 italic"
+                  >
                     No recent chats
-                  </div>
+                  </motion.div>
                 ) : (
-                  recentChats.map((chat) => (
-                    <Button
-                      key={chat.id}
-                      variant="ghost"
-                      disabled={loadingSession}
-                      className={`w-full text-left p-2 transition-colors text-xs hover:bg-gray-800 group relative border border-transparent ${
-                        currentSessionId === chat.id ? 'bg-gray-800 border-gray-600 text-white' : 'text-gray-300 hover:text-white hover:border-gray-700'
-                      } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      onClick={() => selectRecentChat(chat.id)}
-                    >
-                      <div className="flex items-start gap-2 w-full">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${
-                          currentSessionId === chat.id ? 'bg-green-500' : 'bg-gray-500'
-                        }`}></div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate leading-tight font-medium">
-                            {chat.title}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {chat.messageCount || 0} messages • {new Date(chat.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    </Button>
-                  ))
+                  <AnimatePresence>
+                    {recentChats.map((chat, index) => (
+                      <motion.div
+                        key={chat.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <Button
+                          variant="ghost"
+                          disabled={loadingSession}
+                          className={`w-full text-left p-2 transition-all duration-300 text-xs hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 group relative border ${
+                            currentSessionId === chat.id 
+                              ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-500/50 text-white shadow-lg' 
+                              : 'border-transparent text-gray-300 hover:text-white hover:border-gray-700 hover:scale-[1.02]'
+                          } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => selectRecentChat(chat.id)}
+                        >
+                          <div className="flex items-start gap-2 w-full">
+                            <motion.div 
+                              animate={{ 
+                                scale: currentSessionId === chat.id ? [1, 1.2, 1] : 1,
+                              }}
+                              transition={{ duration: 0.3 }}
+                              className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${
+                                currentSessionId === chat.id ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' : 'bg-gray-500'
+                              }`}
+                            ></motion.div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate leading-tight font-medium">
+                                {chat.title}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {chat.messageCount || 0} messages • {new Date(chat.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 )}
               </div>
             </div>
             
-            {/* Quick Topics Section */}
+            {/* Quick Topics Section with Gradient Effects */}
             <div className="pt-1 pb-1 flex-shrink-0">
-              <h3 className="text-xs font-bold text-gray-200 uppercase tracking-wider px-3 mb-1">
+              <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-wider px-3 mb-1">
                 Quick Topics
               </h3>
               <div className="space-y-0">
@@ -595,7 +621,7 @@ const ChatGPTInterface = () => {
                   <Button
                     key={category.label}
                     variant="ghost"
-                    className="w-full justify-start text-gray-300 hover:bg-gray-800 hover:text-white text-sm py-1 h-7"
+                    className="w-full justify-start text-gray-300 hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:text-white text-sm py-1 h-7 transition-all duration-300 hover:scale-[1.02]"
                     onClick={() => handleSendMessage(`Tell me about ${category.label.toLowerCase()}`)}
                   >
                     <span className="mr-2 text-sm">{category.icon}</span>
@@ -605,9 +631,9 @@ const ChatGPTInterface = () => {
               </div>
             </div>
 
-            {/* Suggested Prompts Section */}
+            {/* Suggested Prompts Section with Hover Effects */}
             <div className="pt-1 pb-1 flex-shrink-0">
-              <h3 className="text-xs font-bold text-gray-200 uppercase tracking-wider px-3 mb-1">
+              <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-wider px-3 mb-1">
                 Suggested
               </h3>
               <div className="space-y-0">
@@ -615,7 +641,7 @@ const ChatGPTInterface = () => {
                   <Button
                     key={index}
                     variant="ghost"
-                    className="w-full justify-start text-gray-300 hover:bg-gray-800 hover:text-white text-xs p-2 h-auto leading-tight"
+                    className="w-full justify-start text-gray-300 hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:text-white text-xs p-2 h-auto leading-tight transition-all duration-300 hover:scale-[1.02]"
                     onClick={() => handleSendMessage(prompt)}
                   >
                     <span className="text-left line-clamp-2">
@@ -629,11 +655,11 @@ const ChatGPTInterface = () => {
             {/* Spacer to push footer to bottom */}
             <div className="flex-1"></div>
 
-            {/* Footer */}
-            <div className="flex-shrink-0 border-t border-gray-700 pt-2">
+            {/* Footer with Gradient */}
+            <div className="flex-shrink-0 border-t border-gray-700/50 pt-2 bg-gradient-to-r from-blue-600/5 to-purple-600/5">
               <div className="flex items-center justify-between px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
                     <User className="h-3 w-3 text-white" />
                   </div>
                   <span className="text-sm text-gray-300 truncate">
@@ -642,7 +668,7 @@ const ChatGPTInterface = () => {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400 hover:text-white">
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors">
                       <MoreVertical className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -661,34 +687,56 @@ const ChatGPTInterface = () => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        {/* Chat Header */}
-        <div className="border-b bg-white dark:bg-gray-800 p-4 flex items-center justify-between">
+        {/* Enhanced Chat Header with Glassmorphism */}
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="border-b border-gray-200/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-4 flex items-center justify-between shadow-lg"
+        >
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
+              className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               >
               {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">MindMitra</h1>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                <Sparkles className="h-4 w-4 text-white" />
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">MindMitra</h1>
+            </div>
             {isLoading && (
-              <Badge variant="secondary" className="animate-pulse">
-                Thinking...
+              <Badge variant="secondary" className="animate-pulse bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                <motion.span
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  Thinking...
+                </motion.span>
               </Badge>
             )}
           </div>
-          <button onClick={()=>setIsAvatarVisible((state)=>!state)}>
-            Toggle Avtar
-          </button>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105"
+              onClick={()=>setIsAvatarVisible((state)=>!state)}
+            >
+              <User className="h-4 w-4 mr-2" />
+              {isAvatarVisible ? 'Hide' : 'Show'} Avatar
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -700,138 +748,246 @@ const ChatGPTInterface = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Messages Area */}
+        {/* Messages Area with Animations */}
         <div className={`grid grid-rows-1 h-[80%]  ${isAvatarVisible?'grid-cols-2':'grid-cols-1'}`}>
         {isAvatarVisible && <GirlAvatar/>}
-        <div className="flex-1 overflow-y-scroll bg-white dark:bg-gray-800">
+        <div className="flex-1 overflow-y-scroll bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
           <ScrollArea className="h-full">
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-              {filteredMessages.map((message) => (
-                <div key={message.id} className="group">
-                  {message.sender === "ai" ? (
-                    <div className="flex gap-4 items-start">
-                      <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Bot className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="text-sm font-bold text-gray-900 dark:text-white">MindMitra</div>
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
-                          <div 
-                            className="text-sm leading-snug text-gray-900 dark:text-gray-100 font-medium"
-                            dangerouslySetInnerHTML={{
-                              __html: message.content
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                                .replace(/`(.*?)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-xs">$1</code>')
-                                .replace(/^- (.+)$/gm, '<li class="mb-1">$1</li>')
-                                .replace(/(<li.*<\/li>)/s, '<ul class="list-disc list-inside space-y-0 ml-4 my-2">$1</ul>')
-                                .replace(/\n\n/g, '<br><br>')
-                                .replace(/\n/g, '<br>')
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => copyMessage(message.content)}
+              <AnimatePresence>
+                {filteredMessages.map((message, index) => (
+                  <motion.div 
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className="group"
+                  >
+                    {message.sender === "ai" ? (
+                      <div className="flex gap-4 items-start">
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 200 }}
+                          className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
+                        >
+                          <Bot className="h-4 w-4 text-white" />
+                        </motion.div>
+                        <div className="flex-1 space-y-2">
+                          <div className="text-sm font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">MindMitra</div>
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="prose prose-sm max-w-none dark:prose-invert"
                           >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <ThumbsUp className="h-3 w-3" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <ThumbsDown className="h-3 w-3" />
-                          </Button>
-                          <span className="text-xs text-gray-500 ml-2">
-                            {message.timestamp.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-4 justify-end items-start">
-                      <div className="flex-1 flex justify-end">
-                        <div className="max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl">
-                          <div className="bg-blue-600 text-white rounded-2xl px-4 py-3 inline-block">
-                            <p className="text-sm font-medium whitespace-pre-wrap break-words">{message.content}</p>
-                          </div>
-                          <div className="flex items-center justify-end gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-xs text-gray-500">
+                            <div 
+                              className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm p-4 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-600/50"
+                              dangerouslySetInnerHTML={{
+                                __html: message.content
+                                  .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-600 dark:text-blue-400">$1</strong>')
+                                  .replace(/\*(.*?)\*/g, '<em class="text-purple-600 dark:text-purple-400">$1</em>')
+                                  .replace(/`(.*?)`/g, '<code class="bg-blue-100 dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono text-blue-800 dark:text-blue-300">$1</code>')
+                                  .replace(/^- (.+)$/gm, '<li class="mb-1">$1</li>')
+                                  .replace(/(<li.*<\/li>)/s, '<ul class="list-disc list-inside space-y-1 ml-4 my-2">$1</ul>')
+                                  .replace(/\n\n/g, '<br><br>')
+                                  .replace(/\n/g, '<br>')
+                              }}
+                            />
+                          </motion.div>
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0 }}
+                            whileHover={{ opacity: 1 }}
+                            className="flex items-center gap-2 transition-opacity"
+                          >
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-gray-700 hover:scale-110 transition-all"
+                              onClick={() => copyMessage(message.content)}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-gray-700 hover:scale-110 transition-all">
+                              <ThumbsUp className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-gray-700 hover:scale-110 transition-all">
+                              <ThumbsDown className="h-3 w-3" />
+                            </Button>
+                            <span className="text-xs text-gray-500 ml-2">
                               {message.timestamp.toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })}
                             </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => copyMessage(message.content)}
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
+                          </motion.div>
                         </div>
                       </div>
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-white" />
+                    ) : (
+                      <div className="flex gap-4 justify-end items-start">
+                        <div className="flex-1 flex justify-end">
+                          <div className="max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl">
+                            <motion.div 
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl px-5 py-3 inline-block shadow-lg hover:shadow-xl transition-shadow"
+                            >
+                              <p className="text-sm font-medium whitespace-pre-wrap break-words">{message.content}</p>
+                            </motion.div>
+                            <motion.div 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 0 }}
+                              whileHover={{ opacity: 1 }}
+                              className="flex items-center justify-end gap-2 mt-2 transition-opacity"
+                            >
+                              <span className="text-xs text-gray-500">
+                                {message.timestamp.toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all"
+                                onClick={() => copyMessage(message.content)}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </motion.div>
+                          </div>
+                        </div>
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 200 }}
+                          className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
+                        >
+                          <User className="h-4 w-4 text-white" />
+                        </motion.div>
                       </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              
+              {/* Typing Indicator */}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="flex gap-4 items-start"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Bot className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm px-5 py-3 rounded-2xl shadow-md">
+                    <div className="flex gap-1">
+                      <motion.div
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                        className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                      />
+                      <motion.div
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                        className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                      />
+                      <motion.div
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                        className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                      />
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                </motion.div>
+              )}
+              
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
         </div>
         </div>
-        {/* Input Area */}
-        <div className="border-t bg-white dark:bg-gray-800 p-4">
+        {/* Enhanced Input Area with Glassmorphism */}
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="border-t border-gray-200/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-4 shadow-lg"
+        >
           <div className="max-w-4xl mx-auto">
-            <div className="relative">
+            <div className="relative group">
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Message MindMitra..."
-                className="pr-20 py-3 text-sm rounded-2xl border-2 border-gray-300 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 dark:border-gray-500 dark:text-white"
+                className="pr-20 py-4 text-sm rounded-2xl border-2 border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 dark:border-gray-500 dark:text-white transition-all duration-300 shadow-md focus:shadow-lg"
                 disabled={isLoading}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={`h-8 w-8 p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 ${
-                    isRecording ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : ''
-                  }`}
-                  onClick={handleVoiceInput}
-                  disabled={isProcessing || isLoading}
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${
+                      isRecording 
+                        ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 shadow-lg shadow-red-500/20' 
+                        : 'hover:bg-blue-100 dark:hover:bg-gray-600'
+                    }`}
+                    onClick={handleVoiceInput}
+                    disabled={isProcessing || isLoading}
+                  >
+                    {isProcessing ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                    ) : (
+                      <motion.div
+                        animate={isRecording ? { scale: [1, 1.2, 1] } : {}}
+                        transition={{ duration: 1, repeat: isRecording ? Infinity : 0 }}
+                      >
+                        <Mic className="h-4 w-4" />
+                      </motion.div>
+                    )}
+                  </Button>
+                </motion.div>
+                <motion.div 
+                  whileHover={{ scale: 1.1 }} 
+                  whileTap={{ scale: 0.9 }}
                 >
-                  {isProcessing ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-                  ) : (
-                    <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''}`} />
-                  )}
-                </Button>
-                <Button
-                  onClick={() => handleSendMessage()}
-                  disabled={!inputValue.trim() || isLoading}
-                  className="bg-blue-400 hover:bg-blue-500 text-white h-8 w-8 p-0 rounded-full"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
+                  <Button
+                    onClick={() => handleSendMessage()}
+                    disabled={!inputValue.trim() || isLoading}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white h-9 w-9 p-0 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <motion.div
+                      initial={{ rotate: 0 }}
+                      whileHover={{ rotate: 45 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Send className="h-4 w-4" />
+                    </motion.div>
+                  </Button>
+                </motion.div>
               </div>
+              
+              {/* Character count indicator */}
+              {inputValue.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute -bottom-6 right-2 text-xs text-gray-500"
+                >
+                  {inputValue.length} characters
+                </motion.div>
+              )}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -540,8 +540,8 @@ async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
         user_activities = activities_response.data or []
         logger.info(f"📊 [CONTEXT] Fetched {len(user_activities)} activities")
         
-        # Fetch recent messages for this session (last 16)
-        messages_response = supabase_client.table('chat_messages').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(16).execute()
+        # Fetch recent messages for this session (last 10)
+        messages_response = supabase_client.table('chat_messages').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(10).execute()
         recent_messages_raw = messages_response.data or []
         
         # Format messages for workflow

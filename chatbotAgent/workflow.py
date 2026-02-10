@@ -289,7 +289,7 @@ class MindMitraWorkflow:
             model="gemini-2.5-flash-lite",
             google_api_key=api_key,
             timeout=30,
-            max_tokens=600,  # Increased to accommodate full memory context
+            max_tokens=400,  # Optimized for free tier token limits
             temperature=0.3,
             top_p=0.8,
             max_retries=1
@@ -491,7 +491,8 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
                 target=self._background_summarization,
                 args=(user_id, recent_messages, conversation_summary, psychological_analysis_placeholder),
                 daemon=True
-            ).start()
+            ).start()  # Disabled for prototype stage to save tokens
+            pass  # Background summarization temporarily disabled
         
         # Use only recent messages + summary for fast analysis
         conversation_context = self._format_minimal_conversation_context(

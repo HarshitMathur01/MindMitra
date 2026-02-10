@@ -29,3 +29,9 @@ chatbotAgent/__pycache__/
 chatbotAgent/__pycache__/
 __pycache__/
 *.pyc
+chatbotAgent/mindmitra-tts-7909061416cd.json
+chatbotAgent/*.json
+credentials_base64.txt
+chatbotAgent/credentials_base64.txt
+chatbotAgent/venv/
+.vite/

@@ -53,7 +53,6 @@ const ChatGPTInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isAvatarVisible, setIsAvatarVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -66,7 +65,7 @@ const ChatGPTInterface = () => {
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string|null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const {chat} = useChat();
+  const { isAvatarVisible, toggleAvatar, closeAvatar, addAvatarMessage, clearAvatarMessages } = useChat();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -349,12 +348,18 @@ const ChatGPTInterface = () => {
         console.log('🆔 Generated new session ID:', sessionIdToUse);
       }
 
-      // Save the user message first
-      await saveMessage(userMessage, sessionIdToUse);
+      // Save the user message first (non-blocking - ⚡ P0 optimization)
+      saveMessage(userMessage, sessionIdToUse).catch(err => 
+        console.error('❌ Background save failed:', err)
+      );
 
       // Call backend directly (no Edge Function)
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      if (!backendUrl) {
+        throw new Error('VITE_BACKEND_URL environment variable is not configured');
+      }
       console.log('📡 Calling backend directly:', `${backendUrl}/chat`);
+      console.log('🎭 Avatar visibility state:', isAvatarVisible);
       
       const response = await fetch(`${backendUrl}/chat`, {
         method: 'POST',
@@ -365,7 +370,8 @@ const ChatGPTInterface = () => {
         body: JSON.stringify({
           user_message: textToSend,
           session_id: sessionIdToUse,
-          voice_analysis: null  // Can be extended for voice features
+          voice_analysis: null,  // Can be extended for voice features
+          avatar_visible: isAvatarVisible  // ⚡ P0: Skip TTS when avatar hidden
         })
       });
 
@@ -391,7 +397,16 @@ const ChatGPTInterface = () => {
 
       console.log(`AI Response: ${aiResponse.content}`);
 
-      await chat(aiResponse.content);
+      // ✅ Always queue message - avatar will play when opened
+      console.log('🎭 [Chat] Queueing AI response for avatar (will play when opened)');
+      console.log('🎭 [Chat] Backend data contains:', {
+        hasMessage: !!data.message,
+        hasAudio: !!data.audio,
+        hasLipsync: !!data.lipsync,
+        animation: data.animation,
+        facialExpression: data.facial_expression
+      });
+      addAvatarMessage(data); // Pass full backend response with audio/lipsync
       
       // Only add AI response if we're still on the same session
       const currentSession = localStorage.getItem('currentChatSession');
@@ -399,8 +414,10 @@ const ChatGPTInterface = () => {
         setMessages(prev => [...prev, aiResponse]);
       }
 
-      // Save AI response to database
-      await saveMessage(aiResponse, sessionIdToUse);
+      // Save AI response to database (non-blocking - ⚡ P0 optimization)
+      saveMessage(aiResponse, sessionIdToUse).catch(err =>
+        console.error('❌ Background save failed:', err)
+      );
 
       console.log('✅ Message exchange completed');
 
@@ -725,14 +742,13 @@ const ChatGPTInterface = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105"
-              onClick={()=>setIsAvatarVisible((state)=>!state)}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => toggleAvatar()}
+              className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <User className="h-4 w-4 mr-2" />
-              {isAvatarVisible ? 'Hide' : 'Show'} Avatar
+              {isAvatarVisible ? 'Hide Avatar' : 'Show Avatar'}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -750,9 +766,13 @@ const ChatGPTInterface = () => {
           </div>
         </motion.div>
 
-        {/* Messages Area with Animations */}
-        <div className={`grid grid-rows-1 h-[80%]  ${isAvatarVisible?'grid-cols-2':'grid-cols-1'}`}>
-        {isAvatarVisible && <GirlAvatar/>}
+        {/* Messages Area with Animations - Conditional 50-50 split */}
+        <div className={`grid grid-rows-1 h-[80%] ${isAvatarVisible ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {isAvatarVisible && (
+        <div className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700">
+          <GirlAvatar/>
+        </div>
+        )}
         <div className="flex-1 overflow-y-scroll bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
           <ScrollArea className="h-full">
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">

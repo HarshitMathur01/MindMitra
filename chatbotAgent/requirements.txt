@@ -10,3 +10,6 @@ langchain-google-genai>=0.0.6
 langgraph>=0.0.20
 httpx>=0.25.0
 PyJWT>=2.8.0
+gtts>=2.5.0
+pydub>=0.25.1
+google-cloud-texttospeech

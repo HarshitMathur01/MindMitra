@@ -1,4 +1,4 @@
-// -- filepath: /Users/harshitmathur/Desktop/MindMate/psyche-prompt-play/src/components/chat/ChatInterfaceWithSessions.tsx
+// -- filepath: /Users/harshitmathur/MindMitra/src/components/chat/ChatInterfaceWithSessions.tsx
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';

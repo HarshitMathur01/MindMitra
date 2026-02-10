@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import logging
 import os
 import threading
+import asyncio
 from collections import defaultdict
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -18,6 +20,41 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Verify Google Cloud credentials - support both file path and base64 encoding
+GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+GOOGLE_CREDENTIALS_BASE64 = os.getenv("GOOGLE_CREDENTIALS_BASE64")
+
+# Handle base64-encoded credentials (Railway/production deployment)
+if GOOGLE_CREDENTIALS_BASE64:
+    try:
+        import base64
+        import tempfile
+        
+        logger.info("🔐 [INIT] Decoding Google Cloud credentials from GOOGLE_CREDENTIALS_BASE64...")
+        
+        # Decode base64 to JSON string
+        creds_json = base64.b64decode(GOOGLE_CREDENTIALS_BASE64).decode('utf-8')
+        
+        # Write to temporary file for Google Cloud SDK
+        temp_creds = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        temp_creds.write(creds_json)
+        temp_creds.close()
+        
+        # Set environment variable for Google Cloud SDK
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_creds.name
+        GOOGLE_CREDENTIALS_PATH = temp_creds.name
+        
+        logger.info(f"✅ [INIT] Google Cloud credentials loaded from GOOGLE_CREDENTIALS_BASE64: {temp_creds.name}")
+    except Exception as e:
+        logger.error(f"❌ [INIT] Failed to decode GOOGLE_CREDENTIALS_BASE64: {e}")
+        logger.warning("⚠️ [INIT] Google Cloud TTS will not be available (will use gTTS fallback)")
+elif GOOGLE_CREDENTIALS_PATH and os.path.exists(GOOGLE_CREDENTIALS_PATH):
+    logger.info(f"✅ [INIT] Google Cloud credentials loaded from file: {GOOGLE_CREDENTIALS_PATH}")
+else:
+    logger.warning(f"⚠️ [INIT] Google Cloud credentials not found")
+    logger.warning(f"   Set either GOOGLE_APPLICATION_CREDENTIALS (file path) or GOOGLE_CREDENTIALS_BASE64 (base64 string)")
+    logger.warning("   Google Cloud TTS will not be available (will use gTTS fallback)")
 
 app = FastAPI(title="MindMitra Chatbot Agent", version="1.0.0")
 
@@ -50,10 +87,15 @@ class ChatRequest(BaseModel):
     user_message: str
     session_id: Optional[str] = None
     voice_analysis: Optional[Dict[str, Any]] = None  # Voice analysis is optional
+    avatar_visible: bool = True  # Whether avatar is visible (controls TTS generation)
     # Context will be fetched by backend, not passed from frontend
 
 class ChatResponse(BaseModel):
     message: str
+    audio: Optional[str] = None  # Base64 MP3 audio
+    lipsync: Optional[Dict[str, Any]] = None  # Phoneme timing data
+    animation: Optional[str] = "Idle"  # Avatar animation name
+    facial_expression: Optional[str] = "default"  # Sentiment-based expression
     modality: str
     confidence: float
     session_insights: Optional[Dict[str, Any]] = None
@@ -72,6 +114,347 @@ else:
 JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")  # From Supabase project settings
 if not JWT_SECRET:
     logger.warning("⚠️ [MAIN] JWT_SECRET not set - will skip strict JWT validation")
+
+# ===== TTS AND LIPSYNC FUNCTIONS =====
+import base64
+import io
+import tempfile
+import subprocess
+import json
+import time
+from gtts import gTTS
+from google.cloud import texttospeech
+from pydub import AudioSegment
+
+# Feature flag for Google Cloud TTS
+ENABLE_GOOGLE_TTS = True
+
+def generate_google_cloud_tts(text: str, emotion: str = 'neutral') -> Optional[str]:
+    """
+    Generate TTS audio using Google Cloud Text-to-Speech with WaveNet voices.
+    
+    Args:
+        text: Text to convert to speech
+        emotion: Emotion for voice modulation (neutral, happy, sad, angry, surprised)
+    
+    Returns:
+        Base64-encoded WAV string, or None on failure
+    """
+    try:
+        logger.info(f"🔊 [Google Cloud TTS] Generating audio for text ({len(text)} chars): {text[:50]}...")
+        logger.info(f"🎭 [Google Cloud TTS] Emotion: {emotion}")
+        
+        # Initialize Google Cloud TTS client
+        logger.info(f"🔌 [Google Cloud TTS] Initializing TextToSpeechClient...")
+        client = texttospeech.TextToSpeechClient()
+        logger.info(f"✅ [Google Cloud TTS] Client initialized successfully")
+        
+        # Configure voice parameters based on emotion
+        emotion_configs = {
+            'happy': {'speaking_rate': 1.1, 'pitch': 2.0},
+            'sad': {'speaking_rate': 0.9, 'pitch': -2.0},
+            'angry': {'speaking_rate': 1.05, 'pitch': -1.0},
+            'surprised': {'speaking_rate': 1.15, 'pitch': 3.0},
+            'neutral': {'speaking_rate': 1.0, 'pitch': 0.0}
+        }
+        
+        config = emotion_configs.get(emotion, emotion_configs['neutral'])
+        
+        # Set up synthesis input
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+        
+        # Configure voice (WaveNet for natural quality)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="en-US",
+            name="en-US-Wavenet-F",  # Female WaveNet voice
+            ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
+        )
+        
+        # Configure audio output (WAV format for Rhubarb compatibility)
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16,  # WAV PCM
+            sample_rate_hertz=16000,  # 16kHz for Rhubarb
+            speaking_rate=config['speaking_rate'],
+            pitch=config['pitch']
+        )
+        
+        # Perform TTS request
+        response = client.synthesize_speech(
+            input=synthesis_input,
+            voice=voice,
+            audio_config=audio_config
+        )
+        
+        # Convert WAV bytes to base64
+        audio_base64 = base64.b64encode(response.audio_content).decode('utf-8')
+        audio_size_kb = len(audio_base64) / 1024
+        
+        logger.info(f"✅ [Google Cloud TTS] Audio generated successfully: {audio_size_kb:.2f} KB (base64 WAV)")
+        return audio_base64
+        
+    except Exception as e:
+        logger.error(f"❌ [Google Cloud TTS] Failed to generate audio: {e}")
+        logger.error(f"   Text was: {text[:100]}")
+        return None  # Will trigger fallback
+
+def generate_tts_audio(text: str, lang: str = 'en') -> Optional[str]:
+    """
+    Generate TTS audio using gTTS (fallback method) and return base64 MP3.
+    
+    Args:
+        text: Text to convert to speech
+        lang: Language code (default: 'en')
+    
+    Returns:
+        Base64-encoded MP3 string, or None on failure
+    """
+    try:
+        logger.info(f"🔊 [gTTS] Generating audio for text ({len(text)} chars): {text[:50]}...")
+        logger.info(f"🌍 [gTTS] Language: {lang}")
+        
+        # Generate TTS with gTTS (creates MP3 directly)
+        logger.info(f"🎙️ [gTTS] Creating TTS object...")
+        tts = gTTS(text=text, lang=lang, slow=False)
+        logger.info(f"✅ [gTTS] TTS object created")
+        
+        # Save to in-memory bytes buffer
+        audio_buffer = io.BytesIO()
+        tts.write_to_fp(audio_buffer)
+        audio_buffer.seek(0)
+        
+        # Convert to base64
+        audio_base64 = base64.b64encode(audio_buffer.read()).decode('utf-8')
+        audio_size_kb = len(audio_base64) / 1024
+        
+        logger.info(f"✅ [gTTS] Audio generated successfully: {audio_size_kb:.2f} KB (base64)")
+        return audio_base64
+        
+    except Exception as e:
+        logger.error(f"❌ [gTTS] Failed to generate audio: {e}")
+        logger.error(f"   Text was: {text[:100]}")
+        return None  # Graceful degradation
+
+def generate_tts_audio_v2(text: str, emotion: str = 'neutral') -> Optional[str]:
+    """
+    Generate TTS audio with fallback chain: Google Cloud TTS -> gTTS.
+    
+    Args:
+        text: Text to convert to speech
+        emotion: Emotion for voice modulation
+    
+    Returns:
+        Base64-encoded audio string (WAV or MP3), or None on complete failure
+    """
+    # Try Google Cloud TTS first (if enabled)
+    if ENABLE_GOOGLE_TTS:
+        logger.info(f"🚀 [TTS v2] Attempting Google Cloud TTS (emotion: {emotion})...")
+        audio = generate_google_cloud_tts(text, emotion)
+        if audio:
+            logger.info(f"✅ [TTS v2] Google Cloud TTS succeeded")
+            return audio
+        logger.warning("⚠️ [TTS v2] Google Cloud TTS failed, falling back to gTTS...")
+    else:
+        logger.info(f"⏭️ [TTS v2] Google Cloud TTS disabled, using gTTS directly")
+    
+    # Fallback to gTTS
+    logger.info(f"🔄 [TTS v2] Attempting gTTS fallback...")
+    return generate_tts_audio(text)
+
+def generate_lipsync_from_audio(audio_base64: str, text_fallback: str) -> Dict[str, Any]:
+    """
+    Generate lip-sync data from audio using Rhubarb Lip-Sync CLI tool.
+    Falls back to text-based generation on error.
+    Handles both WAV (Google Cloud TTS) and MP3 (gTTS) formats.
+    
+    Args:
+        audio_base64: Base64-encoded audio (WAV or MP3)
+        text_fallback: Text to use for fallback if Rhubarb fails
+    
+    Returns:
+        Dictionary with mouthCues array
+    """
+    temp_file = None
+    try:
+        start_time = time.time()
+        logger.info(f"🎤 [RHUBARB] Starting audio-based lip-sync analysis...")
+        
+        # Decode base64 to bytes
+        audio_bytes = base64.b64decode(audio_base64)
+        
+        # Detect audio format by checking base64 prefix or file header
+        # WAV files start with "RIFF" (52 49 46 46)
+        # MP3 files start with ID3 tag or FF FB/FF FA sync word
+        is_wav = audio_bytes[:4] == b'RIFF'
+        file_extension = '.wav' if is_wav else '.mp3'
+        
+        logger.info(f"🎵 [RHUBARB] Detected audio format: {file_extension.upper()}")
+        
+        # Save to temporary file with correct extension
+        temp_file = tempfile.NamedTemporaryFile(suffix=file_extension, delete=False)
+        temp_file.write(audio_bytes)
+        temp_file.close()
+        
+        logger.info(f"💾 [RHUBARB] Saved audio to temp file: {temp_file.name}")
+        
+        # Get Rhubarb binary path (relative to main.py)
+        rhubarb_path = os.path.join(os.path.dirname(__file__), 'bin', 'rhubarb')
+        
+        if not os.path.exists(rhubarb_path):
+            raise FileNotFoundError(f"Rhubarb binary not found at {rhubarb_path}")
+        
+        # Call Rhubarb CLI
+        logger.info(f"🎙️ [RHUBARB] Executing: {rhubarb_path} -f json {temp_file.name}")
+        result = subprocess.run(
+            [rhubarb_path, '-f', 'json', temp_file.name],
+            capture_output=True,
+            text=True,
+            timeout=10  # 10 second timeout
+        )
+        
+        if result.returncode != 0:
+            raise RuntimeError(f"Rhubarb failed with code {result.returncode}: {result.stderr}")
+        
+        # Parse JSON output
+        rhubarb_output = json.loads(result.stdout)
+        
+        # Rhubarb outputs A-H, X mouth shapes directly - NO REMAPPING NEEDED!
+        # Rhubarb: A(closed), B(clenched), C(open), D(wide), E(rounded), F(puckered), G(f/v), H(L/th), X(rest)
+        # These map directly to Avatar.jsx viseme targets - pass through as-is
+        
+        # Convert Rhubarb mouthCues format to Avatar format (no value transformation)
+        mouth_cues = []
+        if 'mouthCues' in rhubarb_output:
+            for cue in rhubarb_output['mouthCues']:
+                mouth_cues.append({
+                    'start': cue['start'],
+                    'end': cue['end'],
+                    'value': cue['value']  # Pass through directly - already correct!
+                })
+        
+        # Validation logging
+        if mouth_cues:
+            unique_shapes = set(cue['value'] for cue in mouth_cues)
+            logger.info(f"📊 [RHUBARB] Unique shapes detected: {sorted(unique_shapes)}")
+            logger.info(f"📊 [RHUBARB] Sample sequence (first 10): {[c['value'] for c in mouth_cues[:10]]}")
+        
+        elapsed_time = time.time() - start_time
+        logger.info(f"✅ [RHUBARB] Generated {len(mouth_cues)} mouth cues in {elapsed_time:.2f}s")
+        logger.info(f"⏱️ [RHUBARB] Processing time: {elapsed_time:.2f}s")
+        
+        return {'mouthCues': mouth_cues}
+        
+    except subprocess.TimeoutExpired:
+        logger.error(f"❌ [RHUBARB] Timeout after 10 seconds - falling back to text-based")
+        return generate_lipsync_from_text(text_fallback)
+    except FileNotFoundError as e:
+        logger.error(f"❌ [RHUBARB] Binary not found: {e} - falling back to text-based")
+        return generate_lipsync_from_text(text_fallback)
+    except Exception as e:
+        logger.error(f"❌ [RHUBARB] Failed: {e} - falling back to text-based")
+        logger.error(f"   Error details: {type(e).__name__}: {str(e)}")
+        return generate_lipsync_from_text(text_fallback)
+    finally:
+        # Clean up temp file
+        if temp_file and os.path.exists(temp_file.name):
+            try:
+                os.unlink(temp_file.name)
+                logger.info(f"🗑️ [RHUBARB] Cleaned up temp file")
+            except Exception as e:
+                logger.warning(f"⚠️ [RHUBARB] Failed to delete temp file: {e}")
+
+def generate_lipsync_from_text(text: str, audio_duration: Optional[float] = None) -> Dict[str, Any]:
+    """
+    Generate lip-sync data from text using phoneme mapping (FALLBACK METHOD).
+    
+    Args:
+        text: Text to generate lip-sync for
+        audio_duration: Optional audio duration for timing calibration
+    
+    Returns:
+        Dictionary with mouthCues array
+    """
+    try:
+        logger.info(f"👄 [LIPSYNC-TEXT] Generating text-based lip-sync for ({len(text)} chars)")
+        
+        # Phoneme mapping (matches Avatar.jsx viseme mapping)
+        phoneme_map = {
+            'a': 'D', 'e': 'E', 'i': 'C', 'o': 'E', 'u': 'F',
+            'p': 'A', 'b': 'A', 'm': 'A',
+            'f': 'G', 'v': 'G',
+            't': 'B', 'd': 'B', 'k': 'B', 'g': 'B',
+            's': 'X', 'z': 'X', 'r': 'X', 'l': 'X', 'n': 'X', 'h': 'X',
+            'w': 'F', 'y': 'C'
+        }
+        
+        mouth_cues = []
+        current_time = 0.0
+        phoneme_duration = 0.15  # 150ms per phoneme
+        word_pause = 0.1  # 100ms between words
+        
+        words = text.split(' ')
+        
+        for word_idx, word in enumerate(words):
+            word_lower = word.lower()
+            char_idx = 0
+            
+            while char_idx < len(word_lower):
+                char = word_lower[char_idx]
+                
+                # Check for digraphs (th)
+                if char_idx < len(word_lower) - 1 and char + word_lower[char_idx + 1] == 'th':
+                    mouth_cues.append({
+                        "start": current_time,
+                        "end": current_time + phoneme_duration,
+                        "value": "H"
+                    })
+                    current_time += phoneme_duration
+                    char_idx += 2
+                    continue
+                
+                # Map character to phoneme
+                if char in phoneme_map:
+                    mouth_cues.append({
+                        "start": current_time,
+                        "end": current_time + phoneme_duration,
+                        "value": phoneme_map[char]
+                    })
+                    current_time += phoneme_duration
+                elif char.isalpha():
+                    # Unknown letter - use neutral mouth
+                    mouth_cues.append({
+                        "start": current_time,
+                        "end": current_time + phoneme_duration * 0.5,
+                        "value": "X"
+                    })
+                    current_time += phoneme_duration * 0.5
+                
+                char_idx += 1
+            
+            # Add pause between words
+            if word_idx < len(words) - 1:
+                mouth_cues.append({
+                    "start": current_time,
+                    "end": current_time + word_pause,
+                    "value": "X"
+                })
+                current_time += word_pause
+        
+        total_duration = current_time
+        logger.info(f"✅ [LIPSYNC] Generated {len(mouth_cues)} mouth cues, duration: {total_duration:.2f}s")
+        
+        # If audio duration provided, calibrate timing
+        if audio_duration and audio_duration > 0:
+            scale_factor = audio_duration / total_duration
+            logger.info(f"🎯 [LIPSYNC] Calibrating timing with scale factor: {scale_factor:.3f}")
+            for cue in mouth_cues:
+                cue["start"] *= scale_factor
+                cue["end"] *= scale_factor
+        
+        return {"mouthCues": mouth_cues}
+        
+    except Exception as e:
+        logger.error(f"❌ [LIPSYNC] Failed to generate lip-sync: {e}")
+        return {"mouthCues": []}  # Return empty array on failure
 
 def get_session_message_count(session_id: str) -> int:
     """Get total message count for a session from database"""
@@ -221,35 +604,6 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "mindmitra-agent"}
-
-@app.get("/debug/session/{session_id}")
-async def debug_session(session_id: str):
-    """Debug endpoint to check session message count"""
-    try:
-        db_count = get_session_message_count(session_id)
-        memory_count = session_message_counters.get(session_id, 0)
-        hybrid_count = get_hybrid_message_count(session_id)
-        
-        # Try to get recent messages
-        recent_messages = []
-        if supabase_client:
-            try:
-                response = supabase_client.table('chat_messages').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(10).execute()
-                recent_messages = response.data or []
-            except Exception as e:
-                logger.error(f"Error fetching messages: {e}")
-        
-        return {
-            "session_id": session_id,
-            "counts": {
-                "database": db_count,
-                "in_memory": memory_count,
-                "hybrid_final": hybrid_count
-            },
-            "recent_messages_found": len(recent_messages),
-            "next_memory_trigger": ((hybrid_count // 8) + 1) * 8,
-            "messages_until_trigger": 8 - (hybrid_count % 8) if hybrid_count % 8 != 0 else 8,
-            "sample_messages": [
                 {
                     "role": msg.get("role"),
                     "content": msg.get("content", "")[:100],
@@ -362,6 +716,84 @@ async def process_chat(
         logger.info(f"✅ [MAIN] Chat processing completed successfully")
         logger.info(f"📝 [MAIN] Response length: {len(result.get('message', ''))} characters")
         
+        # ===== GENERATE TTS AND LIP-SYNC FOR AVATAR (CONDITIONAL) =====
+        ai_message_text = result.get('message', '')
+        logger.info("=" * 80)
+        logger.info("🎙️ [AVATAR PIPELINE] TTS Generation Decision")
+        logger.info("=" * 80)
+        logger.info(f"🔍 [AVATAR] Avatar visible: {request.avatar_visible}")
+        logger.info(f"📝 [AVATAR] AI message length: {len(ai_message_text)} chars")
+        
+        audio_base64 = None
+        lipsync_data = None
+        animation = "Idle"
+        facial_expression = "default"
+        
+        # ⚡ OPTIMIZATION: Skip TTS/Rhubarb if avatar is hidden (saves 2-3 seconds)
+        if not request.avatar_visible:
+            logger.info("⚡ [AVATAR] Avatar hidden - skipping TTS generation (latency optimization)")
+            logger.info("⏱️ [AVATAR] Saved ~2-3 seconds by skipping audio processing")
+        elif ai_message_text:
+            # Detect emotion for TTS voice modulation
+            text_lower = ai_message_text.lower()
+            emotion = 'neutral'
+            if any(word in text_lower for word in ['happy', 'great', 'wonderful', 'amazing', 'excited', 'proud', 'joy']):
+                emotion = 'happy'
+                facial_expression = "smile"
+            elif any(word in text_lower for word in ['sad', 'sorry', 'difficult', 'hard', 'anxious', 'worried']):
+                emotion = 'sad'
+                facial_expression = "sad"
+            elif any(word in text_lower for word in ['angry', 'frustrated', 'annoyed']):
+                emotion = 'angry'
+                facial_expression = "angry"
+            elif any(word in text_lower for word in ['wow', 'really', 'surprised', 'incredible', 'amazing']):
+                emotion = 'surprised'
+                facial_expression = "surprised"
+            
+            logger.info(f"🎭 [AVATAR] Detected emotion: {emotion}, Expression: {facial_expression}")
+            
+            # Generate TTS audio with emotion (Google Cloud TTS or gTTS fallback)
+            audio_base64 = generate_tts_audio_v2(ai_message_text, emotion)
+            
+            if audio_base64:
+                logger.info("✅ [AVATAR] TTS audio generated successfully")
+                animation = "Talking_0"  # Trigger talking animation
+                
+                # Generate lip-sync using Rhubarb (audio-based analysis)
+                lipsync_data = generate_lipsync_from_audio(audio_base64, ai_message_text)
+            else:
+                logger.warning("⚠️ [AVATAR] TTS failed - using text-based lip-sync")
+                animation = "Talking_0"  # Still show talking animation
+                
+                # Fallback to text-based lip-sync when no audio
+                lipsync_data = generate_lipsync_from_text(ai_message_text)
+            
+            if lipsync_data and lipsync_data.get('mouthCues'):
+                logger.info(f"✅ [AVATAR] Lip-sync generated: {len(lipsync_data['mouthCues'])} cues")
+            else:
+                logger.warning("⚠️ [AVATAR] Lip-sync generation failed - avatar will stay idle")
+                lipsync_data = None
+                animation = "Idle"
+            
+            logger.info(f"🎭 [AVATAR] Animation: {animation}, Expression: {facial_expression}")
+
+        
+        logger.info("=" * 80)
+        
+        # Add to result dictionary
+        result['audio'] = audio_base64
+        result['lipsync'] = lipsync_data
+        result['animation'] = animation
+        result['facial_expression'] = facial_expression
+        result['text'] = ai_message_text  # For frontend head movement analysis
+        
+        logger.info(f"📦 [AVATAR] Final response package:")
+        logger.info(f"   - Audio: {'✅ ' + str(len(audio_base64)) + ' chars' if audio_base64 else '❌ None'}")
+        logger.info(f"   - Lipsync: {'✅ ' + str(len(lipsync_data.get('mouthCues', []))) + ' cues' if lipsync_data else '❌ None'}")
+        logger.info(f"   - Animation: {animation}")
+        logger.info(f"   - Facial Expression: {facial_expression}")
+        logger.info(f"   - Text length: {len(ai_message_text)} chars")
+        
         # Trigger memory extraction every 8 messages
         if result and request.session_id:
             try:
@@ -401,11 +833,138 @@ async def process_chat(
             except Exception as e:
                 logger.error(f"❌ [MAIN] Error checking memory extraction: {e}")
         
-        return result
+        # Return complete response with avatar data
+        return ChatResponse(
+            message=result.get('message', ''),
+            audio=result.get('audio'),
+            lipsync=result.get('lipsync'),
+            animation=result.get('animation', 'Idle'),
+            facial_expression=result.get('facial_expression', 'default'),
+            modality=result.get('modality', 'therapy'),
+            confidence=result.get('confidence', 0.8),
+            session_insights=result.get('session_insights')
+        )
         
     except Exception as e:
         logger.error(f"❌ [MAIN] Error processing chat: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
+
+
+@app.post("/chat/stream")
+async def process_chat_stream(
+    request: ChatRequest,
+    authorization: str = Header(None)
+):
+    """
+    ⚡ P0 OPTIMIZATION: Streaming endpoint that returns AI text immediately,
+    then streams TTS/lipsync data asynchronously if avatar is visible.
+    
+    SSE Format:
+    - event: text_chunk -> AI text response (immediate)
+    - event: audio_ready -> TTS audio generated (async)
+    - event: lipsync_ready -> Lip-sync data generated (async)
+    - event: complete -> All processing done
+    """
+    try:
+        logger.info("=" * 80)
+        logger.info("🚀 [STREAM] NEW STREAMING CHAT REQUEST")
+        logger.info("=" * 80)
+        
+        # Validate authentication
+        user_id = await validate_user_token(authorization)
+        logger.info(f"👤 [STREAM] User: {user_id}, Session: {request.session_id}")
+        logger.info(f"💬 [STREAM] Message: '{request.user_message[:100]}'")
+        logger.info(f"🎭 [STREAM] Avatar visible: {request.avatar_visible}")
+        
+        async def event_generator():
+            try:
+                # Phase 1: Generate AI response text (high priority)
+                logger.info("⚡ [STREAM] Phase 1: Generating AI text response...")
+                
+                context = await fetch_user_context(user_id, request.session_id)
+                result = process_user_chat(
+                    user_message=request.user_message,
+                    recent_messages=context["recent_messages"],
+                    conversation_summary=context["conversation_summary"],
+                    user_activities=context["user_activities"],
+                    user_patterns={},
+                    voice_analysis=request.voice_analysis or {},
+                    user_id=user_id,
+                    session_id=request.session_id
+                )
+                
+                ai_message_text = result.get('message', '')
+                logger.info(f"✅ [STREAM] AI text ready ({len(ai_message_text)} chars)")
+                
+                # Send text immediately via SSE
+                import json
+                yield f"event: text_chunk\\ndata: {json.dumps({'message': ai_message_text, 'modality': result.get('modality'), 'confidence': result.get('confidence', 0.8)})}\\n\\n"
+                
+                # Phase 2: Generate TTS/lipsync ONLY if avatar visible (async)
+                if request.avatar_visible and ai_message_text:
+                    logger.info("🎙️ [STREAM] Phase 2: Generating TTS + lip-sync (async)...")
+                    
+                    # Detect emotion
+                    text_lower = ai_message_text.lower()
+                    emotion = 'neutral'
+                    facial_expression = "default"
+                    if any(word in text_lower for word in ['happy', 'great', 'wonderful', 'amazing', 'excited']):
+                        emotion = 'happy'
+                        facial_expression = "smile"
+                    elif any(word in text_lower for word in ['sad', 'sorry', 'difficult', 'hard', 'anxious']):
+                        emotion = 'sad'
+                        facial_expression = "sad"
+                    
+                    # Generate TTS
+                    audio_base64 = generate_tts_audio_v2(ai_message_text, emotion)
+                    
+                    if audio_base64:
+                        logger.info("✅ [STREAM] TTS audio ready")
+                        yield f"event: audio_ready\\ndata: {json.dumps({'audio': audio_base64, 'animation': 'Talking_0', 'facial_expression': facial_expression})}\\n\\n"
+                        
+                        # Generate lipsync
+                        lipsync_data = generate_lipsync_from_audio(audio_base64, ai_message_text)
+                        if lipsync_data:
+                            logger.info(f"✅ [STREAM] Lipsync ready ({len(lipsync_data.get('mouthCues', []))} cues)")
+                            yield f"event: lipsync_ready\\ndata: {json.dumps({'lipsync': lipsync_data})}\\n\\n"
+                else:
+                    logger.info("⏭️ [STREAM] Skipping TTS (avatar hidden or no text)")
+                
+                # Phase 3: Trigger memory extraction
+                if request.session_id:
+                    session_message_counters[request.session_id] += 1
+                    count = get_hybrid_message_count(request.session_id)
+                    if count > 0 and count % 8 == 0:
+                        logger.info(f"🧠 [STREAM] Triggering memory extraction (message #{count})")
+                        workflow = get_workflow_instance()
+                        threading.Thread(
+                            target=workflow.trigger_memory_extraction,
+                            args=(request.session_id, user_id),
+                            daemon=True
+                        ).start()
+                
+                # Send completion event
+                yield f"event: complete\\ndata: {json.dumps({'status': 'success'})}\\n\\n"
+                logger.info("✅ [STREAM] Streaming complete")
+                
+            except Exception as e:
+                logger.error(f"❌ [STREAM] Error in event generator: {e}")
+                import json
+                yield f"event: error\\ndata: {json.dumps({'error': str(e)})}\\n\\n"
+        
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ [STREAM] Streaming setup failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Streaming failed: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -93,15 +93,15 @@ const facialExpressions = {
 };
 
 const corresponding = {
-  A: "viseme_PP",
-  B: "viseme_kk",
-  C: "viseme_I",
-  D: "viseme_AA",
-  E: "viseme_O",
-  F: "viseme_U",
-  G: "viseme_FF",
-  H: "viseme_TH",
-  X: "viseme_PP",
+  A: "viseme_PP",   // Closed mouth (p, b, m)
+  B: "viseme_kk",   // Clenched teeth
+  C: "viseme_I",    // Open mouth (vowels)
+  D: "viseme_AA",   // Wide open mouth
+  E: "viseme_O",    // Rounded mouth
+  F: "viseme_U",    // Puckered lips
+  G: "viseme_FF",   // F/V sounds
+  H: "viseme_TH",   // Tongue/L sounds
+  X: "viseme_PP",   // Rest/pause - closed mouth (natural resting position)
 };
 
 let setupMode = false;
@@ -114,25 +114,116 @@ export function Avatar(props) {
   const { message, onMessagePlayed, chat } = useChat();
 
   const [lipsync, setLipsync] = useState();
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    console.log(message);
+    console.log('🎭 [Avatar] New message received:', message);
     if (!message) {
       setAnimation("Idle");
+      setIsPlaying(false);
+      setPlaybackTime(0);
       return;
     }
-    setAnimation(message.animation);
-    setFacialExpression(message.facialExpression);
+    
+    setAnimation(message.animation || "Talking_0");
+    setFacialExpression(message.facialExpression || "default");
     setLipsync(message.lipsync);
-    const audio = new Audio("data:audio/mp3;base64," + message.audio);
-    audio.play();
-    setAudio(audio);
-    audio.onended = onMessagePlayed;
+    setPlaybackTime(0);
+    setIsPlaying(true);
+    
+    // Analyze text for head movements and micro-expressions
+    if (message.text) {
+      analyzeTextForMovements(message.text);
+    }
+    
+    // Handle audio playback if available
+    if (message.audio && typeof message.audio === 'string') {
+      console.log('🔊 [Avatar] Playing audio');
+      console.log('📊 [Avatar] Audio data length:', message.audio.length, 'chars');
+      try {
+        // Detect audio format - Google Cloud TTS outputs WAV, gTTS outputs MP3
+        // WAV files in base64 start with "UklGR" (RIFF header)
+        const isWav = message.audio.startsWith('UklGR');
+        const audioMimeType = isWav ? 'audio/wav' : 'audio/mp3';
+        console.log('🎵 [Avatar] Detected audio format:', audioMimeType);
+        
+        const audio = new Audio(`data:${audioMimeType};base64,` + message.audio);
+        audio.play().catch(err => {
+          console.error('❌ [Avatar] Audio playback failed:', err);
+          console.log('⚠️ [Avatar] Falling back to timer-based playback');
+          simulatePlaybackDuration();
+        });
+        setAudio(audio);
+        audio.onended = () => {
+          console.log('✅ [Avatar] Audio playback complete');
+          setIsPlaying(false);
+          onMessagePlayed();
+        };
+      } catch (error) {
+        console.error('❌ [Avatar] Audio creation failed:', error);
+        console.log('⚠️ [Avatar] Falling back to timer-based duration');
+        // Fallback to timer-based duration
+        simulatePlaybackDuration();
+      }
+    } else {
+      console.log('⏱️ [Avatar] No audio - using timer-based simulation');
+      // No audio - use timer-based duration simulation
+      simulatePlaybackDuration();
+    }
   }, [message]);
+  
+  // Simulate playback duration based on text length
+  const simulatePlaybackDuration = () => {
+    if (!message || !message.lipsync) return;
+    
+    // Calculate duration from lipsync data
+    const mouthCues = message.lipsync.mouthCues || [];
+    const duration = mouthCues.length > 0 
+      ? mouthCues[mouthCues.length - 1].end 
+      : message.text.length * 0.08; // Fallback: 80ms per character
+    
+    console.log(`⏱️ [Avatar] Simulated duration: ${duration.toFixed(2)}s for ${message.text.length} chars`);
+    
+    setTimeout(() => {
+      console.log('✅ [Avatar] Simulated playback complete');
+      setIsPlaying(false);
+      onMessagePlayed();
+    }, duration * 1000);
+  };
 
   const { animations } = useGLTF("/models/animations.glb");
 
   const group = useRef();
+  
+  // Analyze text for head movements and micro-expressions
+  const analyzeTextForMovements = (text) => {
+    console.log('🧠 [Avatar] Analyzing text for movements:', text?.substring(0, 50));
+    
+    if (!text) {
+      console.warn('⚠️ [Avatar] No text provided for movement analysis');
+      return;
+    }
+    
+    // Check for questions (eyebrow raise + head tilt up)
+    if (text.includes('?')) {
+      console.log('❓ [Avatar] Question detected - tilting head up + eyebrow raise');
+      headRef.current.pitch = 0.08; // Slight upward tilt
+      microExpressionRef.current.active = true;
+      microExpressionRef.current.endTime = Date.now() + 300; // 0.3s duration
+    }
+    // Check for statements (slight nod down)
+    else if (text.includes('.') || text.includes('!')) {
+      console.log('💬 [Avatar] Statement detected - nodding head down');
+      headRef.current.pitch = -0.05; // Slight downward nod
+    }
+    
+    // Reset head movement after duration
+    setTimeout(() => {
+      headRef.current.pitch = 0;
+      headRef.current.roll = 0;
+    }, 800);
+  };
   const { actions, mixer } = useAnimations(animations, group);
   const [animation, setAnimation] = useState(
     animations.find((a) => a.name === "Idle") ? "Idle" : animations[0].name // Check if Idle animation exists otherwise use first animation
@@ -177,13 +268,31 @@ export function Avatar(props) {
   const [winkRight, setWinkRight] = useState(false);
   const [facialExpression, setFacialExpression] = useState("");
   const [audio, setAudio] = useState();
+  
+  // ===== NATURAL EYE MOVEMENT SYSTEM =====
+  const [eyeTarget, setEyeTarget] = useState({ x: 0, y: 0 });
+  const eyeRef = useRef({ currentX: 0, currentY: 0, nextChangeTime: 0 });
+  
+  // ===== IDLE BREATHING SYSTEM =====
+  const breathingRef = useRef({ time: 0 });
+  
+  // ===== HEAD MOVEMENT SYSTEM =====
+  const headRef = useRef({ pitch: 0, yaw: 0, roll: 0, yawTime: 0 });
+  
+  // ===== MICRO-EXPRESSIONS SYSTEM =====
+  const microExpressionRef = useRef({ active: false, endTime: 0 });
 
-  useFrame(() => {
+  useFrame((state, delta) => {
+    // ===== FACIAL EXPRESSIONS =====
     !setupMode &&
       Object.keys(nodes.EyeLeft.morphTargetDictionary).forEach((key) => {
         const mapping = facialExpressions[facialExpression];
         if (key === "eyeBlinkLeft" || key === "eyeBlinkRight") {
           return; // eyes wink/blink are handled separately
+        }
+        // Exclude eye look targets (handled by natural eye movement)
+        if (key.startsWith("eyeLook")) {
+          return;
         }
         if (mapping && mapping[key]) {
           lerpMorphTarget(key, mapping[key], 0.1);
@@ -194,24 +303,155 @@ export function Avatar(props) {
 
     lerpMorphTarget("eyeBlinkLeft", blink || winkLeft ? 1 : 0, 0.5);
     lerpMorphTarget("eyeBlinkRight", blink || winkRight ? 1 : 0, 0.5);
+    
+    // ===== NATURAL EYE MOVEMENT =====
+    if (!setupMode) {
+      const currentTime = state.clock.elapsedTime;
+      
+      // Generate new eye target every 2-4 seconds
+      if (currentTime >= eyeRef.current.nextChangeTime) {
+        const horizontalRange = 0.3; // ~15-20 degrees
+        const verticalRange = 0.2;   // ~10-15 degrees
+        
+        setEyeTarget({
+          x: (Math.random() - 0.5) * horizontalRange,
+          y: (Math.random() - 0.5) * verticalRange
+        });
+        
+        eyeRef.current.nextChangeTime = currentTime + THREE.MathUtils.randFloat(2, 4);
+      }
+      
+      // Smooth interpolation to target (Perlin-like smoothness)
+      eyeRef.current.currentX = THREE.MathUtils.lerp(
+        eyeRef.current.currentX,
+        eyeTarget.x,
+        0.05 // Slow, smooth transitions
+      );
+      eyeRef.current.currentY = THREE.MathUtils.lerp(
+        eyeRef.current.currentY,
+        eyeTarget.y,
+        0.05
+      );
+      
+      // Apply to eye morph targets (with safe fallback)
+      try {
+        lerpMorphTarget("eyeLookOutLeft", Math.max(0, -eyeRef.current.currentX), 0.1);
+        lerpMorphTarget("eyeLookInLeft", Math.max(0, eyeRef.current.currentX), 0.1);
+        lerpMorphTarget("eyeLookOutRight", Math.max(0, eyeRef.current.currentX), 0.1);
+        lerpMorphTarget("eyeLookInRight", Math.max(0, -eyeRef.current.currentX), 0.1);
+        lerpMorphTarget("eyeLookUpLeft", Math.max(0, eyeRef.current.currentY), 0.1);
+        lerpMorphTarget("eyeLookUpRight", Math.max(0, eyeRef.current.currentY), 0.1);
+        lerpMorphTarget("eyeLookDownLeft", Math.max(0, -eyeRef.current.currentY), 0.1);
+        lerpMorphTarget("eyeLookDownRight", Math.max(0, -eyeRef.current.currentY), 0.1);
+      } catch (error) {
+        // Only log error once
+        if (!eyeRef.current.warnedMorphError) {
+          console.error('⚠️ [Avatar] Eye morph targets not available:', error);
+          eyeRef.current.warnedMorphError = true;
+        }
+      }
+    }
+    
+    // ===== IDLE BREATHING ANIMATION =====
+    if (!setupMode && group.current) {
+      breathingRef.current.time += delta;
+      
+      // Breathing: 12 breaths/min = 0.2Hz = 5 second period
+      const breathingCycle = Math.sin(breathingRef.current.time * 0.2 * Math.PI * 2);
+      const breathingAmount = 0.007; // 0.5-1% scale change
+      
+      // Apply to chest/spine (Hips node for simplicity)
+      if (nodes.Hips) {
+        // Store original scale if not already stored
+        if (!breathingRef.current.originalScaleY) {
+          breathingRef.current.originalScaleY = nodes.Hips.scale.y;
+        }
+        nodes.Hips.scale.y = breathingRef.current.originalScaleY + breathingAmount * breathingCycle;
+      } else {
+        // Only log warning once
+        if (!breathingRef.current.warnedNoHips) {
+          console.warn('⚠️ [Avatar] nodes.Hips not found - breathing animation disabled');
+          breathingRef.current.warnedNoHips = true;
+        }
+      }
+    }
+    
+    // ===== HEAD MOVEMENT SYSTEM =====
+    if (!setupMode && group.current && isPlaying) {
+      // Gentle yaw (side-to-side) during talking using Perlin-like noise
+      headRef.current.yawTime += delta;
+      const yawNoise = Math.sin(headRef.current.yawTime * 0.5) * Math.cos(headRef.current.yawTime * 0.3);
+      headRef.current.yaw = yawNoise * 0.08; // ±5-10 degrees
+      
+      // Combine roll with yaw for natural emphasis
+      headRef.current.roll = yawNoise * 0.03; // Slight tilt
+      
+      // Apply head rotation
+      if (nodes.Head) {
+        nodes.Head.rotation.x = THREE.MathUtils.lerp(nodes.Head.rotation.x, headRef.current.pitch, 0.1);
+        nodes.Head.rotation.y = THREE.MathUtils.lerp(nodes.Head.rotation.y, headRef.current.yaw, 0.08);
+        nodes.Head.rotation.z = THREE.MathUtils.lerp(nodes.Head.rotation.z, headRef.current.roll, 0.08);
+      } else {
+        console.warn('⚠️ [Avatar] nodes.Head not found - head movements disabled');
+      }
+    } else if (!setupMode && group.current && nodes.Head) {
+      // Return to neutral when idle
+      nodes.Head.rotation.x = THREE.MathUtils.lerp(nodes.Head.rotation.x, 0, 0.05);
+      nodes.Head.rotation.y = THREE.MathUtils.lerp(nodes.Head.rotation.y, 0, 0.05);
+      nodes.Head.rotation.z = THREE.MathUtils.lerp(nodes.Head.rotation.z, 0, 0.05);
+    }
+    
+    // ===== MICRO-EXPRESSIONS =====
+    if (!setupMode && microExpressionRef.current.active) {
+      // Eyebrow raise on questions (quick 0.3s transition)
+      // Only apply if not overridden by facial expression preset
+      const currentFacialExp = facialExpressions[facialExpression];
+      const hasExistingBrowValue = currentFacialExp && currentFacialExp.browInnerUp !== undefined;
+      
+      if (Date.now() < microExpressionRef.current.endTime) {
+        if (!hasExistingBrowValue) {
+          lerpMorphTarget("browInnerUp", 0.5, 0.3);
+        }
+        // Skip micro-expression if facial expression already controls eyebrows
+      } else {
+        microExpressionRef.current.active = false;
+        if (!hasExistingBrowValue) {
+          lerpMorphTarget("browInnerUp", 0, 0.2);
+        }
+      }
+    }
 
-    // LIPSYNC
+    // ===== LIPSYNC =====
     if (setupMode) {
       return;
     }
+    
+    // Update playback time for timer-based lip-sync
+    if (isPlaying && !audio) {
+      setPlaybackTime(prev => prev + 0.016); // ~60fps increment
+    }
 
     const appliedMorphTargets = [];
-    if (message && lipsync) {
-      const currentAudioTime = audio.currentTime;
+    if (message && lipsync && lipsync.mouthCues && Array.isArray(lipsync.mouthCues)) {
+      // Use audio time if available, otherwise use playback timer
+      const currentTime = audio ? audio.currentTime : playbackTime;
+      
       for (let i = 0; i < lipsync.mouthCues.length; i++) {
         const mouthCue = lipsync.mouthCues[i];
         if (
-          currentAudioTime >= mouthCue.start &&
-          currentAudioTime <= mouthCue.end
+          mouthCue &&
+          typeof mouthCue.start === 'number' &&
+          typeof mouthCue.end === 'number' &&
+          mouthCue.value &&
+          currentTime >= mouthCue.start &&
+          currentTime <= mouthCue.end
         ) {
-          appliedMorphTargets.push(corresponding[mouthCue.value]);
-          lerpMorphTarget(corresponding[mouthCue.value], 1, 0.2);
-          break;
+          const viseme = corresponding[mouthCue.value];
+          if (viseme) {
+            appliedMorphTargets.push(viseme);
+            lerpMorphTarget(viseme, 1, 0.35);
+            break;
+          }
         }
       }
     }

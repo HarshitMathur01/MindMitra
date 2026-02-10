@@ -307,7 +307,7 @@ export const useVoiceRecording = () => {
         console.log('📝 [VOICE] Final transcript:', finalTranscript);
 
         if (finalTranscript) {
-          let voiceResult: VoiceResult = { 
+          const voiceResult: VoiceResult = { 
             transcript: finalTranscript, 
             insights: null, 
             success: true 

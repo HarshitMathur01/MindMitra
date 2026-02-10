@@ -604,16 +604,6 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "mindmitra-agent"}
-                {
-                    "role": msg.get("role"),
-                    "content": msg.get("content", "")[:100],
-                    "created_at": msg.get("created_at")
-                } for msg in recent_messages[:3]
-            ]
-        }
-    except Exception as e:
-        logger.error(f"Debug endpoint error: {e}")
-        return {"error": str(e)}
 
 @app.post("/chat")
 async def process_chat(

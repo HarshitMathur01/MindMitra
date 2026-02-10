@@ -540,8 +540,8 @@ async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
         user_activities = activities_response.data or []
         logger.info(f"📊 [CONTEXT] Fetched {len(user_activities)} activities")
         
-        # Fetch recent messages for this session (last 20)
-        messages_response = supabase_client.table('chat_messages').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(20).execute()
+        # Fetch recent messages for this session (last 16)
+        messages_response = supabase_client.table('chat_messages').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(16).execute()
         recent_messages_raw = messages_response.data or []
         
         # Format messages for workflow
@@ -780,15 +780,15 @@ async def process_chat(
                 # Get hybrid count (database + in-memory fallback)
                 count = get_hybrid_message_count(request.session_id)
                 
-                messages_until_memory = 8 - (count % 8) if count % 8 != 0 else 8
+                messages_until_memory = 12 - (count % 12) if count % 12 != 0 else 12
                 
                 logger.info("=" * 80)
                 logger.info("🧠 [MEMORY TRIGGER] Memory Extraction Status")
                 logger.info("=" * 80)
                 logger.info(f"📊 [MEMORY] Current session message count: {count}")
-                logger.info(f"🎯 [MEMORY] Memory extraction triggers every 8 messages")
+                logger.info(f"🎯 [MEMORY] Memory extraction triggers every 12 messages")
                 
-                if count > 0 and count % 8 == 0:
+                if count > 0 and count % 12 == 0:
                     logger.info(f"🔔 [MEMORY] ✅ ✅ TRIGGERING MEMORY EXTRACTION NOW! ✅ ✅")
                     logger.info(f"   This is message #{count} - memory extraction will run in background")
                     
@@ -802,7 +802,7 @@ async def process_chat(
                     logger.info(f"✅ [MEMORY] Memory extraction started in background thread")
                 else:
                     logger.info(f"⏳ [MEMORY] {messages_until_memory} messages remaining until next memory extraction")
-                    next_milestone = ((count // 8) + 1) * 8
+                    next_milestone = ((count // 12) + 1) * 12
                     logger.info(f"   Next extraction will happen at message #{next_milestone}")
                 
                 logger.info("=" * 80)

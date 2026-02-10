@@ -111,7 +111,6 @@ import json
 import time
 from gtts import gTTS
 from google.cloud import texttospeech
-from pydub import AudioSegment
 
 # Feature flag for Google Cloud TTS
 ENABLE_GOOGLE_TTS = True

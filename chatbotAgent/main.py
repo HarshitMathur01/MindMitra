@@ -61,26 +61,13 @@ app = FastAPI(title="MindMitra Chatbot Agent", version="1.0.0")
 # In-memory message counter as fallback (survives across requests)
 session_message_counters = defaultdict(int)
 
-# # Add CORS middleware
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],  # In production, specify your domain
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+# Add CORS middleware - using regex pattern to cover all Vercel deployments and localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "http://localhost:3000",
-        "https://mindmitra-seven.vercel.app",
-    ],
+    allow_origin_regex=r"^https://.*\.vercel\.app$|^http://localhost:\d+$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app",  # For Vercel preview deployments
 )
 
 class ChatRequest(BaseModel):

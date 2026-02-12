@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Mic, Bot, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Sparkles } from "lucide-react";
+import { Send, Mic, Bot, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Sparkles, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -742,14 +742,63 @@ const ChatGPTInterface = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => toggleAvatar()}
-              className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors"
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              {isAvatarVisible ? 'Hide Avatar' : 'Show Avatar'}
-            </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => toggleAvatar()}
+                className={`
+                  group relative overflow-hidden transition-all duration-300
+                  ${isAvatarVisible 
+                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-300 dark:border-blue-700 hover:shadow-lg hover:shadow-blue-200 dark:hover:shadow-blue-900' 
+                    : 'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900 border-gray-300 dark:border-gray-700 hover:shadow-lg hover:shadow-gray-200 dark:hover:shadow-gray-800'
+                  }
+                `}
+              >
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={{
+                    x: isAvatarVisible ? ['-100%', '100%'] : '-100%',
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: isAvatarVisible ? Infinity : 0,
+                    ease: 'linear',
+                  }}
+                />
+                <div className="relative flex items-center gap-2">
+                  <motion.div
+                    animate={{ rotate: isAvatarVisible ? 0 : 180 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {isAvatarVisible ? (
+                      <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    ) : (
+                      <EyeOff className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    )}
+                  </motion.div>
+                  <span className="font-medium">
+                    {isAvatarVisible ? 'Hide Avatar' : 'Show Avatar'}
+                  </span>
+                  <motion.div
+                    animate={{ scale: isAvatarVisible ? [1, 1.2, 1] : 1 }}
+                    transition={{ duration: 1.5, repeat: isAvatarVisible ? Infinity : 0 }}
+                  >
+                    <div className={`
+                      w-2 h-2 rounded-full 
+                      ${isAvatarVisible 
+                        ? 'bg-green-500 shadow-lg shadow-green-300 dark:shadow-green-700' 
+                        : 'bg-gray-400 dark:bg-gray-600'
+                      }
+                    `} />
+                  </motion.div>
+                </div>
+              </Button>
+            </motion.div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors">

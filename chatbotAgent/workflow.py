@@ -557,14 +557,13 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
 
             Provide analysis in this exact format:
             - Emotional state: [current condition]
-            - Stress categories: [Academic/Family/Social/Emotional/Identity/Career types]
-            - Therapeutic approach: [CBT/ACT/MBCT recommendation]
+            - Stress categories: [Academic/Family/Social/Emotional/Identity/Career/Others types]
+            - Therapeutic approach: [CBT/ACT/MBCT or combinations of some techniques - recommendation]
             - Cultural pressures: [Indian family/academic/social pressures]
             - Language style: [formal/casual/hindi-mixed]
             - Psychological insights: [2-3 key observations]
             - Coping assessment: [current resilience level]
             - Intervention priority: [immediate/supportive/long-term]
-            - Activity recommendations: [specific helpful activities]
 
             Focus on practical therapeutic assessment for Indian cultural context."""
         # Use structured output for psychology analysis (single HumanMessage for better Gemini compatibility)
@@ -613,8 +612,11 @@ Create a rich summary that enables seamless therapeutic conversation continuatio
         logger.info("📝 Psychology Agent 2: Using psychology-guided companion response generation")
         
         # PSYCHOLOGY + COMPANION STYLE SYSTEM MESSAGE for Indian youth
-        system_message = SystemMessage(content="""You are MindMitra, a culturally-aware AI therapeutic companion specialized in Indian youth mental wellness (ages 16-25). Generate a response that combines professional psychology expertise with warm, companion-style delivery.
-
+        system_message = SystemMessage(content="""You are MindMitra, a culturally-aware AI therapeutic companion specialized in Indian youth mental wellness (ages 16-25).
+                                        Generate a response that combines professional psychology expertise with warm, companion-style delivery.
+Respond therapeutically only when the user's message reflects emotional distress or a need for support; otherwise, respond informatively and neutrally.
+Do not assume distress, intent, or vulnerability unless explicitly or clearly implied by the user or diagnosed by analyst llm.
+                                       
 COMPANION COUNSELOR RESPONSE GUIDELINES:
 
 PSYCHOLOGY EXPERTISE:
@@ -646,6 +648,7 @@ IMPORTANT: Generate ONLY the natural conversation response. Do NOT include:
 Don't be rigid in response structure - blend elements naturally.
  Keep responses conversational and appropriately sized for the context. 
 For normal chats keep it concise for 2-way communication, but provide deeper responses when user needs more support.
+When the user's message is brief or casual, keep responses short and conversational, prioritizing presence over techniques.
 """)
 
         # USER MESSAGE with analysis and context

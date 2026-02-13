@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Brain, Heart, Users, ArrowLeft, Sprout, Clock, HelpCircle, Star } from "lucide-react";
+import { BookOpen, Brain, Heart, Users, ArrowLeft, Sprout, Clock, HelpCircle, Star, Lock, Sparkles, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const QATests = () => {
   const navigate = useNavigate();
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const tests = [
     {
@@ -147,57 +149,84 @@ const QATests = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <motion.div 
-          className="mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/')}
-            className="gap-2 mb-6 hover:bg-white/50 transition-all duration-300 hover:scale-105 hover:shadow-md rounded-full px-6"
+      
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-16">
+        <main className="container mx-auto px-4 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Button>
-          
-          <div className="text-center mb-8">
-            <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: 0.2, type: "spring", damping: 15 }}
-              className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center breathing-pulse"
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/')}
+              className="gap-2 mb-6 hover:bg-white/50 transition-all group"
             >
-              <Star className="h-10 w-10 text-white" />
-            </motion.div>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Button>
             
-            <motion.h1 
-              className="text-5xl font-bold mb-4 text-gradient leading-tight"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-            >
-              Psychological Assessments
-            </motion.h1>
+            <div className="text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="mb-12"
+              >
+                <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
+                <Star className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">
+                Psychological Assessments
+              </h1>
+            </div>
             
-            <motion.p 
-              className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-            >
-              Discover insights about yourself through scientifically-backed assessments 
-              designed to enhance self-awareness and personal growth.
-            </motion.p>
-          </div>
-        </motion.div>
+            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+              Discover insights about yourself through scientifically-backed assessments
+            </p>
 
+            {/* Animated Stats */}
+            <motion.div 
+              className="flex flex-wrap items-center justify-center gap-6 text-sm"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/80 rounded-full shadow-sm">
+                <Sparkles className="w-4 h-4 text-purple-500" />
+                <span className="font-semibold text-gray-700">
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    {tests.filter(t => t.available).length} Available
+                  </motion.span>
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/80 rounded-full shadow-sm">
+                <TrendingUp className="w-4 h-4 text-green-500" />
+                <span className="font-semibold text-gray-700">Science-Backed</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/80 rounded-full shadow-sm">
+                <Clock className="w-4 h-4 text-blue-500" />
+                <span className="font-semibold text-gray-700">Quick Results</span>
+              </div>
+            </motion.div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </main>
+      </div>
+
+      {/* Cards Grid */}
+      <main className="container mx-auto px-4 py-12">
         <motion.div 
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -212,15 +241,25 @@ const QATests = () => {
                   key={test.id}
                   variants={cardVariants}
                   layout
-                  whileHover={{ 
-                    y: -8,
-                    transition: { duration: 0.3 }
-                  }}
-                  className="group"
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{ willChange: 'transform' }}
+                  className="group cursor-pointer"
                 >
-                  <Card className="p-6 h-full bg-white/70 backdrop-blur-sm border-2 border-white/50 hover:border-white/80 transition-all duration-500 hover:shadow-2xl relative overflow-hidden wellness-card">
+                  <Card className="p-6 h-full bg-white/90 border-2 border-white/50 hover:border-white/80 transition-all duration-300 hover:shadow-2xl relative overflow-hidden wellness-card">
+
                     {/* Background Glow Effect */}
                     <div className={`absolute inset-0 ${test.bgGlow} opacity-0 group-hover:opacity-20 transition-opacity duration-500`} />
+                    
+                    {/* Lock overlay for unavailable items */}
+                    {!test.available && (
+                      <div className="absolute inset-0 bg-gray-900/10 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-lg">
+                        <div className="text-center p-6">
+                          <Lock className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm font-semibold text-gray-600">Coming Soon</p>
+                        </div>
+                      </div>
+                    )}
                     
                     {/* Available Badge */}
                     {test.available && (
@@ -238,6 +277,7 @@ const QATests = () => {
                         className={`w-16 h-16 bg-gradient-to-r ${test.color} rounded-2xl flex items-center justify-center mb-6 shadow-lg`}
                         variants={iconVariants}
                         whileHover="hover"
+                        style={{ willChange: 'transform' }}
                       >
                         <Icon className="h-8 w-8 text-white" />
                       </motion.div>
@@ -292,7 +332,7 @@ const QATests = () => {
                         whileTap={{ scale: 0.98 }}
                       >
                         <Button 
-                          className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 ${
+                          className={`w-full py-2 sm:py-3 text-sm sm:text-base rounded-xl font-semibold transition-all duration-300 active:scale-95 ${
                             test.available 
                               ? `bg-gradient-to-r ${test.color} hover:shadow-lg text-white border-0` 
                               : 'bg-gray-200 text-gray-500 cursor-not-allowed'
@@ -320,7 +360,7 @@ const QATests = () => {
 
         {/* Info Cards */}
         <motion.div 
-          className="grid md:grid-cols-2 gap-6 mt-12"
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-8 sm:mt-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.6 }}
@@ -339,7 +379,7 @@ const QATests = () => {
             </p>
           </Card>
 
-          <Card className="p-6 bg-white/50 backdrop-blur-sm border border-white/50">
+          <Card className="p-6 bg-white/90 border border-white/50">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center">
                 <Heart className="h-6 w-6 text-white" />
@@ -356,7 +396,7 @@ const QATests = () => {
 
         {/* Footer Message */}
         <motion.div 
-          className="text-center mt-12 p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/50"
+          className="text-center mt-12 p-6 bg-white/90 rounded-2xl border border-white/50"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}

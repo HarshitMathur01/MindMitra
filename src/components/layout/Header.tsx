@@ -1,4 +1,4 @@
-import { Brain, MessageSquare, Puzzle, BookOpen, LogOut, User } from "lucide-react";
+import { Brain, MessageSquare, Puzzle, BookOpen, LogOut, User, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,6 +50,12 @@ const Header = () => {
 
           {/* Enhanced Navigation with hover effects */}
           <nav className="hidden md:flex items-center gap-2">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button variant="ghost" className="gap-2 hover:bg-primary/10 transition-all duration-300" onClick={() => navigate('/therapist-bridge')}>
+                <Stethoscope className="h-4 w-4" />
+                Therapist Bridge
+              </Button>
+            </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button variant="ghost" className="gap-2 hover:bg-primary/10 transition-all duration-300" onClick={() => navigate('/chat')}>
                 <MessageSquare className="h-4 w-4" />

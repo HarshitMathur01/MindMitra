@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, RotateCcw, Trophy } from "lucide-react";
+import { ArrowLeft, RotateCcw, Trophy, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +17,7 @@ const MemoryChallenge = () => {
   const [playerSequence, setPlayerSequence] = useState<number[]>([]);
   const [currentLevel, setCurrentLevel] = useState(1);
   const [score, setScore] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
   const [showingIndex, setShowingIndex] = useState(0);
   const [activeCard, setActiveCard] = useState<number | null>(null);
 
@@ -27,7 +28,19 @@ const MemoryChallenge = () => {
   useEffect(() => {
     successAudio.current = new Audio("/sounds/win.mp3");
     wrongAudio.current = new Audio("/sounds/wrong.mp3");
+
+    const savedBest = window.localStorage.getItem("memoryChallengeBestScore");
+    if (savedBest) {
+      setBestScore(Number(savedBest));
+    }
   }, []);
+
+  useEffect(() => {
+    if (score > bestScore) {
+      setBestScore(score);
+      window.localStorage.setItem("memoryChallengeBestScore", String(score));
+    }
+  }, [score, bestScore]);
 
   const generateSequence = useCallback((level: number) => {
     const newSequence: number[] = [];
@@ -37,13 +50,13 @@ const MemoryChallenge = () => {
     return newSequence;
   }, []);
 
-  const startGame = () => {
-    const newSequence = generateSequence(currentLevel);
+  const startGame = useCallback((level = currentLevel) => {
+    const newSequence = generateSequence(level);
     setSequence(newSequence);
     setPlayerSequence([]);
     setGameState("showing");
     setShowingIndex(0);
-  };
+  }, [currentLevel, generateSequence]);
 
   const resetGame = () => {
     setGameState("ready");
@@ -92,13 +105,23 @@ const MemoryChallenge = () => {
     if (newPlayerSequence.length === sequence.length) {
       successAudio.current?.play(); 
       setScore((prev) => prev + currentLevel * 10);
-      setCurrentLevel((prev) => prev + 1);
+      const nextLevel = currentLevel + 1;
+      setCurrentLevel(nextLevel);
 
       setTimeout(() => {
-        startGame();
+        startGame(nextLevel);
       }, 1000);
     }
   };
+
+  const gameStatusLabel =
+    gameState === "ready"
+      ? "Ready"
+      : gameState === "showing"
+      ? "Memorize"
+      : gameState === "playing"
+      ? "Repeat"
+      : "Finished";
 
   const getCardStyle = (index: number) => {
     const baseStyle =
@@ -144,9 +167,14 @@ const MemoryChallenge = () => {
 
         {/* Game State Messages */}
         <div className="mb-6">
+          <div className="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-purple-700">
+            <Sparkles className="h-4 w-4" />
+            <span>{gameStatusLabel}</span>
+          </div>
+
           {gameState === "ready" && (
             <div className="flex justify-center">
-              <Button onClick={startGame} className="gap-2 px-6 py-3 text-lg rounded-xl">
+              <Button onClick={() => startGame()} className="gap-2 px-6 py-3 text-lg rounded-xl">
                 <Trophy className="h-5 w-5" />
                 Start Game
               </Button>
@@ -165,13 +193,16 @@ const MemoryChallenge = () => {
           {gameState === "playing" && (
             <div className="text-center">
               <div className="text-xl font-semibold text-pink-600">Your turn!</div>
-              <div className="text-muted-foreground">Click the cards in order </div>
+              <div className="text-muted-foreground">Click the cards in order</div>
+              <div className="text-sm text-purple-700 mt-1">
+                {sequence.length - playerSequence.length} moves left
+              </div>
             </div>
           )}
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="p-5 text-center rounded-2xl shadow-md bg-white/50 backdrop-blur-md">
             <div className="text-3xl font-bold text-purple-600">{currentLevel}</div>
             <div className="text-sm text-muted-foreground">Level</div>
@@ -184,7 +215,20 @@ const MemoryChallenge = () => {
             <div className="text-3xl font-bold text-yellow-600">{sequence.length}</div>
             <div className="text-sm text-muted-foreground">Sequence</div>
           </Card>
+          <Card className="p-5 text-center rounded-2xl shadow-md bg-white/50 backdrop-blur-md">
+            <div className="text-3xl font-bold text-indigo-600">{bestScore}</div>
+            <div className="text-sm text-muted-foreground">Best</div>
+          </Card>
         </div>
+
+        {(gameState === "showing" || gameState === "playing") && (
+          <div className="mb-6 flex justify-center">
+            <Button variant="outline" onClick={resetGame} className="gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Restart
+            </Button>
+          </div>
+        )}
 
         {/* Progress */}
         {gameState === "playing" && (
@@ -206,7 +250,17 @@ const MemoryChallenge = () => {
               <div
                 key={index}
                 className={getCardStyle(index)}
+                role="button"
+                tabIndex={gameState === "playing" ? 0 : -1}
+                aria-label={`Card ${index + 1}`}
+                aria-disabled={gameState !== "playing"}
                 onClick={() => handleCardClick(index)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleCardClick(index);
+                  }
+                }}
               >
                 {activeCard === index && (
                   <span className="text-4xl">👻</span>
@@ -227,7 +281,7 @@ const MemoryChallenge = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <Card className="p-8 rounded-2xl bg-white/10 backdrop-blur-lg shadow-1xl border border-white/30 text-center">
+            <Card className="p-8 rounded-2xl bg-white/10 backdrop-blur-lg shadow-xl border border-white/30 text-center">
               <div className="flex justify-center space-x-2 mb-6">
                 {"GAME OVER".split("").map((letter, i) => (
                   <motion.span

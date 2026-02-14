@@ -1,0 +1,158 @@
+{
+    "user_id": "f6087401-b9b6-4dfd-a1e3-117c345d5f81",
+    "session_id": "d6f7a047-c0d8-4f5d-b29d-8b81d2dd18bc",
+    "timestamp": "2026-02-14T08:07:54.847805+00:00",
+    "user_message": "hello ji kaise ho aap",
+    "voice_analysis": {},
+    "session_context": {
+        "recent_messages": [
+            {
+                "role": "assistant",
+                "content": "Hi! Main theek hoon, shukriya aapko poochne ke liye. Aap kaise hain? Kuch bhi hua? Mujhe laga aapke paas koi baat ho rahi hai jo aap share kar sakte hain. Mujhe sunna achha lagta hai."
+            },
+            {
+                "role": "user",
+                "content": "ke horeya sareyanu"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey there! \ud83d\ude0a Just checking in\u2014how are things going for you? No pressure to share if you're not up for it, but I'm here if you want to talk or just hang out for a bit. What's on your mind?"
+            },
+            {
+                "role": "user",
+                "content": "ram ramji "
+            },
+            {
+                "role": "assistant",
+                "content": "Ram Ramji! \ud83d\ude0a Really happy to see you here. How are you doing today? Is there anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "Sat Sri Akaal ji, tusi kivein ho?  Tusi dinner kar lita hai ya hun tak nahi kita?"
+            },
+            {
+                "role": "assistant",
+                "content": "Sat Sri Akaal ji! Mera bhi sab kuch thik hai, shukriya puch liye.  \nDinner karwana mushkil hota hai na? Yahan par toh dinner ready hai, aap jaake khud kar sakte hain. Kya aapko kisi baat par khayal hai ya bas routine check kar rahe hain? Mujhe bataiye, agar koi baat ho rahi hai toh."
+            },
+            {
+                "role": "assistant",
+                "content": "Sat Sri Akaal! Mera bhi sab kuch thik hai, shukriya yaad rakhiye. Dinner toh kar liya hai? Aapki family ke saath khana khana ek acha moment hai, na? Hope aap bhi well hai!"
+            },
+            {
+                "role": "assistant",
+                "content": "Ram Ramji! Aap bhi theek hain na? Main hoon theek. Kya aapko aaj koi baat hai jo aap share karna chahte hain? Ya fir kuch aur soch rahe hain... main sunne taiyaar hoon."
+            },
+            {
+                "role": "user",
+                "content": "hello ji kaise ho aap"
+            },
+            {
+                "role": "assistant",
+                "content": "Main theek hoon, aur aap? Kya aapko aaj koi baat hai jo aap share karna chahte hain? Ya fir kuch aur soch rahe hain..."
+            },
+            {
+                "role": "assistant",
+                "content": "Main bhi theek hoon, shukriya puchne ke liye. Aapko kya lag raha hai aaj? Kya koi baat hai jo aap share karna chahte hain? Ya fir kuch aur soch rahe hain..."
+            },
+            {
+                "role": "assistant",
+                "content": "Main bhi theek hoon, shukriya puchne ke liye. Aapko kya lag raha hai aaj? Kya koi baat hai jo aap share karna chahte hain? Ya fir kuch aur soch rahe ho? Mujhe pata hai baat karne mein koi tension ho sakti hai, lekin aapki baatein zaroor sunni hai."
+            },
+            {
+                "role": "assistant",
+                "content": "Main bhi theek hoon, shukriya puchne ke liye. Aapko kya lag raha hai aaj? Kya koi baat hai jo aap share karna chahte hain? Ya fir kuch aur soch rahe hain? Mujhe pata hai aap thoda sa hesitant ho sakte hain, lekin aapki kripa mujhe batana hai, main aapki help karne ke liye hoon."
+            }
+        ],
+        "conversation_summary": {},
+        "session_memories": {
+            "procedural": [],
+            "semantic": [],
+            "episodic": []
+        },
+        "user_activities": [],
+        "user_patterns": {}
+    },
+    "nlp_analysis": {
+        "emotions": {},
+        "primary_emotion": "unknown",
+        "sentiment": {
+            "score": 0.0,
+            "label": "neutral"
+        },
+        "intensity": 0.0,
+        "key_phrases": [],
+        "language_detected": "en",
+        "urgency_flag": false
+    },
+    "cultural_context": {
+        "language_style": "hinglish",
+        "hindi_english_ratio": 0.2,
+        "code_switching_detected": true,
+        "cultural_sensitivity_flags": [
+            "parental_pressure",
+            "mental_health_stigma"
+        ],
+        "communication_pattern": "terse",
+        "regional_context": "urban_metro",
+        "formality_level": "medium"
+    },
+    "psychological_analysis": {
+        "emotional_state": "neutral",
+        "stress_categories": [
+            "Miscellaneous"
+        ],
+        "risk_assessment": "low",
+        "coping_assessment": "No apparent coping mechanisms observed; communication is terse and repetitive, suggesting potential avoidance or discomfort in expressing deeper emotions.",
+        "intervention_priority": "supportive",
+        "psychological_insights": [
+            "User may be testing the interaction or feeling hesitant to share personal information.",
+            "Repetitive communication could indicate underlying anxiety or uncertainty.",
+            "Neutral tone may mask unexpressed stress or emotional discomfort."
+        ],
+        "cultural_pressures": "Mental health stigma and potential parental pressure may influence the user's reluctance to share personal struggles openly."
+    },
+    "technique_selection": {
+        "primary_technique": "Person-Centered",
+        "therapeutic_approach": "Create a non-judgmental, empathetic space where the user feels safe to explore their thoughts and feelings at their own pace. Use active listening, validation, and open-ended questions to encourage gradual self-disclosure.",
+        "activity_recommendations": [
+            "Journaling prompts in Hinglish",
+            "Mindful breathing exercises",
+            "Family communication practice"
+        ],
+        "rationale": "Person-Centered therapy is ideal for building trust and rapport, especially given the cultural pressures of mental health stigma and parental expectations. It allows the user to lead the conversation, reducing pressure and encouraging gradual openness. The approach aligns with su..."
+    },
+    "ai_response": "Main bhi theek hoon, shukriya puchne ke liye. Aapko kya lag raha hai aaj? Kya koi baat hai jo aap share karna chahte hain? Ya fir kuch aur soch rahe hain? Mujhe pata hai aap thoda sa time lena chahte hain, toh ek din zaroori hai. Mujhe bata sakte hain kya aapko kisi baat par soch kar acha nahin lag raha?",
+    "response_generated": true,
+    "screening_assessments": {
+        "phq9": {
+            "score": 0,
+            "severity": "minimal",
+            "responses": [
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "..."
+            ],
+            "last_updated": "2026-02-14T08:08:07.068265+00:00"
+        },
+        "gad7": {
+            "score": 0,
+            "severity": "minimal",
+            "responses": [
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "..."
+            ],
+            "last_updated": "2026-02-14T08:08:07.068265+00:00"
+        }
+    }
+}

@@ -1,0 +1,66 @@
+{
+    "user_id": "f6087401-b9b6-4dfd-a1e3-117c345d5f81",
+    "session_id": "d6f7a047-c0d8-4f5d-b29d-8b81d2dd18bc",
+    "timestamp": "2026-02-13T13:13:27.669920+00:00",
+    "user_message": "what am i suppose to share",
+    "voice_analysis": {},
+    "session_context": {
+        "recent_messages": [],
+        "conversation_summary": {},
+        "session_memories": {
+            "procedural": [],
+            "semantic": [],
+            "episodic": []
+        },
+        "user_activities": [],
+        "user_patterns": {}
+    },
+    "nlp_analysis": {
+        "emotions": {},
+        "primary_emotion": "unknown",
+        "sentiment": {
+            "score": 0.0,
+            "label": "neutral"
+        },
+        "intensity": 0.0,
+        "key_phrases": [],
+        "language_detected": "en",
+        "urgency_flag": false
+    },
+    "cultural_context": {
+        "language_style": "english",
+        "hindi_english_ratio": 0.0,
+        "code_switching_detected": false,
+        "cultural_sensitivity_flags": [],
+        "communication_pattern": "conversational",
+        "regional_context": "urban_metro",
+        "formality_level": "medium"
+    },
+    "psychological_analysis": {
+        "emotional_state": "neutral and uncertain",
+        "stress_categories": [
+            "Miscellaneous"
+        ],
+        "risk_assessment": "low",
+        "coping_assessment": "No observable coping mechanisms or resilience noted at this stage.",
+        "intervention_priority": "supportive",
+        "psychological_insights": [
+            "User may be feeling unsure about expectations or how to engage.",
+            "Lack of emotional expression suggests a need for guidance or clarification.",
+            "Initial interaction indicates a neutral stance, possibly reflecting hesitation or neutrality."
+        ],
+        "cultural_pressures": "No specific cultural pressures identified from the limited interaction."
+    },
+    "technique_selection": {
+        "primary_technique": "Person-Centered",
+        "therapeutic_approach": "Create a non-judgmental, empathetic space where the youth can explore their feelings and uncertainties at their own pace. Use active listening and reflective questioning to help them articulate their thoughts and emotions without pressure.",
+        "activity_recommendations": [
+            "Journaling prompts to explore feelings and expectations",
+            "Mindful breathing exercises to ground emotions",
+            "Yoga or stretching to release physical tension"
+        ],
+        "rationale": "The neutral and uncertain emotional state, along with the lack of emotional expression, suggests a need for a supportive and non-directive approach. Person-Centered therapy aligns well with the intervention priority of being supportive and helps build trust, which is crucial given the potential stigma around mental health in Indian culture. The activities are practical, culturally appropriate, and help in self-exploration without being overwhelming."
+    },
+    "ai_response": "Hey there! No pressure at all\u2014this space is totally yours. Whatever comes to mind, big or small, is welcome here. Sometimes just starting with how you\u2019re feeling right now or what\u2019s on your mind can be a great place to begin. But if you're not sure, that's okay too! You can take your time, or we could try a simple exercise together if you'd like. What feels right for you?",
+    "response_generated": true
+}

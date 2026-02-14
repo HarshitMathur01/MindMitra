@@ -10,7 +10,13 @@ import asyncio
 from collections import defaultdict
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from workflow import process_user_chat, get_workflow_instance
+try:
+    from MindMitra.chatbotAgent.workflow import process_user_chat, get_workflow_instance
+except ModuleNotFoundError:
+    try:
+        from chatbotAgent.workflow import process_user_chat, get_workflow_instance
+    except ModuleNotFoundError:
+        from workflow import process_user_chat, get_workflow_instance
 import jwt
 from datetime import datetime
 
@@ -24,6 +30,11 @@ logger = logging.getLogger(__name__)
 # Verify Google Cloud credentials - support both file path and base64 encoding
 GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 GOOGLE_CREDENTIALS_BASE64 = os.getenv("GOOGLE_CREDENTIALS_BASE64")
+key = os.getenv("SUPABASE_KEY")
+if key:
+    print(f"✅ Supabase Key loaded: {key[:5]}...")
+else:
+    print("❌ Supabase Key is MISSING or NONE")
 
 # Handle base64-encoded credentials (Railway/production deployment)
 if GOOGLE_CREDENTIALS_BASE64:
@@ -102,6 +113,10 @@ JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")  # From Supabase project setti
 if not JWT_SECRET:
     logger.warning("⚠️ [MAIN] JWT_SECRET not set - will skip strict JWT validation")
 
+# Development auth bypass (set SKIP_AUTH=true to skip token validation locally)
+SKIP_AUTH = os.getenv("SKIP_AUTH", "false").lower() in ("1", "true", "yes")
+DEV_USER_ID = os.getenv("DEV_USER_ID", "dev-user")
+
 # ===== TTS AND LIPSYNC FUNCTIONS =====
 import base64
 import io
@@ -109,26 +124,118 @@ import tempfile
 import subprocess
 import json
 import time
+import httpx
 from gtts import gTTS
 from google.cloud import texttospeech
 
+# ElevenLabs configuration
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "vT0wMbLG5dssaBsksrb6")
+ELEVENLABS_MODEL_ID = os.getenv("ELEVENLABS_MODEL_ID", "eleven_v3")
+
 # Feature flag for Google Cloud TTS
 ENABLE_GOOGLE_TTS = True
+ENABLE_ELEVENLABS_TTS = bool(ELEVENLABS_API_KEY)
 
-def generate_google_cloud_tts(text: str, emotion: str = 'neutral') -> Optional[str]:
+if ENABLE_ELEVENLABS_TTS:
+    logger.info(
+        f"✅ [INIT] ElevenLabs enabled (voice_id={ELEVENLABS_VOICE_ID}, model_id={ELEVENLABS_MODEL_ID})"
+    )
+else:
+    logger.warning("⚠️ [INIT] ElevenLabs disabled: ELEVENLABS_API_KEY missing")
+
+def _is_elevenlabs_credit_exhausted(status_code: int, response_text: str) -> bool:
+    """Detect ElevenLabs credit/quota exhaustion from API response."""
+    text = (response_text or "").lower()
+    indicators = [
+        "insufficient",
+        "credit",
+        "quota",
+        "limit",
+        "payment",
+        "free tier",
+        "character_limit",
+    ]
+    return status_code in (401, 402, 403, 429) and any(ind in text for ind in indicators)
+
+
+def generate_elevenlabs_tts(text: str, emotion: str = 'neutral', language_style: str = 'english') -> Optional[str]:
+    """
+    Generate TTS audio using ElevenLabs API.
+
+    Returns:
+        Base64-encoded MP3 audio, or None on failure.
+    """
+    if not ELEVENLABS_API_KEY:
+        logger.info("⏭️ [ElevenLabs TTS] ELEVENLABS_API_KEY not set, skipping ElevenLabs")
+        return None
+
+    if not ELEVENLABS_VOICE_ID:
+        logger.error("❌ [ElevenLabs TTS] Missing ELEVENLABS_VOICE_ID")
+        return None
+
+    emotion_voice_settings = {
+        'happy': {'stability': 0.0, 'similarity_boost': 0.8, 'style': 0.35, 'use_speaker_boost': True},
+        'sad': {'stability': 1.0, 'similarity_boost': 0.85, 'style': 0.1, 'use_speaker_boost': True},
+        'angry': {'stability': 0.5, 'similarity_boost': 0.75, 'style': 0.45, 'use_speaker_boost': True},
+        'surprised': {'stability': 0.0, 'similarity_boost': 0.8, 'style': 0.4, 'use_speaker_boost': True},
+        'neutral': {'stability': 0.5, 'similarity_boost': 0.8, 'style': 0.2, 'use_speaker_boost': True},
+    }
+
+    settings = emotion_voice_settings.get(emotion, emotion_voice_settings['neutral'])
+
+    try:
+        logger.info(f"🔊 [ElevenLabs TTS] Generating audio for text ({len(text)} chars): {text[:50]}...")
+        logger.info(f"🎭 [ElevenLabs TTS] Emotion: {emotion}, Language Style: {language_style}")
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+        headers = {
+            "xi-api-key": ELEVENLABS_API_KEY,
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "text": text,
+            "model_id": ELEVENLABS_MODEL_ID,
+            "output_format": "mp3_44100_128",
+            "voice_settings": settings,
+        }
+
+        with httpx.Client(timeout=35.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+
+        if response.status_code == 200 and response.content:
+            audio_base64 = base64.b64encode(response.content).decode('utf-8')
+            audio_size_kb = len(audio_base64) / 1024
+            logger.info(f"✅ [ElevenLabs TTS] Audio generated successfully: {audio_size_kb:.2f} KB (base64 MP3)")
+            return audio_base64
+
+        response_text = response.text[:600]
+        logger.error(f"❌ [ElevenLabs TTS] API failed with {response.status_code}: {response_text}")
+        if _is_elevenlabs_credit_exhausted(response.status_code, response_text):
+            logger.warning("⚠️ [ElevenLabs TTS] Credits exhausted or quota exceeded (see error above)")
+        return None
+
+    except Exception as e:
+        logger.error(f"❌ [ElevenLabs TTS] Failed to generate audio: {e}")
+        logger.error(f"   Text was: {text[:100]}")
+        return None
+
+def generate_google_cloud_tts(text: str, emotion: str = 'neutral', language_style: str = 'english') -> Optional[str]:
     """
     Generate TTS audio using Google Cloud Text-to-Speech with WaveNet voices.
     
     Args:
         text: Text to convert to speech
         emotion: Emotion for voice modulation (neutral, happy, sad, angry, surprised)
+        language_style: Language style to determine voice (english, hindi-mixed, hinglish)
     
     Returns:
         Base64-encoded WAV string, or None on failure
     """
     try:
         logger.info(f"🔊 [Google Cloud TTS] Generating audio for text ({len(text)} chars): {text[:50]}...")
-        logger.info(f"🎭 [Google Cloud TTS] Emotion: {emotion}")
+        logger.info(f"🎭 [Google Cloud TTS] Emotion: {emotion}, Language Style: {language_style}")
         
         # Initialize Google Cloud TTS client
         logger.info(f"🔌 [Google Cloud TTS] Initializing TextToSpeechClient...")
@@ -149,10 +256,19 @@ def generate_google_cloud_tts(text: str, emotion: str = 'neutral') -> Optional[s
         # Set up synthesis input
         synthesis_input = texttospeech.SynthesisInput(text=text)
         
-        # Configure voice (WaveNet for natural quality)
+        # Determine voice based on language style
+        language_code = "en-US"
+        voice_name = "en-US-Wavenet-F"
+        
+        if language_style in ["hindi-mixed", "hinglish"]:
+            language_code = "hi-IN"
+            voice_name = "hi-IN-Neural2-A"
+            logger.info(f"🇮🇳 [Google Cloud TTS] Using Hindi/Hinglish voice: {voice_name}")
+        
+        # Configure voice (WaveNet/Neural2 based on language)
         voice = texttospeech.VoiceSelectionParams(
-            language_code="en-US",
-            name="en-US-Wavenet-F",  # Female WaveNet voice
+            language_code=language_code,
+            name=voice_name,
             ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
         )
         
@@ -220,21 +336,33 @@ def generate_tts_audio(text: str, lang: str = 'en') -> Optional[str]:
         logger.error(f"   Text was: {text[:100]}")
         return None  # Graceful degradation
 
-def generate_tts_audio_v2(text: str, emotion: str = 'neutral') -> Optional[str]:
+def generate_tts_audio_v2(text: str, emotion: str = 'neutral', language_style: str = 'english') -> Optional[str]:
     """
-    Generate TTS audio with fallback chain: Google Cloud TTS -> gTTS.
+    Generate TTS audio with fallback chain: ElevenLabs -> Google Cloud TTS -> gTTS.
     
     Args:
         text: Text to convert to speech
         emotion: Emotion for voice modulation
+        language_style: Language style to determine voice (english, hindi-mixed, hinglish)
     
     Returns:
         Base64-encoded audio string (WAV or MP3), or None on complete failure
     """
+    # Try ElevenLabs first
+    if ENABLE_ELEVENLABS_TTS:
+        logger.info(f"🚀 [TTS v2] Attempting ElevenLabs TTS (emotion: {emotion}, lang: {language_style})...")
+        audio = generate_elevenlabs_tts(text, emotion, language_style)
+        if audio:
+            logger.info("✅ [TTS v2] ElevenLabs TTS succeeded")
+            return audio
+        logger.warning("⚠️ [TTS v2] ElevenLabs TTS failed, falling back to Google Cloud TTS...")
+    else:
+        logger.info("⏭️ [TTS v2] ElevenLabs TTS disabled (missing API key), trying Google Cloud TTS")
+
     # Try Google Cloud TTS first (if enabled)
     if ENABLE_GOOGLE_TTS:
-        logger.info(f"🚀 [TTS v2] Attempting Google Cloud TTS (emotion: {emotion})...")
-        audio = generate_google_cloud_tts(text, emotion)
+        logger.info(f"🚀 [TTS v2] Attempting Google Cloud TTS (emotion: {emotion}, lang: {language_style})...")
+        audio = generate_google_cloud_tts(text, emotion, language_style)
         if audio:
             logger.info(f"✅ [TTS v2] Google Cloud TTS succeeded")
             return audio
@@ -492,29 +620,38 @@ def get_hybrid_message_count(session_id: str) -> int:
     return final_count
 
 async def validate_user_token(authorization: str) -> str:
-    """Validate JWT token and return user_id. Raises HTTPException if invalid."""
+    """Validate JWT token and return user_id. Raises HTTPException if invalid.
+
+    Supports a development bypass controlled by `SKIP_AUTH` environment variable.
+    If `SKIP_AUTH` is true the function returns `DEV_USER_ID` without validating tokens.
+    """
+    # Development bypass
+    if SKIP_AUTH:
+        logger.warning("⚠️ [AUTH] SKIP_AUTH enabled - bypassing token validation for local development")
+        return DEV_USER_ID
+
     if not authorization:
         logger.error("❌ [AUTH] No authorization header provided")
         raise HTTPException(status_code=401, detail="Authorization header required")
-    
+
     if not authorization.startswith("Bearer "):
         logger.error("❌ [AUTH] Invalid authorization format")
         raise HTTPException(status_code=401, detail="Invalid authorization format")
-    
+
     token = authorization.replace("Bearer ", "")
-    
+
     # Validate using Supabase client
     if not supabase_client:
         logger.error("❌ [AUTH] Supabase client not initialized")
         raise HTTPException(status_code=500, detail="Authentication service unavailable")
-    
+
     try:
         # Use Supabase to validate the token
         user_response = supabase_client.auth.get_user(token)
-        if not user_response or not user_response.user:
+        if not user_response or not getattr(user_response, 'user', None):
             logger.error("❌ [AUTH] Invalid token - user not found")
             raise HTTPException(status_code=401, detail="Invalid or expired token")
-        
+
         user_id = user_response.user.id
         logger.info(f"✅ [AUTH] User authenticated: {user_id}")
         return user_id
@@ -554,20 +691,27 @@ async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
         logger.info(f"💬 [CONTEXT] Fetched {len(recent_messages)} messages")
         
         # Fetch conversation summary
-        summary_response = supabase_client.table('message_summaries').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(1).execute()
-        
         conversation_summary = {}
-        if summary_response.data:
-            summary_data = summary_response.data[0]
-            conversation_summary = {
-                "summary": summary_data.get("summary", ""),
-                "key_points": summary_data.get("key_points", []),
-                "emotional_state": summary_data.get("emotional_state", "neutral"),
-                "topics_discussed": summary_data.get("topics_discussed", [])
-            }
-            logger.info(f"📝 [CONTEXT] Fetched conversation summary")
-        else:
-            logger.info(f"📝 [CONTEXT] No summary found for session")
+        try:
+            summary_response = supabase_client.table('message_summaries').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(1).execute()
+            
+            if summary_response.data:
+                summary_data = summary_response.data[0]
+                conversation_summary = {
+                    "summary": summary_data.get("summary", ""),
+                    "key_points": summary_data.get("key_points", []),
+                    "emotional_state": summary_data.get("emotional_state", "neutral"),
+                    "topics_discussed": summary_data.get("topics_discussed", [])
+                }
+                logger.info(f"📝 [CONTEXT] Fetched conversation summary")
+            else:
+                logger.info(f"📝 [CONTEXT] No summary found for session")
+        except Exception as e:
+            # Handle missing table gracefully (PGRST205)
+            if "PGRST205" in str(e) or "does not exist" in str(e):
+                logger.warning(f"⚠️ [CONTEXT] Table 'message_summaries' not found (PGRST205) - skipping summary fetch")
+            else:
+                logger.warning(f"⚠️ [CONTEXT] Error fetching conversation summary: {e}")
         
         return {
             "user_activities": user_activities,
@@ -728,8 +872,18 @@ async def process_chat(
             
             logger.info(f"🎭 [AVATAR] Detected emotion: {emotion}, Expression: {facial_expression}")
             
+            # Extract language style for TTS voice selection
+            try:
+                session_insights = result.get('session_insights', {})
+                cultural_context = session_insights.get('cultural_context', {}) if session_insights else {}
+                language_style = cultural_context.get('language_style', 'english')
+                logger.info(f"🗣️ [AVATAR] Language style: {language_style}")
+            except Exception as e:
+                logger.warning(f"⚠️ [AVATAR] Could not extract language style: {e}")
+                language_style = 'english'
+            
             # Generate TTS audio with emotion (Google Cloud TTS or gTTS fallback)
-            audio_base64 = generate_tts_audio_v2(ai_message_text, emotion)
+            audio_base64 = generate_tts_audio_v2(ai_message_text, emotion, language_style)
             
             if audio_base64:
                 logger.info("✅ [AVATAR] TTS audio generated successfully")

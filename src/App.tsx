@@ -17,6 +17,7 @@ import MoodMountain from "./pages/MoodMountain";
 import ThoughtDetective from "./pages/ThoughtDetective";
 import NotFound from "./pages/NotFound";
 import BalloonPositivityGame from "./pages/BalloonPositivityGame";
+import TherapistBridge from "./pages/TherapistBridge";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/chat" element={<Chat />} />
+            <Route path="/therapist-bridge" element={<TherapistBridge />} />
             <Route path="/qa-tests" element={<QATests />} />
             <Route path="/wellness-checkin" element={<WellnessCheckIn />} />
             <Route path="/games" element={<Games />} />

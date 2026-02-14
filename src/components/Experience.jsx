@@ -2,6 +2,7 @@ import {
   CameraControls,
   ContactShadows,
   Environment,
+  Stars,
   Text,
 } from "@react-three/drei";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -55,13 +56,25 @@ export const Experience = () => {
   return (
     <>
       <CameraControls ref={cameraControls} />
-      <Environment preset="sunset" />
+      <Environment preset="night" />
+      <Stars
+        radius={50}
+        depth={50}
+        count={5000}
+        factor={4}
+        saturation={0}
+        fade
+        speed={1}
+      />
+      <ambientLight intensity={0.4} color="#8899cc" />
+      <directionalLight position={[5, 5, 5]} intensity={0.6} color="#aabbff" />
+      <pointLight position={[-3, 3, 2]} intensity={0.3} color="#6677aa" />
       {/* Wrapping Dots into Suspense to prevent Blink when Troika/Font is loaded */}
       <Suspense>
         <Dots position-y={1.75} position-x={-0.02} />
       </Suspense>
       <Avatar/>
-      <ContactShadows opacity={0.7} />
+      <ContactShadows opacity={0.4} />
     </>
   );
 };

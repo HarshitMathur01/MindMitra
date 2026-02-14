@@ -5,6 +5,8 @@ class AgentState(TypedDict):
     session_data: Dict[str, Any]
     conversation_history: List[Dict[str, Any]]
     mental_state_report: Dict[str, Any]
+    emotion_analysis: Dict[str, Any]
+    cultural_context: Dict[str, Any]
     selected_modality: str
     conversational_plan: Dict[str, Any]
     critic_verdict: str

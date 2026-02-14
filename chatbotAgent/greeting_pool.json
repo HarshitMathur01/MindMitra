@@ -1,0 +1,158 @@
+{
+  "english": {
+    "morning": [
+      "Good morning! ☀️",
+      "Hey! How's the morning treating you?",
+      "Morning! What's on your mind?",
+      "Hey! Early start today?",
+      "Good morning! Ready to chat?",
+      "Hey! How did you sleep?",
+      "Morning! How's it going?",
+      "Hey there! Fresh start today?"
+    ],
+    "day": [
+      "Hey! What's up?",
+      "Hi! How's it going?",
+      "Hey there! Ready to chat?",
+      "Hi! What's on your mind?",
+      "Hey! How's your day?",
+      "Hi there! Want to talk?",
+      "Hey! What brings you here?",
+      "Hi! How are you doing?"
+    ],
+    "evening": [
+      "Good evening!",
+      "Hey! How was your day?",
+      "Evening! Want to talk?",
+      "Hi! How're you doing?",
+      "Hey! Ready to unwind?",
+      "Good evening! What's up?",
+      "Hey! How's your evening?",
+      "Hi! Want to chat?"
+    ],
+    "night": [
+      "Hey! What's going on?",
+      "Hi! How's your night?",
+      "Hey there! Want to chat?",
+      "Hi! What's on your mind?",
+      "Hey! How are you?",
+      "Hi there! Ready to talk?",
+      "Hey! What brings you here?",
+      "Hi! How's it going?"
+    ],
+    "late_night": [
+      "Hey! Can't sleep?",
+      "Hi! Up late tonight?",
+      "Hey! What's keeping you up?",
+      "Hi there! Rough night?",
+      "Hey! Still awake?",
+      "Hi! Everything okay?",
+      "Hey! What's on your mind?",
+      "Hi! Want to talk?"
+    ]
+  },
+  "hinglish": {
+    "morning": [
+      "Good morning! Kaise ho?",
+      "Hey! Subah kaise chal rahi hai?",
+      "Morning yaar! What's up?",
+      "Hey! Neend kaisi thi?",
+      "Good morning! Sab theek?",
+      "Hey! Kya haal hai?",
+      "Morning! Ready to chat?",
+      "Hey yaar! How's it going?"
+    ],
+    "day": [
+      "Hey! Kaise ho?",
+      "Hi! Sab theek?",
+      "Hey yaar! Kya chal raha hai?",
+      "Hi! What's going on?",
+      "Hey! Kya haal hai?",
+      "Hi yaar! How's your day?",
+      "Hey! Sab badhiya?",
+      "Hi! Want to chat?"
+    ],
+    "evening": [
+      "Hey! Din kaisa gaya?",
+      "Good evening! Kaise ho?",
+      "Hey yaar! How was your day?",
+      "Hi! Sab badhiya?",
+      "Evening! Kya haal hai?",
+      "Hey! Thak gaye kya?",
+      "Hi yaar! Ready to relax?",
+      "Hey! What's up?"
+    ],
+    "night": [
+      "Hey! Kya chal raha hai?",
+      "Hi! Raat kaise chal rahi?",
+      "Hey yaar! What's up?",
+      "Hi! Kaisa hai sab?",
+      "Hey! Sab theek?",
+      "Hi yaar! Want to talk?",
+      "Hey! Kaise ho?",
+      "Hi! What's going on?"
+    ],
+    "late_night": [
+      "Hey! Neend nahi aa rahi?",
+      "Hi! Abhi tak jaage ho?",
+      "Hey yaar! Late night thoughts?",
+      "Hi! Kya baat hai?",
+      "Hey! Still up?",
+      "Hi yaar! Everything okay?",
+      "Hey! Sab theek?",
+      "Hi! Want to chat?"
+    ]
+  },
+  "hindi_mixed": {
+    "morning": [
+      "Namaste! Kaise ho?",
+      "Subah bakhair! Kya haal hai?",
+      "Hey! Din kaisa shuru hua?",
+      "Good morning! Sab theek?",
+      "Namaste! Neend kaisi thi?",
+      "Hey! Subah kaise chal rahi?",
+      "Good morning! Kya haal hai?",
+      "Namaste! Ready to chat?"
+    ],
+    "day": [
+      "Namaste! Kaise ho?",
+      "Hey! Sab badhiya?",
+      "Hi! Kya chal raha hai?",
+      "Kaise ho bhai?",
+      "Hey! Din kaisa hai?",
+      "Namaste! Sab theek?",
+      "Hi! Kya haal hai?",
+      "Hey! Want to talk?"
+    ],
+    "evening": [
+      "Namaste! Din kaisa raha?",
+      "Shaam bakhair! Kaise ho?",
+      "Hey! Sab theek chala?",
+      "Evening! Kya haal hai?",
+      "Namaste! How was your day?",
+      "Hey! Thak gaye?",
+      "Good evening! Sab badhiya?",
+      "Hi! Ready to unwind?"
+    ],
+    "night": [
+      "Hey! Raat kaise chal rahi?",
+      "Hi! Sab theek?",
+      "Kaise ho? Raat mein jagah hai?",
+      "Hey! Kya chal raha hai?",
+      "Namaste! What's going on?",
+      "Hi! Raat kaisi hai?",
+      "Hey! Want to chat?",
+      "Hi! Sab badhiya?"
+    ],
+    "late_night": [
+      "Hey! Neend nahi aa rahi kya?",
+      "Hi! Abhi tak jaag rahe?",
+      "Kya baat hai? Raat ko tension?",
+      "Hey! Sab theek?",
+      "Hi! Still awake?",
+      "Hey! Koi problem hai?",
+      "Hi! Want to talk?",
+      "Hey! Everything okay?"
+    ]
+  }
+}

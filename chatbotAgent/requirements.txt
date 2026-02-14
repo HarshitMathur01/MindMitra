@@ -12,3 +12,5 @@ httpx>=0.25.0
 PyJWT>=2.8.0
 gtts>=2.5.0
 google-cloud-texttospeech>=2.16.0
+groq
+zai-sdk

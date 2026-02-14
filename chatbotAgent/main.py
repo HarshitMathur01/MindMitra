@@ -10,13 +10,7 @@ import asyncio
 from collections import defaultdict
 from dotenv import load_dotenv
 from supabase import create_client, Client
-try:
-    from MindMitra.chatbotAgent.workflow import process_user_chat, get_workflow_instance
-except ModuleNotFoundError:
-    try:
-        from chatbotAgent.workflow import process_user_chat, get_workflow_instance
-    except ModuleNotFoundError:
-        from workflow import process_user_chat, get_workflow_instance
+from workflow import process_user_chat, get_workflow_instance
 import jwt
 from datetime import datetime
 

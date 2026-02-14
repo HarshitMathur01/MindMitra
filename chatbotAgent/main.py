@@ -729,6 +729,63 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "mindmitra-agent"}
 
+@app.get("/chat/greeting")
+async def get_greeting(
+    session_id: str = None,
+    user_id: str = None,
+    authorization: str = Header(None)
+):
+    """
+    Generate a personalized greeting for a new chat session.
+    Called by frontend when user clicks 'New Session'.
+    """
+    try:
+        # Validate authentication (reuse existing validation)
+        authenticated_user_id = await validate_user_token(authorization)
+        
+        # Use authenticated user_id (don't trust query param)
+        final_user_id = authenticated_user_id
+        
+        if not session_id:
+            logger.warning("⚠️ [GREETING] No session_id provided, using default greeting")
+            return {
+                "greeting": "Hey! What's on your mind?",
+                "show_greeting": True,
+                "language_used": "english",
+                "time_slot": "day"
+            }
+        
+        # Check cache first (prevent regeneration on page reload)
+        cache_key = f"{session_id}_{final_user_id}"
+        if cache_key in _greeting_cache:
+            logger.info(f"✅ [GREETING] Using cached greeting for session {session_id[:8]}...")
+            return _greeting_cache[cache_key]
+        
+        # Generate new greeting
+        from workflow import generate_greeting
+        greeting_data = generate_greeting(final_user_id, session_id)
+        
+        # Cache for 10 minutes
+        _greeting_cache[cache_key] = greeting_data
+        
+        logger.info(f"✅ [GREETING] Generated new greeting for session {session_id[:8]}...")
+        return greeting_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ [GREETING] Error: {e}")
+        # Safe fallback - never fail
+        return {
+            "greeting": "Hey! What's on your mind?",
+            "show_greeting": True,
+            "language_used": "english",
+            "time_slot": "day"
+        }
+
+# Simple cache for greetings (session_id_user_id -> greeting_data)
+_greeting_cache = {}
+
 @app.post("/chat")
 async def process_chat(
     request: ChatRequest,

@@ -508,8 +508,69 @@ const ChatGPTInterface = () => {
     
     console.log('✅ New chat session created:', newSessionId);
     
+    // Fetch personalized greeting (non-blocking)
+    fetchGreeting(newSessionId).catch(err => {
+      console.log('⚠️ Greeting skipped:', err);
+    });
+    
     // Immediately refresh recent chats to show new session
     await loadRecentChats();
+  };
+
+  const fetchGreeting = async (sessionId: string) => {
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      if (!backendUrl) {
+        console.log('⚠️ Backend URL not configured, skipping greeting');
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.log('⚠️ No auth token, skipping greeting');
+        return;
+      }
+
+      console.log('👋 Fetching personalized greeting...');
+      const response = await fetch(`${backendUrl}/chat/greeting?session_id=${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Greeting API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.show_greeting && data.greeting) {
+        console.log(`✅ Got greeting: "${data.greeting}" (${data.language_used}, ${data.time_slot})`);
+        
+        // Add greeting as first AI message
+        const greetingMessage: Message = {
+          id: crypto.randomUUID(),
+          content: data.greeting,
+          sender: 'ai',
+          timestamp: new Date()
+        };
+        
+        setMessages([greetingMessage]);
+        
+        // Also add to avatar if visible
+        if (isAvatarVisible) {
+          addAvatarMessage({
+            text: data.greeting,
+            audio: null,
+            facialExpression: 'smile',
+            animation: 'Talking'
+          });
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Greeting generation failed (non-critical):', error);
+      // Fail silently - greeting is nice-to-have, not required
+    }
   };
 
   if (!user) {

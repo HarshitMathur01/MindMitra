@@ -12,3 +12,11 @@ Allow: /
 
 User-agent: *
 Allow: /
+User-agent: ChatGPT
+Allow: /
+
+User-agent: Gemini
+Allow: /
+
+User-agent: Claude
+Allow: /

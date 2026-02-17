@@ -1856,3 +1856,117 @@ def process_user_chat(
     except Exception as e:
         logger.error(f"❌ [ENTRY] Failed after {time.time()-start_time:.2f}s: {e}")
         raise
+
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  10. GREETING GENERATION SYSTEM                              ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+_greeting_pool = None
+_greeting_cache = {}  # session_id -> greeting (TTL handled in main.py)
+
+def _load_greeting_pool() -> Dict[str, Any]:
+    """Load greeting pool JSON once on first use."""
+    global _greeting_pool
+    if _greeting_pool is None:
+        try:
+            import os
+            pool_path = os.path.join(os.path.dirname(__file__), "greeting_pool.json")
+            with open(pool_path, "r", encoding="utf-8") as f:
+                _greeting_pool = json.load(f)
+            logger.info("✅ [GREETING] Pool loaded successfully")
+        except Exception as e:
+            logger.error(f"❌ [GREETING] Failed to load pool: {e}")
+            # Fallback minimal pool
+            _greeting_pool = {
+                "english": {
+                    "day": ["Hey! What's on your mind?", "Hi! Ready to chat?", "Hey! How's it going?"]
+                }
+            }
+    return _greeting_pool
+
+
+def generate_greeting(user_id: str, session_id: str) -> Dict[str, Any]:
+    """
+    Generate a personalized greeting based on user context.
+    
+    Returns:
+        {
+            "greeting": str,
+            "show_greeting": bool,
+            "language_used": str,
+            "time_slot": str
+        }
+    """
+    try:
+        pool = _load_greeting_pool()
+        
+        # 1. Determine language style
+        language_style = "english"  # Default
+        try:
+            context_file = f"user_contexts/user_context_{user_id}.json"
+            if os.path.exists(context_file):
+                with open(context_file, "r") as f:
+                    user_ctx = json.load(f)
+                    cultural = user_ctx.get("cultural_context", {})
+                    lang = cultural.get("language_style", "english")
+                    # Map to pool keys
+                    if lang == "hindi-mixed":
+                        language_style = "hindi_mixed"
+                    elif lang == "hinglish":
+                        language_style = "hinglish"
+                    else:
+                        language_style = "english"
+        except Exception as e:
+            logger.debug(f"[GREETING] Could not load user context: {e}")
+        
+        # Fallback if language not in pool
+        if language_style not in pool:
+            language_style = "english"
+        
+        # 2. Determine time slot
+        from datetime import datetime
+        current_hour = datetime.now().hour
+        
+        if 5 <= current_hour < 11:
+            time_slot = "morning"
+        elif 11 <= current_hour < 16:
+            time_slot = "day"
+        elif 16 <= current_hour < 21:
+            time_slot = "evening"
+        elif 21 <= current_hour < 24:
+            time_slot = "night"
+        else:  # 0-5
+            time_slot = "late_night"
+        
+        # Fallback if time slot not in pool
+        if time_slot not in pool[language_style]:
+            time_slot = "day"
+        
+        # 3. Select random greeting from pool
+        import random
+        greetings = pool[language_style][time_slot]
+        greeting_text = random.choice(greetings)
+        
+        # 4. Optional: Add name (60% chance if available)
+        # For now, skip name personalization to keep it simple
+        # Can be added in Phase 2
+        
+        logger.info(f"✅ [GREETING] Generated: lang={language_style}, time={time_slot}, text={greeting_text[:30]}...")
+        
+        return {
+            "greeting": greeting_text,
+            "show_greeting": True,
+            "language_used": language_style,
+            "time_slot": time_slot
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ [GREETING] Generation failed: {e}")
+        # Safe fallback
+        return {
+            "greeting": "Hey! What's on your mind?",
+            "show_greeting": True,
+            "language_used": "english",
+            "time_slot": "day"
+        }

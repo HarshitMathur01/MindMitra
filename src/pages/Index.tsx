@@ -1,7 +1,15 @@
 import Header from "@/components/layout/Header";
 import WelcomeHero from "@/components/sections/WelcomeHero";
+import TrustIndicators from "@/components/sections/TrustIndicators";
+import PrivacyBanner from "@/components/sections/PrivacyBanner";
+import InteractiveDemo from "@/components/sections/InteractiveDemo";
+import AvatarShowcase from "@/components/sections/AvatarShowcase";
 import FeaturesPreview from "@/components/sections/FeaturesPreview";
 import StatsSection from "@/components/sections/StatsSection";
+import TestimonialCarousel from "@/components/sections/TestimonialCarousel";
+import CrisisSafetyDemo from "@/components/sections/CrisisSafetyDemo";
+import LanguageTogglePreview from "@/components/sections/LanguageTogglePreview";
+import CrisisSafetyBadge from "@/components/sections/CrisisSafetyBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Brain, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
@@ -27,7 +35,15 @@ const Index = () => {
       <Header />
       <main>
         <WelcomeHero />
-        
+        <TrustIndicators />
+        <PrivacyBanner />
+
+        {/* Interactive Demo - Guided conversation demo */}
+        <InteractiveDemo />
+
+        {/* 3D Avatar Conversation Showcase */}
+        <AvatarShowcase />
+
         {/* Advanced Chat Call-to-Action */}
         <section className="py-20 bg-gradient-to-br from-primary/5 via-accent/5 to-background">
           <div className="container mx-auto px-4">
@@ -36,11 +52,11 @@ const Index = () => {
                 Experience Advanced AI Psychology Chat
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Dive deep into personalized conversations with our enhanced AI assistant. 
+                Dive deep into personalized conversations with our enhanced AI assistant.
                 Get professional insights, explore your mental wellness, and track your progress.
               </p>
             </div>
-            
+
             <div className="max-w-4xl mx-auto">
               <div className="grid md:grid-cols-2 gap-8 mb-12">
                 <div className="space-y-4">
@@ -57,7 +73,7 @@ const Index = () => {
                     <li>• Conversation history</li>
                   </ul>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
@@ -73,11 +89,11 @@ const Index = () => {
                   </ul>
                 </div>
               </div>
-              
+
               <div className="text-center">
                 {user ? (
-                  <Button 
-                    onClick={() => navigate('/chat')} 
+                  <Button
+                    onClick={() => navigate('/chat')}
                     className="gradient-primary hover-glow text-lg px-8 py-6 h-auto"
                   >
                     <MessageSquare className="h-5 w-5 mr-2" />
@@ -86,8 +102,8 @@ const Index = () => {
                   </Button>
                 ) : (
                   <div className="space-y-4">
-                    <Button 
-                      onClick={() => navigate('/auth')} 
+                    <Button
+                      onClick={() => navigate('/auth')}
                       className="gradient-primary hover-glow text-lg px-8 py-6 h-auto"
                     >
                       Sign In to Start Chatting
@@ -105,7 +121,13 @@ const Index = () => {
 
         <StatsSection />
         <FeaturesPreview />
+        <TestimonialCarousel />
+        <CrisisSafetyDemo />
+        <LanguageTogglePreview />
       </main>
+
+      {/* Fixed Crisis Safety Badge */}
+      <CrisisSafetyBadge />
     </div>
   );
 };

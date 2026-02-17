@@ -14,8 +14,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@radix-ui/react-avatar";
 import GirlAvatar from "./GirlAvatar"
-import {useChat} from "../../hooks/useChat"
+import { useChat } from "../../hooks/useChat"
 import { motion, AnimatePresence } from "framer-motion"
+import { jsPDF } from "jspdf";
 
 interface Message {
   id: string;
@@ -56,13 +57,13 @@ const ChatGPTInterface = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [recentChats, setRecentChats] = useState<Array<{id: string, title: string, created_at: string, messageCount: number}>>([]);
+  const [recentChats, setRecentChats] = useState<Array<{ id: string, title: string, created_at: string, messageCount: number }>>([]);
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { isRecording, isProcessing, toggleRecording, currentTranscript } = useVoiceRecording();
-  const [voiceTempMsgId, setVoiceTempMsgId] = useState<string|null>(null);
+  const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isAvatarVisible, toggleAvatar, closeAvatar, addAvatarMessage, clearAvatarMessages } = useChat();
@@ -95,10 +96,10 @@ const ChatGPTInterface = () => {
   useEffect(() => {
     if (user) {
       console.log('👤 User authenticated, loading chat data...');
-      
+
       // Load recent chats first
       loadRecentChats();
-      
+
       // Check if there's a current session to restore
       const savedSessionId = localStorage.getItem('currentChatSession');
       if (savedSessionId) {
@@ -125,9 +126,9 @@ const ChatGPTInterface = () => {
   // Update temporary voice message with live transcript
   useEffect(() => {
     if (isRecording && voiceTempMsgId && currentTranscript) {
-      setMessages(msgs => msgs.map(m => 
-        m.id === voiceTempMsgId 
-          ? { ...m, content: currentTranscript || '🎤 Recording...' } 
+      setMessages(msgs => msgs.map(m =>
+        m.id === voiceTempMsgId
+          ? { ...m, content: currentTranscript || '🎤 Recording...' }
           : m
       ));
     }
@@ -170,7 +171,7 @@ const ChatGPTInterface = () => {
     setLoadingChats(true);
     try {
       console.log('🔍 Loading recent chats from chat_messages table...');
-      
+
       // Get unique sessions with their latest activity and first user message
       const { data, error } = await supabase
         .from('chat_messages')
@@ -193,7 +194,7 @@ const ChatGPTInterface = () => {
 
       // Group messages by session_id
       const sessionMap = new Map();
-      
+
       data.forEach(msg => {
         if (!sessionMap.has(msg.session_id)) {
           sessionMap.set(msg.session_id, {
@@ -204,16 +205,16 @@ const ChatGPTInterface = () => {
             messageCount: 0
           });
         }
-        
+
         const session = sessionMap.get(msg.session_id);
         session.messages.push(msg);
         session.messageCount++;
-        
+
         // Update last activity if this message is newer
         if (msg.created_at > session.lastActivity) {
           session.lastActivity = msg.created_at;
         }
-        
+
         // Set first user message as preview
         if (msg.role === 'user' && !session.firstUserMessage) {
           session.firstUserMessage = msg.content;
@@ -225,7 +226,7 @@ const ChatGPTInterface = () => {
         .filter(session => session.messageCount > 0) // Only show sessions with messages
         .map(session => ({
           id: session.id,
-          title: session.firstUserMessage ? 
+          title: session.firstUserMessage ?
             (session.firstUserMessage.substring(0, 50) + (session.firstUserMessage.length > 50 ? '...' : '')) :
             'New Chat',
           created_at: session.lastActivity,
@@ -246,25 +247,25 @@ const ChatGPTInterface = () => {
 
   const selectRecentChat = async (chatId: string) => {
     console.log('🔄 Switching to chat session:', chatId);
-    
+
     // Prevent loading if already on this session and messages are loaded
     if (currentSessionId === chatId && messages.length > 0) {
       console.log('Already on session:', chatId);
       return;
     }
-    
+
     // Prevent multiple simultaneous session loads
     if (loadingSession) {
       console.log('Session already loading, ignoring click');
       return;
     }
-    
+
     setLoadingSession(true);
-    
+
     try {
       // Clear current messages first to prevent mixing
       setMessages([]);
-      
+
       // Load messages for this specific session first
       const { data, error } = await supabase
         .from('chat_messages')
@@ -292,18 +293,18 @@ const ChatGPTInterface = () => {
       })) || [];
 
       console.log('✅ Loaded messages for session:', sessionMessages.length, 'Session ID:', chatId);
-      
+
       // Update session state and localStorage after successful message load
       setCurrentSessionId(chatId);
       localStorage.setItem('currentChatSession', chatId);
-      
+
       // Set the messages
       setMessages(sessionMessages);
 
     } catch (error) {
       console.error('❌ Failed to load session messages:', error);
       toast({
-        title: "Error", 
+        title: "Error",
         description: "Failed to switch to chat session. Please try again.",
         variant: "destructive",
       });
@@ -334,7 +335,7 @@ const ChatGPTInterface = () => {
     try {
       // Get current session for authentication
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         throw new Error('No active session found');
       }
@@ -349,7 +350,7 @@ const ChatGPTInterface = () => {
       }
 
       // Save the user message first (non-blocking - ⚡ P0 optimization)
-      saveMessage(userMessage, sessionIdToUse).catch(err => 
+      saveMessage(userMessage, sessionIdToUse).catch(err =>
         console.error('❌ Background save failed:', err)
       );
 
@@ -360,7 +361,7 @@ const ChatGPTInterface = () => {
       }
       console.log('📡 Calling backend directly:', `${backendUrl}/chat`);
       console.log('🎭 Avatar visibility state:', isAvatarVisible);
-      
+
       const response = await fetch(`${backendUrl}/chat`, {
         method: 'POST',
         headers: {
@@ -407,7 +408,7 @@ const ChatGPTInterface = () => {
         facialExpression: data.facial_expression
       });
       addAvatarMessage(data); // Pass full backend response with audio/lipsync
-      
+
       // Only add AI response if we're still on the same session
       const currentSession = localStorage.getItem('currentChatSession');
       if (currentSession === sessionIdToUse) {
@@ -443,7 +444,7 @@ const ChatGPTInterface = () => {
       console.log('🎤 [UI] Voice button clicked, current recording state:', isRecording);
       console.log('🎤 [UI] Session ID:', currentSessionId);
       console.log('🎤 [UI] About to call toggleRecording...');
-      
+
       if (isRecording) {
         // Stop recording and process result
         const result = await toggleRecording(currentSessionId, voiceTempMsgId || undefined);
@@ -490,24 +491,174 @@ const ChatGPTInterface = () => {
     });
   };
 
+  const getExportFileName = (extension: "pdf" | "json" | "csv") => {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+    return `mindmitra-chat-${stamp}.${extension}`;
+  };
+
+  const downloadBlob = (content: BlobPart, mimeType: string, fileName: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportChatAsJson = () => {
+    if (messages.length === 0) {
+      toast({
+        title: "No messages to export",
+        description: "Start a conversation first, then try again.",
+      });
+      return;
+    }
+
+    const exportPayload = {
+      sessionId: currentSessionId,
+      exportedAt: new Date().toISOString(),
+      totalMessages: messages.length,
+      messages: messages.map((message) => ({
+        id: message.id,
+        sender: message.sender,
+        timestamp: message.timestamp.toISOString(),
+        content: message.content,
+      })),
+    };
+
+    downloadBlob(
+      JSON.stringify(exportPayload, null, 2),
+      "application/json;charset=utf-8",
+      getExportFileName("json")
+    );
+
+    toast({
+      title: "Chat exported",
+      description: "Downloaded as JSON.",
+    });
+  };
+
+  const exportChatAsCsv = () => {
+    if (messages.length === 0) {
+      toast({
+        title: "No messages to export",
+        description: "Start a conversation first, then try again.",
+      });
+      return;
+    }
+
+    const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const header = ["id", "sender", "timestamp", "content"];
+    const rows = messages.map((message) => [
+      message.id,
+      message.sender,
+      message.timestamp.toISOString(),
+      message.content.replace(/\r?\n/g, "\\n"),
+    ]);
+
+    const csvContent = [header, ...rows]
+      .map((row) => row.map((cell) => escapeCsv(String(cell))).join(","))
+      .join("\n");
+
+    downloadBlob(
+      csvContent,
+      "text/csv;charset=utf-8",
+      getExportFileName("csv")
+    );
+
+    toast({
+      title: "Chat exported",
+      description: "Downloaded as CSV.",
+    });
+  };
+
+  const exportChatAsPdf = () => {
+    if (messages.length === 0) {
+      toast({
+        title: "No messages to export",
+        description: "Start a conversation first, then try again.",
+      });
+      return;
+    }
+
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const horizontalPadding = 40;
+    const maxTextWidth = pageWidth - horizontalPadding * 2;
+
+    let y = 48;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("MindMitra Chat Export", horizontalPadding, y);
+
+    y += 20;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    const exportedAt = new Date().toLocaleString();
+    doc.text(`Exported at: ${exportedAt}`, horizontalPadding, y);
+
+    y += 24;
+    doc.setFontSize(11);
+
+    messages.forEach((message, index) => {
+      const senderLabel = message.sender === "user" ? "User" : "MindMitra";
+      const timestamp = message.timestamp.toLocaleString();
+      const metaLine = `[${timestamp}] ${senderLabel}`;
+      const contentLines = doc.splitTextToSize(message.content || "", maxTextWidth);
+
+      const blockHeight = 18 + contentLines.length * 14 + 10;
+      if (y + blockHeight > pageHeight - 40) {
+        doc.addPage();
+        y = 48;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.text(metaLine, horizontalPadding, y);
+      y += 16;
+
+      doc.setFont("helvetica", "normal");
+      doc.text(contentLines.length > 0 ? contentLines : [""], horizontalPadding, y);
+      y += contentLines.length * 14 + 8;
+
+      if (index < messages.length - 1) {
+        doc.setDrawColor(220);
+        doc.line(horizontalPadding, y, pageWidth - horizontalPadding, y);
+        y += 12;
+      }
+    });
+
+    doc.save(getExportFileName("pdf"));
+
+    toast({
+      title: "Chat exported",
+      description: "Downloaded as PDF.",
+    });
+  };
+
   const filteredMessages = messages.filter(message =>
-    searchQuery === "" || 
+    searchQuery === "" ||
     message.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const startNewChat = async () => {
     console.log('🆕 Starting new chat...');
-    
+
     const newSessionId = crypto.randomUUID();
-    
+
     // Clear current state first
     setMessages([]);
     setCurrentSessionId(newSessionId);
     setSearchQuery("");
     localStorage.setItem('currentChatSession', newSessionId);
-    
+
     console.log('✅ New chat session created:', newSessionId);
-    
+
     // Immediately refresh recent chats to show new session
     await loadRecentChats();
   };
@@ -519,7 +670,7 @@ const ChatGPTInterface = () => {
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Enhanced ChatGPT-style Sidebar with Glassmorphism */}
-      <motion.div 
+      <motion.div
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
@@ -562,7 +713,7 @@ const ChatGPTInterface = () => {
               <Home className="h-4 w-4 mr-3" />
               Home
             </Button>
-            
+
             {/* Recent Chats Section with Animations */}
             <div className="pt-3 pb-1 flex-shrink-0">
               <div className="flex items-center justify-between px-3 mb-2">
@@ -575,7 +726,7 @@ const ChatGPTInterface = () => {
               </div>
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {recentChats.length === 0 ? (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="px-3 py-2 text-xs text-gray-500 italic"
@@ -594,22 +745,20 @@ const ChatGPTInterface = () => {
                         <Button
                           variant="ghost"
                           disabled={loadingSession}
-                          className={`w-full text-left p-2 transition-all duration-300 text-xs hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 group relative border ${
-                            currentSessionId === chat.id 
-                              ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-500/50 text-white shadow-lg' 
+                          className={`w-full text-left p-2 transition-all duration-300 text-xs hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 group relative border ${currentSessionId === chat.id
+                              ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-500/50 text-white shadow-lg'
                               : 'border-transparent text-gray-300 hover:text-white hover:border-gray-700 hover:scale-[1.02]'
-                          } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
                           onClick={() => selectRecentChat(chat.id)}
                         >
                           <div className="flex items-start gap-2 w-full">
-                            <motion.div 
-                              animate={{ 
+                            <motion.div
+                              animate={{
                                 scale: currentSessionId === chat.id ? [1, 1.2, 1] : 1,
                               }}
                               transition={{ duration: 0.3 }}
-                              className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${
-                                currentSessionId === chat.id ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' : 'bg-gray-500'
-                              }`}
+                              className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${currentSessionId === chat.id ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' : 'bg-gray-500'
+                                }`}
                             ></motion.div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate leading-tight font-medium">
@@ -627,7 +776,7 @@ const ChatGPTInterface = () => {
                 )}
               </div>
             </div>
-            
+
             {/* Quick Topics Section with Gradient Effects */}
             <div className="pt-1 pb-1 flex-shrink-0">
               <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-wider px-3 mb-1">
@@ -709,7 +858,7 @@ const ChatGPTInterface = () => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Enhanced Chat Header with Glassmorphism */}
-        <motion.div 
+        <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
@@ -721,7 +870,7 @@ const ChatGPTInterface = () => {
               size="sm"
               className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              >
+            >
               {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
             <div className="flex items-center gap-2">
@@ -747,19 +896,19 @@ const ChatGPTInterface = () => {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => toggleAvatar()}
                 className={`
                   group relative overflow-hidden transition-all duration-300
-                  ${isAvatarVisible 
-                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-300 dark:border-blue-700 hover:shadow-lg hover:shadow-blue-200 dark:hover:shadow-blue-900' 
+                  ${isAvatarVisible
+                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-300 dark:border-blue-700 hover:shadow-lg hover:shadow-blue-200 dark:hover:shadow-blue-900'
                     : 'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900 border-gray-300 dark:border-gray-700 hover:shadow-lg hover:shadow-gray-200 dark:hover:shadow-gray-800'
                   }
                 `}
               >
-                <motion.div 
+                <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                   animate={{
                     x: isAvatarVisible ? ['-100%', '100%'] : '-100%',
@@ -790,8 +939,8 @@ const ChatGPTInterface = () => {
                   >
                     <div className={`
                       w-2 h-2 rounded-full 
-                      ${isAvatarVisible 
-                        ? 'bg-green-500 shadow-lg shadow-green-300 dark:shadow-green-700' 
+                      ${isAvatarVisible
+                        ? 'bg-green-500 shadow-lg shadow-green-300 dark:shadow-green-700'
                         : 'bg-gray-400 dark:bg-gray-600'
                       }
                     `} />
@@ -806,9 +955,17 @@ const ChatGPTInterface = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => toast({ title: "Feature coming soon!", description: "Export functionality will be available soon." })}>
+                <DropdownMenuItem onClick={exportChatAsPdf}>
                   <Download className="h-4 w-4 mr-2" />
-                  Export Chat
+                  Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportChatAsJson}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportChatAsCsv}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export as CSV
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -817,173 +974,173 @@ const ChatGPTInterface = () => {
 
         {/* Messages Area with Animations - Conditional 50-50 split */}
         <div className={`grid grid-rows-1 h-[80%] ${isAvatarVisible ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        {isAvatarVisible && (
-        <div className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700">
-          <GirlAvatar/>
-        </div>
-        )}
-        <div className="flex-1 overflow-y-scroll bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
-          <ScrollArea className="h-full">
-            <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-              <AnimatePresence>
-                {filteredMessages.map((message, index) => (
-                  <motion.div 
-                    key={message.id}
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="group"
-                  >
-                    {message.sender === "ai" ? (
-                      <div className="flex gap-4 items-start">
-                        <motion.div 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 200 }}
-                          className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
-                        >
-                          <Bot className="h-4 w-4 text-white" />
-                        </motion.div>
-                        <div className="flex-1 space-y-2">
-                          <div className="text-sm font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">MindMitra</div>
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                            className="prose prose-sm max-w-none dark:prose-invert"
+          {isAvatarVisible && (
+            <div className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700">
+              <GirlAvatar />
+            </div>
+          )}
+          <div className="flex-1 overflow-y-scroll bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
+            <ScrollArea className="h-full">
+              <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+                <AnimatePresence>
+                  {filteredMessages.map((message, index) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className="group"
+                    >
+                      {message.sender === "ai" ? (
+                        <div className="flex gap-4 items-start">
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200 }}
+                            className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
                           >
-                            <div 
-                              className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm p-4 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-600/50"
-                              dangerouslySetInnerHTML={{
-                                __html: message.content
-                                  .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-600 dark:text-blue-400">$1</strong>')
-                                  .replace(/\*(.*?)\*/g, '<em class="text-purple-600 dark:text-purple-400">$1</em>')
-                                  .replace(/`(.*?)`/g, '<code class="bg-blue-100 dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono text-blue-800 dark:text-blue-300">$1</code>')
-                                  .replace(/^- (.+)$/gm, '<li class="mb-1">$1</li>')
-                                  .replace(/(<li.*<\/li>)/s, '<ul class="list-disc list-inside space-y-1 ml-4 my-2">$1</ul>')
-                                  .replace(/\n\n/g, '<br><br>')
-                                  .replace(/\n/g, '<br>')
-                              }}
-                            />
+                            <Bot className="h-4 w-4 text-white" />
                           </motion.div>
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0 }}
-                            whileHover={{ opacity: 1 }}
-                            className="flex items-center gap-2 transition-opacity"
-                          >
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-gray-700 hover:scale-110 transition-all"
-                              onClick={() => copyMessage(message.content)}
+                          <div className="flex-1 space-y-2">
+                            <div className="text-sm font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">MindMitra</div>
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 0.2 }}
+                              className="prose prose-sm max-w-none dark:prose-invert"
                             >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-gray-700 hover:scale-110 transition-all">
-                              <ThumbsUp className="h-3 w-3" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-gray-700 hover:scale-110 transition-all">
-                              <ThumbsDown className="h-3 w-3" />
-                            </Button>
-                            <span className="text-xs text-gray-500 ml-2">
-                              {message.timestamp.toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </motion.div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex gap-4 justify-end items-start">
-                        <div className="flex-1 flex justify-end">
-                          <div className="max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl">
-                            <motion.div 
-                              initial={{ scale: 0.9 }}
-                              animate={{ scale: 1 }}
-                              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl px-5 py-3 inline-block shadow-lg hover:shadow-xl transition-shadow"
-                            >
-                              <p className="text-sm font-medium whitespace-pre-wrap break-words">{message.content}</p>
+                              <div
+                                className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm p-4 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-600/50"
+                                dangerouslySetInnerHTML={{
+                                  __html: message.content
+                                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-600 dark:text-blue-400">$1</strong>')
+                                    .replace(/\*(.*?)\*/g, '<em class="text-purple-600 dark:text-purple-400">$1</em>')
+                                    .replace(/`(.*?)`/g, '<code class="bg-blue-100 dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono text-blue-800 dark:text-blue-300">$1</code>')
+                                    .replace(/^- (.+)$/gm, '<li class="mb-1">$1</li>')
+                                    .replace(/(<li.*<\/li>)/s, '<ul class="list-disc list-inside space-y-1 ml-4 my-2">$1</ul>')
+                                    .replace(/\n\n/g, '<br><br>')
+                                    .replace(/\n/g, '<br>')
+                                }}
+                              />
                             </motion.div>
-                            <motion.div 
+                            <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 0 }}
                               whileHover={{ opacity: 1 }}
-                              className="flex items-center justify-end gap-2 mt-2 transition-opacity"
+                              className="flex items-center gap-2 transition-opacity"
                             >
-                              <span className="text-xs text-gray-500">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-gray-700 hover:scale-110 transition-all"
+                                onClick={() => copyMessage(message.content)}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-gray-700 hover:scale-110 transition-all">
+                                <ThumbsUp className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-gray-700 hover:scale-110 transition-all">
+                                <ThumbsDown className="h-3 w-3" />
+                              </Button>
+                              <span className="text-xs text-gray-500 ml-2">
                                 {message.timestamp.toLocaleTimeString([], {
                                   hour: "2-digit",
                                   minute: "2-digit",
                                 })}
                               </span>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all"
-                                onClick={() => copyMessage(message.content)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
                             </motion.div>
                           </div>
                         </div>
-                        <motion.div 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 200 }}
-                          className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
-                        >
-                          <User className="h-4 w-4 text-white" />
-                        </motion.div>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              
-              {/* Typing Indicator */}
-              {isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="flex gap-4 items-start"
-                >
-                  <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <Bot className="h-4 w-4 text-white" />
-                  </div>
-                  <div className="bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm px-5 py-3 rounded-2xl shadow-md">
-                    <div className="flex gap-1">
-                      <motion.div
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                        className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
-                      />
-                      <motion.div
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                        className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
-                      />
-                      <motion.div
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                        className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
-                      />
+                      ) : (
+                        <div className="flex gap-4 justify-end items-start">
+                          <div className="flex-1 flex justify-end">
+                            <div className="max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl">
+                              <motion.div
+                                initial={{ scale: 0.9 }}
+                                animate={{ scale: 1 }}
+                                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl px-5 py-3 inline-block shadow-lg hover:shadow-xl transition-shadow"
+                              >
+                                <p className="text-sm font-medium whitespace-pre-wrap break-words">{message.content}</p>
+                              </motion.div>
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 0 }}
+                                whileHover={{ opacity: 1 }}
+                                className="flex items-center justify-end gap-2 mt-2 transition-opacity"
+                              >
+                                <span className="text-xs text-gray-500">
+                                  {message.timestamp.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all"
+                                  onClick={() => copyMessage(message.content)}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </motion.div>
+                            </div>
+                          </div>
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200 }}
+                            className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
+                          >
+                            <User className="h-4 w-4 text-white" />
+                          </motion.div>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+
+                {/* Typing Indicator */}
+                {isLoading && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex gap-4 items-start"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                      <Bot className="h-4 w-4 text-white" />
                     </div>
-                  </div>
-                </motion.div>
-              )}
-              
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-        </div>
+                    <div className="bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm px-5 py-3 rounded-2xl shadow-md">
+                      <div className="flex gap-1">
+                        <motion.div
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                          className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                        />
+                        <motion.div
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                          className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                        />
+                        <motion.div
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                          className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+          </div>
         </div>
         {/* Enhanced Input Area with Glassmorphism */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
@@ -1004,11 +1161,10 @@ const ChatGPTInterface = () => {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${
-                      isRecording 
-                        ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 shadow-lg shadow-red-500/20' 
+                    className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${isRecording
+                        ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 shadow-lg shadow-red-500/20'
                         : 'hover:bg-blue-100 dark:hover:bg-gray-600'
-                    }`}
+                      }`}
                     onClick={handleVoiceInput}
                     disabled={isProcessing || isLoading}
                   >
@@ -1024,8 +1180,8 @@ const ChatGPTInterface = () => {
                     )}
                   </Button>
                 </motion.div>
-                <motion.div 
-                  whileHover={{ scale: 1.1 }} 
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   <Button
@@ -1043,7 +1199,7 @@ const ChatGPTInterface = () => {
                   </Button>
                 </motion.div>
               </div>
-              
+
               {/* Character count indicator */}
               {inputValue.length > 0 && (
                 <motion.div

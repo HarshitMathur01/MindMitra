@@ -1,8 +1,8 @@
 # ══════════════════════════════════════════════════════════════
-# MindMitra Backend Requirements
-# Balanced: flexible for dev, safe for prod when locked
+# MindMitra Backend Requirements - OPTIMIZED FOR RAILWAY
+# CPU-only builds, production-ready
 # ══════════════════════════════════════════════════════════════
-requests
+
 # ──────────────────────────────────────────────────────────────
 # Core Web Framework
 # ──────────────────────────────────────────────────────────────
@@ -16,18 +16,16 @@ python-multipart>=0.0.9
 # AI / LLM SDKs
 # ──────────────────────────────────────────────────────────────
 groq>=0.11,<1.0
-zhipuai>=2.1.5
-# zai-sdk REMOVED → unstable + conflicts with zhipuai
+zhipuai>=2.1.5,<3.0
+google-generativeai>=0.8,<1.0
 
-google-generativeai>=0.8,<1.0  # (plan migration to google.genai)
-
+# LangChain (minimal - no langgraph)
 langchain>=0.3,<0.4
 langchain-core>=0.3,<0.4
 langchain-google-genai>=2.0,<3.0
-# langgraph>=0.1,<1.0
 
 # ──────────────────────────────────────────────────────────────
-# Google Cloud
+# Google Cloud Services
 # ──────────────────────────────────────────────────────────────
 google-cloud-texttospeech>=2.16,<3.0
 google-api-python-client>=2.120,<3.0
@@ -41,19 +39,20 @@ supabase>=2.8,<3.0
 postgrest>=0.16,<1.0
 
 # ──────────────────────────────────────────────────────────────
-# Embeddings & RAG
+# Embeddings & RAG - CPU-ONLY TORCH (critical for size!)
 # ──────────────────────────────────────────────────────────────
 sentence-transformers>=3.0,<4.0
-torch>=2.2,<3.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
 transformers>=4.40,<5.0
 safetensors>=0.4,<1.0
 huggingface-hub>=0.20,<1.0
 
 # ──────────────────────────────────────────────────────────────
-# Config & Env
+# Config & Environment
 # ──────────────────────────────────────────────────────────────
-python-dotenv>=1.0
-pyyaml>=6.0
+python-dotenv>=1.0,<2.0
+pyyaml>=6.0,<7.0
 
 # ──────────────────────────────────────────────────────────────
 # Auth & Security
@@ -62,17 +61,17 @@ pyjwt>=2.8,<3.0
 cryptography>=41,<44
 
 # ──────────────────────────────────────────────────────────────
-# HTTP / Utils
+# HTTP Client & Utilities
 # ──────────────────────────────────────────────────────────────
 httpx>=0.27,<1.0
 requests>=2.31,<3.0
-tenacity>=8.2,<9.0
-typing-extensions>=4.10
-annotated-types>=0.6
+tenacity>=8.2,<10.0
+typing-extensions>=4.10,<5.0
+annotated-types>=0.6,<1.0
 numpy>=1.26,<2.0
-regex>=2024.7
+regex>=2024.7,<2025.0
 
 # ──────────────────────────────────────────────────────────────
-# Optional
+# Text-to-Speech (gTTS as fallback)
 # ──────────────────────────────────────────────────────────────
 gtts>=2.5,<3.0

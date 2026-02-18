@@ -41,7 +41,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 from supabase import create_client, Client
 from memory_architecture import UniversalMemorySystem, MemoryDeduplicator, EpisodicPromoter
-
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 # RAG Memory System Components (NEW)
 from embeddings_service import EmbeddingService
 from query_decision_agent import QueryDecisionAgent

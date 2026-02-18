@@ -13,6 +13,8 @@ from supabase import create_client, Client
 from workflow import process_user_chat, get_workflow_instance
 import jwt
 from datetime import datetime
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Load environment variables
 load_dotenv()

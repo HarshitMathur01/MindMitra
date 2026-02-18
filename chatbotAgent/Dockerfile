@@ -15,10 +15,19 @@ WORKDIR /build
 # Copy requirements and install dependencies
 COPY requirements.txt .
 
+# Install PyTorch CPU-only FIRST (prevents CUDA version)
+RUN uv pip install --system --no-cache \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    torch==2.5.1+cpu
+
+RUN uv pip install --system --no-cache -r requirements.txt
+RUN find /usr/local/lib/python3.11/site-packages -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find /usr/local/lib/python3.11/site-packages -type f -name "*.pyc" -delete && \
+    find /usr/local/lib/python3.11/site-packages -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
 # Use uv to install - 10x faster than pip
 # --system: install to system Python (no venv needed in Docker)
 # --no-cache: don't cache downloads (reduces image size)
-RUN uv pip install --system --no-cache -r requirements.txt
 
 # ──────────────────────────────────────────────────────────────
 # Stage 2: Runtime - Lean production image

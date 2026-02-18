@@ -1,5 +1,19 @@
+# ══════════════════════════════════════════════════════════════
+# MindMitra .gitignore - Production Ready
+# ══════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────
+# Node.js / Frontend (React + Vite)
+# ─────────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+.vercel/
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,31 +21,137 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# ─────────────────────────────────────────────────────────────
+# Python / Backend (FastAPI + uvicorn)
+# ─────────────────────────────────────────────────────────────
 
-# Editor directories and files
+# Virtual Environments (uv pip or standard venv)
+.venv/
+venv/
+env/
+ENV/
+chatbotAgent/venv/
+chatbotAgent/.venv/
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*$py.class
+*.so
+.Python
+
+# Python cache and build
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+coverage.xml
+*.cover
+
+# ─────────────────────────────────────────────────────────────
+# Environment Variables & Secrets
+# ─────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!.env.example
+
+# Credentials
+credentials_base64.txt
+chatbotAgent/credentials_base64.txt
+chatbotAgent/mindmitra-tts-7909061416cd.json
+*.pem
+*.key
+*.crt
+
+# ─────────────────────────────────────────────────────────────
+# Database & User Data
+# ─────────────────────────────────────────────────────────────
+chatbotAgent/user_contexts/
+*.db
+*.sqlite
+*.sqlite3
+
+# ─────────────────────────────────────────────────────────────
+# Editor & IDE
+# ─────────────────────────────────────────────────────────────
 .vscode/*
 !.vscode/extensions.json
-.idea
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-venv/
-*.env
-.vercel
-chatbotAgent/__pycache__/
-chatbotAgent/__pycache__/
-__pycache__/
-*.pyc
-chatbotAgent/mindmitra-tts-7909061416cd.json
-# chatbotAgent/*.json
-credentials_base64.txt
-chatbotAgent/credentials_base64.txt
-chatbotAgent/venv/
-.vite/
+
+# ─────────────────────────────────────────────────────────────
+# Temporary & Cache Files
+# ─────────────────────────────────────────────────────────────
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Debug files
+debug/
+chatbotAgent/debug/
+
+# ─────────────────────────────────────────────────────────────
+# OS Files
+# ─────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ─────────────────────────────────────────────────────────────
+# Project-Specific (Keep these out of Git)
+# ─────────────────────────────────────────────────────────────
+
+# Old/redundant code files (can be deleted)
+chatbotAgent/workflow2.py
+chatbotAgent/Untitled-1.ini
+chatbotAgent/models/state.py
+chatbotAgent/test_rag_pipeline.py
+
+# Test files (optional - uncomment to ignore)
+# chatbotAgent/test_*.py
+# *_test.py

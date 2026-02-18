@@ -1,1 +1,13 @@
+# Environment variables (sensitive)
 .env
+.env.local
+.env.production
+
+# Google Cloud credentials (sensitive)
+mindmitra-tts-7909061416cd.json
+credentials_base64.txt
+
+# Docker build artifacts (temporary)
+Dockerfile.prod
+docker-compose.override.yml
+*.tar

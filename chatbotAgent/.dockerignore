@@ -1,0 +1,73 @@
+# ══════════════════════════════════════════════════════════════
+# .dockerignore - Exclude files from Docker build context
+# ══════════════════════════════════════════════════════════════
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment & secrets (NEVER include in Docker image)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials_base64.txt
+mindmitra-tts-7909061416cd.json
+
+# Development files
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation
+README.md
+CONFIG_README.md
+*.md
+
+# Logs & user data (created at runtime)
+logs/
+user_contexts/
+*.log
+
+# Testing
+test_*.py
+*_test.py
+tests/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Old/redundant code
+workflow2.py
+Untitled-1.ini
+models/state.py
+
+# Docker files (not needed inside image)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Railway config
+railway.toml
+.railway.toml
+Procfile

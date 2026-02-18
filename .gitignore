@@ -151,7 +151,10 @@ chatbotAgent/workflow2.py
 chatbotAgent/Untitled-1.ini
 chatbotAgent/models/state.py
 chatbotAgent/test_rag_pipeline.py
+# chatbotAgent/.railway.toml
+# chatbotAgent/railway.toml
 
 # Test files (optional - uncomment to ignore)
 # chatbotAgent/test_*.py
 # *_test.py
+

@@ -2,7 +2,7 @@
 # MindMitra Backend Requirements
 # Balanced: flexible for dev, safe for prod when locked
 # ══════════════════════════════════════════════════════════════
-requests
+# requests
 # ──────────────────────────────────────────────────────────────
 # Core Web Framework
 # ──────────────────────────────────────────────────────────────

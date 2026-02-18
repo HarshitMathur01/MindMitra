@@ -1,9 +1,10 @@
 # ══════════════════════════════════════════════════════════════
-# MindMitra Backend - Production Dockerfile with uv pip
+# MindMitra Backend - Production Dockerfile
+# CPU-only PyTorch, optimized for Railway deployment
 # ══════════════════════════════════════════════════════════════
 
 # ──────────────────────────────────────────────────────────────
-# Stage 1: Builder - Install dependencies with uv
+# Stage 1: Builder - Install dependencies
 # ──────────────────────────────────────────────────────────────
 FROM python:3.11-slim AS builder
 
@@ -12,22 +13,21 @@ RUN pip install --no-cache-dir uv==0.4.30
 
 WORKDIR /build
 
-# Copy requirements and install dependencies
+# Copy requirements
 COPY requirements.txt .
 
-# Install PyTorch CPU-only FIRST (prevents CUDA version)
+# Install PyTorch CPU-only FIRST (prevents CUDA packages)
 RUN uv pip install --system --no-cache \
     --extra-index-url https://download.pytorch.org/whl/cpu \
     torch==2.5.1+cpu
 
+# Install all other dependencies
 RUN uv pip install --system --no-cache -r requirements.txt
+
+# Clean up unnecessary files to reduce image size
 RUN find /usr/local/lib/python3.11/site-packages -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
     find /usr/local/lib/python3.11/site-packages -type f -name "*.pyc" -delete && \
     find /usr/local/lib/python3.11/site-packages -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-
-# Use uv to install - 10x faster than pip
-# --system: install to system Python (no venv needed in Docker)
-# --no-cache: don't cache downloads (reduces image size)
 
 # ──────────────────────────────────────────────────────────────
 # Stage 2: Runtime - Lean production image
@@ -36,24 +36,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy installed packages from builder stage
+# Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application source code
+# Copy application code
 COPY . .
 
-# Create directories for runtime data
+# Create runtime directories
 RUN mkdir -p logs user_contexts && \
     chmod 755 logs user_contexts
 
-# Railway/Render will set $PORT environment variable
+# Railway sets $PORT dynamically at runtime
 EXPOSE 8000
 
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-8000}/health').read()"
-
 # Start FastAPI with uvicorn
-# Use $PORT if set (Railway/Render), fallback to 8000
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --log-level info
+# Railway provides $PORT environment variable
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --log-level info --timeout-keep-alive 75

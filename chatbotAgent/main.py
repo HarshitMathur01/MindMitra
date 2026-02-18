@@ -1149,6 +1149,20 @@ async def process_chat_stream(
         logger.error(f"❌ [STREAM] Streaming setup failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Streaming failed: {str(e)}")
 
+@app.on_event("startup")
+async def startup_event():
+    """Log critical startup information for debugging"""
+    logger.info("=" * 70)
+    logger.info("🚀 MindMitra Backend Starting on Railway...")
+    logger.info(f"   PORT: {os.getenv('PORT', '8000')}")
+    logger.info(f"   GROQ_API_KEY: {'✅ Set' if os.getenv('GROQ_API_KEY') else '❌ Missing'}")
+    logger.info(f"   GOOGLE_API_KEY: {'✅ Set' if os.getenv('GOOGLE_API_KEY') else '❌ Missing'}")
+    logger.info(f"   SUPABASE_URL: {'✅ Set' if os.getenv('SUPABASE_URL') else '❌ Missing'}")
+    logger.info(f"   SUPABASE_KEY: {'✅ Set' if os.getenv('SUPABASE_KEY') else '❌ Missing'}")
+    logger.info(f"   GOOGLE_CREDENTIALS_BASE64: {'✅ Set' if os.getenv('GOOGLE_CREDENTIALS_BASE64') else '❌ Missing'}")
+    logger.info("=" * 70)
+
+
 
 if __name__ == "__main__":
     import uvicorn

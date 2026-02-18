@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════
-# railway.toml - Railway deployment configuration
+# Railway Deployment Configuration
 # ══════════════════════════════════════════════════════════════
 
 [build]
@@ -7,10 +7,9 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Railway will automatically use CMD from Dockerfile
-# No need to override startCommand unless necessary
 numReplicas = 1
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 healthcheckPath = "/health"
 healthcheckTimeout = 10
+startPeriod = 60

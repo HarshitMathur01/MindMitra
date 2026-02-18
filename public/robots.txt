@@ -4,28 +4,3 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: ChatGPT
-Allow: /
-
-User-agent: Gemini
-Allow: /
-
-User-agent: Claude
-Allow: /
-
-User-agent: *
-Allow: /
-User-agent: ChatGPT
-Allow: /
-
-User-agent: Gemini
-Allow: /
-
-User-agent: Claude
-Allow: /

@@ -42,12 +42,12 @@ class Config:
         return cls._instance
     
     def _load_config(self):
-        """Load configuration from config.yaml"""
+        """Load configuration from config.yaml with fallback defaults"""
         config_path = Path(__file__).parent / "config.yaml"
         
         if not config_path.exists():
             logger.warning(f"⚠️ Config file not found at {config_path}, using defaults")
-            self._config_data = {}
+            self._config_data = self._get_default_config()
             return
         
         try:
@@ -60,7 +60,45 @@ class Config:
             
         except Exception as e:
             logger.error(f"❌ Failed to load config.yaml: {e}")
-            self._config_data = {}
+            logger.warning("   Using default configuration")
+            self._config_data = self._get_default_config()
+    
+    def _get_default_config(self) -> Dict[str, Any]:
+        """Return default configuration if config.yaml is missing or invalid"""
+        return {
+            "api_keys": {
+                "groq_api_key": os.getenv("GROQ_API_KEY", ""),
+                "zai_api_key": os.getenv("ZAI_API_KEY", ""),
+                "google_api_key": os.getenv("GOOGLE_API_KEY", ""),
+                "supabase_url": os.getenv("SUPABASE_URL", ""),
+                "supabase_key": os.getenv("SUPABASE_KEY", "")
+            },
+            "logging": {
+                "level": os.getenv("LOG_LEVEL", "INFO"),
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            },
+            "nlp_module": {
+                "model": "qwen/qwen-2.5-32b-instruct",
+                "temperature": 0.1,
+                "max_tokens": 400
+            },
+            "glm_controller": {
+                "model": "glm-4-32b",
+                "max_concurrent": 1,
+                "max_retries": 2,
+                "temperature": 0.3
+            },
+            "features": {
+                "rag_memory_retrieval": True,
+                "screening_assessments": True,
+                "cultural_context": True,
+                "episodic_promotion": True
+            },
+            "performance": {
+                "max_workers": 3,
+                "timeout_seconds": 30
+            }
+        }
     
     def _substitute_env_vars(self, obj: Any) -> Any:
         """

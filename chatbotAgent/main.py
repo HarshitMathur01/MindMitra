@@ -8,20 +8,58 @@ import os
 import threading
 import asyncio
 from collections import defaultdict
-from dotenv import load_dotenv
-from supabase import create_client, Client
-from workflow import process_user_chat, get_workflow_instance
+import warnings
 import jwt
 from datetime import datetime
-import warnings
+
+# Suppress warnings first
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-# Load environment variables
+# Load environment variables FIRST
+from dotenv import load_dotenv
 load_dotenv()
 
-# Configure logging
+# Configure logging BEFORE anything else
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ══════════════════════════════════════════════════════════════
+# CREATE APP IMMEDIATELY (before heavy imports)
+# ══════════════════════════════════════════════════════════════
+app = FastAPI(title="MindMitra Chatbot Agent", version="1.0.0")
+
+# CRITICAL: Register /health endpoint FIRST (before any heavy imports)
+# This ensures healthcheck works even if other components fail to load
+@app.get("/health")
+async def health_check():
+    """Lightweight healthcheck - always responds"""
+    return {"status": "healthy", "service": "mindmitra-agent"}
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "MindMitra Chatbot Agent is running"}
+
+# ══════════════════════════════════════════════════════════════
+# NOW import heavy dependencies (after /health is registered)
+# ══════════════════════════════════════════════════════════════
+try:
+    from supabase import create_client, Client
+    logger.info("✅ Supabase imported successfully")
+except Exception as e:
+    logger.error(f"❌ Failed to import Supabase: {e}")
+    create_client = None
+    Client = None
+
+# Import workflow components (heavy - may fail if dependencies missing)
+process_user_chat = None
+get_workflow_instance = None
+try:
+    from workflow import process_user_chat, get_workflow_instance
+    logger.info("✅ Workflow imported successfully")
+except Exception as e:
+    logger.error(f"❌ Failed to import workflow: {e}")
+    logger.error("   Chat functionality will be limited")
 
 # Verify Google Cloud credentials - support both file path and base64 encoding
 GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -62,8 +100,6 @@ else:
     logger.warning(f"⚠️ [INIT] Google Cloud credentials not found")
     logger.warning(f"   Set either GOOGLE_APPLICATION_CREDENTIALS (file path) or GOOGLE_CREDENTIALS_BASE64 (base64 string)")
     logger.warning("   Google Cloud TTS will not be available (will use gTTS fallback)")
-
-app = FastAPI(title="MindMitra Chatbot Agent", version="1.0.0")
 
 # In-memory message counter as fallback (survives across requests)
 session_message_counters = defaultdict(int)
@@ -722,14 +758,6 @@ async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
             "recent_messages": [],
             "conversation_summary": {}
         }
-
-@app.get("/")
-async def root():
-    return {"message": "MindMitra Chatbot Agent is running"}
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "service": "mindmitra-agent"}
 
 @app.get("/chat/greeting")
 async def get_greeting(

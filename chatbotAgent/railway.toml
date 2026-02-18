@@ -11,5 +11,5 @@ numReplicas = 1
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 healthcheckPath = "/health"
-healthcheckTimeout = 10
+healthcheckTimeout = 25
 startPeriod = 60

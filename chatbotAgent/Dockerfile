@@ -52,4 +52,4 @@ EXPOSE 8080
 
 # Start FastAPI with uvicorn
 # Railway provides $PORT environment variable
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1 --log-level info --timeout-keep-alive 75"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT} --log-level info"]

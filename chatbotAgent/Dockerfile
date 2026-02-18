@@ -17,9 +17,7 @@ WORKDIR /build
 COPY requirements.txt .
 
 # Install PyTorch CPU-only FIRST (prevents CUDA packages)
-RUN uv pip install --system --no-cache \
-    --extra-index-url https://download.pytorch.org/whl/cpu \
-    torch==2.5.1+cpu
+RUN uv pip install --system --no-cache "torch>=2.2,<3.0"
 
 # Install all other dependencies
 RUN uv pip install --system --no-cache -r requirements.txt

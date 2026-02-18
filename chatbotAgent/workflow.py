@@ -8,7 +8,7 @@ Architecture:
   │  Every module reads from and writes results back to this     │
   └────────┬──────────┬──────────┬──────────┬──────────┬─────────┘
            │          │          │          │          │
-     ┌─────▼────┐ ┌──▼───┐ ┌───▼────┐ ┌───▼────┐ ┌───▼──────────┐
+     ┌─────▼────┐  ┌──▼───┐ ┌───▼────┐ ┌───▼────┐ ┌───▼──────────┐
      │  Memory   │ │ NLP  │ │Cultural│ │Psych   │ │  Technique   │
      │  System   │ │(Groq)│ │Context │ │Analysis│ │  Selector    │
      │ (kept as  │ │      │ │ Module │ │(GLM)   │ │  (GLM)       │
@@ -23,7 +23,7 @@ Architecture:
 
 External interface (process_user_chat / process_chat) is UNCHANGED.
 """
-import zai
+from zhipuai import ZhipuAI
 from groq import Groq
 import os
 import json
@@ -40,12 +40,20 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 from supabase import create_client, Client
-from memory_architecture import UniversalMemorySystem
+from memory_architecture import UniversalMemorySystem, MemoryDeduplicator, EpisodicPromoter
+
+# RAG Memory System Components (NEW)
+from embeddings_service import EmbeddingService
+from query_decision_agent import QueryDecisionAgent
+from rag_retrieval import MemoryRetriever
+
+# Configuration System
+from config_loader import config
 
 # ──────────────────────────────────────────────────────────────
-# Logging
+# Logging (auto-configures on import via LOG_LEVEL env var)
 # ──────────────────────────────────────────────────────────────
-logging.basicConfig(level=logging.INFO)
+import logging_config  # Auto-configures logging based on LOG_LEVEL env variable
 logger = logging.getLogger(__name__)
 load_dotenv()
 
@@ -288,27 +296,25 @@ class GroqNLPModule:
     Handles token-limit errors with automatic truncation & retry.
     """
 
-    # Groq free-tier context sizes by model
-    _MODEL_TOKEN_LIMITS = {
-        "qwen/qwen3-32b": 4_096,
-        "moonshotai/kimi-k2-instruct-0905": 4096,
-        "meta-llama/llama-4-scout-17b-16e-instruct": 8_192,
-       # "mixtral-8x7b-32768": 32_768,
-    }
-
-    def __init__(self, api_key: str = None, model: str = "qwen/qwen3-32b"):
-        self.api_key = api_key or os.getenv("GROQ_API_KEY")
+    def __init__(self, api_key: str = None, model: str = None):
+        # Load from config
+        self.api_key = api_key or config.get_api_key("groq")
+        self.model = model or config.get_model("nlp")
+        self.temperature = config.get_temperature("nlp")
+        self.max_tokens = config.get_max_tokens("nlp")
+        
+        # Get token limits from config
+        self._MODEL_TOKEN_LIMITS = config.get("nlp_module.model_token_limits", {})
+        
         if not self.api_key:
             logger.warning("⚠️ [GROQ-NLP] GROQ_API_KEY not set — NLP module disabled")
             self.client = None
             return
 
         try:
-            
             self.client = Groq(api_key=self.api_key)
-            self.model = model
-            self._max_input_chars = self._MODEL_TOKEN_LIMITS.get(model, 8_192) * 3  # ~3 chars/token rough est
-            logger.info(f"✅ [GROQ-NLP] Initialised with model={model}")
+            self._max_input_chars = self._MODEL_TOKEN_LIMITS.get(self.model, 8_192) * 3
+            logger.info(f"✅ [GROQ-NLP] Initialised with model={self.model}")
         except ImportError:
             logger.warning("⚠️ [GROQ-NLP] `groq` package not installed — NLP module disabled")
             self.client = None
@@ -364,8 +370,8 @@ JSON:"""
             resp = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=400,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
             )
             return resp.choices[0].message.content.strip()
 
@@ -432,20 +438,32 @@ class CulturalContextModule:
         "accha", "suno", "bata", "bol", "rona", "akela", "thak",
     }
 
-    _CULTURAL_KEYWORDS = {
-        "parental_pressure": ["parents", "papa", "maa", "mom", "dad", "family", "ghar", "expect", "disappoint", "proud"],
-        "exam_stress": ["exam", "jee", "neet", "boards", "cgpa", "marks", "rank", "topper", "padhai", "result", "semester"],
-        "career_anxiety": ["career", "job", "placement", "package", "future", "engineer", "doctor", "startup", "salary"],
-        "social_pressure": ["friends", "relationship", "breakup", "lonely", "akela", "judge", "log kya kahenge", "society"],
-        "identity_struggle": ["identity", "confused", "who am i", "purpose", "meaning", "self", "worth"],
-        "marriage_pressure": ["shaadi", "marriage", "rishta", "arrange", "partner", "settle"],
-        "mental_health_stigma": ["pagal", "crazy", "weak", "therapy", "stigma", "shame", "hide"],
-    }
-    _DEEP_GROQ_MODEL = "llama-3.3-70b-versatile"
-
     def __init__(self, groq_nlp: Optional[GroqNLPModule] = None):
-        self.groq_nlp = groq_nlp  # reuse same Groq client for optional deep analysis
-        self._deep_enabled = bool(self.groq_nlp and getattr(self.groq_nlp, "client", None))
+        self.groq_nlp = groq_nlp
+        
+        # Load cultural keywords from config
+        cultural_flags = config.get("cultural_module.detect_cultural_flags", [])
+        # Use default keywords dict but only for flags in config
+        default_keywords = {
+            "parental_pressure": ["parents", "papa", "maa", "mom", "dad", "family", "ghar", "expect", "disappoint", "proud"],
+            "exam_stress": ["exam", "jee", "neet", "boards", "cgpa", "marks", "rank", "topper", "padhai", "result", "semester"],
+            "career_anxiety": ["career", "job", "placement", "package", "future", "engineer", "doctor", "startup", "salary"],
+            "social_pressure": ["friends", "relationship", "breakup", "lonely", "akela", "judge", "log kya kahenge", "society"],
+            "identity_struggle": ["identity", "confused", "who am i", "purpose", "meaning", "self", "worth"],
+            "marriage_pressure": ["shaadi", "marriage", "rishta", "arrange", "partner", "settle"],
+            "mental_health_stigma": ["pagal", "crazy", "weak", "therapy", "stigma", "shame", "hide"],
+        }
+        self._CULTURAL_KEYWORDS = {k: v for k, v in default_keywords.items() if k in cultural_flags}
+        
+        # Load config settings
+        self._DEEP_GROQ_MODEL = config.get_model("cultural_deep")
+        self._deep_enabled = (
+            config.is_enabled("cultural_module.deep_analysis_enabled") and
+            bool(self.groq_nlp and getattr(self.groq_nlp, "client", None))
+        )
+        self._temperature = config.get_temperature("cultural")
+        self._max_tokens = config.get_max_tokens("cultural")
+        
         logger.info(f"✅ [CULTURAL] Cultural context module initialised (deep={self._deep_enabled})")
 
     def analyse(self, user_context: Dict[str, Any]) -> Dict[str, Any]:
@@ -592,8 +610,8 @@ JSON:"""
             resp = self.groq_nlp.client.chat.completions.create(
                 model=self._DEEP_GROQ_MODEL,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.0,
-                max_tokens=220,
+                temperature=self._temperature,
+                max_tokens=self._max_tokens,
             )
             content = resp.choices[0].message.content.strip() if resp and resp.choices else ""
             if not content:
@@ -662,11 +680,15 @@ class ScreeningAssessmentAgent:
     Uses Groq first, with GLM fallback. Safe validation ensures schema consistency.
     """
 
-    _GROQ_MODEL = "llama-3.3-70b-versatile"
-
     def __init__(self, groq_nlp: Optional[GroqNLPModule], glm: "GLMController"):
         self.groq_nlp = groq_nlp
         self.glm = glm
+        
+        # Load from config
+        self._GROQ_MODEL = config.get_model("screening")
+        self._temperature = config.get_temperature("screening")
+        self._max_tokens = config.get_max_tokens("screening")
+        
         logger.info("✅ [SCREENING] PHQ-9 / GAD-7 screening agent ready")
 
     def generate(self, user_context: Dict[str, Any]) -> Dict[str, Any]:
@@ -723,8 +745,8 @@ JSON:"""
             resp = self.groq_nlp.client.chat.completions.create(
                 model=self._GROQ_MODEL,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.0,
-                max_tokens=280,
+                temperature=self._temperature,
+                max_tokens=self._max_tokens,
             )
             content = resp.choices[0].message.content if resp and resp.choices else ""
             out = parse_json_from_llm_output(content)
@@ -822,31 +844,41 @@ logger = logging.getLogger(__name__)
 class GLMController:
     def __init__(
         self,
-        model: str = "glm-4-32b-0414-128k",#"glm-4.7-flashx",  # Change model name here
-        max_concurrent: int = 1,
-        max_retries: int = 1,
-        base_backoff: float = 2.0,
+        model: str = None,
+        max_concurrent: int = None,
+        max_retries: int = None,
+        base_backoff: float = None,
     ):
-        self.api_key = '0b7ae4bd0c9b45878e633fd8be74bd4a.yuhRrTenuKNVWhD4'  # api_key or os.getenv("ZAI_API_KEY")
+        # Load from config
+        self.api_key = config.get_api_key("zai")
         if not self.api_key:
-            raise ValueError("ZAI_API_KEY is required for GLM controller")
+            logger.warning("⚠️ [GLM] ZAI_API_KEY not set - GLM controller may fail")
+            self.api_key = "dummy_key_for_init"
 
-        self.model_name = model
+        self.model_name = model or config.get_model("glm")
+        self.temperature = config.get_temperature("glm")
+        self.top_p = config.get("glm_controller.top_p", 0.8)
+        
+        max_concurrent = max_concurrent or config.get("glm_controller.max_concurrent", 1)
         self._semaphore = threading.Semaphore(max_concurrent)
-        self._max_retries = max_retries
-        self._base_backoff = base_backoff
+        self._max_retries = max_retries or config.get("glm_controller.max_retries", 2)
+        self._base_backoff = base_backoff or config.get("glm_controller.base_backoff", 2.0)
+        self._groq_fallback = None
 
-        # Initialize the native z.ai client (handles auth + endpoint automatically)
-        self._client = zai.ZaiClient(
-            api_key=self.api_key,
-            max_retries=0,  # retries handled manually below for backoff control
-        )
-        logger.info(f"✅ [GLM] Controller ready — model={model}, max_concurrent={max_concurrent}")
-
+        # Initialize ZhipuAI client
+        self._client = None
+        try:
+            self._client = ZhipuAI(api_key=self.api_key)
+            logger.info(f"✅ [GLM] Controller ready using ZhipuAI — model={model}")
+        except Exception as e:
+            logger.error(f"❌ [GLM] Could not initialize ZhipuAI client: {e}")
+            self._client = None
     def invoke(self, messages: List, **kwargs) -> Any:
-        """
-        Thread-safe invoke with semaphore gating and exponential backoff on rate limits.
-        """
+        """Thread-safe invoke with semaphore gating and exponential backoff on rate limits."""
+        if self._client is None:
+            logger.error("❌ [GLM] Cannot invoke - client not initialized")
+            return GLMResponse("Error: GLM client not initialized")
+        
         for attempt in range(self._max_retries):
             self._semaphore.acquire()
             _released = False
@@ -857,9 +889,8 @@ class GLMController:
                 response = self._client.chat.completions.create(
                     model=self.model_name,
                     messages=chat_messages,
-                    max_tokens=1000,
-                    temperature=0.3,
-                    top_p=0.8,
+                    temperature=self.temperature,
+                    top_p=self.top_p,
                     **kwargs
                 )
 
@@ -876,45 +907,54 @@ class GLMController:
                         continue
                 return GLMResponse(content)
 
-            except zai.core.APIStatusError as e:
-                if e.status_code == 429 or "rate" in str(e).lower() or "quota" in str(e).lower():
+            except Exception as e:
+                error_str = str(e).lower()
+                # Handle rate limiting
+                if "429" in str(e) or "rate" in error_str or "quota" in error_str:
                     wait = self._base_backoff * (2 ** attempt)
                     logger.warning(f"⚠️ [GLM] Rate limited (attempt {attempt+1}/{self._max_retries}), backing off {wait:.1f}s")
                     self._semaphore.release()
                     _released = True
                     time.sleep(wait)
+                    continue
+                # Handle timeout
+                elif "timeout" in error_str:
+                    logger.warning(f"⚠️ [GLM] Timeout (attempt {attempt+1}/{self._max_retries}): {e}")
+                    self._semaphore.release()
+                    _released = True
+                    time.sleep(self._base_backoff)
+                    continue
+
+                # Other exceptions - try Groq fallback if available
+                logger.warning(f"⚠️ [GLM] Exception: {e}")
+                if self._groq_fallback:
+                    try:
+                        logger.info("🔄 [GLM] Attempting Groq fallback...")
+                        response = self._groq_fallback.chat.completions.create(
+                            model="meta-llama/llama-4-scout-17b-16e-instruct",
+                            messages=chat_messages,
+                            max_tokens=1000,
+                            temperature=0.3,
+                        )
+                        content = response.choices[0].message.content if response.choices else ""
+                        if content:
+                            logger.info(f"✅ [GLM] Groq fallback succeeded ({len(content)} chars)")
+                            return GLMResponse(content)
+                    except Exception as fallback_error:
+                        logger.error(f"❌ [GLM] Groq fallback also failed: {fallback_error}")
+                
+                # If we get here, log the error
+                logger.error(f"❌ [GLM] Request failed: {e}")
+                if attempt < self._max_retries - 1:
+                    self._semaphore.release()
+                    _released = True
+                    continue
                 else:
-                    logger.error(f"❌ [GLM] API error {e.status_code}: {e}")
                     raise
-
-            except zai.core.APITimeoutError as e:
-                logger.warning(f"⚠️ [GLM] Timeout (attempt {attempt+1}/{self._max_retries}): {e}")
-                self._semaphore.release()
-                _released = True
-                time.sleep(self._base_backoff)
-
-            except Exception as e:
-                logger.error(f"❌ [GLM] Unexpected error: {e}")
-                raise
-
+            
             finally:
                 if not _released:
                     self._semaphore.release()
-        logger.warning(f"⚠️ [GLM] All retries exhausted, attempting Groq fallback...")
-        if self._groq_fallback:
-            try:
-                response = self._groq_fallback.chat.completions.create(
-                    model="meta-llama/llama-4-scout-17b-16e-instruct",
-                    messages=chat_messages,
-                    max_tokens=1000,
-                    temperature=0.3,
-                )
-                content = response.choices[0].message.content if response.choices else ""
-                if content:
-                    logger.info(f"✅ [GLM] Groq fallback succeeded ({len(content)} chars)")
-                    return GLMResponse(content)
-            except Exception as e:
-                logger.error(f"❌ [GLM] Groq fallback also failed: {e}")
 
         raise RuntimeError(f"[GLM] All retries and fallbacks exhausted")
         #raise RuntimeError(f"[GLM] Exhausted {self._max_retries} retries due to rate limiting")
@@ -928,6 +968,12 @@ class GLMController:
 class PsychologistAnalysisAgent:
     def __init__(self, glm: GLMController):
         self.glm = glm
+        
+        # Load config
+        self.max_memories_per_type = config.get("psychologist_agent.max_memories_per_type", 4)
+        self.max_activities = config.get("psychologist_agent.max_activities", 5)
+        self.recent_messages_count = config.get("psychologist_agent.recent_messages_count", 5)
+        
         logger.info("✅ [AGENT-1] Psychologist analysis agent ready")
 
     def run(self, user_context: Dict[str, Any]) -> Dict[str, Any]:
@@ -959,19 +1005,30 @@ class PsychologistAnalysisAgent:
         cultural = ctx.get("cultural_context", {})
         session = ctx.get("session_context", {})
         activities = session.get("user_activities", [])
-        memories = session.get("session_memories", {})
+        
+        # Merge RAG retrieved memories with legacy session memories
+        rag_memories = session.get("retrieved_memories", {})
+        old_memories = session.get("session_memories", {})
+        
+        # Prioritize RAG memories (shown first), then legacy
+        memories = {}
+        for mtype in ("procedural", "semantic", "episodic"):
+            rag_mems = rag_memories.get(mtype, [])
+            old_mems = old_memories.get(mtype, [])
+            memories[mtype] = rag_mems + old_mems  # RAG first
 
-        # Format memories compactly
+        # Format memories compactly with source labels
         mem_lines = []
         for mtype in ("procedural", "semantic", "episodic"):
-            for m in memories.get(mtype, [])[:4]:
+            for i, m in enumerate(memories.get(mtype, [])[:self.max_memories_per_type]):
                 content = m.get("memory_content", m.get("content", ""))
-                mem_lines.append(f"  [{mtype}] {content[:120]}")
+                source = "RAG" if i < len(rag_memories.get(mtype, [])) else "session"
+                mem_lines.append(f"  [{mtype}|{source}] {content[:120]}")
         mem_block = "\n".join(mem_lines) if mem_lines else "No prior memories."
 
         # Format activities compactly
         act_lines = []
-        for a in activities[:5]:
+        for a in activities[:self.max_activities]:
             atype = a.get("activity_type", "unknown")
             score = a.get("score", "?")
             insights = a.get("insights_generated", {})
@@ -979,8 +1036,8 @@ class PsychologistAnalysisAgent:
             act_lines.append(f"  {atype}: score={score}, patterns={patterns[:2]}")
         act_block = "\n".join(act_lines) if act_lines else "No activities yet."
 
-        # Recent messages (last 5)
-        recent = session.get("recent_messages", [])[-5:]
+        # Recent messages (last N)
+        recent = session.get("recent_messages", [])[-self.recent_messages_count:]
         conv_lines = []
         for m in recent:
             role = "User" if m.get("role") == "user" else "AI"
@@ -1067,6 +1124,15 @@ class TechniqueSelectorAgent:
     """
     def __init__(self, glm: GLMController):
         self.glm = glm
+        
+        # Load config
+        self.max_memories_per_type = config.get("technique_selector_agent.max_memories_per_type", 3)
+        self.include_voice = config.get("technique_selector_agent.include_voice_analysis", True)
+        self.available_techniques = config.get(
+            "technique_selector_agent.available_techniques",
+            ["CBT", "ACT", "MBCT", "DBT", "MI", "Solution-Focused", "Person-Centered", "Psychoeducation"]
+        )
+        
         logger.info("✅ [AGENT-2] Technique selector agent ready")
 
     def run(self, user_context: Dict[str, Any]) -> Dict[str, Any]:
@@ -1094,13 +1160,41 @@ class TechniqueSelectorAgent:
         psych = ctx.get("psychological_analysis", {})
         nlp = ctx.get("nlp_analysis", {})
         cultural = ctx.get("cultural_context", {})
+        session = ctx.get("session_context", {})
+        voice = ctx.get("voice_analysis", {})
+        
+        # Merge RAG and session memories
+        rag_memories = session.get("retrieved_memories", {})
+        old_memories = session.get("session_memories", {})
+        memories = {}
+        for mtype in ("procedural", "semantic", "episodic"):
+            memories[mtype] = rag_memories.get(mtype, []) + old_memories.get(mtype, [])
+        
+        # Format memories
+        mem_lines = []
+        for mtype in ("procedural", "semantic", "episodic"):
+            for m in memories.get(mtype, [])[:self.max_memories_per_type]:
+                content = m.get("memory_content", m.get("content", ""))
+                mem_lines.append(f"  [{mtype}] {content[:100]}")
+        mem_block = "\n".join(mem_lines) if mem_lines else ""
+        
+        # Format voice analysis if present and enabled
+        voice_block = ""
+        if self.include_voice and voice:
+            voice_block = f"""\nVOICE SIGNALS:
+  Emotional tone: {voice.get('emotional_tone', 'N/A')}
+  Stress level: {voice.get('stress_level', 'N/A')}
+  Speech pace: {voice.get('speech_pace', 'N/A')}"""
 
+        # Build techniques list for prompt
+        techniques_str = "|".join(self.available_techniques)
+        
         return f"""You are a therapeutic technique advisor for Indian youth (16-25).
 Based on the psychological assessment below, select the best therapeutic approach.
 Return ONLY valid JSON (no markdown fences):
 
 {{
-  "primary_technique": "<CBT|ACT|MBCT|DBT|MI|Solution-Focused|Person-Centered|Psychoeducation>",
+  "primary_technique": "<{techniques_str}>",
   "therapeutic_approach": "<brief description of how to apply this technique>",
   "activity_recommendations": ["<activity1>", "<activity2>", "<activity3>"],
   "rationale": "<why this technique suits the current situation>"
@@ -1122,9 +1216,13 @@ Urgency: {nlp.get('urgency_flag', False)}
 Language style: {cultural.get('language_style','casual')}
 Cultural flags: {cultural.get('cultural_sensitivity_flags',[])}
 Formality: {cultural.get('formality_level','medium')}
+{voice_block}
+
+{f'RELEVANT MEMORIES:{chr(10)}{mem_block}' if mem_block else ''}
 
 Consider Indian cultural context: family dynamics, academic pressure, mental health stigma.
 Prefer culturally appropriate, practical activities (yoga, journaling, grounding exercises).
+Reference past successful techniques from memories when relevant.
 
 JSON:"""
 
@@ -1161,7 +1259,13 @@ class ResponseGenerator:
     culturally-sensitive, therapeutically-informed companion response.
     """
 
-    SYSTEM_PROMPT = """You are MindMitra, a culturally-aware AI therapeutic companion for Indian youth (16-25).
+    def __init__(self, glm: GLMController):
+        self.glm = glm
+        
+        # Load system prompt from config
+        self.SYSTEM_PROMPT = config.get(
+            "response_generator.system_prompt",
+            default="""You are MindMitra, a culturally-aware AI therapeutic companion for Indian youth (16-25).
 
 RESPONSE RULES:
 • Combine psychology expertise with warm, companion-style delivery
@@ -1173,9 +1277,12 @@ RESPONSE RULES:
 • Keep responses conversational — concise for casual chat, deeper for heavy topics
 • NEVER include numbered annotations, technique labels in parentheses, or meta-commentary
 • Generate ONLY the natural conversation response"""
-
-    def __init__(self, glm: GLMController):
-        self.glm = glm
+        )
+        
+        # Load config for context limits
+        self.recent_messages_count = config.get("response_generator.recent_messages_count", 3)
+        self.max_memories_per_type = config.get("response_generator.max_memories_per_type", 3)
+        
         logger.info("✅ [RESPONSE-GEN] Response generator ready")
 
     def generate(self, user_context: Dict[str, Any]) -> Dict[str, Any]:
@@ -1212,7 +1319,7 @@ RESPONSE RULES:
         session = ctx.get("session_context", {})
 
         # Format recent messages for conversation flow
-        recent = session.get("recent_messages", [])[-3:]
+        recent = session.get("recent_messages", [])[-self.recent_messages_count:]
         conv = "\n".join(
             f"{'User' if m.get('role')=='user' else 'MindMitra'}: {m.get('content','')[:150]}"
             for m in recent
@@ -1222,7 +1329,7 @@ RESPONSE RULES:
         memories = session.get("session_memories", {})
         mem_lines = []
         for mtype in ("procedural", "semantic", "episodic"):
-            for m in memories.get(mtype, [])[:3]:
+            for m in memories.get(mtype, [])[:self.max_memories_per_type]:
                 c = m.get("memory_content", m.get("content", ""))
                 mem_lines.append(f"[{mtype}] {c[:100]}")
         mem_block = "\n".join(mem_lines) if mem_lines else ""
@@ -1307,38 +1414,82 @@ class MindMitraWorkflow:
 
     def __init__(self):
         logger.info("🧠 [WORKFLOW] Initialising MindMitra v2 (modular architecture)...")
-
+        
+        # Load workflow config
+        self.workflow_config = config.get_section("workflow")
+        self.feature_flags = config.get_section("features")
+        self.max_workers = self.workflow_config.get("max_workers", 3)
+        
         # ── Supabase ──
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY")
-        if supabase_url and supabase_key:
+        supabase_url = config.get_api_key("supabase_url") or os.getenv("SUPABASE_URL")
+        supabase_key = config.get_api_key("supabase_key") or os.getenv("SUPABASE_KEY")
+        
+        if supabase_url and supabase_key and self.feature_flags.get("save_to_supabase", True):
             self.supabase: Client = create_client(supabase_url, supabase_key)
             logger.info("✅ [WORKFLOW] Supabase client ready")
         else:
             self.supabase = None
-            logger.warning("⚠️ [WORKFLOW] Supabase not configured")
-        self._user_contexts_table_available = True
+            logger.warning("⚠️ [WORKFLOW] Supabase not configured or disabled")
+        self._user_contexts_table_available = self.feature_flags.get("user_contexts_table", True)
 
         # ── Memory system (UNCHANGED) ──
-        google_api_key = os.getenv("GOOGLE_API_KEY")
+        google_api_key = config.get_api_key("google") or os.getenv("GOOGLE_API_KEY")
         try:
-            if google_api_key:
+            if google_api_key and self.feature_flags.get("background_memory_extraction", True):
                 self.memory_system = UniversalMemorySystem(api_key=google_api_key)
                 logger.info("✅ [WORKFLOW] Memory system ready")
             else:
                 self.memory_system = None
+                logger.info("ℹ️ [WORKFLOW] Memory system disabled by config")
         except Exception as e:
             self.memory_system = None
             logger.error(f"❌ [WORKFLOW] Memory system init failed: {e}")
 
-        # ── Modules ──
-        self.groq_nlp = GroqNLPModule()
+        # ── Modules (check feature flags) ──
+        self.groq_nlp = GroqNLPModule() if self.feature_flags.get("nlp_analysis", True) else None
         self.glm = GLMController()
-        self.cultural_module = CulturalContextModule(groq_nlp=self.groq_nlp)
-        self.screening_agent = ScreeningAssessmentAgent(self.groq_nlp, self.glm)
+        self.cultural_module = CulturalContextModule(groq_nlp=self.groq_nlp) if self.feature_flags.get("cultural_context", True) else None
+        self.screening_agent = ScreeningAssessmentAgent(self.groq_nlp, self.glm) if self.feature_flags.get("screening_assessments", True) else None
         self.agent_psychologist = PsychologistAnalysisAgent(self.glm)
         self.agent_technique = TechniqueSelectorAgent(self.glm)
         self.response_gen = ResponseGenerator(self.glm)
+
+        # ── RAG Memory System Components (NEW) ──
+        if self.feature_flags.get("rag_memory_retrieval", True):
+            try:
+                self.embedding_service = EmbeddingService()
+                self.query_agent = QueryDecisionAgent(
+                    groq_client=self.groq_nlp.client if self.groq_nlp else None,
+                    glm_controller=self.glm
+                )
+                self.memory_retriever = MemoryRetriever(
+                    supabase_client=self.supabase,
+                    embedding_service=self.embedding_service
+                )
+                self.memory_deduplicator = MemoryDeduplicator(
+                    supabase_client=self.supabase,
+                    embedding_service=self.embedding_service
+                )
+                self.episodic_promoter = EpisodicPromoter(
+                    supabase_client=self.supabase,
+                    embedding_service=self.embedding_service,
+                    gemini_model=self.memory_system.model if self.memory_system else None
+                )
+                logger.info("✅ [WORKFLOW] RAG memory system initialized")
+            except Exception as e:
+                logger.error(f"⚠️ [WORKFLOW] RAG components init failed (non-blocking): {e}")
+                self.embedding_service = None
+                self.query_agent = None
+                self.memory_retriever = None
+                self.memory_deduplicator = None
+                self.episodic_promoter = None
+        else:
+            logger.info("ℹ️ [WORKFLOW] RAG memory retrieval disabled by config")
+            self.embedding_service = None
+            self.query_agent = None
+            self.memory_retriever = None
+            self.memory_deduplicator = None
+            self.episodic_promoter = None
 
         # ── Background summarisation cache (same as original) ──
         self._summarization_cache = {}
@@ -1704,6 +1855,98 @@ class MindMitraWorkflow:
         except Exception as e:
             logger.error(f"❌ [MEMORY EXTRACTION] Failed: {e}")
     
+    def _background_unified_extraction(self, session_id: str, user_id: str, message_count: int):
+        """
+        Background worker for unified memory extraction (NEW RAG system)
+        Runs in daemon thread, extracts memories + session summary every 12 messages
+        """
+        try:
+            logger.info("=" * 60)
+            logger.info(
+                f"🧠 [UNIFIED_EXTRACTION] Starting background extraction\n"
+                f"   Session: {session_id[:8]}... | User: {user_id} | Messages: {message_count}"
+            )
+            
+            # Fetch last 12 unprocessed messages
+            messages = self.fetch_last_n_messages(session_id, n=12)
+            if len(messages) < 12:
+                logger.warning(f"⚠️ [UNIFIED_EXTRACTION] Only {len(messages)} messages available, skipping")
+                return
+            
+            # Calculate chunk number
+            chunk_number = message_count // 12 - 1
+            
+            # Unified extraction (memories + summary)
+            result = self.memory_system.extract_all_with_summary_unified(
+                messages=messages,
+                chunk_number=chunk_number,
+                session_id=session_id
+            )
+            
+            # Save session chunk summary
+            try:
+                summary_record = {
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "chunk_number": chunk_number,
+                    "message_count": len(messages),
+                    "summary_content": result["session_summary"]["summary"],
+                    "emotional_progression": result["session_summary"]["emotional_progression"],
+                    "key_themes": result["session_summary"]["key_themes"],
+                    "source_message_ids": [msg["id"] for msg in messages]
+                }
+                self.supabase.from_("session_chunk_summaries").insert(summary_record).execute()
+                logger.info("✅ [UNIFIED_EXTRACTION] Session summary saved")
+            except Exception as e:
+                logger.error(f"❌ [UNIFIED_EXTRACTION] Summary save failed: {e}")
+            
+            # Process and save memories with deduplication
+            saved_counts = {"semantic": 0, "procedural": 0, "episodic": 0}
+            promoted_count = 0
+            
+            for mem_type in ["semantic", "procedural", "episodic"]:
+                for memory in result["memories"].get(mem_type, []):
+                    # Deduplicate and save
+                    mem_id = self.memory_deduplicator.process_and_save_memory(
+                        memory=memory,
+                        session_id=session_id,
+                        user_id=user_id,
+                        memory_type=mem_type
+                    )
+                    
+                    if mem_id:
+                        saved_counts[mem_type] += 1
+                        
+                        # Track episodic for promotion
+                        if mem_type == "episodic" and self.episodic_promoter:
+                            promoted = self.episodic_promoter.track_and_promote(
+                                episodic=memory,
+                                session_id=session_id,
+                                user_id=user_id
+                            )
+                            if promoted:
+                                promoted_count += 1
+            
+            # Mark messages as processed
+            message_ids = [msg["id"] for msg in messages]
+            if message_ids:
+                self.supabase.from_("chat_messages").update(
+                    {"processed_into_memory": True}
+                ).in_("id", message_ids).execute()
+            
+            logger.info(
+                f"✅ [UNIFIED_EXTRACTION] Complete:\n"
+                f"   Saved: {saved_counts['semantic']} semantic, "
+                f"{saved_counts['procedural']} procedural, {saved_counts['episodic']} episodic\n"
+                f"   Promoted: {promoted_count} episodic → semantic"
+            )
+            logger.info("=" * 60)
+        
+        except Exception as e:
+            logger.error(f"❌ [UNIFIED_EXTRACTION] Background extraction failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
     # ══════════════════════════════════════════════════════════
     #  CORE PIPELINE
     # ══════════════════════════════════════════════════════════
@@ -1736,29 +1979,128 @@ class MindMitraWorkflow:
         # ── 2-4. Parallel: memory fetch + NLP + cultural analysis ─
         # All three write to different keys and share no data dependencies,
         # so they can safely run concurrently.
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            future_memories: Future = (
-                executor.submit(self.fetch_session_memories, session_id)
-                if session_id else None
-            )
-            future_nlp: Future = executor.submit(self.groq_nlp.analyse, ctx)
-            future_cultural: Future = executor.submit(self.cultural_module.analyse, ctx)
+        if self.feature_flags.get("parallel_processing", True):
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                future_memories: Future = (
+                    executor.submit(self.fetch_session_memories, session_id)
+                    if session_id else None
+                )
+                future_nlp: Future = executor.submit(self.groq_nlp.analyse, ctx) if self.groq_nlp else None
+                future_cultural: Future = executor.submit(self.cultural_module.analyse, ctx) if self.cultural_module else None
 
-            if future_memories is not None:
+                if future_memories is not None:
+                    try:
+                        ctx["session_context"]["session_memories"] = future_memories.result()
+                    except Exception as e:
+                        logger.error(f"❌ [PIPELINE] Memory fetch error (non-fatal): {e}")
+
+                if future_nlp:
+                    try:
+                        future_nlp.result()   # result already written into ctx["nlp_analysis"]
+                    except Exception as e:
+                        logger.error(f"❌ [PIPELINE] NLP module error (non-fatal): {e}")
+
+                if future_cultural:
+                    try:
+                        future_cultural.result()  # result already written into ctx["cultural_context"]
+                    except Exception as e:
+                        logger.error(f"❌ [PIPELINE] Cultural module error (non-fatal): {e}")
+        else:
+            # Sequential processing if parallel disabled
+            if session_id:
                 try:
-                    ctx["session_context"]["session_memories"] = future_memories.result()
+                    ctx["session_context"]["session_memories"] = self.fetch_session_memories(session_id)
                 except Exception as e:
                     logger.error(f"❌ [PIPELINE] Memory fetch error (non-fatal): {e}")
+            
+            if self.groq_nlp:
+                try:
+                    self.groq_nlp.analyse(ctx)
+                except Exception as e:
+                    logger.error(f"❌ [PIPELINE] NLP module error (non-fatal): {e}")
+            
+            if self.cultural_module:
+                try:
+                    self.cultural_module.analyse(ctx)
+                except Exception as e:
+                    logger.error(f"❌ [PIPELINE] Cultural module error (non-fatal): {e}")
 
+        # ── 4.5. RAG Memory Retrieval (NEW) ────────────────────
+        # Query decision → embedding → hybrid search → inject context
+        if self.query_agent and self.memory_retriever and session_id:
             try:
-                future_nlp.result()   # result already written into ctx["nlp_analysis"]
+                # Validate session_id format
+                from uuid import UUID
+                if isinstance(session_id, str):
+                    try:
+                        UUID(session_id)  # Validate UUID format
+                    except ValueError:
+                        logger.warning(f"⚠️ [RAG] Invalid session_id format: {session_id[:20]}...")
+                        raise ValueError("Invalid session_id")
+                
+                logger.info("🔍 [RAG] Initiating memory query decision...")
+                
+                # Query decision
+                decision = self.query_agent.should_query_memories(
+                    user_message=user_message,
+                    recent_messages=recent_messages or [],
+                    emotional_state=ctx["nlp_analysis"].get("emotional_state", {})
+                )
+                
+                if decision.get("needs_memory", False):
+                    logger.info(
+                        f"  → Memory needed: urgency={decision.get('urgency', 'medium')}, "
+                        f"types={decision.get('memory_types', [])}"
+                    )
+                    
+                    # Generate search query
+                    query = decision.get("query_hint", user_message)
+                    confidence_threshold = decision.get("confidence_threshold", 0.6)
+                    
+                    # Generate embedding for hybrid search
+                    query_embedding = self.embedding_service.embed_text(query)
+                    logger.debug(f"  → Generated query embedding: {len(query_embedding)}D")
+                    
+                    # Retrieve memories with correct parameters
+                    retrieved = self.memory_retriever.retrieve_memories(
+                        query=query,
+                        query_embedding=query_embedding,
+                        memory_types=decision.get("memory_types", ["semantic", "procedural"]),
+                        confidence_threshold=confidence_threshold,
+                        user_id=user_id,
+                        session_id=session_id,
+                        top_k=5
+                    )
+                    
+                    ctx["session_context"]["retrieved_memories"] = retrieved
+                    
+                    total_retrieved = sum(len(v) for v in retrieved.values())
+                    logger.info(
+                        f"✅ [RAG] Retrieved {total_retrieved} memories: "
+                        f"semantic={len(retrieved['semantic'])}, "
+                        f"procedural={len(retrieved['procedural'])}, "
+                        f"episodic={len(retrieved['episodic'])}"
+                    )
+                else:
+                    logger.debug("⏭️ [RAG] No memory retrieval needed")
+                    ctx["session_context"]["retrieved_memories"] = {
+                        "semantic": [], "procedural": [], "episodic": []
+                    }
+            
             except Exception as e:
-                logger.error(f"❌ [PIPELINE] NLP module error (non-fatal): {e}")
-
-            try:
-                future_cultural.result()  # result already written into ctx["cultural_context"]
-            except Exception as e:
-                logger.error(f"❌ [PIPELINE] Cultural module error (non-fatal): {e}")
+                logger.error(
+                    f"❌ [RAG] Memory retrieval failed (non-blocking): {e}\n"
+                    f"   Query: {decision.get('query_hint', 'N/A')[:50] if 'decision' in locals() else 'N/A'}\n"
+                    f"   Session: {session_id[:8] if session_id else 'N/A'}",
+                    exc_info=True
+                )
+                ctx["session_context"]["retrieved_memories"] = {
+                    "semantic": [], "procedural": [], "episodic": []
+                }
+        else:
+            ctx["session_context"]["retrieved_memories"] = {
+                "semantic": [], "procedural": [], "episodic": []
+            }
 
         # ── 5. GLM Agent 1: Psychologist analysis ─────────────
         ctx = self.agent_psychologist.run(ctx)
@@ -1781,6 +2123,32 @@ class MindMitraWorkflow:
             daemon=True,
         ).start()
 
+        # ── 8.5. Background Memory Extraction Trigger (NEW) ────
+        # Extract memories every 12 messages in background thread
+        if session_id and self.supabase and self.memory_system:
+            try:
+                # Count unprocessed messages
+                count_result = self.supabase.from_("chat_messages").select(
+                    "id", count="exact"
+                ).eq("session_id", session_id).eq(
+                    "processed_into_memory", False
+                ).execute()
+                
+                unprocessed_count = count_result.count if hasattr(count_result, 'count') else 0
+                
+                # Trigger extraction every 12 messages
+                if unprocessed_count >= 12:
+                    logger.info(
+                        f"📦 [BACKGROUND] Triggering unified extraction "
+                        f"({unprocessed_count} unprocessed messages)"
+                    )
+                    threading.Thread(
+                        target=self._background_unified_extraction,
+                        args=(session_id, user_id, unprocessed_count),
+                        daemon=True
+                    ).start()
+            except Exception as e:
+                logger.error(f"❌ [BACKGROUND] Trigger check failed (non-blocking): {e}")
 
         return {
             "message": ctx["ai_response"],

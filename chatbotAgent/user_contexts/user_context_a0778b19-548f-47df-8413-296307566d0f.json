@@ -1,0 +1,1329 @@
+{
+    "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+    "session_id": "4c419143-6e84-40ad-97be-6a36d1578b12",
+    "timestamp": "2026-02-18T09:08:19.834596+00:00",
+    "user_message": "Yes i want to chat",
+    "voice_analysis": {},
+    "session_context": {
+        "recent_messages": [
+            {
+                "role": "user",
+                "content": "Hello . i am really very stressed yr"
+            },
+            {
+                "role": "user",
+                "content": "How are you, ia m very stressed"
+            },
+            {
+                "role": "user",
+                "content": "Hello . i am very stressed right now."
+            },
+            {
+                "role": "assistant",
+                "content": "Hey there! I\u2019m really sorry to hear that you\u2019re feeling so stressed right now. It\u2019s completely okay to feel this way, especially with everything going on around us. Sometimes, just knowing that it\u2019s okay to not be okay can help a little. Want to take a moment to breathe with me? Just inhale slowly, and exhale even slower. We can figure this out together, one step at a time."
+            },
+            {
+                "role": "user",
+                "content": "As you know earlier also i wan stressed when exam came"
+            },
+            {
+                "role": "assistant",
+                "content": "Oh, I totally get that! It sounds like exams really bring up that stress for you, just like before. It\u2019s completely normal to feel that way, especially with all the pressure around exams here. Want to talk a bit more about what\u2019s making it feel extra tough this time?"
+            },
+            {
+                "role": "user",
+                "content": "YEs i hope you remeber my past when breathing exercises helped me a lot"
+            },
+            {
+                "role": "assistant",
+                "content": "I definitely remember! You told me how much those breathing exercises helped you calm down. It\u2019s great that you have that tool in your pocket. Since the exam stress is back, let\u2019s give it another go. Just try taking a deep breath with me right now\u2014inhale slowly... and exhale. Does that help you feel a little lighter?"
+            },
+            {
+                "role": "user",
+                "content": "now tell me new exercises"
+            },
+            {
+                "role": "assistant",
+                "content": "Of course! Since you liked the breathing ones, let's try something different today. How about **Progressive Muscle Relaxation**? It\u2019s great for when you feel super tense, especially before exams. Or maybe the **5-4-3-2-1 Grounding Technique**? That one helps snap you back to the present moment. Which one sounds better to you?"
+            },
+            {
+                "role": "user",
+                "content": "which one is best?"
+            },
+            {
+                "role": "assistant",
+                "content": "I totally get that. When you're in exam mode, your brain screams for the \"perfect\" shortcut because you're used to optimizing everything to get ahead. But honestly, the *best* exercise right now is the one that stops you from thinking for just five minutes.\n\nLet's try this instead of choosing: Close your eyes, take one deep breath, and just notice where you feel the stress in your body. Is it your shoulders, your chest, or your jaw? Just noticing it is enough."
+            },
+            {
+                "role": "user",
+                "content": "yes i did that"
+            },
+            {
+                "role": "assistant",
+                "content": "It takes courage to admit that, and honestly, it makes total sense. When the pressure is this high, your brain looks for the path of least resistance to survive. But you don't have to carry that guilt right now. Let's just take a minute to breathe and reset."
+            },
+            {
+                "role": "user",
+                "content": "yes it has helped me "
+            },
+            {
+                "role": "assistant",
+                "content": "Glad to hear that. It just proves that working smarter isn't cheating\u2014it's just using your brain's full potential. Keep tracking what actually works for you."
+            },
+            {
+                "role": "user",
+                "content": "Yeah all good now less stress from before"
+            },
+            {
+                "role": "assistant",
+                "content": "That's really great to hear! I'm happy you're feeling less stressed now. It sounds like you've found some good ways to manage things. \n\nHow are you feeling about this improvement? Sometimes when we're used to high stress, adjusting to lower stress can feel a bit strange too. Would you like to share what's been helping you the most?"
+            },
+            {
+                "role": "user",
+                "content": "everything you tell me is so helpful i cant explain"
+            },
+            {
+                "role": "user",
+                "content": "Ki haal chaal, i am good here"
+            },
+            {
+                "role": "user",
+                "content": "Yes i want to chat"
+            }
+        ],
+        "conversation_summary": {},
+        "session_memories": {
+            "procedural": [],
+            "semantic": [],
+            "episodic": []
+        },
+        "user_activities": [
+            {
+                "id": "fcba7c95-e7f5-4863-94e7-c5594f39ccf2",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": "25b98e07-55f7-4fa1-b07b-4bb4945deeee",
+                "activity_type": "wellness_checkin",
+                "activity_data": {
+                    "timestamp": "2025-11-02T14:18:27.411Z",
+                    "wellness_responses": {
+                        "1": 3,
+                        "2": 1,
+                        "3": 1,
+                        "4": 1,
+                        "5": 1,
+                        "6": 1,
+                        "7": 1,
+                        "8": 1,
+                        "9": 1,
+                        "10": 1
+                    },
+                    "categories_assessed": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "completion_timestamp": "2025-11-02T14:18:28.088Z",
+                    "overall_wellness_score": 24
+                },
+                "score": 24,
+                "game_duration": null,
+                "difficulty_level": "normal",
+                "activity_metadata": {},
+                "user_response_data": {
+                    "wellness_areas": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "detailed_responses": {
+                        "1": 3,
+                        "2": 1,
+                        "3": 1,
+                        "4": 1,
+                        "5": 1,
+                        "6": 1,
+                        "7": 1,
+                        "8": 1,
+                        "9": 1,
+                        "10": 1
+                    },
+                    "self_assessment_patterns": [
+                        "wellness_attention_needed"
+                    ]
+                },
+                "evaluation_data": {
+                    "focus_areas": [],
+                    "wellness_level": "needs_attention"
+                },
+                "accuracy_percentage": 24,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [
+                        "fundamental_skills"
+                    ],
+                    "performance_level": "needs_practice"
+                },
+                "completed_at": "2025-11-02T14:18:28.359483+00:00"
+            },
+            {
+                "id": "f90e6083-6431-4eab-b2b8-ffd6c76710e9",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": "25b98e07-55f7-4fa1-b07b-4bb4945deeee",
+                "activity_type": "emotion_match",
+                "activity_data": {
+                    "score": 125,
+                    "total_images": 5,
+                    "template_context": {
+                        "images": [
+                            {
+                                "id": "happy_1",
+                                "context": "natural_smile",
+                                "emotion": "happiness",
+                                "intensity": "moderate"
+                            },
+                            {
+                                "id": "sad_1",
+                                "context": "contemplative",
+                                "emotion": "sadness",
+                                "intensity": "mild"
+                            },
+                            {
+                                "id": "angry_1",
+                                "context": "frustrated",
+                                "emotion": "anger",
+                                "intensity": "moderate"
+                            },
+                            {
+                                "id": "fear_1",
+                                "context": "startled",
+                                "emotion": "fear",
+                                "intensity": "high"
+                            },
+                            {
+                                "id": "neutral_1",
+                                "context": "relaxed",
+                                "emotion": "neutral",
+                                "intensity": "calm"
+                            }
+                        ],
+                        "description": "Classify emotions in facial expression images to improve emotional intelligence",
+                        "therapeutic_focus": [
+                            "emotional_intelligence",
+                            "self_awareness"
+                        ]
+                    },
+                    "completion_timestamp": "2025-11-02T13:00:56.210Z",
+                    "classification_details": [
+                        {
+                            "correct": true,
+                            "imageId": "sad",
+                            "custom_text": "",
+                            "user_choice": "Sad",
+                            "correct_emotion": "Sad"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "happy",
+                            "custom_text": "",
+                            "user_choice": "Happy",
+                            "correct_emotion": "Happy"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "angry",
+                            "custom_text": "",
+                            "user_choice": "Angry",
+                            "correct_emotion": "Angry"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "thoughtful",
+                            "custom_text": "",
+                            "user_choice": "Thoughtful",
+                            "correct_emotion": "Thoughtful"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "surprised",
+                            "custom_text": "",
+                            "user_choice": "Surprised",
+                            "correct_emotion": "Surprised"
+                        }
+                    ],
+                    "correct_classifications": 5
+                },
+                "score": 125,
+                "game_duration": 0,
+                "difficulty_level": "normal",
+                "activity_metadata": {
+                    "images": [
+                        {
+                            "id": "happy_1",
+                            "context": "natural_smile",
+                            "emotion": "happiness",
+                            "intensity": "moderate"
+                        },
+                        {
+                            "id": "sad_1",
+                            "context": "contemplative",
+                            "emotion": "sadness",
+                            "intensity": "mild"
+                        },
+                        {
+                            "id": "angry_1",
+                            "context": "frustrated",
+                            "emotion": "anger",
+                            "intensity": "moderate"
+                        },
+                        {
+                            "id": "fear_1",
+                            "context": "startled",
+                            "emotion": "fear",
+                            "intensity": "high"
+                        },
+                        {
+                            "id": "neutral_1",
+                            "context": "relaxed",
+                            "emotion": "neutral",
+                            "intensity": "calm"
+                        }
+                    ],
+                    "description": "Classify emotions in facial expression images to improve emotional intelligence",
+                    "therapeutic_focus": [
+                        "emotional_intelligence",
+                        "self_awareness"
+                    ]
+                },
+                "user_response_data": {
+                    "time_per_image": 0,
+                    "classifications": [
+                        {
+                            "correct": true,
+                            "imageId": "sad",
+                            "custom_text": "",
+                            "user_choice": "Sad",
+                            "correct_emotion": "Sad"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "happy",
+                            "custom_text": "",
+                            "user_choice": "Happy",
+                            "correct_emotion": "Happy"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "angry",
+                            "custom_text": "",
+                            "user_choice": "Angry",
+                            "correct_emotion": "Angry"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "thoughtful",
+                            "custom_text": "",
+                            "user_choice": "Thoughtful",
+                            "correct_emotion": "Thoughtful"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "surprised",
+                            "custom_text": "",
+                            "user_choice": "Surprised",
+                            "correct_emotion": "Surprised"
+                        }
+                    ],
+                    "confusion_patterns": []
+                },
+                "evaluation_data": {
+                    "processing_efficiency": "efficient",
+                    "emotional_intelligence_level": "high"
+                },
+                "accuracy_percentage": 100,
+                "insights_generated": {
+                    "strengths": [
+                        "high_accuracy"
+                    ],
+                    "key_patterns": [],
+                    "improvement_areas": [],
+                    "performance_level": "excellent"
+                },
+                "completed_at": "2025-11-02T13:00:56.417374+00:00"
+            },
+            {
+                "id": "bf540c40-d560-4044-b421-cbbac61afc90",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": "25b98e07-55f7-4fa1-b07b-4bb4945deeee",
+                "activity_type": "wellness_checkin",
+                "activity_data": {
+                    "timestamp": "2025-11-02T12:59:16.011Z",
+                    "wellness_responses": {
+                        "1": 5,
+                        "2": 2,
+                        "3": 1,
+                        "4": 2,
+                        "5": 1,
+                        "6": 2,
+                        "7": 1,
+                        "8": 2,
+                        "9": 2,
+                        "10": 1
+                    },
+                    "categories_assessed": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "completion_timestamp": "2025-11-02T12:59:16.638Z",
+                    "overall_wellness_score": 38
+                },
+                "score": 38,
+                "game_duration": null,
+                "difficulty_level": "normal",
+                "activity_metadata": {},
+                "user_response_data": {
+                    "wellness_areas": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "detailed_responses": {
+                        "1": 5,
+                        "2": 2,
+                        "3": 1,
+                        "4": 2,
+                        "5": 1,
+                        "6": 2,
+                        "7": 1,
+                        "8": 2,
+                        "9": 2,
+                        "10": 1
+                    },
+                    "self_assessment_patterns": [
+                        "wellness_attention_needed"
+                    ]
+                },
+                "evaluation_data": {
+                    "focus_areas": [],
+                    "wellness_level": "needs_attention"
+                },
+                "accuracy_percentage": 38,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [
+                        "fundamental_skills"
+                    ],
+                    "performance_level": "needs_practice"
+                },
+                "completed_at": "2025-11-02T12:59:16.906644+00:00"
+            },
+            {
+                "id": "9ea69a4b-9e64-4dd6-9fc7-c0acc8ab0e7f",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": "23a94285-482c-49ec-9601-0338fc2c4c56",
+                "activity_type": "wellness_checkin",
+                "activity_data": {
+                    "timestamp": "2025-09-21T22:01:25.234Z",
+                    "wellness_responses": {
+                        "1": 5,
+                        "2": 3,
+                        "3": 4,
+                        "4": 3,
+                        "5": 2,
+                        "6": 4,
+                        "7": 4,
+                        "8": 3,
+                        "9": 5,
+                        "10": 3
+                    },
+                    "categories_assessed": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "completion_timestamp": "2025-09-21T22:01:25.761Z",
+                    "overall_wellness_score": 72
+                },
+                "score": 72,
+                "game_duration": null,
+                "difficulty_level": "normal",
+                "activity_metadata": {},
+                "user_response_data": {
+                    "wellness_areas": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "detailed_responses": {
+                        "1": 5,
+                        "2": 3,
+                        "3": 4,
+                        "4": 3,
+                        "5": 2,
+                        "6": 4,
+                        "7": 4,
+                        "8": 3,
+                        "9": 5,
+                        "10": 3
+                    },
+                    "self_assessment_patterns": [
+                        "wellness_attention_needed"
+                    ]
+                },
+                "evaluation_data": {
+                    "focus_areas": [],
+                    "wellness_level": "good"
+                },
+                "accuracy_percentage": 72,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [],
+                    "performance_level": "good"
+                },
+                "completed_at": "2025-09-21T22:01:26.002114+00:00"
+            },
+            {
+                "id": "aa33d73e-705a-4b6c-b0a9-4d843640601e",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": "23a94285-482c-49ec-9601-0338fc2c4c56",
+                "activity_type": "emotion_match",
+                "activity_data": {
+                    "score": 80,
+                    "total_images": 5,
+                    "template_context": {
+                        "images": [
+                            {
+                                "id": "happy_1",
+                                "context": "natural_smile",
+                                "emotion": "happiness",
+                                "intensity": "moderate"
+                            },
+                            {
+                                "id": "sad_1",
+                                "context": "contemplative",
+                                "emotion": "sadness",
+                                "intensity": "mild"
+                            },
+                            {
+                                "id": "angry_1",
+                                "context": "frustrated",
+                                "emotion": "anger",
+                                "intensity": "moderate"
+                            },
+                            {
+                                "id": "fear_1",
+                                "context": "startled",
+                                "emotion": "fear",
+                                "intensity": "high"
+                            },
+                            {
+                                "id": "neutral_1",
+                                "context": "relaxed",
+                                "emotion": "neutral",
+                                "intensity": "calm"
+                            }
+                        ],
+                        "description": "Classify emotions in facial expression images to improve emotional intelligence",
+                        "therapeutic_focus": [
+                            "emotional_intelligence",
+                            "self_awareness"
+                        ]
+                    },
+                    "completion_timestamp": "2025-09-21T22:01:14.988Z",
+                    "classification_details": [
+                        {
+                            "correct": true,
+                            "imageId": "sad",
+                            "custom_text": "",
+                            "user_choice": "Sad",
+                            "correct_emotion": "Sad"
+                        },
+                        {
+                            "correct": false,
+                            "imageId": "happy",
+                            "custom_text": "",
+                            "user_choice": "Thoughtful",
+                            "correct_emotion": "Happy"
+                        },
+                        {
+                            "correct": false,
+                            "imageId": "angry",
+                            "custom_text": "",
+                            "user_choice": "Frustrated",
+                            "correct_emotion": "Angry"
+                        },
+                        {
+                            "correct": false,
+                            "imageId": "thoughtful",
+                            "custom_text": "",
+                            "user_choice": "Anxious",
+                            "correct_emotion": "Thoughtful"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "surprised",
+                            "custom_text": "",
+                            "user_choice": "Surprised",
+                            "correct_emotion": "Surprised"
+                        }
+                    ],
+                    "correct_classifications": 2
+                },
+                "score": 80,
+                "game_duration": 0,
+                "difficulty_level": "normal",
+                "activity_metadata": {
+                    "images": [
+                        {
+                            "id": "happy_1",
+                            "context": "natural_smile",
+                            "emotion": "happiness",
+                            "intensity": "moderate"
+                        },
+                        {
+                            "id": "sad_1",
+                            "context": "contemplative",
+                            "emotion": "sadness",
+                            "intensity": "mild"
+                        },
+                        {
+                            "id": "angry_1",
+                            "context": "frustrated",
+                            "emotion": "anger",
+                            "intensity": "moderate"
+                        },
+                        {
+                            "id": "fear_1",
+                            "context": "startled",
+                            "emotion": "fear",
+                            "intensity": "high"
+                        },
+                        {
+                            "id": "neutral_1",
+                            "context": "relaxed",
+                            "emotion": "neutral",
+                            "intensity": "calm"
+                        }
+                    ],
+                    "description": "Classify emotions in facial expression images to improve emotional intelligence",
+                    "therapeutic_focus": [
+                        "emotional_intelligence",
+                        "self_awareness"
+                    ]
+                },
+                "user_response_data": {
+                    "time_per_image": 0,
+                    "classifications": [
+                        {
+                            "correct": true,
+                            "imageId": "sad",
+                            "custom_text": "",
+                            "user_choice": "Sad",
+                            "correct_emotion": "Sad"
+                        },
+                        {
+                            "correct": false,
+                            "imageId": "happy",
+                            "custom_text": "",
+                            "user_choice": "Thoughtful",
+                            "correct_emotion": "Happy"
+                        },
+                        {
+                            "correct": false,
+                            "imageId": "angry",
+                            "custom_text": "",
+                            "user_choice": "Frustrated",
+                            "correct_emotion": "Angry"
+                        },
+                        {
+                            "correct": false,
+                            "imageId": "thoughtful",
+                            "custom_text": "",
+                            "user_choice": "Anxious",
+                            "correct_emotion": "Thoughtful"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "surprised",
+                            "custom_text": "",
+                            "user_choice": "Surprised",
+                            "correct_emotion": "Surprised"
+                        }
+                    ],
+                    "confusion_patterns": [
+                        {
+                            "chosen": "Thoughtful",
+                            "expected": "Happy"
+                        },
+                        {
+                            "chosen": "Frustrated",
+                            "expected": "Angry"
+                        },
+                        {
+                            "chosen": "Anxious",
+                            "expected": "Thoughtful"
+                        }
+                    ]
+                },
+                "evaluation_data": {
+                    "processing_efficiency": "efficient",
+                    "emotional_intelligence_level": "developing"
+                },
+                "accuracy_percentage": 40,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [
+                        "fundamental_skills"
+                    ],
+                    "performance_level": "needs_practice"
+                },
+                "completed_at": "2025-09-21T22:01:15.392265+00:00"
+            },
+            {
+                "id": "abd002c3-7f33-4662-81f0-23f1cbcc761c",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": "a3180180-0a45-4ed6-84d5-2d96cede76ca",
+                "activity_type": "emotion_match",
+                "activity_data": {
+                    "score": 125,
+                    "total_images": 5,
+                    "template_context": {
+                        "images": [
+                            {
+                                "id": "happy_1",
+                                "context": "natural_smile",
+                                "emotion": "happiness",
+                                "intensity": "moderate"
+                            },
+                            {
+                                "id": "sad_1",
+                                "context": "contemplative",
+                                "emotion": "sadness",
+                                "intensity": "mild"
+                            },
+                            {
+                                "id": "angry_1",
+                                "context": "frustrated",
+                                "emotion": "anger",
+                                "intensity": "moderate"
+                            },
+                            {
+                                "id": "fear_1",
+                                "context": "startled",
+                                "emotion": "fear",
+                                "intensity": "high"
+                            },
+                            {
+                                "id": "neutral_1",
+                                "context": "relaxed",
+                                "emotion": "neutral",
+                                "intensity": "calm"
+                            }
+                        ],
+                        "description": "Classify emotions in facial expression images to improve emotional intelligence",
+                        "therapeutic_focus": [
+                            "emotional_intelligence",
+                            "self_awareness"
+                        ]
+                    },
+                    "completion_timestamp": "2025-09-21T20:24:42.416Z",
+                    "classification_details": [
+                        {
+                            "correct": true,
+                            "imageId": "sad",
+                            "custom_text": "",
+                            "user_choice": "Sad",
+                            "correct_emotion": "Sad"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "happy",
+                            "custom_text": "",
+                            "user_choice": "Happy",
+                            "correct_emotion": "Happy"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "angry",
+                            "custom_text": "",
+                            "user_choice": "Angry",
+                            "correct_emotion": "Angry"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "thoughtful",
+                            "custom_text": "",
+                            "user_choice": "Thoughtful",
+                            "correct_emotion": "Thoughtful"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "surprised",
+                            "custom_text": "",
+                            "user_choice": "Surprised",
+                            "correct_emotion": "Surprised"
+                        }
+                    ],
+                    "correct_classifications": 5
+                },
+                "score": 125,
+                "game_duration": 0,
+                "difficulty_level": "normal",
+                "activity_metadata": {
+                    "images": [
+                        {
+                            "id": "happy_1",
+                            "context": "natural_smile",
+                            "emotion": "happiness",
+                            "intensity": "moderate"
+                        },
+                        {
+                            "id": "sad_1",
+                            "context": "contemplative",
+                            "emotion": "sadness",
+                            "intensity": "mild"
+                        },
+                        {
+                            "id": "angry_1",
+                            "context": "frustrated",
+                            "emotion": "anger",
+                            "intensity": "moderate"
+                        },
+                        {
+                            "id": "fear_1",
+                            "context": "startled",
+                            "emotion": "fear",
+                            "intensity": "high"
+                        },
+                        {
+                            "id": "neutral_1",
+                            "context": "relaxed",
+                            "emotion": "neutral",
+                            "intensity": "calm"
+                        }
+                    ],
+                    "description": "Classify emotions in facial expression images to improve emotional intelligence",
+                    "therapeutic_focus": [
+                        "emotional_intelligence",
+                        "self_awareness"
+                    ]
+                },
+                "user_response_data": {
+                    "time_per_image": 0,
+                    "classifications": [
+                        {
+                            "correct": true,
+                            "imageId": "sad",
+                            "custom_text": "",
+                            "user_choice": "Sad",
+                            "correct_emotion": "Sad"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "happy",
+                            "custom_text": "",
+                            "user_choice": "Happy",
+                            "correct_emotion": "Happy"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "angry",
+                            "custom_text": "",
+                            "user_choice": "Angry",
+                            "correct_emotion": "Angry"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "thoughtful",
+                            "custom_text": "",
+                            "user_choice": "Thoughtful",
+                            "correct_emotion": "Thoughtful"
+                        },
+                        {
+                            "correct": true,
+                            "imageId": "surprised",
+                            "custom_text": "",
+                            "user_choice": "Surprised",
+                            "correct_emotion": "Surprised"
+                        }
+                    ],
+                    "confusion_patterns": []
+                },
+                "evaluation_data": {
+                    "processing_efficiency": "efficient",
+                    "emotional_intelligence_level": "high"
+                },
+                "accuracy_percentage": 100,
+                "insights_generated": {
+                    "strengths": [
+                        "high_accuracy"
+                    ],
+                    "key_patterns": [],
+                    "improvement_areas": [],
+                    "performance_level": "excellent"
+                },
+                "completed_at": "2025-09-21T20:24:42.664013+00:00"
+            },
+            {
+                "id": "da571ac1-4aee-4863-901a-5d8d1796434a",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": "a3180180-0a45-4ed6-84d5-2d96cede76ca",
+                "activity_type": "wellness_checkin",
+                "activity_data": {
+                    "timestamp": "2025-09-21T20:23:33.009Z",
+                    "wellness_responses": {
+                        "1": 5,
+                        "2": 1,
+                        "3": 3,
+                        "4": 2,
+                        "5": 2,
+                        "6": 5,
+                        "7": 3,
+                        "8": 4,
+                        "9": 4,
+                        "10": 5
+                    },
+                    "categories_assessed": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "completion_timestamp": "2025-09-21T20:23:33.614Z",
+                    "overall_wellness_score": 68
+                },
+                "score": 68,
+                "game_duration": null,
+                "difficulty_level": "normal",
+                "activity_metadata": {},
+                "user_response_data": {
+                    "wellness_areas": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "detailed_responses": {
+                        "1": 5,
+                        "2": 1,
+                        "3": 3,
+                        "4": 2,
+                        "5": 2,
+                        "6": 5,
+                        "7": 3,
+                        "8": 4,
+                        "9": 4,
+                        "10": 5
+                    },
+                    "self_assessment_patterns": [
+                        "wellness_attention_needed"
+                    ]
+                },
+                "evaluation_data": {
+                    "focus_areas": [],
+                    "wellness_level": "moderate"
+                },
+                "accuracy_percentage": 68,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [
+                        "accuracy_focus_needed"
+                    ],
+                    "performance_level": "developing"
+                },
+                "completed_at": "2025-09-21T20:23:34.257962+00:00"
+            },
+            {
+                "id": "74fcc9cd-7287-4461-b1b4-7e6e32b4fe45",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": null,
+                "activity_type": "wellness_checkin",
+                "activity_data": {
+                    "timestamp": "2025-09-11T14:40:37.157Z",
+                    "wellness_responses": {
+                        "1": 5,
+                        "2": 1,
+                        "3": 1,
+                        "4": 1,
+                        "5": 2,
+                        "6": 3,
+                        "7": 5,
+                        "8": 5,
+                        "9": 5,
+                        "10": 5
+                    },
+                    "categories_assessed": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "completion_timestamp": "2025-09-11T14:40:37.846Z",
+                    "overall_wellness_score": 66
+                },
+                "score": 66,
+                "game_duration": null,
+                "difficulty_level": "normal",
+                "activity_metadata": {},
+                "user_response_data": {
+                    "wellness_areas": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "detailed_responses": {
+                        "1": 5,
+                        "2": 1,
+                        "3": 1,
+                        "4": 1,
+                        "5": 2,
+                        "6": 3,
+                        "7": 5,
+                        "8": 5,
+                        "9": 5,
+                        "10": 5
+                    },
+                    "self_assessment_patterns": [
+                        "wellness_attention_needed"
+                    ]
+                },
+                "evaluation_data": {
+                    "focus_areas": [],
+                    "wellness_level": "moderate"
+                },
+                "accuracy_percentage": 66,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [
+                        "accuracy_focus_needed"
+                    ],
+                    "performance_level": "developing"
+                },
+                "completed_at": "2025-09-11T14:40:38.164568+00:00"
+            },
+            {
+                "id": "a43967b9-2866-4dee-8547-43fa3616c1f8",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": null,
+                "activity_type": "wellness_checkin",
+                "activity_data": {
+                    "timestamp": "2025-09-11T14:37:50.026Z",
+                    "wellness_responses": {
+                        "1": 5,
+                        "2": 1,
+                        "3": 1,
+                        "4": 1,
+                        "5": 1,
+                        "6": 1,
+                        "7": 1,
+                        "8": 1,
+                        "9": 1,
+                        "10": 1
+                    },
+                    "categories_assessed": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "completion_timestamp": "2025-09-11T14:37:50.850Z",
+                    "overall_wellness_score": 28
+                },
+                "score": 28,
+                "game_duration": null,
+                "difficulty_level": "normal",
+                "activity_metadata": {},
+                "user_response_data": {
+                    "wellness_areas": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "detailed_responses": {
+                        "1": 5,
+                        "2": 1,
+                        "3": 1,
+                        "4": 1,
+                        "5": 1,
+                        "6": 1,
+                        "7": 1,
+                        "8": 1,
+                        "9": 1,
+                        "10": 1
+                    },
+                    "self_assessment_patterns": [
+                        "wellness_attention_needed"
+                    ]
+                },
+                "evaluation_data": {
+                    "focus_areas": [],
+                    "wellness_level": "needs_attention"
+                },
+                "accuracy_percentage": 28,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [
+                        "fundamental_skills"
+                    ],
+                    "performance_level": "needs_practice"
+                },
+                "completed_at": "2025-09-11T14:37:51.177747+00:00"
+            },
+            {
+                "id": "226892e6-f5ce-47ea-85dc-fa4d70eefba0",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": null,
+                "activity_type": "wellness_checkin",
+                "activity_data": {
+                    "timestamp": "2025-09-11T14:22:19.058Z",
+                    "wellness_responses": {
+                        "1": 1,
+                        "2": 1,
+                        "3": 1,
+                        "4": 1,
+                        "5": 1,
+                        "6": 1,
+                        "7": 1,
+                        "8": 1,
+                        "9": 1,
+                        "10": 1
+                    },
+                    "categories_assessed": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "completion_timestamp": "2025-09-11T14:22:19.906Z",
+                    "overall_wellness_score": 20
+                },
+                "score": 20,
+                "game_duration": null,
+                "difficulty_level": "normal",
+                "activity_metadata": {},
+                "user_response_data": {
+                    "wellness_areas": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "detailed_responses": {
+                        "1": 1,
+                        "2": 1,
+                        "3": 1,
+                        "4": 1,
+                        "5": 1,
+                        "6": 1,
+                        "7": 1,
+                        "8": 1,
+                        "9": 1,
+                        "10": 1
+                    },
+                    "self_assessment_patterns": [
+                        "wellness_attention_needed"
+                    ]
+                },
+                "evaluation_data": {
+                    "focus_areas": [],
+                    "wellness_level": "needs_attention"
+                },
+                "accuracy_percentage": 20,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [
+                        "fundamental_skills"
+                    ],
+                    "performance_level": "needs_practice"
+                },
+                "completed_at": "2025-09-11T14:22:20.571517+00:00"
+            }
+        ],
+        "user_patterns": {},
+        "retrieved_memories": {
+            "semantic": [],
+            "procedural": [],
+            "episodic": []
+        }
+    },
+    "nlp_analysis": {
+        "emotions": {},
+        "primary_emotion": "unknown",
+        "sentiment": {
+            "score": 0.0,
+            "label": "neutral"
+        },
+        "intensity": 0.0,
+        "key_phrases": [],
+        "language_detected": "en",
+        "urgency_flag": false
+    },
+    "cultural_context": {
+        "language_style": "english",
+        "hindi_english_ratio": 0.0,
+        "code_switching_detected": false,
+        "cultural_sensitivity_flags": [],
+        "communication_pattern": "terse",
+        "regional_context": "urban_metro",
+        "formality_level": "low"
+    },
+    "psychological_analysis": {
+        "emotional_state": "neutral, with no discernible emotional indicators",
+        "stress_categories": [
+            "Miscellaneous"
+        ],
+        "risk_assessment": "low",
+        "coping_assessment": "No observable coping mechanisms or resilience patterns detected from the limited data.",
+        "intervention_priority": "supportive",
+        "psychological_insights": [
+            "User may be seeking connection or validation without expressing specific emotions.",
+            "Terse communication style may indicate discomfort or uncertainty in expressing feelings.",
+            "Wellness check-in scores fluctuate, suggesting potential underlying stressors not yet verbalized."
+        ],
+        "cultural_pressures": "No specific Indian cultural, family, or academic pressures identified from the user's message."
+    },
+    "screening_assessments": {
+        "phq9": {
+            "score": 0,
+            "severity": "minimal",
+            "responses": [
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "..."
+            ],
+            "last_updated": "2026-02-18T09:08:35.570723+00:00"
+        },
+        "gad7": {
+            "score": 0,
+            "severity": "minimal",
+            "responses": [
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "...",
+                "..."
+            ],
+            "last_updated": "2026-02-18T09:08:35.570723+00:00"
+        }
+    },
+    "technique_selection": {
+        "primary_technique": "Person-Centered",
+        "therapeutic_approach": "Create a non-judgmental, empathetic space where the user can explore their feelings at their own pace. Use active listening, reflection, and validation to encourage self-expression without pressure. Focus on building trust and rapport.",
+        "activity_recommendations": [
+            "Journaling prompts (e.g., 'What brings you joy?')",
+            "Mindful breathing exercises",
+            "Light yoga or stretching"
+        ],
+        "rationale": "The user's neutral emotional state and terse communication suggest discomfort in expressing feelings. Person-Centered therapy provides a safe, supportive environment that aligns with the intervention priority. It respects the user's autonomy and cultural context, where mental health discussions may be sensitive."
+    },
+    "ai_response": "Hey there! Awesome to hear from you. \ud83d\ude0a What\u2019s on your mind? Feel free to share whatever comes up, or we can just chat about anything you like. I\u2019m here to listen.",
+    "response_generated": true
+}

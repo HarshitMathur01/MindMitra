@@ -1,0 +1,289 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  MindMitra Configuration File                                ║
+# ║  Modify this file to change system behavior without          ║
+# ║  touching the source code.                                   ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+# ──────────────────────────────────────────────────────────────
+# 1. API KEYS (Can also be set via environment variables)
+# ──────────────────────────────────────────────────────────────
+api_keys:
+  # If not set here, will read from environment variables
+  groq_api_key: ${GROQ_API_KEY}
+  zai_api_key: ${ZAI_API_KEY}
+  google_api_key: ${GOOGLE_API_KEY}
+  supabase_url: ${SUPABASE_URL}
+  supabase_key: ${SUPABASE_KEY}
+
+# ──────────────────────────────────────────────────────────────
+# 2. LOGGING CONFIGURATION
+# ──────────────────────────────────────────────────────────────
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file:
+    enabled: true
+    path: "logs/app.log"
+    max_bytes: 10485760  # 10 MB
+    backup_count: 5
+
+# ──────────────────────────────────────────────────────────────
+# 3. NLP MODULE (GROQ) CONFIGURATION
+# ──────────────────────────────────────────────────────────────
+nlp_module:
+  enabled: true
+  model: "qwen/qwen3-32b"  # Options: qwen/qwen3-32b, meta-llama/llama-4-scout-17b-16e-instruct
+  temperature: 0.1
+  max_tokens: 400
+  
+  # Model token limits (for automatic truncation)
+  model_token_limits:
+    "qwen/qwen3-32b": 4096
+    "moonshotai/kimi-k2-instruct-0905": 4096
+    "meta-llama/llama-4-scout-17b-16e-instruct": 8192
+
+# ──────────────────────────────────────────────────────────────
+# 4. CULTURAL CONTEXT MODULE CONFIGURATION
+# ──────────────────────────────────────────────────────────────
+cultural_module:
+  enabled: true
+  deep_analysis_enabled: true  # Use LLM for refined cultural analysis
+  deep_analysis_model: "llama-3.3-70b-versatile"
+  temperature: 0.0
+  max_tokens: 220
+  
+  # Hindi detection threshold (0-1)
+  hindi_threshold: 0.1  # >10% Hindi words = hinglish
+  
+  # Cultural sensitivity keywords
+  detect_cultural_flags:
+    - parental_pressure
+    - exam_stress
+    - career_anxiety
+    - social_pressure
+    - identity_struggle
+    - marriage_pressure
+    - mental_health_stigma
+
+# ──────────────────────────────────────────────────────────────
+# 5. GLM CONTROLLER CONFIGURATION (ZhipuAI)
+# ──────────────────────────────────────────────────────────────
+glm_controller:
+  model: "glm-4-32b-0414-128k"  # Main model for psychology agents
+  max_concurrent: 1  # Number of concurrent GLM calls
+  max_retries: 2  # Retry attempts on failure
+  base_backoff: 2.0  # Exponential backoff base (seconds)
+  temperature: 0.3
+  top_p: 0.8
+  # max_tokens: 1000  # Commented out to let model decide
+  
+  # Enable Groq fallback for GLM failures
+  groq_fallback_enabled: false
+
+# ──────────────────────────────────────────────────────────────
+# 6. SCREENING ASSESSMENTS (PHQ-9 / GAD-7)
+# ──────────────────────────────────────────────────────────────
+screening_assessments:
+  enabled: true
+  groq_model: "llama-3.3-70b-versatile"
+  temperature: 0.0
+  max_tokens: 280
+
+# ──────────────────────────────────────────────────────────────
+# 7. RAG MEMORY SYSTEM CONFIGURATION
+# ──────────────────────────────────────────────────────────────
+rag_memory:
+  enabled: true
+  
+  # Embedding service
+  embeddings:
+    model: "all-MiniLM-L6-v2"  # sentence-transformers model
+    dimension: 384
+    batch_size: 32
+  
+  # Query decision agent
+  query_decision:
+    primary_model: "groq"  # groq or glm
+    groq_model: "meta-llama/llama-3.1-8b-instant"
+    glm_fallback_model: "glm-4-flash"
+    temperature: 0.0
+    max_tokens: 200
+    
+    # Trigger conditions
+    triggers:
+      reference_keywords:
+        - "again"
+        - "like before"
+        - "last time"
+        - "you said"
+        - "remember"
+        - "previously"
+        - "earlier"
+      
+      emotional_intensity_threshold: 0.5  # Trigger if intensity > 0.5
+      urgency_flag_triggers: true  # Always retrieve on urgency
+  
+  # Memory retrieval
+  retrieval:
+    # Hybrid search weights
+    vector_weight: 0.7  # 70% vector similarity
+    keyword_weight: 0.3  # 30% keyword ranking
+    
+    # Confidence thresholds
+    confidence_thresholds:
+      global_memory: 0.6  # Store in global_memories if >= 0.6
+      session_memory: 0.4  # Store in session_memories if 0.4-0.6
+      discard: 0.4  # Discard if < 0.4
+    
+    # Retrieval limits
+    top_k: 5  # Maximum memories to retrieve per query
+    max_semantic: 3
+    max_procedural: 3
+    max_episodic: 2
+    
+    # Deduplication
+    deduplication_similarity_threshold: 0.85  # Merge if similarity > 0.85
+  
+  # Background memory extraction
+  memory_extraction:
+    enabled: true
+    interval: 12  # Extract memories every N messages
+    gemini_model: "gemini-2.5-flash"
+    batch_size: 12  # Number of messages per extraction batch
+    
+    # Episodic memory promotion
+    episodic_promotion:
+      enabled: true
+      occurrence_threshold: 2  # Promote to semantic after N occurrences
+      pattern_similarity: 0.8
+
+# ──────────────────────────────────────────────────────────────
+# 8. PSYCHOLOGIST AGENT CONFIGURATION
+# ──────────────────────────────────────────────────────────────
+psychologist_agent:
+  # How many memories to include in prompt
+  max_memories_per_type: 4
+  
+  # How many activities to include
+  max_activities: 5
+  
+  # Recent conversation context
+  recent_messages_count: 5
+
+# ──────────────────────────────────────────────────────────────
+# 9. TECHNIQUE SELECTOR AGENT CONFIGURATION
+# ──────────────────────────────────────────────────────────────
+technique_selector_agent:
+  # Available techniques (priority order)
+  available_techniques:
+    - CBT  # Cognitive Behavioral Therapy
+    - ACT  # Acceptance and Commitment Therapy
+    - MBCT  # Mindfulness-Based Cognitive Therapy
+    - DBT  # Dialectical Behavior Therapy
+    - MI  # Motivational Interviewing
+    - Solution-Focused
+    - Person-Centered
+    - Psychoeducation
+  
+  # Memory context
+  max_memories_per_type: 3
+  
+  # Include voice analysis
+  include_voice_analysis: true
+
+# ──────────────────────────────────────────────────────────────
+# 10. RESPONSE GENERATOR CONFIGURATION
+# ──────────────────────────────────────────────────────────────
+response_generator:
+  # Recent conversation context
+  recent_messages_count: 3
+  
+  # Memory context
+  max_memories_per_type: 3
+  
+  # System prompt customization
+  system_prompt: |
+    You are MindMitra, a culturally-aware AI therapeutic companion for Indian youth (16-25).
+    
+    RESPONSE RULES:
+    • Combine psychology expertise with warm, companion-style delivery
+    • Match the user's language style (if they use Hindi/Hinglish, mirror appropriately)
+    • Apply the selected therapeutic technique naturally — do NOT label techniques
+    • Reference session memories when relevant to show continuity
+    • Be empathetic, non-judgmental, like a caring friend who understands psychology
+    • Validate cultural struggles without dismissing traditional values
+    • Keep responses conversational — concise for casual chat, deeper for heavy topics
+    • NEVER include numbered annotations, technique labels in parentheses, or meta-commentary
+    • Generate ONLY the natural conversation response
+
+# ──────────────────────────────────────────────────────────────
+# 11. WORKFLOW ORCHESTRATION
+# ──────────────────────────────────────────────────────────────
+workflow:
+  # Parallel processing
+  max_workers: 3  # For concurrent memory/NLP/cultural analysis
+  
+  # Context merge strategy
+  merge_strategy: "llm"  # Options: "simple" or "llm"
+  merge_with_groq: true  # Use Groq for merge (faster/cheaper than GLM)
+  
+  # Background summarization
+  summarization:
+    enabled: true
+    interval: 12  # Summarize every N messages
+    cache_enabled: true
+
+# ──────────────────────────────────────────────────────────────
+# 12. FEATURE FLAGS
+# ──────────────────────────────────────────────────────────────
+features:
+  # Enable/disable major features
+  nlp_analysis: true
+  cultural_context: true
+  rag_memory_retrieval: true
+  screening_assessments: true
+  background_memory_extraction: true
+  voice_analysis_support: true
+  
+  # Database persistence
+  save_to_supabase: true
+  user_contexts_table: true  # Save full context to user_contexts table
+  
+  # Performance optimizations
+  parallel_processing: true
+  context_caching: true
+
+# ──────────────────────────────────────────────────────────────
+# 13. PERFORMANCE TUNING
+# ──────────────────────────────────────────────────────────────
+performance:
+  # Context window limits (characters)
+  max_user_message_length: 2000
+  max_history_snippet_length: 1000
+  max_memory_content_length: 150
+  
+  # Timeout settings (seconds)
+  groq_timeout: 30
+  glm_timeout: 60
+  memory_retrieval_timeout: 10
+  
+  # Rate limiting
+  requests_per_minute: 60
+  burst_limit: 10
+
+# ──────────────────────────────────────────────────────────────
+# 14. DEBUGGING & DEVELOPMENT
+# ──────────────────────────────────────────────────────────────
+debug:
+  # Print prompts to console
+  print_prompts: false
+  
+  # Save prompts to files
+  save_prompts: false
+  prompts_dir: "debug/prompts"
+  
+  # Detailed timing logs
+  log_timing: true
+  
+  # Skip LLM calls (for testing)
+  mock_llm_responses: false

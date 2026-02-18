@@ -11,9 +11,11 @@ from typing import Dict, List, Any, Optional, Union
 import logging
 import os
 import re
+import hashlib
 from dataclasses import dataclass, asdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -570,6 +572,558 @@ class UniversalMemorySystem:
         merged['total_sessions'] = merged.get('total_sessions', 0) + 1
         
         return merged
+    
+    # ══════════════════════════════════════════════════════════
+    # UNIFIED MEMORY EXTRACTION (NEW RAG SYSTEM)
+    # ══════════════════════════════════════════════════════════
+    
+    def extract_all_with_summary_unified(
+        self,
+        messages: List[Dict],
+        chunk_number: int,
+        session_id: str
+    ) -> Dict[str, Any]:
+        """
+        Unified extraction: memories + session summary in ONE GLM-4 call
+        
+        Args:
+            messages: List of 12 conversation messages
+            chunk_number: Chunk index (0, 1, 2...)
+            session_id: Current session ID
+            
+        Returns:
+            Dict with session_summary and memories (semantic, procedural, episodic)
+        """
+        logger.info(f"🧠 [MemoryExtraction] Unified extraction started (chunk {chunk_number}, session {session_id[:8]})")
+        
+        # Format messages
+        formatted_messages = "\n".join([
+            f"{i+1}. {m.get('role', 'user')}: {m.get('content', '')[:300]}"
+            for i, m in enumerate(messages)
+        ])
+        
+        # Build unified prompt
+        prompt = f"""You are a memory extraction specialist for MindMitra therapeutic AI. Analyze these 12 conversation messages and extract memories + generate session summary in ONE response.
+
+RULES FOR CONFIDENCE SCORING:
+- Be STRICT and ROBUST when assigning confidence (0.0-1.0)
+- Only assign confidence >= 0.7 for CLEAR, REPEATED, STRONGLY CORROBORATED memories
+- Assign 0.4-0.6 for tentative/single-mention memories
+- Below 0.4 means NOT worth saving
+- Consider: clarity, repetition, emotional weight, user certainty
+
+MESSAGES (Chunk {chunk_number}):
+{formatted_messages[:3000]}
+
+Output ONLY valid JSON (no markdown):
+{{
+  "session_summary": {{
+    "summary": "200-word summary of emotional journey and key topics",
+    "emotional_progression": {{
+      "start_state": "emotional state at beginning",
+      "end_state": "emotional state at end",
+      "trajectory": "improving|stable|declining"
+    }},
+    "key_themes": ["theme1", "theme2", "theme3"]
+  }},
+  "memories": {{
+    "semantic": [
+      {{
+        "content": "User prefers morning meditation",
+        "confidence": 0.8,
+        "worth_saving": true
+      }}
+    ],
+    "procedural": [
+      {{
+        "content": "4-7-8 breathing technique: inhale 4, hold 7, exhale 8",
+        "confidence": 0.75,
+        "worth_saving": true
+      }}
+    ],
+    "episodic": [
+      {{
+        "content": "User felt anxious before presentation, used breathing exercises",
+        "confidence": 0.7,
+        "worth_saving": true
+      }}
+    ]
+  }}
+}}
+
+Extract 3-8 memories total. Be selective - quality over quantity.
+
+JSON:"""
+        
+        try:
+            # Call Gemini (GLM-4 via z.ai wrapper is available in workflow.py)
+            # Using direct Gemini call here
+            response = self.model.generate_content(prompt)
+            content = response.text if response and hasattr(response, 'text') else ""
+            
+            if not content:
+                logger.warning("⚠️ [MemoryExtraction] Empty response from LLM")
+                return self._get_empty_extraction_result()
+            
+            # Parse JSON
+            result = self._parse_unified_extraction(content)
+            
+            logger.info(
+                f"  → Extracted: {len(result['memories']['semantic'])} semantic, "
+                f"{len(result['memories']['procedural'])} procedural, "
+                f"{len(result['memories']['episodic'])} episodic"
+            )
+            logger.debug(f"  Summary: {result['session_summary']['summary'][:100]}...")
+            
+            return result
+        
+        except Exception as e:
+            logger.error(f"❌ [MemoryExtraction] Unified extraction failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return self._get_empty_extraction_result()
+    
+    def _parse_unified_extraction(self, content: str) -> Dict[str, Any]:
+        """Parse LLM response for unified extraction"""
+        try:
+            # Remove markdown fences
+            cleaned = content.strip()
+            if cleaned.startswith("```"):
+                parts = cleaned.split("```")
+                if len(parts) >= 2:
+                    cleaned = parts[1]
+                    if cleaned.startswith("json"):
+                        cleaned = cleaned[4:]
+            cleaned = cleaned.strip().strip("`")
+            
+            parsed = json.loads(cleaned)
+            
+            # Validate structure
+            if 'session_summary' not in parsed or 'memories' not in parsed:
+                logger.warning("⚠️ [MemoryExtraction] Missing required fields in response")
+                return self._get_empty_extraction_result()
+            
+            # Ensure all memory types exist
+            for mem_type in ['semantic', 'procedural', 'episodic']:
+                if mem_type not in parsed['memories']:
+                    parsed['memories'][mem_type] = []
+            
+            # Validate confidence scores and worth_saving flags
+            for mem_type in ['semantic', 'procedural', 'episodic']:
+                for mem in parsed['memories'][mem_type]:
+                    if 'confidence' not in mem:
+                        mem['confidence'] = 0.5
+                    if 'worth_saving' not in mem:
+                        mem['worth_saving'] = mem['confidence'] >= 0.4
+                    
+                    # Type conversion
+                    mem['confidence'] = float(mem['confidence'])
+                    mem['worth_saving'] = bool(mem['worth_saving'])
+            
+            return parsed
+        
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ [MemoryExtraction] JSON parse error: {e}")
+            return self._get_empty_extraction_result()
+        except Exception as e:
+            logger.error(f"❌ [MemoryExtraction] Parse error: {e}")
+            return self._get_empty_extraction_result()
+    
+    def _get_empty_extraction_result(self) -> Dict[str, Any]:
+        """Return empty result structure"""
+        return {
+            'session_summary': {
+                'summary': 'Summary unavailable',
+                'emotional_progression': {
+                    'start_state': 'unknown',
+                    'end_state': 'unknown',
+                    'trajectory': 'stable'
+                },
+                'key_themes': []
+            },
+            'memories': {
+                'semantic': [],
+                'procedural': [],
+                'episodic': []
+            }
+        }
+
+
+# ══════════════════════════════════════════════════════════
+# MEMORY DEDUPLICATOR CLASS
+# ══════════════════════════════════════════════════════════
+
+class MemoryDeduplicator:
+    """
+    Handles memory deduplication and tiered storage
+    - Confidence >= 0.6: Global memories (merged if similar)
+    - Confidence 0.4-0.6: Session memories
+    - Confidence < 0.4: Discarded
+    """
+    
+    def __init__(self, supabase_client, embedding_service):
+        self.supabase = supabase_client
+        self.embedding_service = embedding_service
+        logger.info("✅ [MemoryDedup] Memory deduplicator initialized")
+    
+    def process_and_save_memory(
+        self,
+        memory: Dict[str, Any],
+        session_id: str,
+        user_id: str,
+        memory_type: str
+    ) -> Optional[str]:
+        """
+        Process and save memory with tiered storage logic
+        
+        Args:
+            memory: Memory dict with content, confidence, worth_saving
+            session_id: Current session ID
+            user_id: User ID
+            memory_type: semantic, procedural, or episodic
+            
+        Returns:
+            Memory ID if saved, None if discarded
+        """
+        # Check worth_saving flag
+        if not memory.get('worth_saving', True):
+            logger.debug(f"⏭️ [MemoryDedup] Skipping memory (worth_saving=false): {memory.get('content', '')[:50]}...")
+            return None
+        
+        confidence = memory.get('confidence', 0.5)
+        content = memory.get('content', '')
+        
+        # Discard low confidence
+        if confidence < 0.4:
+            logger.debug(f"⏭️ [MemoryDedup] Below threshold (conf={confidence:.2f}): {content[:50]}...")
+            return None
+        
+        try:
+            # Generate embedding
+            embedding = self.embedding_service.embed_text(content)
+            
+            # GLOBAL TIER (confidence >= 0.6)
+            if confidence >= 0.6:
+                return self._save_global_memory(
+                    content, embedding, confidence, 
+                    memory_type, session_id, user_id
+                )
+            
+            # SESSION TIER (0.4 <= confidence < 0.6)
+            else:
+                return self._save_session_memory(
+                    content, confidence, memory_type, 
+                    session_id, user_id
+                )
+        
+        except Exception as e:
+            logger.error(f"❌ [MemoryDedup] Save failed: {e}")
+            return None
+    
+    def _save_global_memory(
+        self,
+        content: str,
+        embedding: List[float],
+        confidence: float,
+        memory_type: str,
+        session_id: str,
+        user_id: str
+    ) -> Optional[str]:
+        """Save to global_memories with deduplication"""
+        try:
+            # Check for similar memories
+            similar = self.supabase.rpc(
+                'find_similar_global_memories',
+                {
+                    'p_embedding': embedding,
+                    'p_user_id': user_id,
+                    'p_memory_type': memory_type,
+                    'p_similarity_threshold': 0.85
+                }
+            ).execute()
+            
+            similar_mems = similar.data if similar.data else []
+            
+            # If similar found: merge
+            if similar_mems:
+                existing = similar_mems[0]
+                similarity = existing.get('similarity', 0)
+                
+                logger.info(
+                    f"🔗 [MemoryDedup] Similar memory found (sim={similarity:.2f}), merging..."
+                )
+                
+                # Boost confidence
+                old_conf = existing['confidence_score']
+                new_conf = min(1.0, old_conf * 1.2 + 0.1)
+                new_count = existing['occurrence_count'] + 1
+                
+                # Update session IDs
+                session_ids = existing['source_session_ids'] or []
+                if session_id not in session_ids:
+                    session_ids.append(session_id)
+                
+                # Update record
+                self.supabase.from_('global_memories').update({
+                    'confidence_score': new_conf,
+                    'occurrence_count': new_count,
+                    'source_session_ids': session_ids,
+                    'updated_at': datetime.now(timezone.utc).isoformat(),
+                    'access_count': existing.get('access_count', 0) + 1
+                }).eq('id', existing['id']).execute()
+                
+                logger.info(
+                    f"  Confidence {old_conf:.2f}→{new_conf:.2f}, "
+                    f"occurrences={new_count}"
+                )
+                
+                return existing['id']
+            
+            # No similar: create new
+            else:
+                result = self.supabase.from_('global_memories').insert({
+                    'user_id': user_id,
+                    'memory_type': memory_type,
+                    'content': content,
+                    'embedding': embedding,
+                    'confidence_score': confidence,
+                    'worth_saving': True,
+                    'source_session_ids': [session_id],
+                    'occurrence_count': 1
+                }).execute()
+                
+                mem_id = result.data[0]['id'] if result.data else None
+                logger.info(
+                    f"✨ [MemoryDedup] New global memory created: "
+                    f"{memory_type}, conf={confidence:.2f}"
+                )
+                return mem_id
+        
+        except Exception as e:
+            logger.error(f"❌ [MemoryDedup] Global memory save failed: {e}")
+            return None
+    
+    def _save_session_memory(
+        self,
+        content: str,
+        confidence: float,
+        memory_type: str,
+        session_id: str,
+        user_id: str
+    ) -> Optional[str]:
+        """Save to session_memories (medium confidence)"""
+        try:
+            result = self.supabase.from_('session_memories').insert({
+                'session_id': session_id,
+                'user_id': user_id,
+                'memory_type': memory_type,
+                'content': content,
+                'confidence_score': confidence
+            }).execute()
+            
+            mem_id = result.data[0]['id'] if result.data else None
+            logger.info(
+                f"💾 [MemoryDedup] Session memory saved: "
+                f"{memory_type}, conf={confidence:.2f}"
+            )
+            return mem_id
+        
+        except Exception as e:
+            logger.error(f"❌ [MemoryDedup] Session memory save failed: {e}")
+            return None
+
+
+# ══════════════════════════════════════════════════════════
+# EPISODIC PROMOTER CLASS
+# ══════════════════════════════════════════════════════════
+
+class EpisodicPromoter:
+    """
+    Tracks episodic patterns and promotes to semantic after 2+ occurrences
+    """
+    
+    def __init__(self, supabase_client, embedding_service, gemini_model):
+        self.supabase = supabase_client
+        self.embedding_service = embedding_service
+        self.gemini_model = gemini_model
+        logger.info("✅ [EpisodicPromoter] Episodic promoter initialized")
+    
+    def compute_pattern_hash(self, episodic: Dict[str, Any]) -> str:
+        """
+        Compute hash for episodic pattern matching
+        
+        Args:
+            episodic: Episodic memory dict
+            
+        Returns:
+            16-char hex hash
+        """
+        content = episodic.get('content', '')
+        
+        # Extract keywords (simple approach)
+        words = content.lower().split()
+        keywords = [w for w in words if len(w) > 4 and w.isalpha()][:5]
+        keywords_str = "_".join(sorted(keywords))
+        
+        # Generate hash
+        hash_obj = hashlib.md5(keywords_str.encode())
+        return hash_obj.hexdigest()[:16]
+    
+    def track_and_promote(
+        self,
+        episodic: Dict[str, Any],
+        session_id: str,
+        user_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Track episodic pattern and promote to semantic if occurs 2+ times
+        
+        Args:
+            episodic: Episodic memory dict
+            session_id: Current session ID
+            user_id: User ID
+            
+        Returns:
+            Promoted semantic memory dict if promoted, else None
+        """
+        try:
+            pattern_hash = self.compute_pattern_hash(episodic)
+            
+            # Query tracker
+            result = self.supabase.from_('episodic_tracker').select('*').eq(
+                'user_id', user_id
+            ).eq('pattern_hash', pattern_hash).maybe_single().execute()
+            
+            existing = result.data if result.data else None
+            
+            # If exists: append occurrence
+            if existing:
+                occurrences = existing.get('occurrences', [])
+                occurrences.append({
+                    'content': episodic.get('content'),
+                    'session_id': session_id,
+                    'timestamp': datetime.now(timezone.utc).isoformat()
+                })
+                
+                new_count = existing['occurrence_count'] + 1
+                
+                # Update tracker
+                self.supabase.from_('episodic_tracker').update({
+                    'occurrences': occurrences,
+                    'occurrence_count': new_count
+                }).eq('id', existing['id']).execute()
+                
+                logger.info(
+                    f"🔄 [EpisodicPromoter] Pattern '{pattern_hash}' occurred {new_count} times"
+                )
+                
+                # Promote if >= 2 occurrences and not already promoted
+                if new_count >= 2 and not existing.get('promoted_to_semantic_id'):
+                    return self._promote_to_semantic(existing, episodic, user_id)
+            
+            # New pattern: insert
+            else:
+                self.supabase.from_('episodic_tracker').insert({
+                    'user_id': user_id,
+                    'pattern_hash': pattern_hash,
+                    'occurrences': [{
+                        'content': episodic.get('content'),
+                        'session_id': session_id,
+                        'timestamp': datetime.now(timezone.utc).isoformat()
+                    }],
+                    'occurrence_count': 1
+                }).execute()
+                
+                logger.debug(f"💾 [EpisodicPromoter] New pattern tracked: {pattern_hash}")
+        
+        except Exception as e:
+            logger.error(f"❌ [EpisodicPromoter] Tracking failed: {e}")
+        
+        return None
+    
+    def _promote_to_semantic(
+        self,
+        tracker_record: Dict[str, Any],
+        new_occurrence: Dict[str, Any],
+        user_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Promote repeated episodic pattern to semantic memory"""
+        try:
+            occurrences = tracker_record.get('occurrences', [])
+            
+            # Format occurrences for LLM
+            occ_text = "\n".join([
+                f"Occurrence {i+1}: {occ.get('content', '')}"
+                for i, occ in enumerate(occurrences[-3:])
+            ])
+            
+            # Call Gemini for semantic insight
+            prompt = f"""User has repeated behavioral pattern:
+
+{occ_text}
+
+Generate semantic insight (1 concise sentence capturing the pattern) and outcome analysis.
+
+Output ONLY valid JSON:
+{{
+  "insight": "General pattern insight",
+  "outcome_trend": "Pattern outcome (success/mixed/failure)",
+  "confidence": 0.7
+}}
+
+JSON:"""
+            
+            response = self.gemini_model.generate_content(prompt)
+            content = response.text if response and hasattr(response, 'text') else ""
+            
+            # Parse response
+            cleaned = content.strip().strip("`")
+            if cleaned.startswith("```json"):
+                cleaned = cleaned[7:]
+            parsed = json.loads(cleaned)
+            
+            insight = parsed.get('insight', 'Repeated pattern observed')
+            confidence = float(parsed.get('confidence', 0.7))
+            
+            # Create semantic memory
+            embedding = self.embedding_service.embed_text(insight)
+            
+            result = self.supabase.from_('global_memories').insert({
+                'user_id': user_id,
+                'memory_type': 'semantic',
+                'content': insight,
+                'embedding': embedding,
+                'confidence_score': confidence,
+                'worth_saving': True,
+                'source_session_ids': [occ.get('session_id') for occ in occurrences],
+                'occurrence_count': len(occurrences)
+            }).execute()
+            
+            semantic_id = result.data[0]['id'] if result.data else None
+            
+            # Update tracker
+            self.supabase.from_('episodic_tracker').update({
+                'promoted_to_semantic_id': semantic_id
+            }).eq('id', tracker_record['id']).execute()
+            
+            logger.success(
+                f"✨ [EpisodicPromoter] Promoted to semantic: {insight}"
+            )
+            
+            return {
+                'id': semantic_id,
+                'content': insight,
+                'confidence': confidence
+            }
+        
+        except Exception as e:
+            logger.error(f"❌ [EpisodicPromoter] Promotion failed: {e}")
+            return None
+
+
+# ══════════════════════════════════════════════════════════
+# ORIGINAL DEMO/MAIN CODE (UNCHANGED)
+# ══════════════════════════════════════════════════════════
 
 
 def create_sample_data():

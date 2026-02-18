@@ -48,7 +48,7 @@ RUN mkdir -p logs user_contexts && \
     chmod 755 logs user_contexts
 
 # Railway sets $PORT dynamically at runtime
-EXPOSE 8000
+EXPOSE 8080
 
 # Start FastAPI with uvicorn
 # Railway provides $PORT environment variable

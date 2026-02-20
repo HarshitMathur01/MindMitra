@@ -82,12 +82,12 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-  
+
   html {
     scroll-behavior: smooth;
     font-family: 'Inter', sans-serif;
   }
-  
+
   body {
     @apply bg-gradient-to-br from-blue-50 via-white to-purple-50 text-foreground;
     background-attachment: fixed;
@@ -96,308 +96,355 @@ All colors MUST be HSL.
 }
 
 @layer components {
-/* Gentle breathing animation for wellness elements */
-.breathing-circle {
-  animation: breathe 4s ease-in-out infinite;
-}
 
-.breathing-pulse {
-  animation: breathePulse 6s ease-in-out infinite;
-}
+  /* Gentle breathing animation for wellness elements */
+  .breathing-circle {
+    animation: breathe 4s ease-in-out infinite;
+  }
 
-/* Very subtle breathing for hero elements */
-.breathing-hero {
-  animation: breatheHero 8s ease-in-out infinite;
-}
+  .breathing-circle-delayed {
+    animation: breathe 4s ease-in-out infinite;
+    animation-delay: 2s;
+  }
 
-@keyframes breathe {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.9;
+  .breathing-pulse {
+    animation: breathePulse 6s ease-in-out infinite;
   }
-  50% {
-    transform: scale(1.02);
-    opacity: 1;
-  }
-}
 
-@keyframes breathePulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+  /* Very subtle breathing for hero elements */
+  .breathing-hero {
+    animation: breatheHero 8s ease-in-out infinite;
   }
-  50% {
-    transform: scale(1.01);
-    box-shadow: 0 0 0 15px rgba(59, 130, 246, 0.05);
-  }
-}
 
-@keyframes breatheHero {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.8;
+  @keyframes breathe {
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.9;
+    }
+
+    50% {
+      transform: scale(1.02);
+      opacity: 1;
+    }
   }
-  50% {
-    transform: scale(1.005);
-    opacity: 0.9;
+
+  @keyframes breathePulse {
+
+    0%,
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+    }
+
+    50% {
+      transform: scale(1.01);
+      box-shadow: 0 0 0 15px rgba(59, 130, 246, 0.05);
+    }
   }
-}  /* Smooth Page Transitions */
+
+  @keyframes breatheHero {
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+
+    50% {
+      transform: scale(1.005);
+      opacity: 0.9;
+    }
+  }
+
+  /* Smooth Page Transitions */
   .page-transition {
     animation: fadeInUp 0.6s ease-out;
   }
-  
+
   @keyframes fadeInUp {
     from {
       opacity: 0;
       transform: translateY(30px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
+
   /* Gentle Hover Effects */
   .gentle-hover {
     @apply transition-all duration-300 ease-out;
   }
-  
+
   .gentle-hover:hover {
     @apply transform -translate-y-1 shadow-lg;
   }
-  
+
   /* Chat Message Animations */
   .message-slide-in {
     animation: slideInFromBottom 0.4s ease-out;
   }
-  
+
   @keyframes slideInFromBottom {
     from {
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
+
   /* Loading Animation for Therapeutic Response */
   .typing-indicator {
     animation: typing 1.5s ease-in-out infinite;
   }
-  
+
   @keyframes typing {
-    0%, 20% { opacity: 0.4; }
-    40% { opacity: 1; }
-    60% { opacity: 0.4; }
-    80%, 100% { opacity: 0.4; }
+
+    0%,
+    20% {
+      opacity: 0.4;
+    }
+
+    40% {
+      opacity: 1;
+    }
+
+    60% {
+      opacity: 0.4;
+    }
+
+    80%,
+    100% {
+      opacity: 0.4;
+    }
   }
-  
+
   /* Wellness Card Animations */
-/* Enhanced wellness card hover effects */
-.wellness-card {
-  @apply transform transition-all duration-500 ease-out;
-}
-
-.wellness-card:hover {
-  @apply scale-105 shadow-2xl;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
-}
-
-/* Custom scrollbar styling */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3));
-  border-radius: 3px;
-  transition: all 0.3s ease;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(147, 51, 234, 0.5));
-}
-
-/* Advanced scroll-triggered animations */
-.slide-in-left {
-  animation: slideInLeft 0.8s ease-out forwards;
-}
-
-.slide-in-right {
-  animation: slideInRight 0.8s ease-out forwards;
-}
-
-.slide-in-bottom {
-  animation: slideInBottom 0.8s ease-out forwards;
-}
-
-.fade-in-up {
-  animation: fadeInUp 0.8s ease-out forwards;
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-100px);
+  /* Enhanced wellness card hover effects */
+  .wellness-card {
+    @apply transform transition-all duration-500 ease-out;
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
+
+  .wellness-card:hover {
+    @apply scale-105 shadow-2xl;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
   }
-}
 
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(100px);
+  /* Custom scrollbar styling */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 
-@keyframes slideInBottom {
-  from {
-    opacity: 0;
-    transform: translateY(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Interactive hover effects */
-.hover-float:hover {
-  animation: floatEffect 2s ease-in-out infinite;
-}
-
-@keyframes floatEffect {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-/* Magnetic button effect */
-.magnetic-button {
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
-}
-
-.magnetic-button:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
-
-/* Enhanced scroll animations */
-.scroll-reveal {
-  opacity: 0;
-  transform: translateY(50px);
-  transition: all 0.8s cubic-bezier(0.23, 1, 0.320, 1);
-}
-
-.scroll-reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Loading animation */
-.loading-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.loading-dots::before,
-.loading-dots::after {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: loadingDots 1.4s infinite ease-in-out both;
-}
-
-.loading-dots::before {
-  animation-delay: -0.32s;
-}
-
-.loading-dots::after {
-  animation-delay: -0.16s;
-}
-
-@keyframes loadingDots {
-  0%, 80%, 100% {
-    transform: scale(0);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Chat session hover effects */
-.chat-session-card {
-  @apply transition-all duration-300 ease-out;
-}
-
-.chat-session-card:hover {
-  @apply transform scale-102 shadow-md;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
-}
-
-/* Input focus animation */
-.chat-input:focus {
-  @apply scale-102;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  transform: translateY(-1px);
-}  /* Smooth Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
-  
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3));
+    border-radius: 3px;
+    transition: all 0.3s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(147, 51, 234, 0.5));
+  }
+
+  /* Advanced scroll-triggered animations */
+  .slide-in-left {
+    animation: slideInLeft 0.8s ease-out forwards;
+  }
+
+  .slide-in-right {
+    animation: slideInRight 0.8s ease-out forwards;
+  }
+
+  .slide-in-bottom {
+    animation: slideInBottom 0.8s ease-out forwards;
+  }
+
+  .fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-100px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(100px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInBottom {
+    from {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Interactive hover effects */
+  .hover-float:hover {
+    animation: floatEffect 2s ease-in-out infinite;
+  }
+
+  @keyframes floatEffect {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Magnetic button effect */
+  .magnetic-button {
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+  }
+
+  .magnetic-button:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Enhanced scroll animations */
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: all 0.8s cubic-bezier(0.23, 1, 0.320, 1);
+  }
+
+  .scroll-reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Loading animation */
+  .loading-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .loading-dots::before,
+  .loading-dots::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: loadingDots 1.4s infinite ease-in-out both;
+  }
+
+  .loading-dots::before {
+    animation-delay: -0.32s;
+  }
+
+  .loading-dots::after {
+    animation-delay: -0.16s;
+  }
+
+  @keyframes loadingDots {
+
+    0%,
+    80%,
+    100% {
+      transform: scale(0);
+      opacity: 0.5;
+    }
+
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Chat session hover effects */
+  .chat-session-card {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .chat-session-card:hover {
+    @apply transform scale-102 shadow-md;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+  }
+
+  /* Input focus animation */
+  .chat-input:focus {
+    @apply scale-102;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+  }
+
+  /* Smooth Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 3px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: linear-gradient(135deg, #667eea, #764ba2);
     border-radius: 3px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, #5a67d8, #6b46c1);
   }
 }
 
 @layer utilities {
+
   /* Text Gradients for Headings */
   .text-gradient {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -405,20 +452,177 @@ All colors MUST be HSL.
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
+
   .text-calm-gradient {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
+
   /* Glass Morphism Effects */
   .glass {
     @apply bg-white/20 backdrop-blur-md border border-white/20;
   }
-  
+
   .glass-dark {
     @apply bg-black/10 backdrop-blur-md border border-white/10;
+  }
+
+  /* Gradient button styles */
+  .gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .gradient-primary:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  }
+
+  /* Glow hover effect */
+  .hover-glow {
+    transition: box-shadow 0.3s ease;
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.4), 0 0 40px rgba(118, 75, 162, 0.2);
+  }
+
+  /* Lift on hover */
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Gentle pulse for wellness elements */
+  .pulse-gentle {
+    animation: pulseGentle 3s ease-in-out infinite;
+  }
+
+  @keyframes pulseGentle {
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.9;
+    }
+
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+  }
+
+  /* Wellness warm glow for cards */
+  .wellness-glow {
+    transition: box-shadow 0.4s ease;
+  }
+
+  .wellness-glow:hover {
+    box-shadow: 0 0 30px rgba(167, 139, 250, 0.15), 0 0 60px rgba(59, 130, 246, 0.1);
+  }
+
+  /* Nature gradient for organic/calming elements */
+  .nature-gradient {
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+  }
+
+  /* Sunrise gradient for morning/positive elements */
+  .sunrise-gradient {
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  }
+
+  /* Ocean gradient for calm/deep elements */
+  .ocean-gradient {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  }
+
+  /* Active nav indicator */
+  .nav-active {
+    @apply bg-primary/15 text-primary font-semibold;
+    position: relative;
+  }
+
+  .nav-active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+  }
+
+  /* Scale-102 helper */
+  .scale-102 {
+    transform: scale(1.02);
+  }
+
+  /* Shimmer animation for loading/skeleton states */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmerMove 1.8s infinite;
+  }
+
+  @keyframes shimmerMove {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Crisis badge glow pulse */
+  .crisis-glow {
+    animation: crisisGlow 2.2s ease-in-out infinite;
+  }
+
+  @keyframes crisisGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
+    50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  }
+
+  /* Mood ring — for mood indicators and check-in elements */
+  .mood-ring {
+    animation: moodRing 3.5s ease-in-out infinite;
+  }
+
+  @keyframes moodRing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.4); }
+    50% { box-shadow: 0 0 0 14px rgba(167, 139, 250, 0); }
+  }
+
+  /* Serene float — very slow upward drift for decorative elements */
+  .serene-float {
+    animation: sereneFloat 6s ease-in-out infinite;
+  }
+
+  @keyframes sereneFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* Heartbeat animation for wellness/heart icons */
+  .heartbeat {
+    animation: heartbeat 1.4s ease-in-out infinite;
+  }
+
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    14% { transform: scale(1.12); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.08); }
+    70% { transform: scale(1); }
   }
 }

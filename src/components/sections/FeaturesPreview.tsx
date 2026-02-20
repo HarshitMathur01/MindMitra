@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { MessageSquare, Puzzle, BarChart, Globe, ArrowRight, MessageCircle, Brain, BookOpen, Users } from 'lucide-react';
+import { MessageSquare, Puzzle, BarChart, Globe, ArrowRight, MessageCircle, Brain, BookOpen, Users, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +23,7 @@ const FeaturesPreview = () => {
     },
     {
       icon: Puzzle,
-      title: "Mindfulness Games", 
+      title: "Mindfulness Games",
       description: "Interactive wellness activities designed to reduce stress, improve focus, and build emotional resilience through play.",
       gradient: "from-green-400 to-blue-500",
       action: () => navigate("/games"),
@@ -40,12 +40,12 @@ const FeaturesPreview = () => {
       comingSoon: false,
     },
     {
-      icon: Brain,
-      title: "Cultural Sensitivity",
-      description: "Designed specifically for Indian youth, understanding family dynamics, academic pressure, and cultural contexts.",
-      gradient: "from-orange-400 to-red-500",
-      action: () => navigate("/chat"),
-      actionText: "Learn More",
+      icon: Stethoscope,
+      title: "Therapist Bridge",
+      description: "Get a warm referral to a licensed therapist who understands Indian culture. Your emotional profile is shared securely with consent.",
+      gradient: "from-orange-400 to-rose-500",
+      action: () => navigate("/therapist-bridge"),
+      actionText: "Connect Now",
       comingSoon: false,
     }
   ];
@@ -83,7 +83,7 @@ const FeaturesPreview = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
-        <motion.div 
+        <motion.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -104,11 +104,10 @@ const FeaturesPreview = () => {
             <div
               key={index}
               ref={el => cardRefs.current[index] = el}
-              className={`transform transition-all duration-700 ease-out ${
-                visibleCards.includes(index)
+              className={`transform transition-all duration-700 ease-out ${visibleCards.includes(index)
                   ? 'translate-y-0 opacity-100 scale-100'
                   : 'translate-y-8 opacity-0 scale-95'
-              }`}
+                }`}
             >
               <Card className="wellness-card group cursor-pointer h-full" onClick={feature.action}>
                 <CardContent className="p-6 text-center h-full flex flex-col">
@@ -130,7 +129,7 @@ const FeaturesPreview = () => {
                   </div>
 
                   {/* Action Button */}
-                  <Button 
+                  <Button
                     className={`w-full bg-gradient-to-r ${feature.gradient} hover:shadow-lg transform transition-all duration-300 group-hover:scale-105 text-white border-0`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -145,93 +144,7 @@ const FeaturesPreview = () => {
           ))}
         </div>
 
-        {/* Additional Features Row */}
-        <motion.div 
-          className="mt-16 grid md:grid-cols-2 gap-8 max-w-4xl mx-auto"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          viewport={{ once: true }}
-        >
-          {/* Psychological Assessment */}
-          <Card className="wellness-card group cursor-pointer" onClick={() => navigate("/qa-tests")}>
-            <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-indigo-400 to-cyan-500 rounded-full flex items-center justify-center breathing-pulse">
-                <BookOpen className="h-10 w-10 text-white" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-4 group-hover:text-gradient transition-all duration-300">
-                Psychological Assessments
-              </h3>
-              <p className="text-muted-foreground leading-relaxed mb-6">
-                Take scientifically-backed personality tests and psychological assessments to better understand yourself and your mental health patterns.
-              </p>
-              <Button 
-                className="bg-gradient-to-r from-indigo-500 to-cyan-600 hover:shadow-lg transform transition-all duration-300 group-hover:scale-105 text-white"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate("/qa-tests");
-                }}
-              >
-                Take Assessment
-              </Button>
-            </CardContent>
-          </Card>
 
-          {/* Community Support */}
-          <Card className="wellness-card group">
-            <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-pink-400 to-rose-500 rounded-full flex items-center justify-center breathing-pulse">
-                <Users className="h-10 w-10 text-white" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-4 group-hover:text-gradient transition-all duration-300">
-                Community Support
-              </h3>
-              <p className="text-muted-foreground leading-relaxed mb-6">
-                Connect with others on similar journeys in a safe, moderated community environment designed for Indian youth mental wellness.
-              </p>
-              <Button 
-                variant="outline"
-                className="border-2 border-pink-300 text-pink-600 hover:bg-pink-50 transform transition-all duration-300 group-hover:scale-105"
-                disabled
-              >
-                Coming Soon
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Bottom CTA Section */}
-        <motion.div 
-          className="text-center mt-16"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          viewport={{ once: true }}
-        >
-          <div className="glass rounded-2xl p-8 max-w-4xl mx-auto">
-            <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-              Ready to Begin Your Healing Journey?
-            </h3>
-            <p className="text-muted-foreground mb-6 text-lg">
-              Join thousands of Indian youth who have found support, understanding, and growth through MindMitra
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                onClick={() => navigate("/chat")}
-                className="group px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-full transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg"
-              >
-                Start Free Session
-              </Button>
-              <Button 
-                onClick={() => navigate("/games")}
-                variant="outline"
-                className="px-8 py-3 border-2 border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-600 font-semibold rounded-full transition-all duration-300 ease-out transform hover:scale-105 bg-white/50"
-              >
-                Explore Activities
-              </Button>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );

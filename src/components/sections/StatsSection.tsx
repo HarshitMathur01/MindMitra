@@ -10,28 +10,40 @@ const statistics = [
     value: 1250,
     suffix: "+",
     label: "Students Helped",
-    description: "Indian youth finding their mental wellness path"
+    description: "Indian youth finding their mental wellness path",
+    iconGradient: "from-blue-500 to-indigo-600",
+    cardBorder: "border-blue-100/80",
+    cardAccent: "bg-blue-50/40",
   },
   {
     icon: MessageCircle,
     value: 5240,
     suffix: "+",
     label: "Therapy Sessions",
-    description: "Meaningful conversations and breakthroughs"
+    description: "Meaningful conversations and breakthroughs",
+    iconGradient: "from-violet-500 to-purple-600",
+    cardBorder: "border-violet-100/80",
+    cardAccent: "bg-violet-50/40",
   },
   {
     icon: TrendingUp,
     value: 89,
     suffix: "%",
     label: "Improvement Rate",
-    description: "Users report better mental health"
+    description: "Users report better mental health",
+    iconGradient: "from-emerald-500 to-teal-600",
+    cardBorder: "border-emerald-100/80",
+    cardAccent: "bg-emerald-50/40",
   },
   {
     icon: Heart,
     value: 98,
     suffix: "%",
     label: "Satisfaction Score",
-    description: "Trust and positive feedback from our community"
+    description: "Trust and positive feedback from our community",
+    iconGradient: "from-rose-500 to-pink-600",
+    cardBorder: "border-rose-100/80",
+    cardAccent: "bg-rose-50/40",
   }
 ];
 
@@ -78,19 +90,19 @@ const StatsSection = () => {
           {statistics.map((stat, index) => (
             <motion.div
               key={index}
-              className="text-center group"
+              className={`text-center group ${stat.cardAccent} backdrop-blur-sm rounded-2xl p-8 border ${stat.cardBorder} shadow-sm hover:shadow-md transition-all duration-300`}
               initial={{ opacity: 0, y: 50, scale: 0.8 }}
               animate={sectionInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-              transition={{ 
-                duration: 0.8, 
+              transition={{
+                duration: 0.8,
                 delay: 0.6 + index * 0.1,
                 type: "spring",
                 stiffness: 100
               }}
             >
               {/* Icon Container */}
-              <motion.div 
-                className="mx-auto w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300"
+              <motion.div
+                className={`mx-auto w-20 h-20 bg-gradient-to-r ${stat.iconGradient} rounded-2xl flex items-center justify-center mb-6 shadow-md`}
                 whileHover={{ rotate: 5, scale: 1.1 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
@@ -98,14 +110,14 @@ const StatsSection = () => {
               </motion.div>
 
               {/* Counter */}
-              <motion.div 
+              <motion.div
                 className="text-4xl md:text-5xl font-bold text-gradient mb-2"
                 initial={{ opacity: 0 }}
                 animate={sectionInView ? { opacity: 1 } : {}}
                 transition={{ duration: 0.5, delay: 1 + index * 0.1 }}
               >
-                <AnimatedCounter 
-                  value={stat.value} 
+                <AnimatedCounter
+                  value={stat.value}
                   suffix={stat.suffix}
                   duration={2000 + index * 200}
                 />

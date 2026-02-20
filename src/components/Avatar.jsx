@@ -13,14 +13,89 @@ import { useChat } from "../hooks/useChat";
 
 const facialExpressions = {
   default: {},
+  // Genuine warm smile with Duchenne markers (eye crinkle + cheek raise)
   smile: {
-    browInnerUp: 0.17,
-    eyeSquintLeft: 0.4,
-    eyeSquintRight: 0.44,
-    noseSneerLeft: 0.1700000727403593,
-    noseSneerRight: 0.14000002836874015,
-    mouthPressLeft: 0.61,
-    mouthPressRight: 0.41000000000000003,
+    mouthSmileLeft: 0.65,
+    mouthSmileRight: 0.60,
+    eyeSquintLeft: 0.45,
+    eyeSquintRight: 0.50,
+    cheekSquintLeft: 0.35,
+    cheekSquintRight: 0.35,
+    browInnerUp: 0.12,
+    noseSneerLeft: 0.12,
+    noseSneerRight: 0.10,
+    mouthDimpleLeft: 0.25,
+    mouthDimpleRight: 0.25,
+  },
+  // Gentle, soft smile — for supportive moments
+  gentle: {
+    mouthSmileLeft: 0.35,
+    mouthSmileRight: 0.30,
+    eyeSquintLeft: 0.25,
+    eyeSquintRight: 0.28,
+    browInnerUp: 0.08,
+    mouthDimpleLeft: 0.15,
+    mouthDimpleRight: 0.15,
+    cheekSquintLeft: 0.15,
+    cheekSquintRight: 0.15,
+  },
+  // Thoughtful/thinking — slight brow furrow, looking slightly up
+  thoughtful: {
+    browInnerUp: 0.45,
+    browDownLeft: 0.18,
+    browDownRight: 0.15,
+    eyeSquintLeft: 0.20,
+    eyeSquintRight: 0.18,
+    mouthPressLeft: 0.30,
+    mouthPressRight: 0.25,
+    mouthRollLower: 0.15,
+    jawForward: 0.10,
+  },
+  // Compassionate — warm, empathetic gaze with soft mouth
+  compassionate: {
+    browInnerUp: 0.35,
+    eyeSquintLeft: 0.30,
+    eyeSquintRight: 0.32,
+    mouthSmileLeft: 0.20,
+    mouthSmileRight: 0.18,
+    mouthDimpleLeft: 0.20,
+    mouthDimpleRight: 0.20,
+    cheekSquintLeft: 0.20,
+    cheekSquintRight: 0.20,
+    mouthShrugLower: 0.15,
+  },
+  // Active listening — attentive, slightly raised brows, neutral mouth
+  listening: {
+    browInnerUp: 0.25,
+    eyeWideLeft: 0.12,
+    eyeWideRight: 0.12,
+    mouthClose: 0.05,
+    mouthPressLeft: 0.08,
+    mouthPressRight: 0.08,
+  },
+  // Concerned — furrowed brow, slight frown, showing worry
+  concerned: {
+    browInnerUp: 0.55,
+    browDownLeft: 0.25,
+    browDownRight: 0.25,
+    eyeSquintLeft: 0.30,
+    eyeSquintRight: 0.30,
+    mouthFrownLeft: 0.30,
+    mouthFrownRight: 0.30,
+    mouthPressLeft: 0.20,
+    mouthPressRight: 0.20,
+  },
+  // Hopeful — bright eyes, soft smile, raised brows
+  hopeful: {
+    browInnerUp: 0.40,
+    eyeWideLeft: 0.18,
+    eyeWideRight: 0.18,
+    mouthSmileLeft: 0.40,
+    mouthSmileRight: 0.38,
+    cheekSquintLeft: 0.20,
+    cheekSquintRight: 0.20,
+    mouthDimpleLeft: 0.12,
+    mouthDimpleRight: 0.12,
   },
   funnyFace: {
     jawLeft: 0.63,
@@ -37,22 +112,28 @@ const facialExpressions = {
     mouthSmileRight: 0.35499733688813034,
   },
   sad: {
-    mouthFrownLeft: 1,
-    mouthFrownRight: 1,
-    mouthShrugLower: 0.78341,
-    browInnerUp: 0.452,
-    eyeSquintLeft: 0.72,
-    eyeSquintRight: 0.75,
-    eyeLookDownLeft: 0.5,
-    eyeLookDownRight: 0.5,
-    jawForward: 1,
+    mouthFrownLeft: 0.85,
+    mouthFrownRight: 0.85,
+    mouthShrugLower: 0.60,
+    browInnerUp: 0.55,
+    browDownLeft: 0.15,
+    browDownRight: 0.15,
+    eyeSquintLeft: 0.50,
+    eyeSquintRight: 0.55,
+    eyeLookDownLeft: 0.35,
+    eyeLookDownRight: 0.35,
+    jawForward: 0.20,
+    mouthPressLeft: 0.20,
+    mouthPressRight: 0.20,
   },
   surprised: {
-    eyeWideLeft: 0.5,
-    eyeWideRight: 0.5,
-    jawOpen: 0.351,
-    mouthFunnel: 1,
-    browInnerUp: 1,
+    eyeWideLeft: 0.60,
+    eyeWideRight: 0.60,
+    jawOpen: 0.40,
+    mouthFunnel: 0.65,
+    browInnerUp: 0.85,
+    browOuterUpLeft: 0.60,
+    browOuterUpRight: 0.60,
   },
   angry: {
     browDownLeft: 1,
@@ -92,6 +173,18 @@ const facialExpressions = {
   },
 };
 
+// Viseme intensities and jaw coupling — each viseme has a natural intensity and how much the jaw opens
+const visemeConfig = {
+  viseme_PP: { intensity: 0.85, jawOpen: 0.0,  cheek: 0.0  },   // p, b, m — lips pressed
+  viseme_kk: { intensity: 0.70, jawOpen: 0.12, cheek: 0.05 },   // k, g, t, d — teeth close
+  viseme_I:  { intensity: 0.80, jawOpen: 0.25, cheek: 0.10 },   // i, ee — open mouth
+  viseme_AA: { intensity: 0.90, jawOpen: 0.50, cheek: 0.05 },   // a, aa — wide open
+  viseme_O:  { intensity: 0.85, jawOpen: 0.35, cheek: 0.0  },   // o — rounded
+  viseme_U:  { intensity: 0.80, jawOpen: 0.15, cheek: 0.0  },   // u, oo — puckered
+  viseme_FF: { intensity: 0.75, jawOpen: 0.08, cheek: 0.0  },   // f, v — teeth-lip
+  viseme_TH: { intensity: 0.70, jawOpen: 0.18, cheek: 0.0  },   // th, l — tongue
+};
+
 const corresponding = {
   A: "viseme_PP",   // Closed mouth (p, b, m)
   B: "viseme_kk",   // Clenched teeth
@@ -111,6 +204,50 @@ export function Avatar(props) {
     "/models/68c43859d830ce77ae036e51.glb"
   );
 
+  useEffect(() => {
+    const enhanceSkinTone = (material, saturationBoost, lightnessShift, hueShift = 0) => {
+      if (!material?.color) return;
+      const hsl = { h: 0, s: 0, l: 0 };
+      material.color.getHSL(hsl);
+      material.color.setHSL(
+        Math.max(0, Math.min(1, hsl.h + hueShift)),          // Shift hue slightly warmer
+        Math.max(0, Math.min(1, hsl.s * saturationBoost)),    // Boost saturation for richer tone
+        Math.max(0, Math.min(1, hsl.l + lightnessShift))      // Darken slightly for deeper skin
+      );
+      material.roughness = 0.55;       // Smoother, more realistic skin surface
+      material.metalness = 0.02;       // Very subtle metallic sheen
+      material.envMapIntensity = 0.8;  // Picks up environment reflections
+      material.needsUpdate = true;
+    };
+
+    // Deeper, warmer Indian skin tone: boost saturation, slight warm hue shift, slightly darker
+    enhanceSkinTone(materials.Wolf3D_Skin, 1.35, -0.06, -0.008);
+    enhanceSkinTone(materials.Wolf3D_Body, 1.25, -0.04, -0.005);
+
+    // Enhance eye material for more lifelike appearance
+    if (materials.Wolf3D_Eye) {
+      materials.Wolf3D_Eye.roughness = 0.1;
+      materials.Wolf3D_Eye.metalness = 0.05;
+      materials.Wolf3D_Eye.envMapIntensity = 1.5;
+      materials.Wolf3D_Eye.needsUpdate = true;
+    }
+
+    // Whiter, cleaner teeth
+    if (materials.Wolf3D_Teeth) {
+      materials.Wolf3D_Teeth.roughness = 0.3;
+      materials.Wolf3D_Teeth.metalness = 0.0;
+      materials.Wolf3D_Teeth.needsUpdate = true;
+    }
+
+    // Richer hair material
+    if (materials.Wolf3D_Hair) {
+      materials.Wolf3D_Hair.roughness = 0.45;
+      materials.Wolf3D_Hair.metalness = 0.08;
+      materials.Wolf3D_Hair.envMapIntensity = 0.6;
+      materials.Wolf3D_Hair.needsUpdate = true;
+    }
+  }, [materials]);
+
   const { message, onMessagePlayed, chat } = useChat();
 
   const [lipsync, setLipsync] = useState();
@@ -125,18 +262,18 @@ export function Avatar(props) {
       setPlaybackTime(0);
       return;
     }
-    
+
     setAnimation(message.animation || "Talking_0");
     setFacialExpression(message.facialExpression || "default");
     setLipsync(message.lipsync);
     setPlaybackTime(0);
     setIsPlaying(true);
-    
+
     // Analyze text for head movements and micro-expressions
     if (message.text) {
       analyzeTextForMovements(message.text);
     }
-    
+
     // Handle audio playback if available
     if (message.audio && typeof message.audio === 'string') {
       console.log('🔊 [Avatar] Playing audio');
@@ -147,7 +284,7 @@ export function Avatar(props) {
         const isWav = message.audio.startsWith('UklGR');
         const audioMimeType = isWav ? 'audio/wav' : 'audio/mp3';
         console.log('🎵 [Avatar] Detected audio format:', audioMimeType);
-        
+
         const audio = new Audio(`data:${audioMimeType};base64,` + message.audio);
         audio.play().catch(err => {
           console.error('❌ [Avatar] Audio playback failed:', err);
@@ -172,19 +309,19 @@ export function Avatar(props) {
       simulatePlaybackDuration();
     }
   }, [message]);
-  
+
   // Simulate playback duration based on text length
   const simulatePlaybackDuration = () => {
     if (!message || !message.lipsync) return;
-    
+
     // Calculate duration from lipsync data
     const mouthCues = message.lipsync.mouthCues || [];
-    const duration = mouthCues.length > 0 
-      ? mouthCues[mouthCues.length - 1].end 
+    const duration = mouthCues.length > 0
+      ? mouthCues[mouthCues.length - 1].end
       : message.text.length * 0.08; // Fallback: 80ms per character
-    
+
     console.log(`⏱️ [Avatar] Simulated duration: ${duration.toFixed(2)}s for ${message.text.length} chars`);
-    
+
     setTimeout(() => {
       console.log('✅ [Avatar] Simulated playback complete');
       setIsPlaying(false);
@@ -195,34 +332,110 @@ export function Avatar(props) {
   const { animations } = useGLTF("/models/animations.glb");
 
   const group = useRef();
-  
-  // Analyze text for head movements and micro-expressions
+
+  // Analyze text for head movements, micro-expressions, and speech emphasis
   const analyzeTextForMovements = (text) => {
-    console.log('🧠 [Avatar] Analyzing text for movements:', text?.substring(0, 50));
-    
-    if (!text) {
-      console.warn('⚠️ [Avatar] No text provided for movement analysis');
-      return;
-    }
-    
-    // Check for questions (eyebrow raise + head tilt up)
-    if (text.includes('?')) {
-      console.log('❓ [Avatar] Question detected - tilting head up + eyebrow raise');
-      headRef.current.pitch = 0.08; // Slight upward tilt
-      microExpressionRef.current.active = true;
-      microExpressionRef.current.endTime = Date.now() + 300; // 0.3s duration
-    }
-    // Check for statements (slight nod down)
-    else if (text.includes('.') || text.includes('!')) {
-      console.log('💬 [Avatar] Statement detected - nodding head down');
-      headRef.current.pitch = -0.05; // Slight downward nod
-    }
-    
-    // Reset head movement after duration
-    setTimeout(() => {
-      headRef.current.pitch = 0;
-      headRef.current.roll = 0;
-    }, 800);
+    if (!text) return;
+
+    const microQueue = [];
+    const lowerText = text.toLowerCase();
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    let timeOffset = 0;
+    const avgCharDuration = 0.065; // ~65ms per character for timing estimation
+
+    sentences.forEach((sentence) => {
+      const sentenceDuration = sentence.length * avgCharDuration;
+      const sentenceLower = sentence.toLowerCase();
+
+      // Questions — eyebrow raise + head tilt up
+      if (sentence.includes('?')) {
+        microQueue.push({
+          time: timeOffset + sentenceDuration * 0.6,
+          type: 'browRaise',
+          intensity: 0.55,
+          duration: 600,
+          headPitch: 0.08,
+        });
+      }
+
+      // Exclamations — emphasis with brow flash + slight head forward
+      if (sentence.includes('!')) {
+        microQueue.push({
+          time: timeOffset + sentenceDuration * 0.3,
+          type: 'emphasis',
+          intensity: 0.6,
+          duration: 400,
+          headPitch: -0.06,
+        });
+      }
+
+      // Empathy/comfort phrases — soft squint + gentle nod
+      const empathyPhrases = ['i understand', 'i hear you', 'that must be', 'it\'s okay', 'you\'re not alone', 'i\'m here', 'it makes sense', 'that sounds'];
+      if (empathyPhrases.some(p => sentenceLower.includes(p))) {
+        microQueue.push({
+          time: timeOffset + sentenceDuration * 0.4,
+          type: 'empathy',
+          intensity: 0.4,
+          duration: 800,
+          headPitch: -0.04,
+        });
+      }
+
+      // Affirmations — nodding
+      const affirmPhrases = ['yes', 'absolutely', 'exactly', 'of course', 'definitely', 'right', 'correct', 'true'];
+      if (affirmPhrases.some(p => sentenceLower.includes(p))) {
+        microQueue.push({
+          time: timeOffset + sentenceDuration * 0.2,
+          type: 'nod',
+          intensity: 0.5,
+          duration: 500,
+          headPitch: -0.07,
+        });
+      }
+
+      // Thinking/suggesting — slight brow furrow + head tilt
+      const thinkPhrases = ['maybe', 'perhaps', 'consider', 'think about', 'what if', 'let\'s try', 'how about'];
+      if (thinkPhrases.some(p => sentenceLower.includes(p))) {
+        microQueue.push({
+          time: timeOffset + sentenceDuration * 0.3,
+          type: 'think',
+          intensity: 0.45,
+          duration: 700,
+          headPitch: 0.03,
+          headRoll: 0.04,
+        });
+      }
+
+      timeOffset += sentenceDuration + 0.15; // Gap between sentences
+    });
+
+    // Schedule micro-expressions from the queue
+    microExpressionRef.current.queue = microQueue;
+    microQueue.forEach((micro) => {
+      setTimeout(() => {
+        microExpressionRef.current.active = true;
+        microExpressionRef.current.type = micro.type;
+        microExpressionRef.current.intensity = micro.intensity;
+        microExpressionRef.current.endTime = Date.now() + micro.duration;
+        if (micro.headPitch !== undefined) headRef.current.pitch = micro.headPitch;
+        if (micro.headRoll !== undefined) headRef.current.roll = micro.headRoll;
+      }, micro.time * 1000);
+    });
+
+    // Generate emphasis points for head movement variation
+    const words = text.split(' ');
+    const emphasisPoints = [];
+    let wordTime = 0;
+    words.forEach((word) => {
+      const wordDuration = word.length * avgCharDuration;
+      // Emphasize longer words and capitalized words
+      if (word.length > 6 || (word[0] && word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase())) {
+        emphasisPoints.push(wordTime + wordDuration * 0.3);
+      }
+      wordTime += wordDuration + 0.06;
+    });
+    speechEmphasisRef.current.emphasisPoints = emphasisPoints;
+    speechEmphasisRef.current.currentIndex = 0;
   };
   const { actions, mixer } = useAnimations(animations, group);
   const [animation, setAnimation] = useState(
@@ -257,7 +470,7 @@ export function Avatar(props) {
             set({
               [target]: value,
             });
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     });
@@ -268,19 +481,31 @@ export function Avatar(props) {
   const [winkRight, setWinkRight] = useState(false);
   const [facialExpression, setFacialExpression] = useState("");
   const [audio, setAudio] = useState();
-  
+
   // ===== NATURAL EYE MOVEMENT SYSTEM =====
   const [eyeTarget, setEyeTarget] = useState({ x: 0, y: 0 });
   const eyeRef = useRef({ currentX: 0, currentY: 0, nextChangeTime: 0 });
-  
+
   // ===== IDLE BREATHING SYSTEM =====
   const breathingRef = useRef({ time: 0 });
-  
+
   // ===== HEAD MOVEMENT SYSTEM =====
   const headRef = useRef({ pitch: 0, yaw: 0, roll: 0, yawTime: 0 });
-  
+
   // ===== MICRO-EXPRESSIONS SYSTEM =====
-  const microExpressionRef = useRef({ active: false, endTime: 0 });
+  const microExpressionRef = useRef({
+    active: false,
+    endTime: 0,
+    type: 'browRaise',       // browRaise | nod | empathy | emphasis
+    intensity: 0.5,
+    queue: [],               // Queue of scheduled micro-expressions
+  });
+
+  // ===== SPEECH EMPHASIS SYSTEM =====
+  const speechEmphasisRef = useRef({
+    emphasisPoints: [],      // Timestamps where emphasis occurs
+    currentIndex: 0,
+  });
 
   useFrame((state, delta) => {
     // ===== FACIAL EXPRESSIONS =====
@@ -295,32 +520,38 @@ export function Avatar(props) {
           return;
         }
         if (mapping && mapping[key]) {
-          lerpMorphTarget(key, mapping[key], 0.1);
+          // Variable lerp: brows move faster (0.15), mouth moves smoothly (0.08), cheeks are slow (0.06)
+          const speed = key.startsWith("brow") ? 0.15
+            : key.startsWith("mouth") ? 0.08
+            : key.startsWith("cheek") || key.startsWith("nose") ? 0.06
+            : 0.10;
+          lerpMorphTarget(key, mapping[key], speed);
         } else {
-          lerpMorphTarget(key, 0, 0.1);
+          // Slower fade-out for natural transitions (0.06 instead of 0.1)
+          lerpMorphTarget(key, 0, 0.06);
         }
       });
 
     lerpMorphTarget("eyeBlinkLeft", blink || winkLeft ? 1 : 0, 0.5);
     lerpMorphTarget("eyeBlinkRight", blink || winkRight ? 1 : 0, 0.5);
-    
+
     // ===== NATURAL EYE MOVEMENT =====
     if (!setupMode) {
       const currentTime = state.clock.elapsedTime;
-      
+
       // Generate new eye target every 2-4 seconds
       if (currentTime >= eyeRef.current.nextChangeTime) {
         const horizontalRange = 0.3; // ~15-20 degrees
         const verticalRange = 0.2;   // ~10-15 degrees
-        
+
         setEyeTarget({
           x: (Math.random() - 0.5) * horizontalRange,
           y: (Math.random() - 0.5) * verticalRange
         });
-        
+
         eyeRef.current.nextChangeTime = currentTime + THREE.MathUtils.randFloat(2, 4);
       }
-      
+
       // Smooth interpolation to target (Perlin-like smoothness)
       eyeRef.current.currentX = THREE.MathUtils.lerp(
         eyeRef.current.currentX,
@@ -332,7 +563,7 @@ export function Avatar(props) {
         eyeTarget.y,
         0.05
       );
-      
+
       // Apply to eye morph targets (with safe fallback)
       try {
         lerpMorphTarget("eyeLookOutLeft", Math.max(0, -eyeRef.current.currentX), 0.1);
@@ -351,15 +582,15 @@ export function Avatar(props) {
         }
       }
     }
-    
+
     // ===== IDLE BREATHING ANIMATION =====
     if (!setupMode && group.current) {
       breathingRef.current.time += delta;
-      
+
       // Breathing: 12 breaths/min = 0.2Hz = 5 second period
       const breathingCycle = Math.sin(breathingRef.current.time * 0.2 * Math.PI * 2);
       const breathingAmount = 0.007; // 0.5-1% scale change
-      
+
       // Apply to chest/spine (Hips node for simplicity)
       if (nodes.Hips) {
         // Store original scale if not already stored
@@ -375,48 +606,112 @@ export function Avatar(props) {
         }
       }
     }
-    
+
     // ===== HEAD MOVEMENT SYSTEM =====
     if (!setupMode && group.current && isPlaying) {
-      // Gentle yaw (side-to-side) during talking using Perlin-like noise
       headRef.current.yawTime += delta;
-      const yawNoise = Math.sin(headRef.current.yawTime * 0.5) * Math.cos(headRef.current.yawTime * 0.3);
-      headRef.current.yaw = yawNoise * 0.08; // ±5-10 degrees
-      
-      // Combine roll with yaw for natural emphasis
-      headRef.current.roll = yawNoise * 0.03; // Slight tilt
-      
-      // Apply head rotation
+
+      // Multi-frequency noise for more organic head motion
+      const yawSlow = Math.sin(headRef.current.yawTime * 0.4) * 0.06;
+      const yawFast = Math.sin(headRef.current.yawTime * 1.1) * Math.cos(headRef.current.yawTime * 0.7) * 0.03;
+      headRef.current.yaw = yawSlow + yawFast; // Layered movement
+
+      // Roll (head tilt) slightly follows yaw for natural coupling
+      const rollSlow = Math.cos(headRef.current.yawTime * 0.35) * 0.035;
+      headRef.current.roll = rollSlow + yawFast * 0.4;
+
+      // Apply head rotation with smooth interpolation
       if (nodes.Head) {
-        nodes.Head.rotation.x = THREE.MathUtils.lerp(nodes.Head.rotation.x, headRef.current.pitch, 0.1);
-        nodes.Head.rotation.y = THREE.MathUtils.lerp(nodes.Head.rotation.y, headRef.current.yaw, 0.08);
-        nodes.Head.rotation.z = THREE.MathUtils.lerp(nodes.Head.rotation.z, headRef.current.roll, 0.08);
-      } else {
-        console.warn('⚠️ [Avatar] nodes.Head not found - head movements disabled');
+        nodes.Head.rotation.x = THREE.MathUtils.lerp(nodes.Head.rotation.x, headRef.current.pitch, 0.12);
+        nodes.Head.rotation.y = THREE.MathUtils.lerp(nodes.Head.rotation.y, headRef.current.yaw, 0.10);
+        nodes.Head.rotation.z = THREE.MathUtils.lerp(nodes.Head.rotation.z, headRef.current.roll, 0.10);
       }
     } else if (!setupMode && group.current && nodes.Head) {
-      // Return to neutral when idle
-      nodes.Head.rotation.x = THREE.MathUtils.lerp(nodes.Head.rotation.x, 0, 0.05);
-      nodes.Head.rotation.y = THREE.MathUtils.lerp(nodes.Head.rotation.y, 0, 0.05);
-      nodes.Head.rotation.z = THREE.MathUtils.lerp(nodes.Head.rotation.z, 0, 0.05);
+      // Idle: very subtle gentle sway (alive, not frozen)
+      headRef.current.yawTime += delta;
+      const idleSway = Math.sin(headRef.current.yawTime * 0.15) * 0.015;
+      const idleTilt = Math.cos(headRef.current.yawTime * 0.12) * 0.008;
+
+      nodes.Head.rotation.x = THREE.MathUtils.lerp(nodes.Head.rotation.x, headRef.current.pitch, 0.05);
+      nodes.Head.rotation.y = THREE.MathUtils.lerp(nodes.Head.rotation.y, idleSway, 0.03);
+      nodes.Head.rotation.z = THREE.MathUtils.lerp(nodes.Head.rotation.z, idleTilt, 0.03);
     }
-    
+
     // ===== MICRO-EXPRESSIONS =====
     if (!setupMode && microExpressionRef.current.active) {
-      // Eyebrow raise on questions (quick 0.3s transition)
-      // Only apply if not overridden by facial expression preset
       const currentFacialExp = facialExpressions[facialExpression];
-      const hasExistingBrowValue = currentFacialExp && currentFacialExp.browInnerUp !== undefined;
-      
-      if (Date.now() < microExpressionRef.current.endTime) {
-        if (!hasExistingBrowValue) {
-          lerpMorphTarget("browInnerUp", 0.5, 0.3);
+      const micro = microExpressionRef.current;
+      const timeRemaining = micro.endTime - Date.now();
+      const isActive = timeRemaining > 0;
+
+      if (isActive) {
+        // Fade envelope for micro-expression (quick in, smooth out)
+        const totalDuration = micro.endTime - (micro.endTime - Math.max(timeRemaining, 0));
+        const fadeOut = Math.min(1, timeRemaining / 200); // Fade over last 200ms
+        const intensity = micro.intensity * fadeOut;
+
+        switch (micro.type) {
+          case 'browRaise':
+            if (!currentFacialExp?.browInnerUp) {
+              lerpMorphTarget("browInnerUp", intensity, 0.35);
+            }
+            break;
+
+          case 'emphasis':
+            if (!currentFacialExp?.browInnerUp) {
+              lerpMorphTarget("browInnerUp", intensity * 0.7, 0.4);
+            }
+            lerpMorphTarget("eyeWideLeft", intensity * 0.25, 0.3);
+            lerpMorphTarget("eyeWideRight", intensity * 0.25, 0.3);
+            break;
+
+          case 'empathy':
+            lerpMorphTarget("eyeSquintLeft", intensity * 0.4, 0.2);
+            lerpMorphTarget("eyeSquintRight", intensity * 0.4, 0.2);
+            if (!currentFacialExp?.mouthSmileLeft) {
+              lerpMorphTarget("mouthSmileLeft", intensity * 0.2, 0.15);
+              lerpMorphTarget("mouthSmileRight", intensity * 0.2, 0.15);
+            }
+            break;
+
+          case 'nod':
+            // Nod is handled via headRef.current.pitch — just add subtle brow movement
+            if (!currentFacialExp?.browInnerUp) {
+              lerpMorphTarget("browInnerUp", intensity * 0.25, 0.2);
+            }
+            break;
+
+          case 'think':
+            if (!currentFacialExp?.browDownLeft) {
+              lerpMorphTarget("browDownLeft", intensity * 0.3, 0.2);
+              lerpMorphTarget("browDownRight", intensity * 0.25, 0.2);
+            }
+            lerpMorphTarget("mouthPressLeft", intensity * 0.2, 0.15);
+            break;
         }
-        // Skip micro-expression if facial expression already controls eyebrows
       } else {
-        microExpressionRef.current.active = false;
-        if (!hasExistingBrowValue) {
-          lerpMorphTarget("browInnerUp", 0, 0.2);
+        micro.active = false;
+        // Gentle fade-out of micro-expression residuals
+        if (!currentFacialExp?.browInnerUp) lerpMorphTarget("browInnerUp", 0, 0.15);
+        lerpMorphTarget("eyeWideLeft", 0, 0.1);
+        lerpMorphTarget("eyeWideRight", 0, 0.1);
+        // Reset head to neutral gradually
+        headRef.current.pitch *= 0.9;
+        headRef.current.roll *= 0.9;
+      }
+    }
+
+    // ===== SPEECH EMPHASIS HEAD BOBBING =====
+    if (!setupMode && isPlaying && speechEmphasisRef.current.emphasisPoints.length > 0) {
+      const currentTime = audio ? audio.currentTime : playbackTime;
+      const emphasis = speechEmphasisRef.current;
+      if (emphasis.currentIndex < emphasis.emphasisPoints.length) {
+        const nextPoint = emphasis.emphasisPoints[emphasis.currentIndex];
+        if (currentTime >= nextPoint) {
+          // Quick head dip on emphasized words
+          headRef.current.pitch = -0.04;
+          setTimeout(() => { headRef.current.pitch = 0; }, 250);
+          emphasis.currentIndex++;
         }
       }
     }
@@ -425,17 +720,23 @@ export function Avatar(props) {
     if (setupMode) {
       return;
     }
-    
+
     // Update playback time for timer-based lip-sync
     if (isPlaying && !audio) {
-      setPlaybackTime(prev => prev + 0.016); // ~60fps increment
+      setPlaybackTime(prev => prev + delta); // Use actual delta for accurate timing
     }
 
     const appliedMorphTargets = [];
+    let currentJawOpen = 0;
+    let currentCheek = 0;
+
     if (message && lipsync && lipsync.mouthCues && Array.isArray(lipsync.mouthCues)) {
-      // Use audio time if available, otherwise use playback timer
       const currentTime = audio ? audio.currentTime : playbackTime;
-      
+
+      // Find current and next viseme for coarticulation blending
+      let currentCue = null;
+      let nextCue = null;
+
       for (let i = 0; i < lipsync.mouthCues.length; i++) {
         const mouthCue = lipsync.mouthCues[i];
         if (
@@ -446,21 +747,71 @@ export function Avatar(props) {
           currentTime >= mouthCue.start &&
           currentTime <= mouthCue.end
         ) {
-          const viseme = corresponding[mouthCue.value];
-          if (viseme) {
-            appliedMorphTargets.push(viseme);
-            lerpMorphTarget(viseme, 1, 0.35);
-            break;
+          currentCue = mouthCue;
+          nextCue = lipsync.mouthCues[i + 1] || null;
+          break;
+        }
+      }
+
+      if (currentCue) {
+        const viseme = corresponding[currentCue.value];
+        if (viseme) {
+          const config = visemeConfig[viseme] || { intensity: 0.8, jawOpen: 0.2, cheek: 0 };
+          const cueDuration = currentCue.end - currentCue.start;
+          const cueProgress = (currentTime - currentCue.start) / cueDuration;
+
+          // Intensity envelope: quick attack (0-20%), sustain (20-70%), smooth release (70-100%)
+          let envelope = 1.0;
+          if (cueProgress < 0.2) {
+            envelope = cueProgress / 0.2; // Attack
+          } else if (cueProgress > 0.7) {
+            envelope = 1.0 - ((cueProgress - 0.7) / 0.3) * 0.4; // Partial release
+          }
+
+          const intensity = config.intensity * envelope;
+
+          appliedMorphTargets.push(viseme);
+          lerpMorphTarget(viseme, intensity, 0.4);
+
+          // Jaw coupling — open jaw proportional to viseme
+          currentJawOpen = config.jawOpen * envelope;
+
+          // Cheek motion for wide vowels
+          currentCheek = config.cheek * envelope;
+
+          // Coarticulation: blend toward next viseme during release phase
+          if (nextCue && cueProgress > 0.6) {
+            const nextViseme = corresponding[nextCue.value];
+            if (nextViseme && nextViseme !== viseme) {
+              const blendAmount = (cueProgress - 0.6) / 0.4; // 0 to 1 during last 40%
+              const nextConfig = visemeConfig[nextViseme] || { intensity: 0.8, jawOpen: 0.2, cheek: 0 };
+              lerpMorphTarget(nextViseme, nextConfig.intensity * blendAmount * 0.5, 0.25);
+              appliedMorphTargets.push(nextViseme);
+
+              // Blend jaw toward next shape
+              currentJawOpen = THREE.MathUtils.lerp(currentJawOpen, nextConfig.jawOpen, blendAmount * 0.4);
+            }
           }
         }
       }
     }
 
+    // Apply jaw movement coupled with lip-sync
+    if (isPlaying) {
+      lerpMorphTarget("jawOpen", currentJawOpen, 0.3);
+      // Subtle cheek movement during speech
+      lerpMorphTarget("cheekSquintLeft", currentCheek * 0.5, 0.15);
+      lerpMorphTarget("cheekSquintRight", currentCheek * 0.5, 0.15);
+    } else {
+      lerpMorphTarget("jawOpen", 0, 0.15);
+    }
+
+    // Fade out inactive visemes — faster cleanup to prevent ghosting
     Object.values(corresponding).forEach((value) => {
       if (appliedMorphTargets.includes(value)) {
         return;
       }
-      lerpMorphTarget(value, 0, 0.1);
+      lerpMorphTarget(value, 0, 0.25); // Faster fade-out (was 0.1)
     });
   });
 
@@ -497,7 +848,7 @@ export function Avatar(props) {
         }
         const value =
           nodes.EyeLeft.morphTargetInfluences[
-            nodes.EyeLeft.morphTargetDictionary[key]
+          nodes.EyeLeft.morphTargetDictionary[key]
           ];
         if (value > 0.01) {
           emotionValues[key] = value;
@@ -533,20 +884,38 @@ export function Avatar(props) {
   useEffect(() => {
     let blinkTimeout;
     const nextBlink = () => {
+      // Blink faster during talking (people blink more when speaking)
+      const minInterval = isPlaying ? 800 : 1500;
+      const maxInterval = isPlaying ? 3500 : 5500;
+
       blinkTimeout = setTimeout(() => {
         setBlink(true);
+        const blinkDuration = THREE.MathUtils.randInt(120, 220); // Variable blink speed
+
         setTimeout(() => {
           setBlink(false);
-          nextBlink();
-        }, 200);
-      }, THREE.MathUtils.randInt(1000, 5000));
+
+          // 25% chance of a double-blink (natural human pattern)
+          if (Math.random() < 0.25) {
+            setTimeout(() => {
+              setBlink(true);
+              setTimeout(() => {
+                setBlink(false);
+                nextBlink();
+              }, 100); // Second blink is faster
+            }, 120); // Short gap between double blinks
+          } else {
+            nextBlink();
+          }
+        }, blinkDuration);
+      }, THREE.MathUtils.randInt(minInterval, maxInterval));
     };
     nextBlink();
     return () => clearTimeout(blinkTimeout);
-  }, []);
+  }, [isPlaying]);
 
   return (
-    <group dispose={null} ref={group} position={[-0.09, 0.29, 0]} scale={0.88}  rotation={[0, 0.2, 0]}>
+    <group dispose={null} ref={group} position={[-0.09, 0.29, 0]} scale={0.88} rotation={[0, 0.2, 0]}>
       <primitive object={nodes.Hips} />
       <skinnedMesh
         name="Wolf3D_Body"

@@ -50,6 +50,63 @@ const quickCategories = [
   { label: "Therapy", icon: "💬", color: "bg-indigo-100 text-indigo-800" },
 ];
 
+// Real-time transcription component — reveals text word by word
+const TypewriterText = ({
+  text,
+  speed = 350,
+  onComplete,
+  className,
+  maxVisibleWords,
+}: {
+  text: string;
+  speed?: number;
+  onComplete?: () => void;
+  className?: string;
+  maxVisibleWords?: number;
+}) => {
+  const [visibleCount, setVisibleCount] = useState(0);
+  const wordsRef = useRef<string[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  useEffect(() => {
+    wordsRef.current = text.split(' ');
+    setVisibleCount(0);
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    let count = 0;
+    intervalRef.current = setInterval(() => {
+      count++;
+      setVisibleCount(count);
+      if (count >= wordsRef.current.length) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        onCompleteRef.current?.();
+      }
+    }, speed);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [text, speed]);
+
+  const allVisible = wordsRef.current.slice(0, visibleCount);
+  const displayedWords = maxVisibleWords ? allVisible.slice(-maxVisibleWords) : allVisible;
+  const displayedText = displayedWords.join(' ');
+  const isComplete = visibleCount >= wordsRef.current.length;
+
+  return (
+    <span className={className}>
+      {displayedText}
+      {!isComplete && (
+        <span className="inline-block w-[2px] h-[1em] bg-blue-500 dark:bg-blue-400 ml-1 animate-pulse align-middle" />
+      )}
+    </span>
+  );
+};
+
 const ChatGPTInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -58,6 +115,7 @@ const ChatGPTInterface = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [recentChats, setRecentChats] = useState<Array<{ id: string, title: string, created_at: string, messageCount: number }>>([]);
+  const [transcribingMsgId, setTranscribingMsgId] = useState<string | null>(null);
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const { user } = useAuth();
@@ -66,7 +124,10 @@ const ChatGPTInterface = () => {
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { isAvatarVisible, toggleAvatar, closeAvatar, addAvatarMessage, clearAvatarMessages } = useChat();
+  const voiceSilenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTranscriptRef = useRef('');
+  const isAutoStoppingRef = useRef(false);
+  const { isAvatarVisible, toggleAvatar, closeAvatar, addAvatarMessage, clearAvatarMessages, message: avatarCurrentMessage } = useChat();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -133,6 +194,66 @@ const ChatGPTInterface = () => {
       ));
     }
   }, [isRecording, currentTranscript, voiceTempMsgId]);
+
+  const clearVoiceSilenceTimer = () => {
+    if (voiceSilenceTimeoutRef.current) {
+      clearTimeout(voiceSilenceTimeoutRef.current);
+      voiceSilenceTimeoutRef.current = null;
+    }
+  };
+
+  const clearVoiceTempMessage = () => {
+    if (voiceTempMsgId) {
+      setMessages(msgs => msgs.filter(m => m.id !== voiceTempMsgId));
+      setVoiceTempMsgId(null);
+    }
+  };
+
+  const stopVoiceRecordingAndSend = async () => {
+    if (!isRecording || isAutoStoppingRef.current) return;
+
+    isAutoStoppingRef.current = true;
+    try {
+      const result = await toggleRecording(currentSessionId || undefined, voiceTempMsgId || undefined);
+      clearVoiceTempMessage();
+
+      if (result?.transcript) {
+        await handleSendMessage(result.transcript);
+      }
+    } finally {
+      isAutoStoppingRef.current = false;
+      clearVoiceSilenceTimer();
+      lastTranscriptRef.current = '';
+    }
+  };
+
+  useEffect(() => {
+    if (!isRecording || !isAvatarVisible) {
+      clearVoiceSilenceTimer();
+      lastTranscriptRef.current = '';
+      return;
+    }
+
+    const transcript = currentTranscript.trim();
+    if (!transcript || transcript === lastTranscriptRef.current) return;
+
+    lastTranscriptRef.current = transcript;
+    clearVoiceSilenceTimer();
+
+    voiceSilenceTimeoutRef.current = setTimeout(() => {
+      stopVoiceRecordingAndSend();
+    }, 1500);
+
+    return () => {
+      clearVoiceSilenceTimer();
+    };
+  }, [isRecording, isAvatarVisible, currentTranscript, currentSessionId, voiceTempMsgId]);
+
+  useEffect(() => {
+    return () => {
+      clearVoiceSilenceTimer();
+    };
+  }, []);
 
   const saveMessage = async (message: Message, sessionId: string) => {
     try {
@@ -398,6 +519,11 @@ const ChatGPTInterface = () => {
 
       console.log(`AI Response: ${aiResponse.content}`);
 
+      // Mark for real-time transcription if avatar is visible
+      if (isAvatarVisible) {
+        setTranscribingMsgId(aiResponse.id);
+      }
+
       // ✅ Always queue message - avatar will play when opened
       console.log('🎭 [Chat] Queueing AI response for avatar (will play when opened)');
       console.log('🎭 [Chat] Backend data contains:', {
@@ -446,19 +572,12 @@ const ChatGPTInterface = () => {
       console.log('🎤 [UI] About to call toggleRecording...');
 
       if (isRecording) {
-        // Stop recording and process result
-        const result = await toggleRecording(currentSessionId, voiceTempMsgId || undefined);
-        console.log('🎤 [UI] Received result from stopping recording:', result);
-        if (voiceTempMsgId) {
-          setMessages(msgs => msgs.filter(m => m.id !== voiceTempMsgId));
-          setVoiceTempMsgId(null);
-        }
-        if (result && result.transcript) {
-          await handleSendMessage(result.transcript);
-        }
+        await stopVoiceRecordingAndSend();
       } else {
         // Start recording
         console.log('🎤 [UI] Starting recording...');
+        clearVoiceSilenceTimer();
+        lastTranscriptRef.current = '';
         // Add temporary message
         const tempId = `voice-${Date.now()}`;
         setVoiceTempMsgId(tempId);
@@ -694,10 +813,10 @@ const ChatGPTInterface = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.show_greeting && data.greeting) {
         console.log(`✅ Got greeting: "${data.greeting}" (${data.language_used}, ${data.time_slot})`);
-        
+
         // Add greeting as first AI message
         const greetingMessage: Message = {
           id: crypto.randomUUID(),
@@ -705,9 +824,9 @@ const ChatGPTInterface = () => {
           sender: 'ai',
           timestamp: new Date()
         };
-        
+
         setMessages([greetingMessage]);
-        
+
         // Also add to avatar if visible
         if (isAvatarVisible) {
           addAvatarMessage({
@@ -807,8 +926,8 @@ const ChatGPTInterface = () => {
                           variant="ghost"
                           disabled={loadingSession}
                           className={`w-full text-left p-2 transition-all duration-300 text-xs hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 group relative border ${currentSessionId === chat.id
-                              ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-500/50 text-white shadow-lg'
-                              : 'border-transparent text-gray-300 hover:text-white hover:border-gray-700 hover:scale-[1.02]'
+                            ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-500/50 text-white shadow-lg'
+                            : 'border-transparent text-gray-300 hover:text-white hover:border-gray-700 hover:scale-[1.02]'
                             } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
                           onClick={() => selectRecentChat(chat.id)}
                         >
@@ -960,7 +1079,10 @@ const ChatGPTInterface = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => toggleAvatar()}
+                onClick={() => {
+                  toggleAvatar();
+                  if (isAvatarVisible) setTranscribingMsgId(null); // Clear transcription when hiding avatar
+                }}
                 className={`
                   group relative overflow-hidden transition-all duration-300
                   ${isAvatarVisible
@@ -1036,8 +1158,29 @@ const ChatGPTInterface = () => {
         {/* Messages Area with Animations - Conditional 50-50 split */}
         <div className={`grid grid-rows-1 h-[80%] ${isAvatarVisible ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {isAvatarVisible && (
-            <div className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700">
+            <div className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
               <GirlAvatar />
+              {/* Real-time transcription subtitle overlay */}
+              <AnimatePresence>
+                {avatarCurrentMessage?.text && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none z-10"
+                  >
+                    <div className="bg-black/70 backdrop-blur-md rounded-xl px-4 py-3 mx-2 max-h-24 overflow-hidden">
+                      <TypewriterText
+                        text={avatarCurrentMessage.text}
+                        speed={350}
+                        maxVisibleWords={12}
+                        className="text-white text-sm font-medium leading-relaxed drop-shadow-lg"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
           <div className="flex-1 overflow-y-scroll bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
@@ -1071,19 +1214,30 @@ const ChatGPTInterface = () => {
                               transition={{ delay: 0.2 }}
                               className="prose prose-sm max-w-none dark:prose-invert"
                             >
-                              <div
-                                className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm p-4 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-600/50"
-                                dangerouslySetInnerHTML={{
-                                  __html: message.content
-                                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-600 dark:text-blue-400">$1</strong>')
-                                    .replace(/\*(.*?)\*/g, '<em class="text-purple-600 dark:text-purple-400">$1</em>')
-                                    .replace(/`(.*?)`/g, '<code class="bg-blue-100 dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono text-blue-800 dark:text-blue-300">$1</code>')
-                                    .replace(/^- (.+)$/gm, '<li class="mb-1">$1</li>')
-                                    .replace(/(<li.*<\/li>)/s, '<ul class="list-disc list-inside space-y-1 ml-4 my-2">$1</ul>')
-                                    .replace(/\n\n/g, '<br><br>')
-                                    .replace(/\n/g, '<br>')
-                                }}
-                              />
+                              {isAvatarVisible && transcribingMsgId === message.id ? (
+                                <div className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm p-4 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-600/50 min-h-[2.5rem]">
+                                  <TypewriterText
+                                    text={message.content}
+                                    speed={350}
+                                    onComplete={() => setTranscribingMsgId(null)}
+                                    className="text-gray-800 dark:text-gray-100"
+                                  />
+                                </div>
+                              ) : (
+                                <div
+                                  className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm p-4 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-600/50"
+                                  dangerouslySetInnerHTML={{
+                                    __html: message.content
+                                      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-600 dark:text-blue-400">$1</strong>')
+                                      .replace(/\*(.*?)\*/g, '<em class="text-purple-600 dark:text-purple-400">$1</em>')
+                                      .replace(/`(.*?)`/g, '<code class="bg-blue-100 dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono text-blue-800 dark:text-blue-300">$1</code>')
+                                      .replace(/^- (.+)$/gm, '<li class="mb-1">$1</li>')
+                                      .replace(/(<li.*<\/li>)/s, '<ul class="list-disc list-inside space-y-1 ml-4 my-2">$1</ul>')
+                                      .replace(/\n\n/g, '<br><br>')
+                                      .replace(/\n/g, '<br>')
+                                  }}
+                                />
+                              )}
                             </motion.div>
                             <motion.div
                               initial={{ opacity: 0 }}
@@ -1223,8 +1377,8 @@ const ChatGPTInterface = () => {
                     size="sm"
                     variant="ghost"
                     className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${isRecording
-                        ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 shadow-lg shadow-red-500/20'
-                        : 'hover:bg-blue-100 dark:hover:bg-gray-600'
+                      ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 shadow-lg shadow-red-500/20'
+                      : 'hover:bg-blue-100 dark:hover:bg-gray-600'
                       }`}
                     onClick={handleVoiceInput}
                     disabled={isProcessing || isLoading}

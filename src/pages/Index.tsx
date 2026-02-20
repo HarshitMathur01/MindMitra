@@ -1,18 +1,16 @@
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import WelcomeHero from "@/components/sections/WelcomeHero";
-import TrustIndicators from "@/components/sections/TrustIndicators";
-import PrivacyBanner from "@/components/sections/PrivacyBanner";
-import InteractiveDemo from "@/components/sections/InteractiveDemo";
+import DailyAffirmation from "@/components/sections/DailyAffirmation";
 import AvatarShowcase from "@/components/sections/AvatarShowcase";
 import FeaturesPreview from "@/components/sections/FeaturesPreview";
 import StatsSection from "@/components/sections/StatsSection";
 import TestimonialCarousel from "@/components/sections/TestimonialCarousel";
-import CrisisSafetyDemo from "@/components/sections/CrisisSafetyDemo";
-import LanguageTogglePreview from "@/components/sections/LanguageTogglePreview";
 import CrisisSafetyBadge from "@/components/sections/CrisisSafetyBadge";
+import BreathingWidget from "@/components/sections/BreathingWidget";
+import ScrollToTop from "@/components/sections/ScrollToTop";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Brain, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
+import { Brain } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -35,99 +33,22 @@ const Index = () => {
       <Header />
       <main>
         <WelcomeHero />
-        <TrustIndicators />
-        <PrivacyBanner />
-
-        {/* Interactive Demo - Guided conversation demo */}
-        <InteractiveDemo />
+        <DailyAffirmation />
 
         {/* 3D Avatar Conversation Showcase */}
         <AvatarShowcase />
 
-        {/* Advanced Chat Call-to-Action */}
-        <section className="py-20 bg-gradient-to-br from-primary/5 via-accent/5 to-background">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Experience Advanced AI Psychology Chat
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Dive deep into personalized conversations with our enhanced AI assistant.
-                Get professional insights, explore your mental wellness, and track your progress.
-              </p>
-            </div>
-
-            <div className="max-w-4xl mx-auto">
-              <div className="grid md:grid-cols-2 gap-8 mb-12">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                    </div>
-                    <h3 className="font-semibold">Advanced Features</h3>
-                  </div>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Voice input and transcription</li>
-                    <li>• Message search and organization</li>
-                    <li>• Quick topic categories</li>
-                    <li>• Conversation history</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-                      <Brain className="h-4 w-4 text-accent" />
-                    </div>
-                    <h3 className="font-semibold">Psychology Focus</h3>
-                  </div>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Mental health insights</li>
-                    <li>• Personality analysis</li>
-                    <li>• Stress management guidance</li>
-                    <li>• Therapeutic techniques</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="text-center">
-                {user ? (
-                  <Button
-                    onClick={() => navigate('/chat')}
-                    className="gradient-primary hover-glow text-lg px-8 py-6 h-auto"
-                  >
-                    <MessageSquare className="h-5 w-5 mr-2" />
-                    Start Advanced Chat
-                    <ArrowRight className="h-5 w-5 ml-2" />
-                  </Button>
-                ) : (
-                  <div className="space-y-4">
-                    <Button
-                      onClick={() => navigate('/auth')}
-                      className="gradient-primary hover-glow text-lg px-8 py-6 h-auto"
-                    >
-                      Sign In to Start Chatting
-                      <ArrowRight className="h-5 w-5 ml-2" />
-                    </Button>
-                    <p className="text-sm text-muted-foreground">
-                      Create a free account to save your conversations and get personalized insights
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <StatsSection />
         <FeaturesPreview />
+        <StatsSection />
         <TestimonialCarousel />
-        <CrisisSafetyDemo />
-        <LanguageTogglePreview />
       </main>
+
+      <Footer />
 
       {/* Fixed Crisis Safety Badge */}
       <CrisisSafetyBadge />
+      <BreathingWidget />
+      <ScrollToTop />
     </div>
   );
 };

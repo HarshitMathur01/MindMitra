@@ -186,33 +186,13 @@ const WelcomeHero = () => {
                   variant="outline"
                   size="lg"
                   className="text-lg px-8 py-6 hover-lift bg-white/50 backdrop-blur-sm transform hover:scale-105 transition-all duration-300"
-                  onClick={() => navigate("/games")}
+                  onClick={() => navigate("/wellness-checkin")}
                 >
-                  Explore Features
+                  Check Your Wellness
                 </Button>
               </motion.div>
             </motion.div>
 
-            {/* Compact Trust Indicators */}
-            <motion.div
-              className="flex flex-wrap justify-center lg:justify-start gap-6 text-sm text-muted-foreground"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 1.2 }}
-            >
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span>No signup required</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                <span>Available 24/7</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
-                <span>Hindi support coming soon</span>
-              </div>
-            </motion.div>
           </motion.div>
 
           {/* Right: Phone Mockup with Live Demo */}
@@ -264,8 +244,8 @@ const WelcomeHero = () => {
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${msg.role === 'user'
-                            ? 'bg-primary text-white rounded-br-sm'
-                            : 'bg-white border border-gray-200 text-gray-700 rounded-bl-sm shadow-sm'
+                          ? 'bg-primary text-white rounded-br-sm'
+                          : 'bg-white border border-gray-200 text-gray-700 rounded-bl-sm shadow-sm'
                           }`}>
                           {msg.text}
                         </div>
@@ -312,39 +292,6 @@ const WelcomeHero = () => {
               </div>
             </div>
 
-            {/* Floating labels around phone */}
-            <motion.div
-              className="absolute -left-4 top-1/4 hidden lg:block"
-              animate={{ y: [0, -6, 0] }}
-              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-            >
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-blue-200 text-xs text-blue-700 font-medium flex items-center gap-1.5">
-                <Shield className="h-3 w-3" />
-                Encrypted & Private
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="absolute -right-4 top-1/2 hidden lg:block"
-              animate={{ y: [0, 6, 0] }}
-              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 1 }}
-            >
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-orange-200 text-xs text-orange-700 font-medium flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3" />
-                Cultural Context AI
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="absolute -left-8 bottom-1/4 hidden lg:block"
-              animate={{ y: [0, -4, 0] }}
-              transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 0.5 }}
-            >
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg border border-green-200 text-xs text-green-700 font-medium flex items-center gap-1.5">
-                <Heart className="h-3 w-3" />
-                Empathy-First Design
-              </div>
-            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -356,8 +303,8 @@ const WelcomeHero = () => {
             key={index}
             onClick={() => setCurrentSlide(index)}
             className={`w-3 h-3 rounded-full transition-all duration-300 ${currentSlide === index
-                ? 'bg-primary shadow-lg scale-125'
-                : 'bg-primary/30 hover:bg-primary/60'
+              ? 'bg-primary shadow-lg scale-125'
+              : 'bg-primary/30 hover:bg-primary/60'
               }`}
           />
         ))}

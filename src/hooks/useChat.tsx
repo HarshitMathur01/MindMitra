@@ -7,100 +7,201 @@ const ChatContext = createContext(null);
 // ✅ EXPORTED - Helper function to detect sentiment from text for facial expressions
 export const detectSentiment = (text: string): string => {
   if (!text) return "default";
-  
+
   const lowerText = text.toLowerCase();
-  
-  // Positive indicators
-  const positiveWords = ['happy', 'great', 'wonderful', 'excellent', 'good', 'love', 'amazing', 'awesome', 'fantastic', 'joy', 'excited', 'proud', 'grateful', 'thank', 'smile', 'better', 'improved', 'success'];
-  const positiveCount = positiveWords.filter(word => lowerText.includes(word)).length;
-  
-  // Negative indicators
-  const negativeWords = ['sad', 'bad', 'terrible', 'awful', 'hate', 'angry', 'frustrated', 'depressed', 'anxious', 'worried', 'scared', 'fear', 'sorry', 'difficult', 'hard', 'struggle', 'pain', 'hurt'];
-  const negativeCount = negativeWords.filter(word => lowerText.includes(word)).length;
-  
-  // Surprised indicators
-  const surpriseWords = ['wow', 'really', 'amazing', 'unbelievable', 'surprised', 'shocked', 'incredible', '!'];
-  const surpriseCount = surpriseWords.filter(word => lowerText.includes(word)).length;
-  
-  if (surpriseCount >= 2) return "surprised";
-  if (positiveCount > negativeCount && positiveCount >= 2) return "smile";
-  if (negativeCount > positiveCount && negativeCount >= 2) return "sad";
-  
-  return "default";
+
+  // Score each emotion category with weighted word matching
+  const categories: { [key: string]: { words: string[]; threshold: number } } = {
+    smile: {
+      words: ['happy', 'great', 'wonderful', 'excellent', 'good', 'love', 'amazing', 'awesome', 'fantastic', 'joy', 'excited', 'proud', 'grateful', 'thank', 'smile', 'better', 'improved', 'success', 'congratulations', 'well done', 'brilliant'],
+      threshold: 2,
+    },
+    gentle: {
+      words: ['it\'s okay', 'take your time', 'no rush', 'gently', 'softly', 'slowly', 'breathe', 'calm', 'relax', 'peace', 'safe', 'comfortable', 'at your own pace'],
+      threshold: 1,
+    },
+    compassionate: {
+      words: ['i understand', 'i hear you', 'that must be', 'i\'m sorry you', 'it makes sense', 'you\'re not alone', 'i\'m here for', 'that sounds really', 'i can see', 'must have been', 'your feelings are valid'],
+      threshold: 1,
+    },
+    concerned: {
+      words: ['worried', 'concerning', 'alarming', 'careful', 'watch out', 'be aware', 'risk', 'dangerous', 'warning', 'serious', 'important to note', 'pay attention'],
+      threshold: 1,
+    },
+    thoughtful: {
+      words: ['think about', 'consider', 'perhaps', 'maybe', 'what if', 'reflect', 'ponder', 'let\'s explore', 'interesting', 'perspective', 'another way', 'on the other hand'],
+      threshold: 1,
+    },
+    hopeful: {
+      words: ['hope', 'believe', 'possible', 'potential', 'looking forward', 'optimistic', 'bright', 'opportunity', 'growth', 'progress', 'promising', 'you can', 'you will'],
+      threshold: 1,
+    },
+    listening: {
+      words: ['tell me more', 'go on', 'i see', 'continue', 'and then', 'what happened', 'how did that', 'can you share'],
+      threshold: 1,
+    },
+    sad: {
+      words: ['sad', 'unfortunately', 'terrible', 'awful', 'loss', 'grief', 'mourn', 'depressed', 'lonely', 'heartbreak', 'miss', 'regret', 'sorry for your'],
+      threshold: 1,
+    },
+    surprised: {
+      words: ['wow', 'really', 'unbelievable', 'surprised', 'shocked', 'incredible', 'unexpected', 'astonishing', 'no way'],
+      threshold: 2,
+    },
+    angry: {
+      words: ['angry', 'furious', 'outraged', 'unacceptable', 'infuriating', 'rage'],
+      threshold: 2,
+    },
+  };
+
+  // Score each category
+  const scores: { [key: string]: number } = {};
+  for (const [emotion, config] of Object.entries(categories)) {
+    scores[emotion] = config.words.filter(word => lowerText.includes(word)).length;
+  }
+
+  // Find the highest scoring emotion that meets its threshold
+  let bestEmotion = "default";
+  let bestScore = 0;
+  for (const [emotion, config] of Object.entries(categories)) {
+    if (scores[emotion] >= config.threshold && scores[emotion] > bestScore) {
+      bestScore = scores[emotion];
+      bestEmotion = emotion;
+    }
+  }
+
+  // Fallback: if text has questions, use listening expression
+  if (bestEmotion === "default" && text.includes('?')) {
+    bestEmotion = "listening";
+  }
+
+  return bestEmotion;
 };
 
 // ✅ EXPORTED - Generate lip-sync data from text (without audio)
 export const generateTextBasedLipsync = (text: string): { mouthCues: Array<{ start: number; end: number; value: string }> } => {
   console.log('👄 [Lipsync] Generating text-based lip-sync for:', text.substring(0, 50));
-  
-  // Phoneme mapping based on character sounds
-  const phonemeMap: { [key: string]: string } = {
-    'a': 'D', 'e': 'E', 'i': 'C', 'o': 'E', 'u': 'F',
+
+  // Phoneme mapping — vowels vs consonants have different characteristics
+  const vowelMap: { [key: string]: string } = {
+    'a': 'D', 'e': 'C', 'i': 'C', 'o': 'E', 'u': 'F',
+  };
+  const consonantMap: { [key: string]: string } = {
     'p': 'A', 'b': 'A', 'm': 'A',
     'f': 'G', 'v': 'G',
-    't': 'B', 'd': 'B', 'k': 'B', 'g': 'B',
-    's': 'X', 'z': 'X', 'r': 'X', 'l': 'X', 'n': 'X', 'h': 'X',
-    'w': 'F', 'y': 'C'
+    't': 'B', 'd': 'B', 'k': 'B', 'g': 'B', 'c': 'B',
+    's': 'B', 'z': 'B',
+    'r': 'C', 'l': 'H', 'n': 'B',
+    'w': 'F', 'y': 'C', 'j': 'C',
+    'h': 'X', 'x': 'B', 'q': 'F',
   };
-  
+  // Digraphs — two-char combinations
+  const digraphMap: { [key: string]: string } = {
+    'th': 'H', 'sh': 'B', 'ch': 'B', 'wh': 'F',
+    'ng': 'B', 'ph': 'G', 'ck': 'B',
+    'ee': 'C', 'oo': 'E', 'ou': 'E', 'ai': 'D', 'ea': 'C',
+    'oa': 'E', 'ie': 'C', 'ei': 'C', 'au': 'E',
+  };
+
+  // Timing — vowels are longer, stops are short, pauses vary by punctuation
+  const vowelDuration = 0.12;       // 120ms — held longer for natural speech
+  const consonantDuration = 0.065;  // 65ms — quick, snappy
+  const digraphDuration = 0.14;     // 140ms — blended sounds
+  const wordPause = 0.08;           // 80ms between words
+  const commaPause = 0.22;          // 220ms after commas
+  const periodPause = 0.35;         // 350ms after sentences
+  const exclamPause = 0.30;         // 300ms after exclamations
+
   const mouthCues: Array<{ start: number; end: number; value: string }> = [];
   let currentTime = 0.0;
-  const phonemeDuration = 0.15; // 150ms per phoneme
-  const wordPauseDuration = 0.1; // 100ms between words
-  
-  const words = text.split(' ');
-  
-  for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
-    const word = words[wordIndex].toLowerCase();
-    
-    for (let charIndex = 0; charIndex < word.length; charIndex++) {
-      const char = word[charIndex];
-      
-      // Check for digraphs (two-character phonemes)
+
+  // Split by words but preserve punctuation
+  const tokens = text.split(/(\s+)/);
+
+  for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+    const token = tokens[tokenIndex];
+
+    // Skip whitespace tokens
+    if (/^\s+$/.test(token)) continue;
+
+    const word = token.replace(/[^a-zA-Z]/g, '').toLowerCase();
+    const trailingPunct = token.match(/[.,!?;:]+$/)?.[0] || '';
+
+    if (!word) {
+      // Pure punctuation — just add pause
+      if (trailingPunct.includes('.') || trailingPunct.includes('?')) {
+        currentTime += periodPause;
+      } else if (trailingPunct.includes(',') || trailingPunct.includes(';')) {
+        currentTime += commaPause;
+      }
+      continue;
+    }
+
+    // Stress pattern: first syllable of longer words gets slightly longer durations
+    const isStressed = word.length > 4;
+    const stressFactor = isStressed ? 1.15 : 1.0;
+
+    let charIndex = 0;
+    while (charIndex < word.length) {
+      // Check for digraphs first
       if (charIndex < word.length - 1) {
-        const digraph = char + word[charIndex + 1];
-        if (digraph === 'th') {
+        const digraph = word[charIndex] + word[charIndex + 1];
+        if (digraphMap[digraph]) {
+          const dur = digraphDuration * (charIndex < 2 ? stressFactor : 1.0);
           mouthCues.push({
             start: currentTime,
-            end: currentTime + phonemeDuration,
-            value: 'H'
+            end: currentTime + dur,
+            value: digraphMap[digraph]
           });
-          currentTime += phonemeDuration;
-          charIndex++; // Skip next character
+          currentTime += dur;
+          charIndex += 2;
           continue;
         }
       }
-      
-      // Map character to phoneme
-      if (phonemeMap[char]) {
+
+      const char = word[charIndex];
+
+      if (vowelMap[char]) {
+        // Vowels held longer, especially in stressed position
+        const dur = vowelDuration * (charIndex < 2 ? stressFactor : 1.0);
         mouthCues.push({
           start: currentTime,
-          end: currentTime + phonemeDuration,
-          value: phonemeMap[char]
+          end: currentTime + dur,
+          value: vowelMap[char]
         });
-        currentTime += phonemeDuration;
-      } else if (char.match(/[a-z]/)) {
-        // Unknown letter - use default closed mouth
+        currentTime += dur;
+      } else if (consonantMap[char]) {
         mouthCues.push({
           start: currentTime,
-          end: currentTime + phonemeDuration * 0.5,
-          value: 'X'
+          end: currentTime + consonantDuration,
+          value: consonantMap[char]
         });
-        currentTime += phonemeDuration * 0.5;
+        currentTime += consonantDuration;
+      } else {
+        // Unknown char — brief rest
+        currentTime += consonantDuration * 0.4;
       }
+
+      charIndex++;
     }
-    
-    // Add pause between words
-    if (wordIndex < words.length - 1) {
-      mouthCues.push({
-        start: currentTime,
-        end: currentTime + wordPauseDuration,
-        value: 'X'
-      });
-      currentTime += wordPauseDuration;
+
+    // Add punctuation-appropriate pauses with closed mouth
+    if (trailingPunct.includes('.') || trailingPunct.includes('?')) {
+      mouthCues.push({ start: currentTime, end: currentTime + periodPause, value: 'X' });
+      currentTime += periodPause;
+    } else if (trailingPunct.includes('!')) {
+      mouthCues.push({ start: currentTime, end: currentTime + exclamPause, value: 'X' });
+      currentTime += exclamPause;
+    } else if (trailingPunct.includes(',') || trailingPunct.includes(';') || trailingPunct.includes(':')) {
+      mouthCues.push({ start: currentTime, end: currentTime + commaPause, value: 'X' });
+      currentTime += commaPause;
+    } else {
+      // Normal word gap
+      mouthCues.push({ start: currentTime, end: currentTime + wordPause, value: 'X' });
+      currentTime += wordPause;
     }
   }
-  
+
   console.log(`👄 [Lipsync] Generated ${mouthCues.length} mouth cues, total duration: ${currentTime.toFixed(2)}s`);
   return { mouthCues };
 };

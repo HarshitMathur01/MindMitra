@@ -1,8 +1,8 @@
 {
     "user_id": "f6087401-b9b6-4dfd-a1e3-117c345d5f81",
-    "session_id": "586ddf93-8daf-41b6-919d-75da5ec701e8",
-    "timestamp": "2026-02-16T18:48:41.337885+00:00",
-    "user_message": "i still dont know the problem",
+    "session_id": "4be7b3bd-a009-483e-abde-0ba2c7f87654",
+    "timestamp": "2026-02-20T16:29:09.519396+00:00",
+    "user_message": "Oh, beta, I\u2019m so sorry to hear that. It\u2019s completely normal to feel sad and lost after a tough exam. It\u2019s like you put in so much effort, and then the result doesn\u2019t feel right, right? It\u2019s okay to feel this way. Let\u2019s take a deep breath together\u2014inhale, exhale. What\u2019s going through your mind right now?",
     "voice_analysis": {},
     "session_context": {
         "recent_messages": [
@@ -137,6 +137,58 @@
             {
                 "role": "user",
                 "content": "i still dont know the problem"
+            },
+            {
+                "role": "user",
+                "content": "hi how can you help me?"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey there! So glad you reached out. I'm MindMitra, and I'm here to chat with you about whatever's on your mind. Whether you're feeling stuck, curious, or just want someone to listen, I'm here for you. What's up?"
+            },
+            {
+                "role": "user",
+                "content": "hi"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey \ud83d\udc4b! Really happy to see you here! How are you feeling today? Is there anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "how are you"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey! I'm doing great, thanks for asking! How about you? Is everything okay? \ud83d\ude0a"
+            },
+            {
+                "role": "user",
+                "content": "I'm sad i don't know what to do...my exam went bad "
+            },
+            {
+                "role": "assistant",
+                "content": "Oh, beta, I\u2019m so sorry to hear that. It\u2019s completely normal to feel sad and lost after a tough exam. It\u2019s like you put in so much effort, and then the result doesn\u2019t feel right, right? It\u2019s okay to feel this way. Let\u2019s take a deep breath together\u2014inhale, exhale. What\u2019s going through your mind right now?"
+            },
+            {
+                "role": "user",
+                "content": "hi how are doung , how can you help me , and how can i rely in you"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey there! So nice to see you again. I'm doing well, thanks for asking! I'm here to listen and support you through whatever's on your mind\u2014whether it's stress, confusion, or just needing someone to talk to. You can rely on me to keep our conversations safe, understanding, and focused on helping you feel better. How can I help you right now?"
+            },
+            {
+                "role": "user",
+                "content": "so what's up"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey! Nothing much here, just thinking about you. How about you? Anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "Oh, beta, I\u2019m so sorry to hear that. It\u2019s completely normal to feel sad and lost after a tough exam. It\u2019s like you put in so much effort, and then the result doesn\u2019t feel right, right? It\u2019s okay to feel this way. Let\u2019s take a deep breath together\u2014inhale, exhale. What\u2019s going through your mind right now?"
             }
         ],
         "conversation_summary": {},
@@ -162,42 +214,41 @@
     },
     "cultural_context": {
         "language_style": "english",
-        "hindi_english_ratio": 0.0,
+        "hindi_english_ratio": 0.005,
         "code_switching_detected": false,
         "cultural_sensitivity_flags": [
             "exam_stress"
         ],
-        "communication_pattern": "conversational",
+        "communication_pattern": "questioning",
         "regional_context": "urban_metro",
         "formality_level": "medium"
     },
     "psychological_analysis": {
-        "emotional_state": "confused and uncertain",
+        "emotional_state": "unknown (user is expressing empathy for someone else's situation)",
         "stress_categories": [
-            "Academic",
-            "Emotional"
+            "Academic"
         ],
         "risk_assessment": "low",
-        "coping_assessment": "The user is struggling to identify the root cause of their distress, which may indicate difficulty in self-awareness or problem-solving. They have not yet developed effective coping mechanisms to address their academic stress.",
+        "coping_assessment": "The user is demonstrating supportive and empathetic coping mechanisms by validating feelings and offering calming techniques (deep breathing).",
         "intervention_priority": "supportive",
         "psychological_insights": [
-            "The user may be experiencing cognitive dissonance between their feelings and their ability to articulate them.",
-            "Procrastination could be a symptom of underlying anxiety or fear of failure.",
-            "The user's neutral tone may mask deeper emotional turmoil or avoidance."
+            "The user is likely in a caregiving or supportive role, showing concern for another's emotional well-being.",
+            "The use of 'beta' suggests familiarity with Indian familial communication styles.",
+            "The user is normalizing the emotional response to academic stress, which is a healthy coping strategy."
         ],
-        "cultural_pressures": "Indian academic pressures, such as exam stress and high expectations from family, may contribute to the user's feelings of uncertainty and procrastination."
+        "cultural_pressures": "Indian cultural emphasis on academic performance and the use of familial terms ('beta') reflect common Indian family dynamics where exams are a significant source of stress."
     },
     "technique_selection": {
-        "primary_technique": "CBT",
-        "therapeutic_approach": "Focus on identifying and challenging negative thought patterns related to academic and emotional stress. Use cognitive restructuring to help the user reframe thoughts about exams, family expectations, and personal capabilities. Incorporate behavioral activation to address procras...",
+        "primary_technique": "Psychoeducation",
+        "therapeutic_approach": "Provide information about academic stress, its common effects, and healthy coping mechanisms. Normalize the experience of stress and emphasize that it is a shared challenge among peers. Encourage the user to share this knowledge with the person they are supporting.",
         "activity_recommendations": [
-            "Journaling to track thoughts and emotions related to academic stress",
-            "Yoga or mindfulness exercises to manage emotional uncertainty",
-            "Grounding exercises to stay present and reduce anxiety"
+            "Journaling about stressors and coping strategies",
+            "Yoga or deep breathing exercises to manage stress",
+            "Setting small, achievable academic goals to reduce overwhelm"
         ],
-        "rationale": "CBT is effective for addressing cognitive dissonance and anxiety-related procrastination. It provides practical tools to manage academic stress and emotional turmoil, aligning with the user's need for supportive intervention. The approach is culturally adaptable, incorporating mi..."
+        "rationale": "The user is in a supportive role and normalizing the emotional response to academic stress. Psychoeducation is appropriate to validate their efforts and provide practical tools for both the user and the person they are supporting. It aligns with the cultural emphasis on academic ..."
     },
-    "ai_response": "I get that it feels confusing when you can't pinpoint the exact issue. Sometimes, when we feel overwhelmed by exams and expectations, our brain just hits pause\u2014it\u2019s like the pressure is too much to process all at once. Have you noticed any specific thoughts or feelings that pop up when you think about your studies? Just taking a moment to notice them might help you see what\u2019s really going on.",
+    "ai_response": "Oh, beta, it\u2019s really thoughtful of you to be so understanding. You\u2019re absolutely right\u2014those feelings after a tough exam are completely normal. It\u2019s like you pour your heart into studying, and then the results can feel so unpredictable. It\u2019s okay to feel sad, lost, or even frustrated. Taking that deep breath with you just now was a small step to ease that tension. \n\nRemember, exams are just one part of the journey, and your worth isn\u2019t tied to a single result. If you want to talk more about what\u2019s on your mind or explore ways to cope, I\u2019m here. Maybe journaling those thoughts or setting tiny goals for the next step could help? Whatever feels right for you.",
     "response_generated": true,
     "screening_assessments": {
         "phq9": {
@@ -214,7 +265,7 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-02-16T18:48:53.143374+00:00"
+            "last_updated": "2026-02-20T16:29:22.623170+00:00"
         },
         "gad7": {
             "score": 0,
@@ -228,7 +279,7 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-02-16T18:48:53.143374+00:00"
+            "last_updated": "2026-02-20T16:29:22.623170+00:00"
         }
     }
 }

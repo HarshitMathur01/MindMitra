@@ -78,12 +78,17 @@ const AvatarImage = ({ avatar, className = '' }: { avatar: AvatarOption; classNa
     }
 
     return (
-        <img
-            src={avatar.image}
-            alt={avatar.name}
-            className={`${className} object-top`}
-            onError={() => setImgFailed(true)}
-        />
+        <div className={`relative ${className} overflow-hidden`}>
+            <img
+                src={avatar.image}
+                alt={avatar.name}
+                className="w-full h-full object-cover object-top"
+                style={{ filter: 'contrast(1.05) saturate(1.15) brightness(1.02)' }}
+                onError={() => setImgFailed(true)}
+            />
+            {/* Warm skin-tone enhancing overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-900/5 via-transparent to-transparent pointer-events-none" />
+        </div>
     );
 };
 
@@ -117,10 +122,11 @@ const AvatarShowcase = () => {
     const selected = avatarOptions.find(a => a.id === selectedAvatar)!;
 
     return (
-        <section className="py-14 bg-gradient-to-b from-white via-purple-50/30 to-white relative overflow-hidden">
-            {/* Background blobs */}
-            <div className="absolute top-20 left-10 w-72 h-72 bg-purple-200/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-20 right-10 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl" />
+        <section className="py-14 bg-gradient-to-b from-white via-purple-50/40 to-white relative overflow-hidden">
+            {/* Background blobs - warmer, richer */}
+            <div className="absolute top-20 left-10 w-80 h-80 bg-purple-200/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+            <div className="absolute bottom-20 right-10 w-72 h-72 bg-amber-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-100/15 rounded-full blur-3xl" />
 
             <div className="container mx-auto px-4 relative z-10">
                 {/* Section Header */}
@@ -212,9 +218,10 @@ const AvatarShowcase = () => {
                                     transition={{ duration: 0.4, type: 'spring' }}
                                 >
                                     {/* Video Call Frame */}
-                                    <div className="bg-gray-900 rounded-2xl p-3 shadow-2xl relative overflow-hidden">
-                                        {/* Glow */}
-                                        <div className={`absolute -inset-2 bg-gradient-to-r ${selected.gradient} rounded-[2rem] blur-xl opacity-20`} />
+                                    <div className="bg-gray-900 rounded-2xl p-3 shadow-2xl relative overflow-hidden ring-1 ring-white/10">
+                                        {/* Glow - enhanced with dual layers */}
+                                        <div className={`absolute -inset-3 bg-gradient-to-r ${selected.gradient} rounded-[2rem] blur-2xl opacity-25`} />
+                                        <div className={`absolute -inset-1 bg-gradient-to-br ${selected.gradient} rounded-[1.5rem] blur-md opacity-10`} />
 
                                         <div className="relative z-10">
                                             {/* Top bar */}
@@ -369,14 +376,14 @@ const AvatarShowcase = () => {
                         ].map((feat, i) => (
                             <motion.div
                                 key={i}
-                                className="text-center p-4 rounded-xl bg-white border border-gray-100 hover:border-primary/30 hover:shadow-md transition-all"
-                                whileHover={{ y: -4 }}
+                                className="text-center p-5 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-100 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+                                whileHover={{ y: -5, scale: 1.02 }}
                             >
-                                <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 flex items-center justify-center">
+                                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-primary/15 to-accent/15 flex items-center justify-center shadow-sm">
                                     <feat.icon className="h-5 w-5 text-primary" />
                                 </div>
                                 <p className="text-sm font-semibold text-gray-800">{feat.text}</p>
-                                <p className="text-xs text-gray-500 mt-1">{feat.desc}</p>
+                                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{feat.desc}</p>
                             </motion.div>
                         ))}
                     </motion.div>

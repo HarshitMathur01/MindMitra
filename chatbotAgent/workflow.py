@@ -890,8 +890,9 @@ class GLMController:
                 response = self._client.chat.completions.create(
                     model=self.model_name,
                     messages=chat_messages,
-                    temperature=self.temperature,
-                    top_p=self.top_p,
+                    max_tokens=4000,
+                    temperature=0.3,
+                    top_p=0.8,
                     **kwargs
                 )
 

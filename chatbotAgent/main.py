@@ -107,7 +107,11 @@ session_message_counters = defaultdict(int)
 # Add CORS middleware - using regex pattern to cover all Vercel deployments and localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^https://.*\.vercel\.app$|^http://localhost:\d+$",
+    allow_origins=[
+        "https://mindmitra.co.in",
+        "https://www.mindmitra.co.in",
+        "https://mindmitra-seven.vercel.app",  # optional (preview)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1177,6 +1181,106 @@ async def process_chat_stream(
         logger.error(f"❌ [STREAM] Streaming setup failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Streaming failed: {str(e)}")
 
+# ══════════════════════════════════════════════════════════════
+# SPEECH-TO-TEXT TRANSCRIPTION ENDPOINT (Whisper API)
+# ══════════════════════════════════════════════════════════════
+from fastapi import UploadFile, File
+import httpx
+
+@app.post("/api/transcribe")
+async def transcribe_audio(audio: UploadFile = File(...)):
+    """
+    Transcribe audio file using OpenAI Whisper API.
+    
+    Accepts: audio/webm, audio/wav, audio/mp3, audio/mp4, audio/mpeg, audio/mpga, audio/m4a
+    Returns: {"text": "transcribed text", "success": true}
+    
+    Falls back gracefully on errors - frontend should use browser Speech Recognition as fallback.
+    """
+    try:
+        logger.info(f"🎤 [TRANSCRIBE] Received audio file: {audio.filename}, type: {audio.content_type}")
+        
+        # Check if OpenAI API key is available
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not openai_api_key:
+            logger.error("❌ [TRANSCRIBE] OPENAI_API_KEY not set")
+            raise HTTPException(
+                status_code=503, 
+                detail="Speech transcription service unavailable. Please use text input."
+            )
+        
+        # Validate content type
+        valid_types = ["audio/webm", "audio/wav", "audio/mp3", "audio/mp4", "audio/mpeg", "audio/mpga", "audio/m4a", "audio/ogg"]
+        if audio.content_type not in valid_types:
+            logger.warning(f"⚠️ [TRANSCRIBE] Invalid content type: {audio.content_type}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid audio format. Supported: {', '.join(valid_types)}"
+            )
+        
+        # Read audio file content
+        audio_content = await audio.read()
+        audio_size_kb = len(audio_content) / 1024
+        logger.info(f"📊 [TRANSCRIBE] Audio size: {audio_size_kb:.2f} KB")
+        
+        # Validate file size (max 25 MB for Whisper API)
+        if len(audio_content) > 25 * 1024 * 1024:
+            logger.error(f"❌ [TRANSCRIBE] File too large: {audio_size_kb:.2f} KB")
+            raise HTTPException(status_code=413, detail="Audio file too large (max 25 MB)")
+        
+        # Call OpenAI Whisper API
+        logger.info("🚀 [TRANSCRIBE] Calling OpenAI Whisper API...")
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/audio/transcriptions",
+                headers={
+                    "Authorization": f"Bearer {openai_api_key}"
+                },
+                files={
+                    "file": (audio.filename or "audio.webm", audio_content, audio.content_type)
+                },
+                data={
+                    "model": "whisper-1",
+                    "language": "en",  # Auto-detect, but hint English for better accuracy
+                    "response_format": "json"
+                }
+            )
+        
+        if response.status_code != 200:
+            logger.error(f"❌ [TRANSCRIBE] Whisper API failed: {response.status_code} - {response.text[:200]}")
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Transcription failed: {response.text[:100]}"
+            )
+        
+        result = response.json()
+        transcript = result.get("text", "").strip()
+        
+        if not transcript:
+            logger.warning("⚠️ [TRANSCRIBE] No speech detected in audio")
+            return {
+                "text": "",
+                "success": False,
+                "error": "No speech detected in audio"
+            }
+        
+        logger.info(f"✅ [TRANSCRIBE] Transcription successful: '{transcript[:100]}...'")
+        
+        return {
+            "text": transcript,
+            "success": True
+        }
+        
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        logger.error(f"❌ [TRANSCRIBE] Unexpected error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Transcription failed: {str(e)}"
+        )
+
 @app.on_event("startup")
 async def startup_event():
     """Log critical startup information for debugging"""
@@ -1185,6 +1289,7 @@ async def startup_event():
     logger.info(f"   PORT: {os.getenv('PORT', '8000')}")
     logger.info(f"   GROQ_API_KEY: {'✅ Set' if os.getenv('GROQ_API_KEY') else '❌ Missing'}")
     logger.info(f"   GOOGLE_API_KEY: {'✅ Set' if os.getenv('GOOGLE_API_KEY') else '❌ Missing'}")
+    logger.info(f"   OPENAI_API_KEY: {'✅ Set' if os.getenv('OPENAI_API_KEY') else '❌ Missing'}")
     logger.info(f"   SUPABASE_URL: {'✅ Set' if os.getenv('SUPABASE_URL') else '❌ Missing'}")
     logger.info(f"   SUPABASE_KEY: {'✅ Set' if os.getenv('SUPABASE_KEY') else '❌ Missing'}")
     logger.info(f"   GOOGLE_CREDENTIALS_BASE64: {'✅ Set' if os.getenv('GOOGLE_CREDENTIALS_BASE64') else '❌ Missing'}")

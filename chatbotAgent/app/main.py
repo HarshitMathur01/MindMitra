@@ -66,6 +66,7 @@ app.add_middleware(
         "https://mindmitra.co.in",
         "https://www.mindmitra.co.in",
         "https://mindmitra-seven.vercel.app",
+        "http://localhost:8080",
     ],
     allow_credentials=True,
     allow_methods=["*"],

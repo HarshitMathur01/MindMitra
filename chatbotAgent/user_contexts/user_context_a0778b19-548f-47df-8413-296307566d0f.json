@@ -1,8 +1,8 @@
 {
     "user_id": "a0778b19-548f-47df-8413-296307566d0f",
-    "session_id": "4c419143-6e84-40ad-97be-6a36d1578b12",
-    "timestamp": "2026-02-18T09:08:19.834596+00:00",
-    "user_message": "Yes i want to chat",
+    "session_id": "159e9145-392e-41d3-badc-f7c1853fe594",
+    "timestamp": "2026-03-02T12:55:05.274077+00:00",
+    "user_message": "i am just feeling very good right now",
     "voice_analysis": {},
     "session_context": {
         "recent_messages": [
@@ -1268,19 +1268,17 @@
         "formality_level": "low"
     },
     "psychological_analysis": {
-        "emotional_state": "neutral, with no discernible emotional indicators",
-        "stress_categories": [
-            "Miscellaneous"
-        ],
+        "emotional_state": "neutral with a self-reported positive feeling",
+        "stress_categories": [],
         "risk_assessment": "low",
-        "coping_assessment": "No observable coping mechanisms or resilience patterns detected from the limited data.",
+        "coping_assessment": "No observable coping mechanisms or resilience noted due to lack of context.",
         "intervention_priority": "supportive",
         "psychological_insights": [
-            "User may be seeking connection or validation without expressing specific emotions.",
-            "Terse communication style may indicate discomfort or uncertainty in expressing feelings.",
-            "Wellness check-in scores fluctuate, suggesting potential underlying stressors not yet verbalized."
+            "User may be experiencing a momentary positive state without deeper emotional context.",
+            "Terse communication style may indicate a need for further exploration to understand underlying emotions.",
+            "Self-reported positive feeling may be genuine or a superficial response."
         ],
-        "cultural_pressures": "No specific Indian cultural, family, or academic pressures identified from the user's message."
+        "cultural_pressures": "No specific Indian cultural/family/academic pressures identified in this brief statement."
     },
     "screening_assessments": {
         "phq9": {
@@ -1297,7 +1295,7 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-02-18T09:08:35.570723+00:00"
+            "last_updated": "2026-03-02T12:55:25.341745+00:00"
         },
         "gad7": {
             "score": 0,
@@ -1311,19 +1309,19 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-02-18T09:08:35.570723+00:00"
+            "last_updated": "2026-03-02T12:55:25.341745+00:00"
         }
     },
     "technique_selection": {
         "primary_technique": "Person-Centered",
-        "therapeutic_approach": "Create a non-judgmental, empathetic space where the user can explore their feelings at their own pace. Use active listening, reflection, and validation to encourage self-expression without pressure. Focus on building trust and rapport.",
+        "therapeutic_approach": "Create a non-judgmental, empathetic space to encourage the user to explore their feelings and thoughts more deeply. Use active listening and reflective questioning to help them uncover underlying emotions or concerns.",
         "activity_recommendations": [
-            "Journaling prompts (e.g., 'What brings you joy?')",
-            "Mindful breathing exercises",
-            "Light yoga or stretching"
+            "Journaling prompts to explore feelings and thoughts",
+            "Mindful breathing exercises to enhance self-awareness",
+            "Yoga or stretching to connect mind and body"
         ],
-        "rationale": "The user's neutral emotional state and terse communication suggest discomfort in expressing feelings. Person-Centered therapy provides a safe, supportive environment that aligns with the intervention priority. It respects the user's autonomy and cultural context, where mental health discussions may be sensitive."
+        "rationale": "The neutral yet positive emotional state, combined with a terse communication style, suggests a need for a supportive and exploratory approach. Person-Centered therapy aligns well with this by fostering trust and openness, allowing the user to self-direct their emotional exploration."
     },
-    "ai_response": "Hey there! Awesome to hear from you. \ud83d\ude0a What\u2019s on your mind? Feel free to share whatever comes up, or we can just chat about anything you like. I\u2019m here to listen.",
+    "ai_response": "That\u2019s wonderful to hear! Feeling good is a great space to be in. What\u2019s been making you feel so positive today? Sometimes it\u2019s the little things that make the biggest difference. \ud83d\ude0a",
     "response_generated": true
 }

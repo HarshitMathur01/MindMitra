@@ -51,6 +51,6 @@ RUN mkdir -p logs user_contexts && \
 # Railway sets $PORT dynamically at runtime
 EXPOSE 8080
 
-# Start FastAPI with uvicorn
-# Railway provides $PORT environment variable
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --log-level info"]
+# Force every command through sh so $PORT is always shell-expanded,
+# even when Railway's dashboard injects a startCommand in exec form.
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --log-level info

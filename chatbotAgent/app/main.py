@@ -28,10 +28,31 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 # ── FastAPI app ────────────────────────────────────────────────────────────
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="MindMitra Chatbot Agent", version="2.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup/shutdown lifecycle — replaces deprecated @app.on_event."""
+    logger.info("=" * 70)
+    logger.info("🚀 MindMitra v2 Backend Starting…")
+    logger.info(f"   PORT:                     {os.getenv('PORT', '8000')}")
+    logger.info(f"   GROQ_API_KEY:             {'✅' if os.getenv('GROQ_API_KEY') else '❌ Missing'}")
+    logger.info(f"   GOOGLE_API_KEY:           {'✅' if os.getenv('GOOGLE_API_KEY') else '❌ Missing'}")
+    logger.info(f"   ZHIPUAI_API_KEY:          {'✅' if os.getenv('ZHIPUAI_API_KEY') else '❌ Missing'}")
+    logger.info(f"   ZAI_API_KEY:              {'✅' if os.getenv('ZAI_API_KEY') else '⚠️  Not set (ZHIPUAI_API_KEY used)'}")
+    logger.info(f"   SUPABASE_URL:             {'✅' if os.getenv('SUPABASE_URL') else '❌ Missing'}")
+    logger.info(f"   SUPABASE_KEY:             {'✅' if os.getenv('SUPABASE_KEY') else '❌ Missing'}")
+    logger.info(f"   ELEVENLABS_API_KEY:       {'✅' if os.getenv('ELEVENLABS_API_KEY') else '⚠️  Not set (gTTS fallback)'}")
+    logger.info(f"   GOOGLE_CREDENTIALS_BASE64:{'✅' if os.getenv('GOOGLE_CREDENTIALS_BASE64') else '⚠️  Not set (gTTS fallback)'}")
+    logger.info(f"   SKIP_AUTH:                {os.getenv('SKIP_AUTH', 'false')}")
+    logger.info("=" * 70)
+    yield
+
+
+app = FastAPI(title="MindMitra Chatbot Agent", version="2.0.0", lifespan=lifespan)
 
 # ── CRITICAL: register /health BEFORE any heavy imports ───────────────────
 # keep a thin inline definition here as well so health works even if
@@ -81,22 +102,6 @@ app.include_router(chat_router)
 app.include_router(transcribe_router)
 
 
-# ── Startup event ──────────────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup_event() -> None:
-    logger.info("=" * 70)
-    logger.info("🚀 MindMitra v2 Backend Starting…")
-    logger.info(f"   PORT:                     {os.getenv('PORT', '8000')}")
-    logger.info(f"   GROQ_API_KEY:             {'✅' if os.getenv('GROQ_API_KEY') else '❌ Missing'}")
-    logger.info(f"   GOOGLE_API_KEY:           {'✅' if os.getenv('GOOGLE_API_KEY') else '❌ Missing'}")
-    logger.info(f"   OPENAI_API_KEY:           {'✅' if os.getenv('OPENAI_API_KEY') else '❌ Missing'}")
-    logger.info(f"   ZHIPUAI_API_KEY:          {'✅' if os.getenv('ZHIPUAI_API_KEY') else '❌ Missing'}")
-    logger.info(f"   SUPABASE_URL:             {'✅' if os.getenv('SUPABASE_URL') else '❌ Missing'}")
-    logger.info(f"   SUPABASE_KEY:             {'✅' if os.getenv('SUPABASE_KEY') else '❌ Missing'}")
-    logger.info(f"   ELEVENLABS_API_KEY:       {'✅' if os.getenv('ELEVENLABS_API_KEY') else '⚠️  Not set (gTTS fallback)'}")
-    logger.info(f"   GOOGLE_CREDENTIALS_BASE64:{'✅' if os.getenv('GOOGLE_CREDENTIALS_BASE64') else '⚠️  Not set (gTTS fallback)'}")
-    logger.info(f"   SKIP_AUTH:                {os.getenv('SKIP_AUTH', 'false')}")
-    logger.info("=" * 70)
 
 
 # ── Dev entrypoint ─────────────────────────────────────────────────────────

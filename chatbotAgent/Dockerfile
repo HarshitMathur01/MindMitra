@@ -43,13 +43,14 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code
 COPY . .
 
-# Create runtime directories
+# Create runtime directories; chmod rhubarb if a Linux binary is present
 RUN mkdir -p logs user_contexts && \
-    chmod 755 logs user_contexts
+    chmod 755 logs user_contexts && \
+    if [ -f bin/rhubarb ]; then chmod +x bin/rhubarb; fi
 
 # Railway sets $PORT dynamically at runtime
 EXPOSE 8080
 
 # Start FastAPI with uvicorn
 # Railway provides $PORT environment variable
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --log-level info"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --log-level info"]

@@ -8,10 +8,27 @@ import os
 from typing import Optional
 
 import httpx
-from gtts import gTTS
-from google.cloud import texttospeech
+
+# Safe optional imports — app starts cleanly even if a TTS package is missing
+_GTTS_AVAILABLE = False
+_GOOGLE_CLOUD_TTS_AVAILABLE = False
+try:
+    from gtts import gTTS
+    _GTTS_AVAILABLE = True
+except ImportError:
+    pass
+try:
+    from google.cloud import texttospeech
+    _GOOGLE_CLOUD_TTS_AVAILABLE = True
+except ImportError:
+    pass
 
 logger = logging.getLogger(__name__)
+
+if not _GTTS_AVAILABLE:
+    logger.warning("⚠️ [TTS] gTTS not importable — gTTS fallback disabled")
+if not _GOOGLE_CLOUD_TTS_AVAILABLE:
+    logger.warning("⚠️ [TTS] google-cloud-texttospeech not importable — Google TTS disabled")
 
 # ── config ─────────────────────────────────────────────────────────────────
 ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
@@ -19,7 +36,10 @@ ELEVENLABS_VOICE_ID: str = os.getenv("ELEVENLABS_VOICE_ID", "vT0wMbLG5dssaBsksrb
 ELEVENLABS_MODEL_ID: str = os.getenv("ELEVENLABS_MODEL_ID", "eleven_v3")
 
 ENABLE_ELEVENLABS_TTS: bool = bool(ELEVENLABS_API_KEY)
-ENABLE_GOOGLE_TTS: bool = True
+# Only enable Google TTS if the package imported AND credentials exist
+ENABLE_GOOGLE_TTS: bool = _GOOGLE_CLOUD_TTS_AVAILABLE and bool(
+    os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("GOOGLE_CREDENTIALS_BASE64")
+)
 
 if ENABLE_ELEVENLABS_TTS:
     logger.info(
@@ -120,6 +140,9 @@ def generate_google_cloud_tts(text: str, emotion: str = "neutral", language_styl
 
 def generate_gtts_audio(text: str, lang: str = "en") -> Optional[str]:
     """Generate TTS via gTTS (fallback). Returns base64 MP3 or None."""
+    if not _GTTS_AVAILABLE:
+        logger.warning("⚠️ [gTTS] Package not available — skipping")
+        return None
     try:
         logger.info(f"🔊 [gTTS] Generating audio ({len(text)} chars)…")
         tts = gTTS(text=text, lang=lang, slow=False)

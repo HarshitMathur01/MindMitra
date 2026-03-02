@@ -23,7 +23,7 @@ google-generativeai>=0.8,<1.0  # (plan migration to google.genai)
 
 langchain>=0.3,<0.4
 langchain-core>=0.3,<0.4
-langchain-google-genai>=2.0,<3.0
+langchain-google-genai>=2.0,<2.5  # pinned <2.5 to stay on google-generativeai (not google-genai)
 # langgraph>=0.1,<1.0
 
 # ──────────────────────────────────────────────────────────────

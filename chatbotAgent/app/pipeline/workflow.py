@@ -492,7 +492,7 @@ class MindMitraWorkflow:
                 decision = self.query_agent.should_query_memories(
                     user_message=user_message,
                     recent_messages=recent_messages or [],
-                    emotional_state=ctx["nlp_analysis"].get("emotional_state", {}),
+                    emotional_state=ctx["nlp_analysis"],
                 )
                 if decision.get("needs_memory", False):
                     query = decision.get("query_hint", user_message)

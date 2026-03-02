@@ -2,6 +2,7 @@
 GLM concurrency controller — thread-safe ZhipuAI wrapper with Groq fallback.
 BUG FIX: hardcoded max_tokens/temperature/top_p → use config values from __init__.
 """
+import os
 import time
 import threading
 import logging
@@ -32,9 +33,9 @@ class GLMController:
         max_retries: int = None,
         base_backoff: float = None,
     ):
-        self.api_key = config.get_api_key("zai")
+        self.api_key = config.get_api_key("zai") or os.getenv("ZHIPUAI_API_KEY", "")
         if not self.api_key:
-            logger.warning("⚠️ [GLM] ZAI_API_KEY not set – GLM controller may fail")
+            logger.warning("⚠️ [GLM] ZAI_API_KEY / ZHIPUAI_API_KEY not set – GLM controller may fail")
             self.api_key = "dummy_key_for_init"
 
         self.model_name = model or config.get_model("glm")
@@ -70,10 +71,19 @@ class GLMController:
             self._semaphore.acquire()
             _released = False
             try:
-                chat_messages = [{"role": "system", "content": "You are a helpful assistant."}]
-                chat_messages.extend(
-                    [{"role": "user", "content": msg["content"]} for msg in messages]
-                )
+                # Preserve roles from caller; only inject default system msg if none present
+                has_system = any(m.get("role") == "system" for m in messages)
+                if has_system:
+                    chat_messages = [
+                        {"role": m.get("role", "user"), "content": m["content"]}
+                        for m in messages
+                    ]
+                else:
+                    chat_messages = [{"role": "system", "content": "You are a helpful assistant."}]
+                    chat_messages += [
+                        {"role": m.get("role", "user"), "content": m["content"]}
+                        for m in messages
+                    ]
 
                 response = self._client.chat.completions.create(
                     model=self.model_name,

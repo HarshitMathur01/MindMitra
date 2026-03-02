@@ -99,6 +99,9 @@ class EpisodicPromoter:
         user_id: str,
     ) -> Optional[Dict[str, Any]]:
         """Promote repeated episodic pattern to global semantic memory."""
+        if not self.gemini_model:
+            logger.debug("[EpisodicPromoter] gemini_model is None — skipping semantic promotion")
+            return None
         try:
             occurrences = tracker_record.get("occurrences", [])
             occ_text = "\n".join(

@@ -13,7 +13,7 @@ from ..core.auth import validate_user_token
 from ..models.request_models import ChatRequest
 from ..models.response_models import ChatResponse
 from ..pipeline.workflow import get_workflow_instance, process_user_chat
-from ..services.greeting_service import generate_greeting, _greeting_cache
+from ..services.greeting_service import generate_greeting
 from ..services.lipsync_service import generate_lipsync_from_audio, generate_lipsync_from_text
 from ..services.supabase_service import (
     fetch_user_context,
@@ -119,11 +119,6 @@ async def get_greeting(
 
         if not session_id:
             return {"greeting": "Hey! What's on your mind?", "show_greeting": True, "language_used": "english", "time_slot": "day"}
-
-        cache_key = f"{session_id}_{authenticated_user_id}"
-        if cache_key in _greeting_cache:
-            logger.info(f"✅ [GREETING] Cache hit for session {session_id[:8]}…")
-            return _greeting_cache[cache_key]
 
         greeting_data = generate_greeting(authenticated_user_id, session_id)
         return greeting_data

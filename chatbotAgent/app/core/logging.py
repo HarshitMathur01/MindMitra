@@ -16,5 +16,7 @@ def configure_logging() -> None:
     logging.getLogger(__name__).info(f"✅ [LOGGING] Log level set to {level_name}")
 
 
-# Auto-configure on import (mirrors original logging_config.py behaviour)
-configure_logging()
+# Auto-configure on import only if root logger has no handlers yet (prevents double-init)
+import logging as _logging_check
+if not _logging_check.root.handlers:
+    configure_logging()

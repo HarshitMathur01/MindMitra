@@ -20,9 +20,9 @@ class QueryDecisionAgent:
     def __init__(self, groq_client=None, glm_controller=None):
         self.groq_client = groq_client
         self.glm_controller = glm_controller
-        # FIX: read from config, fall back to sensible default
+        # Read model from correct config path with full Groq model name
         self.model: str = config.get(
-            "rag_memory.query_decision_model", "llama-3.1-8b-instant"
+            "rag_memory.query_decision.groq_model", "meta-llama/llama-3.1-8b-instant"
         )
         logger.info("✅ [QueryAgent] Query decision agent initialised")
 

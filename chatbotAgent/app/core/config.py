@@ -157,7 +157,17 @@ class Config:
         path = model_paths.get(module)
         return self.get(path, default="") if path else ""
 
+    # Special keys whose yaml path / env var name don't follow the standard pattern
+    _SPECIAL_API_KEYS: Dict[str, tuple] = {
+        "supabase_url": ("api_keys.supabase_url", "SUPABASE_URL"),
+        "supabase_key": ("api_keys.supabase_key", "SUPABASE_KEY"),
+    }
+
     def get_api_key(self, service: str) -> Optional[str]:
+        if service in self._SPECIAL_API_KEYS:
+            yaml_path, env_var = self._SPECIAL_API_KEYS[service]
+            key = self.get(yaml_path)
+            return key if key else os.getenv(env_var)
         key = self.get(f"api_keys.{service}_api_key")
         if key:
             return key

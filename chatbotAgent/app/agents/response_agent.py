@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 class ResponseGenerator:
     def __init__(self, glm):
         self.glm = glm
-        self.SYSTEM_PROMPT = config.get(
+        self.BASE_SYSTEM_PROMPT = config.get(
             "response_generator.system_prompt",
-            default="""You are MindMitra, a culturally-aware AI therapeutic companion for Indian youth (16-25).
+            default="""You are {companion_name}, a culturally-aware AI therapeutic companion for Indian youth (16-25).
 
 RESPONSE RULES:
 • Combine psychology expertise with warm, companion-style delivery
@@ -26,17 +26,106 @@ RESPONSE RULES:
 • Validate cultural struggles without dismissing traditional values
 • Keep responses conversational — concise for casual chat, deeper for heavy topics
 • NEVER include numbered annotations, technique labels in parentheses, or meta-commentary
-• Generate ONLY the natural conversation response""",
+• Generate ONLY the natural conversation response
+
+{personality_instruction}
+
+{language_instruction}""",
         )
+
+        # Personality-specific tone instructions
+        # Legacy keys (calm/energetic/analytical) kept as fallback aliases
+        self.PERSONALITY_INSTRUCTIONS = {
+            # ── 5 companion personalities ──────────────────────────────
+            "mitra": (
+                "PERSONALITY: You are Mitra, a gentle and empathetic mental health companion for Indian students. "
+                "Speak softly, validate emotions before offering perspective. Never rush. "
+                "Use simple language. Occasionally use warm Hindi phrases like 'Koi baat nahi' naturally. "
+                "Always prioritize the user feeling heard over giving advice."
+            ),
+            "arjun": (
+                "PERSONALITY: You are Arjun, a focused mental health coach for Indian students under academic pressure. "
+                "Help identify specific problems and set small achievable goals. Be warm but practical. "
+                "Use structured responses. Celebrate progress. Understand JEE/engineering pressure deeply."
+            ),
+            "diya": (
+                "PERSONALITY: You are Diya, an intellectually curious mental health companion. "
+                "Explain psychological concepts simply using relatable analogies. Ask thoughtful Socratic questions. "
+                "Make users feel like they are learning about themselves. Reference concepts like cognitive distortions, "
+                "stress response, and emotional regulation in accessible language."
+            ),
+            "riya": (
+                "PERSONALITY: You are Riya, an energetic and uplifting mental health companion for students. "
+                "Celebrate every small win. Be enthusiastic without dismissing real pain. "
+                "Inject genuine positivity and belief in the user. Help them see their own strength. "
+                "Use encouraging language naturally without being toxic positivity."
+            ),
+            "zen": (
+                "PERSONALITY: You are Zen, a mindful and grounding mental health companion. "
+                "Guide users through breathing exercises, body scans, and mindfulness moments naturally in conversation. "
+                "Use nature metaphors and imagery. Speak slowly and create stillness. "
+                "Gently redirect racing thoughts. Incorporate techniques from MBSR and DBT grounding."
+            ),
+            # ── legacy aliases (backward compat) ──────────────────────
+            "calm": (
+                "PERSONALITY: You have a calm & soothing personality. Speak gently, use reassuring language, "
+                "pause reflectively, and help the user feel safe and grounded. Your tone is like a peaceful mentor."
+            ),
+            "energetic": (
+                "PERSONALITY: You have an energetic & motivating personality. Be upbeat, encouraging, and enthusiastic. "
+                "Use exclamation points sparingly but meaningfully. Your tone is like a supportive best friend who hypes them up."
+            ),
+            "analytical": (
+                "PERSONALITY: You have an analytical & structured personality. Be thoughtful, use clear reasoning, "
+                "offer step-by-step breakdowns, and help the user understand patterns in their thinking. "
+                "Your tone is like a wise, logical guide."
+            ),
+        }
+
+        # Language preference instructions
+        self.LANGUAGE_INSTRUCTIONS = {
+            "english": "LANGUAGE: Respond in English. Use simple, clear language.",
+            "hindi": "LANGUAGE: Respond primarily in Hindi (Devanagari script). Use Hindi naturally as if speaking to a friend.",
+            "hinglish": "LANGUAGE: Respond in Hinglish — a natural mix of Hindi and English, like urban Indian youth speak. Example: 'Yaar, I totally get it. Ye pressure bohot zyada ho sakta hai.'",
+        }
+
         self.recent_messages_count = config.get("response_generator.recent_messages_count", 3)
         self.max_memories_per_type = config.get("response_generator.max_memories_per_type", 3)
         logger.info("✅ [RESPONSE-GEN] Response generator ready")
+
+    # ── build dynamic system prompt ────────────────────────────────────────
+    # Map personality ids to default companion names
+    _PERSONALITY_NAMES = {
+        "mitra": "Mitra", "arjun": "Arjun", "diya": "Diya",
+        "riya": "Riya", "zen": "Zen",
+    }
+
+    def _build_system_prompt(self, user_context: Dict[str, Any]) -> str:
+        """Build a system prompt tailored to the user's personality settings."""
+        prefs = user_context.get("personality_settings", {})
+        personality = prefs.get("personality", "mitra")
+        companion_name = prefs.get("companion_name") or self._PERSONALITY_NAMES.get(personality, "Mitra")
+        language = prefs.get("language", "english")
+
+        personality_instruction = self.PERSONALITY_INSTRUCTIONS.get(
+            personality, self.PERSONALITY_INSTRUCTIONS["mitra"]
+        )
+        language_instruction = self.LANGUAGE_INSTRUCTIONS.get(
+            language, self.LANGUAGE_INSTRUCTIONS["english"]
+        )
+
+        return self.BASE_SYSTEM_PROMPT.format(
+            companion_name=companion_name,
+            personality_instruction=personality_instruction,
+            language_instruction=language_instruction,
+        )
 
     # ── public entry ──────────────────────────────────────────────────────
     def generate(self, user_context: Dict[str, Any]) -> Dict[str, Any]:
         logger.info("💬 [RESPONSE-GEN] Generating therapeutic response...")
         try:
-            system_msg = {"role": "system", "content": self.SYSTEM_PROMPT}
+            system_prompt = self._build_system_prompt(user_context)
+            system_msg = {"role": "system", "content": system_prompt}
             human_msg = {"role": "user", "content": self._build_context(user_context)}
             resp = self.glm.invoke([system_msg, human_msg])
 

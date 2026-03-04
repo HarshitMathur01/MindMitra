@@ -89,7 +89,7 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-gradient-to-br from-blue-50 via-white to-purple-50 text-foreground;
+    @apply bg-background text-text-primary;
     background-attachment: fixed;
     min-height: 100vh;
   }
@@ -462,7 +462,7 @@ All colors MUST be HSL.
 
   /* Glass Morphism Effects */
   .glass {
-    @apply bg-white/20 backdrop-blur-md border border-white/20;
+    @apply bg-crushed-silk/20 backdrop-blur-md border border-white/20;
   }
 
   .glass-dark {
@@ -579,8 +579,13 @@ All colors MUST be HSL.
   }
 
   @keyframes shimmerMove {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
   }
 
   /* Crisis badge glow pulse */
@@ -589,8 +594,15 @@ All colors MUST be HSL.
   }
 
   @keyframes crisisGlow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
-    50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35);
+    }
+
+    50% {
+      box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
   }
 
   /* Mood ring — for mood indicators and check-in elements */
@@ -599,8 +611,15 @@ All colors MUST be HSL.
   }
 
   @keyframes moodRing {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.4); }
-    50% { box-shadow: 0 0 0 14px rgba(167, 139, 250, 0); }
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.4);
+    }
+
+    50% {
+      box-shadow: 0 0 0 14px rgba(167, 139, 250, 0);
+    }
   }
 
   /* Serene float — very slow upward drift for decorative elements */
@@ -609,8 +628,15 @@ All colors MUST be HSL.
   }
 
   @keyframes sereneFloat {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-8px); }
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-8px);
+    }
   }
 
   /* Heartbeat animation for wellness/heart icons */
@@ -619,10 +645,26 @@ All colors MUST be HSL.
   }
 
   @keyframes heartbeat {
-    0%, 100% { transform: scale(1); }
-    14% { transform: scale(1.12); }
-    28% { transform: scale(1); }
-    42% { transform: scale(1.08); }
-    70% { transform: scale(1); }
+
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    14% {
+      transform: scale(1.12);
+    }
+
+    28% {
+      transform: scale(1);
+    }
+
+    42% {
+      transform: scale(1.08);
+    }
+
+    70% {
+      transform: scale(1);
+    }
   }
 }

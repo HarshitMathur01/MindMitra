@@ -288,21 +288,21 @@ export const ChatProvider = ({ children }) => {
     setMessage(null);
   };
 
-  const chat = async (message: string) => {
+  const chat = async (message: string, opts?: { personality?: string; companion_name?: string; language?: string }) => {
     setLoading(true);
     try {
       // Ensure user is authenticated (sign in anonymously if needed)
       let { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         console.log('No session found, signing in anonymously...');
         const { data, error } = await supabase.auth.signInAnonymously();
         if (error) throw error;
         session = data.session;
       }
-      
+
       const userId = session?.user?.id || 'anonymous';
-      
+
       // Use SessionManager for consistent session IDs across app
       // This fixes the critical session fragmentation bug
       const sessionId = SessionManager.getSessionId();
@@ -311,10 +311,13 @@ export const ChatProvider = ({ children }) => {
 
       // Call Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('enhanced-chat-context', {
-        body: { 
-          message, 
+        body: {
+          message,
           user_id: userId,
-          session_id: sessionId
+          session_id: sessionId,
+          personality: opts?.personality || null,
+          companion_name: opts?.companion_name || null,
+          language: opts?.language || null,
         }
       });
 

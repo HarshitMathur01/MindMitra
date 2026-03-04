@@ -80,12 +80,14 @@ const TherapistBridge = () => {
 
     setBooking(true);
     try {
-      const profileSnapshot = await fetchEmotionalProfile(user?.id ?? "demo-user");
+      // Use the profile already in state to ensure WYSIWYS (What You See Is What You Share)
+      if (!profile) throw new Error("Profile not loaded");
+
       const referral = await createReferral({
         userId: user?.id ?? "demo-user",
         therapistId: therapist.id,
         consent: consentState,
-        profileSnapshot,
+        profileSnapshot: profile,
       });
 
       toast.success("Therapist referral created. Proceeding to booking.");
@@ -99,24 +101,13 @@ const TherapistBridge = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
       <Header />
       <main className="container mx-auto px-4 py-8">
         <HeroSection
           onViewProfile={() => document.getElementById("emotional-profile")?.scrollIntoView({ behavior: "smooth" })}
           onFindTherapist={() => document.getElementById("find-therapist")?.scrollIntoView({ behavior: "smooth" })}
         />
-
-        {loadingProfile ? (
-          <Card className="p-6 mb-12">
-            <Skeleton className="h-8 w-56 mb-4" />
-            <Skeleton className="h-72 w-full" />
-          </Card>
-        ) : (
-          profile && <EmotionalProfile profile={profile} />
-        )}
-
-        <ConsentForm consentState={consentState} setConsentState={setConsentState} onReviewData={() => setReviewModalOpen(true)} />
 
         {loadingTherapists ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -130,8 +121,25 @@ const TherapistBridge = () => {
             ))}
           </div>
         ) : (
-          <TherapistDirectory therapists={therapists} onBook={handleBooking} booking={booking} />
+          <TherapistDirectory
+            therapists={therapists}
+            onBook={handleBooking}
+            booking={booking}
+            userTopics={profile?.topics}
+          />
         )}
+
+        {loadingProfile ? (
+          <Card className="p-6 mb-12">
+            <Skeleton className="h-8 w-56 mb-4" />
+            <Skeleton className="h-72 w-full" />
+          </Card>
+        ) : (
+          profile && <EmotionalProfile profile={profile} />
+        )}
+
+        <ConsentForm consentState={consentState} setConsentState={setConsentState} onReviewData={() => setReviewModalOpen(true)} />
+
 
         <ProcessTimeline />
         <DashboardPreview />

@@ -11,12 +11,12 @@ const CrisisSafetyBadge = () => {
             transition={{ delay: 1.5, duration: 0.5, type: 'spring' }}
         >
             <div className="bg-red-600 text-white rounded-full px-4 py-2 shadow-lg flex items-center gap-2 cursor-pointer hover:bg-red-700 transition-colors group relative">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-crushed-silk rounded-full animate-pulse" />
                 <Phone className="h-4 w-4" />
                 <span className="text-sm font-semibold">24/7 Crisis Support</span>
 
                 {/* Expanded panel on hover */}
-                <div className="absolute bottom-full right-0 mb-2 w-72 bg-white rounded-xl shadow-2xl border border-red-100 p-4 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-300 transform group-hover:translate-y-0 translate-y-2">
+                <div className="absolute bottom-full right-0 mb-2 w-72 bg-crushed-silk rounded-xl shadow-2xl border border-red-100 p-4 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-300 transform group-hover:translate-y-0 translate-y-2">
                     <h4 className="text-red-700 font-bold text-sm mb-3 flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4" />
                         Emergency Resources

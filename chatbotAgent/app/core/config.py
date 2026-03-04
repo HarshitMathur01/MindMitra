@@ -46,13 +46,30 @@ class Config:
             return
 
         try:
-            with open(config_path, "r") as f:
-                raw_config = yaml.safe_load(f)
+            raw_config = self._load_yaml_with_fallback_encodings(config_path)
             self._config_data = self._substitute_env_vars(raw_config)
             logger.info(f"✅ Loaded configuration from {config_path}")
         except Exception as e:
             logger.error(f"❌ Failed to load config.yaml: {e}")
             self._config_data = self._get_default_config()
+
+    def _load_yaml_with_fallback_encodings(self, config_path: Path) -> Dict[str, Any]:
+        encodings = ("utf-8", "utf-8-sig", "utf-16", "cp1252", "latin-1")
+        last_error: Optional[Exception] = None
+
+        for encoding in encodings:
+            try:
+                with open(config_path, "r", encoding=encoding) as config_file:
+                    loaded = yaml.safe_load(config_file)
+                return loaded if isinstance(loaded, dict) else {}
+            except UnicodeDecodeError as decode_error:
+                last_error = decode_error
+                continue
+
+        if last_error:
+            raise last_error
+
+        raise RuntimeError("Unable to load config.yaml with supported encodings")
 
     # ── defaults ───────────────────────────────────────────────────────────
     def _get_default_config(self) -> Dict[str, Any]:

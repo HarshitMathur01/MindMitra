@@ -53,7 +53,7 @@ const LanguageTogglePreview = () => {
                             className={`relative px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${selected === lang.code
                                     ? 'bg-primary text-white border-primary shadow-md'
                                     : lang.status === 'active'
-                                        ? 'bg-white text-gray-700 border-gray-200 hover:border-primary/50 hover:bg-primary/5'
+                                        ? 'bg-crushed-silk text-gray-700 border-gray-200 hover:border-primary/50 hover:bg-primary/5'
                                         : 'bg-gray-50 text-gray-400 border-gray-100 cursor-default'
                                 }`}
                             whileHover={lang.status === 'active' ? { scale: 1.05 } : {}}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ interface Message {
   created_at: string;
   session_id: string;
   user_id: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface ChatSession {
@@ -36,6 +37,7 @@ export function ChatInterfaceWithSessions() {
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const { user } = useAuth();
+  const { settings } = useSettings();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -56,6 +58,7 @@ export function ChatInterfaceWithSessions() {
     if (user) {
       loadChatSessions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Load messages when session changes
@@ -76,7 +79,7 @@ export function ChatInterfaceWithSessions() {
 
   const loadChatSessions = async () => {
     if (!user) return;
-    
+
     try {
       // Get unique sessions from chat_messages table
       const { data: messagesData, error } = await supabase
@@ -86,10 +89,10 @@ export function ChatInterfaceWithSessions() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       // Group messages by session_id and create session objects
       const sessionMap = new Map<string, ChatSession>();
-      
+
       (messagesData || []).forEach(msg => {
         if (msg.session_id && !sessionMap.has(msg.session_id)) {
           sessionMap.set(msg.session_id, {
@@ -100,12 +103,12 @@ export function ChatInterfaceWithSessions() {
           });
         }
       });
-      
+
       const formattedSessions: ChatSession[] = Array.from(sessionMap.values())
         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-      
+
       setSessions(formattedSessions);
-      
+
       // Auto-select first session if none selected
       if (!currentSession && formattedSessions.length > 0) {
         setCurrentSession(formattedSessions[0]);
@@ -124,7 +127,7 @@ export function ChatInterfaceWithSessions() {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      
+
       const formattedMessages: Message[] = (messagesData || []).map(msg => ({
         id: msg.id || `msg-${Date.now()}-${Math.random()}`,
         content: msg.content,
@@ -134,7 +137,7 @@ export function ChatInterfaceWithSessions() {
         user_id: msg.user_id,
         metadata: undefined
       }));
-      
+
       setMessages(formattedMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -143,32 +146,32 @@ export function ChatInterfaceWithSessions() {
 
   const createNewSession = async () => {
     if (!user) return;
-    
+
     try {
       // Create a new session by generating a UUID
       const newSessionId = crypto.randomUUID();
       const now = new Date().toISOString();
-      
+
       const newSession: ChatSession = {
         id: newSessionId,
         title: 'New Chat',
         created_at: now,
         updated_at: now
       };
-      
+
       setSessions(prev => [newSession, ...prev]);
       setCurrentSession(newSession);
       setMessages([]);
-      
+
       // Focus input after creating new session
       setTimeout(() => inputRef.current?.focus(), 100);
-      
+
     } catch (error) {
       console.error('Error creating new session:', error);
     }
   };
 
-  const sendMessage = async (messageText?: string, voiceInsights?: any) => {
+  const sendMessage = async (messageText?: string, voiceInsights?: unknown) => {
     const message = messageText || inputMessage.trim();
     if (!message || !user || !currentSession || isLoading) return;
 
@@ -197,14 +200,17 @@ export function ChatInterfaceWithSessions() {
 
     try {
       console.log('📡 [CHAT] Calling enhanced-chat-context edge function...');
-      
+
       // Call the enhanced-chat-context edge function with voice analysis
       const { data, error } = await supabase.functions.invoke('enhanced-chat-context', {
         body: {
           user_message: message,
           session_id: currentSession.id,
           user_id: user.id,
-          voiceAnalysis: voiceInsights // Pass voice analysis to edge function
+          voiceAnalysis: voiceInsights, // Pass voice analysis to edge function
+          personality: settings?.companion_personality || settings?.avatar_personality || 'mitra',
+          companion_name: settings?.companion_name || 'Mitra',
+          language: settings?.language || 'english',
         }
       });
 
@@ -232,7 +238,7 @@ export function ChatInterfaceWithSessions() {
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      
+
       // Update session title if it's the first message
       if (messages.length === 0) {
         const updatedSession = {
@@ -246,7 +252,7 @@ export function ChatInterfaceWithSessions() {
 
     } catch (error) {
       console.error('Error sending message:', error);
-      
+
       // Add error message
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
@@ -255,7 +261,7 @@ export function ChatInterfaceWithSessions() {
         created_at: new Date().toISOString(),
         session_id: currentSession.id,
         user_id: user.id
-      };      setMessages(prev => [...prev, errorMessage]);
+      }; setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
       setIsTyping(false);
@@ -274,16 +280,16 @@ export function ChatInterfaceWithSessions() {
       console.log('🎤 [VOICE] Stopping voice recording...');
       // Stop recording and process
       const voiceResult = await stopRecording(
-        currentSession.id, 
+        currentSession.id,
         undefined, // messageId 
         true // enableVoiceAnalysis
       );
-      
+
       if (voiceResult && voiceResult.transcript.trim()) {
         console.log('✅ [VOICE] Voice recording successful');
         console.log('📝 [VOICE] Transcript:', voiceResult.transcript);
         console.log('🧠 [VOICE] Analysis insights:', voiceResult.insights);
-        
+
         // Send the enhanced message with voice insights
         await sendMessage(voiceResult.transcript, voiceResult.insights);
       } else {
@@ -337,15 +343,15 @@ export function ChatInterfaceWithSessions() {
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Sidebar */}
-      <motion.div 
-        className="w-80 bg-white/80 backdrop-blur-sm border-r border-gray-200 flex flex-col"
+      <motion.div
+        className="w-80 bg-crushed-silk/80 backdrop-blur-sm border-r border-gray-200 flex flex-col"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
-          <Button 
+          <Button
             onClick={createNewSession}
             className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105"
           >
@@ -366,12 +372,11 @@ export function ChatInterfaceWithSessions() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
-                  <Card 
-                    className={`p-3 cursor-pointer transition-all duration-300 hover:shadow-md ${
-                      currentSession?.id === session.id 
-                        ? 'bg-primary/10 border-primary/30 shadow-sm' 
-                        : 'hover:bg-gray-50'
-                    }`}
+                  <Card
+                    className={`p-3 cursor-pointer transition-all duration-300 hover:shadow-md ${currentSession?.id === session.id
+                      ? 'bg-primary/10 border-primary/30 shadow-sm'
+                      : 'hover:bg-gray-50'
+                      }`}
                     onClick={() => setCurrentSession(session)}
                   >
                     <div className="flex items-center space-x-3">
@@ -396,8 +401,8 @@ export function ChatInterfaceWithSessions() {
         {currentSession ? (
           <>
             {/* Chat Header */}
-            <motion.div 
-              className="p-4 bg-white/80 backdrop-blur-sm border-b border-gray-200"
+            <motion.div
+              className="p-4 bg-crushed-silk/80 backdrop-blur-sm border-b border-gray-200"
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -420,31 +425,27 @@ export function ChatInterfaceWithSessions() {
                       animate="animate"
                       exit="exit"
                       transition={{ duration: 0.4, delay: index * 0.05 }}
-                      className={`flex items-start space-x-3 ${
-                        message.role === 'user' ? 'justify-end' : 'justify-start'
-                      }`}
+                      className={`flex items-start space-x-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'
+                        }`}
                     >
                       {message.role === 'assistant' && (
                         <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
                           <Bot className="h-4 w-4 text-primary" />
                         </div>
                       )}
-                      
-                      <div className={`max-w-[70%] ${
-                        message.role === 'user' ? 'order-first' : ''
-                      }`}>
-                        <Card className={`p-4 ${
-                          message.role === 'user' 
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white ml-auto' 
-                            : 'bg-white/70 backdrop-blur-sm border border-gray-200'
-                        } message-slide-in`}>
+
+                      <div className={`max-w-[70%] ${message.role === 'user' ? 'order-first' : ''
+                        }`}>
+                        <Card className={`p-4 ${message.role === 'user'
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white ml-auto'
+                          : 'bg-crushed-silk/70 backdrop-blur-sm border border-gray-200'
+                          } message-slide-in`}>
                           <p className="text-sm leading-relaxed whitespace-pre-wrap">
                             {message.content}
                           </p>
                         </Card>
-                        <p className={`text-xs text-muted-foreground mt-1 ${
-                          message.role === 'user' ? 'text-right' : 'text-left'
-                        }`}>
+                        <p className={`text-xs text-muted-foreground mt-1 ${message.role === 'user' ? 'text-right' : 'text-left'
+                          }`}>
                           {new Date(message.created_at).toLocaleTimeString()}
                         </p>
                       </div>
@@ -468,8 +469,8 @@ export function ChatInterfaceWithSessions() {
             </ScrollArea>
 
             {/* Input Area */}
-            <motion.div 
-              className="p-4 bg-white/80 backdrop-blur-sm border-t border-gray-200"
+            <motion.div
+              className="p-4 bg-crushed-silk/80 backdrop-blur-sm border-t border-gray-200"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
@@ -481,15 +482,14 @@ export function ChatInterfaceWithSessions() {
                   <button
                     onClick={handleVoiceMessage}
                     disabled={isProcessing || isLoading}
-                    className={`p-3 rounded-full transition-all duration-200 flex items-center justify-center relative ${
-                      isRecording 
-                        ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg scale-110' 
-                        : 'bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg hover:scale-105'
-                    } ${(isProcessing || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`p-3 rounded-full transition-all duration-200 flex items-center justify-center relative ${isRecording
+                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg scale-110'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg hover:scale-105'
+                      } ${(isProcessing || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     title={
-                      isRecording ? `Stop recording (${recordingDuration}s)` : 
-                      isProcessing ? 'Processing voice...' :
-                      'Start voice message'
+                      isRecording ? `Stop recording (${recordingDuration}s)` :
+                        isProcessing ? 'Processing voice...' :
+                          'Start voice message'
                     }
                   >
                     {isProcessing ? (
@@ -498,7 +498,7 @@ export function ChatInterfaceWithSessions() {
                       <>
                         <MicOff className="w-5 h-5" />
                         {recordingDuration > 0 && (
-                          <span className="absolute -top-2 -right-2 bg-white text-red-500 text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                          <span className="absolute -top-2 -right-2 bg-crushed-silk text-red-500 text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
                             {recordingDuration}
                           </span>
                         )}
@@ -515,14 +515,13 @@ export function ChatInterfaceWithSessions() {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder={
-                      isRecording ? "🎤 Recording..." : 
-                      isProcessing ? "🔄 Processing voice..." : 
-                      "Type your message or use voice..."
+                      isRecording ? "🎤 Recording..." :
+                        isProcessing ? "🔄 Processing voice..." :
+                          "Type your message or use voice..."
                     }
                     disabled={isRecording || isProcessing}
-                    className={`flex-1 p-4 text-base border-2 border-gray-200 focus:border-primary/50 rounded-full bg-white/70 backdrop-blur-sm ${
-                      (isRecording || isProcessing) ? 'opacity-70' : ''
-                    }`}
+                    className={`flex-1 p-4 text-base border-2 border-gray-200 focus:border-primary/50 rounded-full bg-crushed-silk/70 backdrop-blur-sm ${(isRecording || isProcessing) ? 'opacity-70' : ''
+                      }`}
                   />
 
                   {/* Send Button */}
@@ -550,7 +549,7 @@ export function ChatInterfaceWithSessions() {
                         </div>
                       </div>
                     )}
-                    
+
                     {isRecording && (
                       <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm border border-green-200 text-center">
                         <div className="flex items-center justify-center gap-2 mb-2">
@@ -562,7 +561,7 @@ export function ChatInterfaceWithSessions() {
                           Speak naturally about how you're feeling. Click mic again to stop.
                         </div>
                         {currentTranscript && (
-                          <div className="mt-2 p-2 bg-white/50 rounded text-green-800 text-left">
+                          <div className="mt-2 p-2 bg-crushed-silk/50 rounded text-green-800 text-left">
                             <span className="text-xs opacity-60">Live transcript: </span>
                             <span className="italic">"{currentTranscript}"</span>
                           </div>
@@ -589,7 +588,7 @@ export function ChatInterfaceWithSessions() {
           </>
         ) : (
           /* Welcome Screen */
-          <motion.div 
+          <motion.div
             className="flex-1 flex items-center justify-center p-8"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -603,7 +602,7 @@ export function ChatInterfaceWithSessions() {
               <p className="text-muted-foreground mb-6 leading-relaxed">
                 Start a conversation with your AI therapy companion. Share your thoughts, feelings, and experiences in a safe, supportive environment.
               </p>
-              <Button 
+              <Button
                 onClick={createNewSession}
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-full transition-all duration-300 transform hover:scale-105"
               >

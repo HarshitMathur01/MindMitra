@@ -441,6 +441,9 @@ class MindMitraWorkflow:
         voice_analysis: Optional[Dict] = None,
         user_id: str = "anonymous",
         session_id: Optional[str] = None,
+        personality: Optional[str] = None,
+        companion_name: Optional[str] = None,
+        language: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Main processing pipeline — same signature & return format as original."""
         start_time = datetime.now()
@@ -452,6 +455,20 @@ class MindMitraWorkflow:
         ctx["session_context"]["conversation_summary"] = conversation_summary or {}
         ctx["session_context"]["user_activities"] = user_activities or []
         ctx["session_context"]["user_patterns"] = user_patterns or {}
+
+        # Inject user personality preferences into context
+        # Map personality names to default companion names
+        _default_names = {
+            "mitra": "Mitra", "arjun": "Arjun", "diya": "Diya",
+            "riya": "Riya", "zen": "Zen",
+        }
+        resolved_personality = personality or "mitra"
+        resolved_name = companion_name or _default_names.get(resolved_personality, "Mitra")
+        ctx["personality_settings"] = {
+            "personality": resolved_personality,
+            "companion_name": resolved_name,
+            "language": language or "english",
+        }
 
         # Steps 2-4: parallel memory fetch + NLP + cultural
         if self.feature_flags.get("parallel_processing", True):
@@ -601,16 +618,22 @@ def process_user_chat(
     voice_analysis: Optional[Dict] = None,
     user_id: str = "anonymous",
     session_id: Optional[str] = None,
+    personality: Optional[str] = None,
+    companion_name: Optional[str] = None,
+    language: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Public entry point — identical signature to original v1."""
     import time
     logger.info(f"🚀 [ENTRY] MindMitra v2 — user={user_id}, session={session_id}")
+    if personality:
+        logger.info(f"🎭 [ENTRY] Personality={personality}, name={companion_name}, lang={language}")
     start = time.time()
     try:
         workflow = get_workflow_instance()
         result = workflow.process_chat(
             user_message, recent_messages, conversation_summary,
             user_activities, user_patterns, voice_analysis, user_id, session_id,
+            personality=personality, companion_name=companion_name, language=language,
         )
         result["processing_time"] = round(time.time() - start, 2)
         result["voice_aware"] = bool(voice_analysis)

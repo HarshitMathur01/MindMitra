@@ -59,7 +59,7 @@ const EmotionMatch = () => {
   ];
 
   const emotionOptions = [
-    "Happy", "Sad", "Angry", "Surprised", "Thoughtful", "Excited", 
+    "Happy", "Sad", "Angry", "Surprised", "Thoughtful", "Excited",
     "Worried", "Calm", "Frustrated", "Content", "Anxious", "Joyful"
   ];
 
@@ -104,8 +104,8 @@ const EmotionMatch = () => {
       setIsCompleted(true);
       try {
         // Calculate correct classifications
-        const correctClassifications = newMatches.filter(match => 
-          match.emotion.toLowerCase() === 
+        const correctClassifications = newMatches.filter(match =>
+          match.emotion.toLowerCase() ===
           emotionImages.find(img => img.id === match.imageId)?.suggestedEmotion.toLowerCase()
         ).length;
 
@@ -113,7 +113,7 @@ const EmotionMatch = () => {
         const classifications = newMatches.map(match => {
           const correctEmotion = emotionImages.find(img => img.id === match.imageId)?.suggestedEmotion;
           const isCorrect = match.emotion.toLowerCase() === correctEmotion?.toLowerCase();
-          
+
           return {
             imageId: match.imageId,
             user_choice: match.emotion,
@@ -132,7 +132,7 @@ const EmotionMatch = () => {
           classifications,            // classifications array
           undefined                   // sessionId (optional)
         );
-        
+
         console.log('✅ Emotion match result saved!');
       } catch (error) {
         console.error('Failed to save game result:', error);
@@ -156,7 +156,7 @@ const EmotionMatch = () => {
   const getScoreRating = () => {
     const maxPossible = emotionImages.length * 30;
     const percentage = (score / maxPossible) * 100;
-    
+
     if (percentage >= 90) return { rating: "Emotional Intelligence Master!", color: "text-green-600", icon: Sparkles };
     if (percentage >= 75) return { rating: "Great Emotional Awareness!", color: "text-blue-600", icon: Heart };
     if (percentage >= 60) return { rating: "Good Emotional Understanding!", color: "text-purple-600", icon: Brain };
@@ -176,8 +176,8 @@ const EmotionMatch = () => {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
+    visible: {
+      y: 0,
       opacity: 1,
       transition: { duration: 0.5 }
     }
@@ -203,10 +203,10 @@ const EmotionMatch = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50">
+    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
       <Header />
-      
-      <motion.div 
+
+      <motion.div
         className="container mx-auto px-4 py-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -217,13 +217,13 @@ const EmotionMatch = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/games')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-all duration-300 hover:scale-105"
+            className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-all duration-300 hover:scale-105"
           >
             <ArrowLeft className="h-5 w-5" />
             Back to Games
           </Button>
-          
-          <motion.h1 
+
+          <motion.h1
             className="text-3xl font-bold text-gradient"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -231,11 +231,11 @@ const EmotionMatch = () => {
           >
             💝 Emotion Detective
           </motion.h1>
-          
+
           <Button
             variant="outline"
             onClick={handleReset}
-            className="flex items-center gap-2 bg-white/70 backdrop-blur-sm hover:bg-white/90 transition-all duration-300 hover:scale-105"
+            className="flex items-center gap-2 bg-surface/70 backdrop-blur-sm hover:bg-surface/90 transition-all duration-300 hover:scale-105"
           >
             <RotateCcw className="h-4 w-4" />
             Reset
@@ -243,7 +243,7 @@ const EmotionMatch = () => {
         </div>
 
         {!isCompleted ? (
-          <motion.div 
+          <motion.div
             className="max-w-4xl mx-auto"
             variants={containerVariants}
             initial="hidden"
@@ -260,7 +260,7 @@ const EmotionMatch = () => {
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
-                <motion.div 
+                <motion.div
                   className="bg-gradient-to-r from-rose-400 to-purple-500 h-3 rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${((currentImageIndex + 1) / emotionImages.length) * 100}%` }}
@@ -272,11 +272,11 @@ const EmotionMatch = () => {
             <div className="grid md:grid-cols-2 gap-8">
               {/* Image Section */}
               <motion.div variants={itemVariants}>
-                <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-xl p-6">
+                <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-xl p-6">
                   <h3 className="text-xl font-semibold mb-4 text-center text-gray-800">
                     What emotion do you see?
                   </h3>
-                  
+
                   <div className="relative overflow-hidden rounded-lg mb-4">
                     <AnimatePresence mode="wait">
                       <motion.img
@@ -292,7 +292,7 @@ const EmotionMatch = () => {
                       />
                     </AnimatePresence>
                   </div>
-                  
+
                   <p className="text-center text-gray-600 text-sm">
                     {currentImage.alt}
                   </p>
@@ -301,11 +301,11 @@ const EmotionMatch = () => {
 
               {/* Selection Section */}
               <motion.div variants={itemVariants}>
-                <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-xl p-6">
+                <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-xl p-6">
                   <h3 className="text-xl font-semibold mb-4 text-gray-800">
                     Choose the emotion
                   </h3>
-                  
+
                   <div className="grid grid-cols-3 gap-2 mb-6">
                     {emotionOptions.map((emotion, index) => (
                       <motion.button
@@ -316,17 +316,16 @@ const EmotionMatch = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleEmotionSelect(emotion)}
-                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                          selectedEmotion === emotion
+                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-300 ${selectedEmotion === emotion
                             ? 'bg-gradient-to-r from-rose-400 to-purple-500 text-white shadow-lg'
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                        }`}
+                          }`}
                       >
                         {emotion}
                       </motion.button>
                     ))}
                   </div>
-                  
+
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Describe what you see (optional):
@@ -335,11 +334,11 @@ const EmotionMatch = () => {
                       value={customText}
                       onChange={(e) => setCustomText(e.target.value)}
                       placeholder="What details in the image show this emotion? What might this person be thinking or feeling?"
-                      className="bg-white/50 border-gray-200 focus:border-purple-400 transition-colors"
+                      className="bg-crushed-silk/50 border-gray-200 focus:border-purple-400 transition-colors"
                       rows={3}
                     />
                   </div>
-                  
+
                   <Button
                     onClick={handleNext}
                     disabled={!selectedEmotion}
@@ -354,13 +353,13 @@ const EmotionMatch = () => {
           </motion.div>
         ) : (
           /* Completion Screen */
-          <motion.div 
+          <motion.div
             className="max-w-2xl mx-auto text-center"
             variants={celebrationVariants}
             initial="hidden"
             animate="visible"
           >
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-2xl p-8">
+            <Card className="bg-crushed-silk/80 backdrop-blur-sm border-0 shadow-2xl p-8">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -368,11 +367,11 @@ const EmotionMatch = () => {
               >
                 <Heart className="h-10 w-10 text-white" />
               </motion.div>
-              
+
               <h2 className="text-3xl font-bold text-gradient mb-4">
                 Emotional Journey Complete! 🌟
               </h2>
-              
+
               <div className="mb-6">
                 <p className="text-xl text-gray-700 mb-2">
                   {getScoreRating().rating}
@@ -380,7 +379,7 @@ const EmotionMatch = () => {
                 <p className="text-3xl font-bold text-purple-600 mb-4">
                   Final Score: {score} points
                 </p>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="bg-rose-50 p-4 rounded-lg">
                     <p className="font-semibold text-rose-700">Images Analyzed</p>
@@ -389,7 +388,7 @@ const EmotionMatch = () => {
                   <div className="bg-purple-50 p-4 rounded-lg">
                     <p className="font-semibold text-purple-700">Accuracy</p>
                     <p className="text-2xl text-purple-600">
-                      {Math.round((matches.filter(m => m.emotion.toLowerCase() === 
+                      {Math.round((matches.filter(m => m.emotion.toLowerCase() ===
                         emotionImages.find(img => img.id === m.imageId)?.suggestedEmotion.toLowerCase()).length / matches.length) * 100)}%
                     </p>
                   </div>
@@ -401,7 +400,7 @@ const EmotionMatch = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex gap-4 justify-center">
                 <Button
                   onClick={handleReset}

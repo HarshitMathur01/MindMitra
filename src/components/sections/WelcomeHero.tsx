@@ -46,10 +46,11 @@ const WelcomeHero = () => {
 
   useEffect(() => {
     setIsVisible(true);
-    const slideInterval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000);
-    return () => clearInterval(slideInterval);
+    // Disabled slideshow for calmer experience
+    // const slideInterval = setInterval(() => {
+    //   setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    // }, 5000);
+    // return () => clearInterval(slideInterval);
   }, []);
 
   // Auto-play demo messages
@@ -185,7 +186,7 @@ const WelcomeHero = () => {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-lg px-8 py-6 hover-lift bg-white/50 backdrop-blur-sm transform hover:scale-105 transition-all duration-300"
+                  className="text-lg px-8 py-6 hover-lift bg-crushed-silk/70 backdrop-blur-sm transform hover:scale-105 transition-all duration-300"
                   onClick={() => navigate("/wellness-checkin")}
                 >
                   Check Your Wellness
@@ -212,11 +213,11 @@ const WelcomeHero = () => {
                 <div className="w-20 h-5 bg-gray-900 rounded-b-2xl" />
               </div>
 
-              <div className="bg-white rounded-[2rem] overflow-hidden relative z-10">
+              <div className="bg-crushed-silk rounded-[2rem] overflow-hidden relative z-10">
                 {/* Chat Header */}
                 <div className="bg-gradient-to-r from-primary to-accent p-3.5 text-white">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
+                    <div className="w-9 h-9 bg-crushed-silk/20 rounded-full flex items-center justify-center">
                       <Brain className="h-4 w-4" />
                     </div>
                     <div className="flex-1">
@@ -226,14 +227,14 @@ const WelcomeHero = () => {
                         <span className="text-[11px] text-white/80">Listening carefully...</span>
                       </div>
                     </div>
-                    <div className="text-[10px] bg-white/15 px-2 py-0.5 rounded-full">
+                    <div className="text-[10px] bg-crushed-silk/15 px-2 py-0.5 rounded-full">
                       Using CBT
                     </div>
                   </div>
                 </div>
 
                 {/* Demo Messages */}
-                <div className="h-[280px] overflow-hidden p-3 space-y-2.5 bg-gray-50/50">
+                <div className="h-[280px] overflow-hidden p-3 space-y-2.5 bg-crushed-silk/60">
                   <AnimatePresence>
                     {miniDemoMessages.slice(0, demoMsgIndex).map((msg, i) => (
                       <motion.div
@@ -245,7 +246,7 @@ const WelcomeHero = () => {
                       >
                         <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${msg.role === 'user'
                           ? 'bg-primary text-white rounded-br-sm'
-                          : 'bg-white border border-gray-200 text-gray-700 rounded-bl-sm shadow-sm'
+                          : 'bg-crushed-silk border border-gray-200 text-gray-700 rounded-bl-sm shadow-sm'
                           }`}>
                           {msg.text}
                         </div>
@@ -260,7 +261,7 @@ const WelcomeHero = () => {
                       animate={{ opacity: 1 }}
                       className="flex items-center gap-2"
                     >
-                      <div className="bg-white rounded-2xl px-3 py-1.5 border border-gray-200 flex items-center gap-1.5">
+                      <div className="bg-crushed-silk rounded-2xl px-3 py-1.5 border border-gray-200 flex items-center gap-1.5">
                         <Heart className="h-2.5 w-2.5 text-pink-400 animate-pulse" />
                         <span className="text-[10px] text-gray-400 italic">
                           {miniDemoMessages[demoMsgIndex]?.role === 'ai' ? 'MindMitra is listening carefully...' : 'typing...'}
@@ -276,12 +277,12 @@ const WelcomeHero = () => {
                 </div>
 
                 {/* Input Bar */}
-                <div className="p-2.5 border-t border-gray-100 bg-white">
+                <div className="p-2.5 border-t border-gray-100 bg-crushed-silk">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-100 rounded-full px-3 py-2 text-[11px] text-gray-400">
+                    <div className="flex-1 bg-crushed-silk/85 rounded-full px-3 py-2 text-[11px] text-gray-400 border border-border/60">
                       Type how you're feeling...
                     </div>
-                    <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center">
+                    <div className="w-7 h-7 bg-crushed-silk/85 rounded-full flex items-center justify-center border border-border/60">
                       <Mic className="h-3 w-3 text-gray-400" />
                     </div>
                     <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center">

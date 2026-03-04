@@ -16,7 +16,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background text-text-primary transition-colors duration-300 relative overflow-hidden">
       {/* Soft background orbs */}
       <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl" />
       <div className="absolute bottom-20 right-20 w-48 h-48 bg-purple-200/20 rounded-full blur-3xl" />
@@ -70,7 +70,7 @@ const NotFound = () => {
             onClick={() => navigate("/chat")}
             variant="outline"
             size="lg"
-            className="gap-2 bg-white/60 backdrop-blur-sm"
+            className="gap-2 bg-crushed-silk/60 backdrop-blur-sm"
           >
             <MessageCircle className="h-4 w-4" />
             Talk to MindMitra
@@ -79,7 +79,7 @@ const NotFound = () => {
 
         {/* Gentle suggestion */}
         <motion.div
-          className="bg-white/60 backdrop-blur-sm rounded-xl border border-gray-100 p-4 text-sm text-muted-foreground"
+          className="bg-crushed-silk/60 backdrop-blur-sm rounded-xl border border-gray-100 p-4 text-sm text-muted-foreground"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}

@@ -8,6 +8,7 @@ interface TherapistDirectoryProps {
   therapists: Therapist[];
   onBook: (therapist: Therapist) => void;
   booking: boolean;
+  userTopics?: Array<{ topic: string; frequency: number }>;
 }
 
 const matchesFilter = (therapist: Therapist, filters: TherapistFilters) => {
@@ -22,7 +23,7 @@ const matchesFilter = (therapist: Therapist, filters: TherapistFilters) => {
   return languagePass && specializationPass && locationPass && availabilityPass && pricePass;
 };
 
-const TherapistDirectory = ({ therapists, onBook, booking }: TherapistDirectoryProps) => {
+const TherapistDirectory = ({ therapists, onBook, booking, userTopics }: TherapistDirectoryProps) => {
   const [filters, setFilters] = useState<TherapistFilters>(defaultFilters);
   const [debouncedFilters, setDebouncedFilters] = useState<TherapistFilters>(defaultFilters);
   const [visibleCount, setVisibleCount] = useState(6);
@@ -35,6 +36,18 @@ const TherapistDirectory = ({ therapists, onBook, booking }: TherapistDirectoryP
     return () => clearTimeout(timeout);
   }, [filters]);
 
+  const isRecommended = (therapist: Therapist) => {
+    if (!userTopics || userTopics.length === 0) return false;
+
+    return therapist.specializations.some((spec) =>
+      userTopics.some(
+        (topic) =>
+          topic.topic.toLowerCase().includes(spec.toLowerCase()) ||
+          spec.toLowerCase().includes(topic.topic.toLowerCase()),
+      ),
+    );
+  };
+
   const options = useMemo(() => {
     const languages = Array.from(new Set(therapists.flatMap((therapist) => therapist.languages))).sort();
     const specializations = Array.from(new Set(therapists.flatMap((therapist) => therapist.specializations))).sort();
@@ -44,10 +57,17 @@ const TherapistDirectory = ({ therapists, onBook, booking }: TherapistDirectoryP
     return { languages, specializations, locations, availability };
   }, [therapists]);
 
-  const filteredTherapists = useMemo(
-    () => therapists.filter((therapist) => matchesFilter(therapist, debouncedFilters)),
-    [therapists, debouncedFilters],
-  );
+  const filteredTherapists = useMemo(() => {
+    const filtered = therapists.filter((therapist) => matchesFilter(therapist, debouncedFilters));
+
+    return filtered.sort((a, b) => {
+      const aRecommended = isRecommended(a);
+      const bRecommended = isRecommended(b);
+      if (aRecommended && !bRecommended) return -1;
+      if (!aRecommended && bRecommended) return 1;
+      return 0;
+    });
+  }, [therapists, debouncedFilters, userTopics]);
 
   const visibleTherapists = filteredTherapists.slice(0, visibleCount);
 
@@ -62,7 +82,13 @@ const TherapistDirectory = ({ therapists, onBook, booking }: TherapistDirectoryP
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {visibleTherapists.map((therapist) => (
-              <TherapistCard key={therapist.id} therapist={therapist} onBook={onBook} booking={booking} />
+              <TherapistCard
+                key={therapist.id}
+                therapist={therapist}
+                onBook={onBook}
+                booking={booking}
+                isRecommended={isRecommended(therapist)}
+              />
             ))}
           </div>
 

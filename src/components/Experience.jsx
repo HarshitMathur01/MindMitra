@@ -6,8 +6,11 @@ import {
   Text,
 } from "@react-three/drei";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { useThree } from "@react-three/fiber";
+import * as THREE from "three";
 import { useChat } from "../hooks/useChat.tsx";
 import { Avatar } from "./Avatar.jsx";
+import { useTheme } from "@/context/ThemeContext";
 
 const Dots = (props) => {
   const { loading } = useChat();
@@ -41,6 +44,8 @@ const Dots = (props) => {
 export const Experience = () => {
   const cameraControls = useRef();
   const { cameraZoomed } = useChat();
+  const { scene } = useThree();
+  const { theme } = useTheme();
 
   useEffect(() => {
     cameraControls.current.setLookAt(0, 2, 5, 0, 1.5, 0);
@@ -53,6 +58,13 @@ export const Experience = () => {
       cameraControls.current.setLookAt(0, 2.2, 5, 0, 1.0, 0, true);
     }
   }, [cameraZoomed]);
+
+  useEffect(() => {
+    const backgroundColor = theme === "dark" ? "#0D1F25" : "#F5F0EB";
+    scene.background = new THREE.Color(backgroundColor);
+    scene.fog = new THREE.Fog(backgroundColor, theme === "dark" ? 8 : 12, 20);
+  }, [theme, scene]);
+
   return (
     <>
       <CameraControls ref={cameraControls} />
@@ -86,7 +98,7 @@ export const Experience = () => {
       <Suspense>
         <Dots position-y={1.75} position-x={-0.02} />
       </Suspense>
-      <Avatar/>
+      <Avatar />
       <ContactShadows opacity={0.5} blur={2.5} />
     </>
   );

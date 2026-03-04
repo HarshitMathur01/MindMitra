@@ -138,7 +138,7 @@ const EmojiMatch = () => {
   };
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-pink-100 via-yellow-100 to-indigo-100 dark:from-gray-900 dark:via-purple-900 dark:to-pink-900">
+    <div className="min-h-screen relative bg-background text-text-primary transition-colors duration-300">
       <Header />
       {gameWon && <Confetti recycle={false} numberOfPieces={400} />}
       <main className="container mx-auto px-4 py-8">

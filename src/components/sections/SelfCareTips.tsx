@@ -109,13 +109,13 @@ const SelfCareTips = () => {
                 <div className="relative max-w-5xl mx-auto">
                     <button
                         onClick={prevPage}
-                        className="absolute -left-2 md:-left-12 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-100"
+                        className="absolute -left-2 md:-left-12 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-crushed-silk rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-100"
                     >
                         <ChevronLeft className="h-4 w-4 text-gray-600" />
                     </button>
                     <button
                         onClick={nextPage}
-                        className="absolute -right-2 md:-right-12 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-100"
+                        className="absolute -right-2 md:-right-12 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-crushed-silk rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-100"
                     >
                         <ChevronRight className="h-4 w-4 text-gray-600" />
                     </button>

@@ -1,6 +1,25 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { MessageSquare, Puzzle, BarChart, Globe, ArrowRight, MessageCircle, Brain, BookOpen, Users, Stethoscope } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
+
+/* ── Therapist Bridge — person embracing a heart ── */
+const TherapistBridgeIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    {/* Head */}
+    <circle cx="12" cy="5" r="2.2" />
+    {/* Heart centered on chest */}
+    <path d="M9.5 11.5 C9.5 10 11 9 12 10.2 C13 9 14.5 10 14.5 11.5 C14.5 13 12 14.5 12 14.5 C12 14.5 9.5 13 9.5 11.5Z" fill="currentColor" fillOpacity="0.5" stroke="currentColor" strokeWidth="1" />
+    {/* Left arm reaching out */}
+    <path d="M9 13 Q6 14 4.5 16" />
+    <path d="M3.5 16.8 Q4 15.8 4.5 16 Q5 16.2 4.8 17" strokeWidth="1.2" />
+    {/* Right arm reaching out */}
+    <path d="M15 13 Q18 14 19.5 16" />
+    <path d="M20.5 16.8 Q20 15.8 19.5 16 Q19 16.2 19.2 17" strokeWidth="1.2" />
+    {/* Body */}
+    <path d="M9.5 14.5 Q10.5 19 12 20 Q13.5 19 14.5 14.5" />
+  </svg>
+);
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
@@ -16,7 +35,7 @@ const FeaturesPreview = () => {
       icon: MessageCircle,
       title: "AI Therapy Companion",
       description: "Professional psychology support with CBT, ACT, and MBCT techniques, delivered like a caring friend who understands Indian culture.",
-      gradient: "from-blue-400 to-purple-600",
+      gradient: "from-indigo-300 to-violet-400",
       action: () => navigate("/chat"),
       actionText: "Start Chatting",
       comingSoon: false,
@@ -25,7 +44,7 @@ const FeaturesPreview = () => {
       icon: Puzzle,
       title: "Mindfulness Games",
       description: "Interactive wellness activities designed to reduce stress, improve focus, and build emotional resilience through play.",
-      gradient: "from-green-400 to-blue-500",
+      gradient: "from-indigo-300 to-violet-400",
       action: () => navigate("/games"),
       actionText: "Play Games",
       comingSoon: false,
@@ -34,16 +53,16 @@ const FeaturesPreview = () => {
       icon: BarChart,
       title: "Wellness Check-ins",
       description: "Regular mood tracking and progress monitoring to understand your mental health journey and celebrate growth.",
-      gradient: "from-purple-400 to-pink-600",
+      gradient: "from-indigo-300 to-violet-400",
       action: () => navigate("/wellness-checkin"),
       actionText: "Check Progress",
       comingSoon: false,
     },
     {
-      icon: Stethoscope,
+      icon: TherapistBridgeIcon,
       title: "Therapist Bridge",
       description: "Get a warm referral to a licensed therapist who understands Indian culture. Your emotional profile is shared securely with consent.",
-      gradient: "from-orange-400 to-rose-500",
+      gradient: "from-indigo-300 to-violet-400",
       action: () => navigate("/therapist-bridge"),
       actionText: "Connect Now",
       comingSoon: false,
@@ -105,8 +124,8 @@ const FeaturesPreview = () => {
               key={index}
               ref={el => cardRefs.current[index] = el}
               className={`transform transition-all duration-700 ease-out ${visibleCards.includes(index)
-                  ? 'translate-y-0 opacity-100 scale-100'
-                  : 'translate-y-8 opacity-0 scale-95'
+                ? 'translate-y-0 opacity-100 scale-100'
+                : 'translate-y-8 opacity-0 scale-95'
                 }`}
             >
               <Card className="wellness-card group cursor-pointer h-full" onClick={feature.action}>
@@ -130,13 +149,15 @@ const FeaturesPreview = () => {
 
                   {/* Action Button */}
                   <Button
-                    className={`w-full bg-gradient-to-r ${feature.gradient} hover:shadow-lg transform transition-all duration-300 group-hover:scale-105 text-white border-0`}
+                    className="w-full bg-primary hover:bg-primary/90 text-white border-0 rounded-xl font-semibold py-2.5 shadow-sm hover:shadow-md transform transition-all duration-300 group-hover:scale-105 flex items-center justify-center gap-2"
                     onClick={(e) => {
                       e.stopPropagation();
                       feature.action();
                     }}
                   >
-                    {feature.actionText}
+                    <feature.icon className="h-4 w-4 flex-shrink-0" />
+                    <span>{feature.actionText}</span>
+                    <ArrowRight className="h-4 w-4 flex-shrink-0 ml-auto transition-transform duration-300 group-hover:translate-x-1" />
                   </Button>
                 </CardContent>
               </Card>

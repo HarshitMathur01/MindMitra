@@ -35,7 +35,7 @@ const TrustIndicators = () => {
     ];
 
     return (
-        <section className="py-8 bg-white/60 backdrop-blur-sm border-y border-gray-100">
+        <section className="py-8 bg-crushed-silk/60 backdrop-blur-sm border-y border-gray-100">
             <div className="container mx-auto px-4">
                 <motion.div
                     className="flex flex-wrap justify-center gap-4 md:gap-8"

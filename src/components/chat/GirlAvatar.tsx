@@ -394,7 +394,7 @@ const GirlAvatar = () => {
         width: 2px;
         height: 2px;
         border-radius: 9999px;
-        background: white;
+        background: var(--crushed-silk);
         animation: avatarStarTwinkle var(--star-dur) ease-in-out infinite var(--star-delay);
       }
 

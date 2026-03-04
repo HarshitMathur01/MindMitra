@@ -26,20 +26,20 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     const { error } = await signIn(email, password);
-    
+
     if (!error) {
       navigate('/');
     }
-    
+
     setIsLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     await signUp(email, password);
     setIsLoading(false);
   };
@@ -51,7 +51,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-calm flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -83,7 +83,7 @@ const Auth = () => {
                   Sign Up
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
@@ -101,7 +101,7 @@ const Auth = () => {
                       className="transition-smooth focus:ring-primary"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signin-password" className="flex items-center gap-2">
                       <Lock className="h-4 w-4" />
@@ -117,9 +117,9 @@ const Auth = () => {
                       className="transition-smooth focus:ring-primary"
                     />
                   </div>
-                  
-                  <Button 
-                    type="submit" 
+
+                  <Button
+                    type="submit"
                     className="w-full gradient-primary hover-glow transition-smooth"
                     disabled={isLoading || isGoogleLoading}
                   >
@@ -150,7 +150,7 @@ const Auth = () => {
                   </Button>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
@@ -168,7 +168,7 @@ const Auth = () => {
                       className="transition-smooth focus:ring-primary"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-password" className="flex items-center gap-2">
                       <Lock className="h-4 w-4" />
@@ -185,9 +185,9 @@ const Auth = () => {
                       className="transition-smooth focus:ring-primary"
                     />
                   </div>
-                  
-                  <Button 
-                    type="submit" 
+
+                  <Button
+                    type="submit"
                     className="w-full gradient-primary hover-glow transition-smooth"
                     disabled={isLoading || isGoogleLoading}
                   >

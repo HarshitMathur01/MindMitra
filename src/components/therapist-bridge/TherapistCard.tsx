@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarClock, Languages, Star } from "lucide-react";
+import { BadgeCheck, CalendarClock, Languages, Star, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,20 @@ interface TherapistCardProps {
   therapist: Therapist;
   onBook: (therapist: Therapist) => void;
   booking: boolean;
+  isRecommended?: boolean;
 }
 
-const TherapistCard = ({ therapist, onBook, booking }: TherapistCardProps) => {
+const TherapistCard = ({ therapist, onBook, booking, isRecommended }: TherapistCardProps) => {
   return (
-    <Card className="p-6 shadow-md hover:shadow-lg transition-shadow">
-      <div className="flex items-center gap-3 mb-4">
+    <Card className={`p-6 shadow-md hover:shadow-lg transition-all relative ${isRecommended ? 'border-primary ring-1 ring-primary/20 bg-primary/5' : ''}`}>
+      {isRecommended && (
+        <div className="absolute -top-3 left-6">
+          <Badge className="bg-primary text-primary-foreground gap-1 shadow-sm hover:bg-primary">
+            <Sparkles className="h-3 w-3" /> Recommended Match
+          </Badge>
+        </div>
+      )}
+      <div className="flex items-center gap-3 mb-4 mt-2">
         <img
           src={therapist.avatar}
           alt={therapist.name}

@@ -16,17 +16,17 @@ type Balloon = {
 };
 
 const NEGATIVE_WORDS = [
-  "doubt","fear","worry","stress","anger","guilt","shame","envy","failure",
-  "can't","not enough","insecure","anxious","lonely","tired","overwhelm",
-  "procrastinate","criticism","imposter","frustrate","sad","stuck","blame",
-  "hate","jealous","weak","negative"
+  "doubt", "fear", "worry", "stress", "anger", "guilt", "shame", "envy", "failure",
+  "can't", "not enough", "insecure", "anxious", "lonely", "tired", "overwhelm",
+  "procrastinate", "criticism", "imposter", "frustrate", "sad", "stuck", "blame",
+  "hate", "jealous", "weak", "negative"
 ];
 
 const POSITIVE_WORDS = [
-  "calm","hope","joy","peace","growth","clarity","love","brave","capable",
-  "worthy","present","balanced","resilient","patient","kind","creative",
-  "focused","grateful","strong","happy","relaxed","optimistic","mindful",
-  "courageous","serene","confident"
+  "calm", "hope", "joy", "peace", "growth", "clarity", "love", "brave", "capable",
+  "worthy", "present", "balanced", "resilient", "patient", "kind", "creative",
+  "focused", "grateful", "strong", "happy", "relaxed", "optimistic", "mindful",
+  "courageous", "serene", "confident"
 ];
 
 const AFFIRMATIONS = [
@@ -107,7 +107,7 @@ export default function BalloonPositivityGame() {
   const maxBalloons = useMemo(() => Math.min(8, 4 + Math.floor(level * 0.8)), [level]);
   const playTimeUpSound = () => {
     const audio = new Audio("/sounds/timesup.mp3");
-    audio.volume = 0.6; 
+    audio.volume = 0.6;
     audio.play();
   };
 
@@ -213,28 +213,28 @@ export default function BalloonPositivityGame() {
   }, [lives]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden font-sans text-slate-900">
-      
+    <div className="relative min-h-screen w-full overflow-hidden font-sans bg-background text-text-primary transition-colors duration-300">
+
       <div className="absolute inset-0 bg-gradient-to-br from-yellow-100 via-pink-100 to-sky-100" />
 
       <header className="relative z-10 flex items-center justify-between px-4 pt-4 md:px-8">
-        
+
         <div>
           <button
             onClick={() => navigate("/games")}
-            className="flex items-center gap-2 rounded-xl bg-white/80 px-3 py-1.5 text-sm font-medium text-slate-700 shadow hover:bg-yellow-400 hover:text-white transition"
+            className="flex items-center gap-2 rounded-xl bg-crushed-silk/80 px-3 py-1.5 text-sm font-medium text-slate-700 shadow hover:bg-yellow-400 hover:text-white transition"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Games
           </button>
         </div>
 
-        
+
         <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-3xl font-bold tracking-tight text-center text-pink-600 drop-shadow-sm">
           MoodBloom
         </h1>
 
-       
+
         <div className="flex items-center gap-2">
           {!running ? (
             <button
@@ -269,7 +269,7 @@ export default function BalloonPositivityGame() {
       </header>
 
       {/* Stats */}
-      <div className="relative z-10 mx-auto mt-4 grid max-w-5xl grid-cols-2 gap-2 rounded-2xl bg-white/70 p-3 text-sm backdrop-blur md:grid-cols-5 md:gap-4 md:p-4 shadow-lg">
+      <div className="relative z-10 mx-auto mt-4 grid max-w-5xl grid-cols-2 gap-2 rounded-2xl bg-crushed-silk/70 p-3 text-sm backdrop-blur md:grid-cols-5 md:gap-4 md:p-4 shadow-lg">
         <Stat label="Score" value={score} />
         <Stat label="Level" value={level} />
         <Stat label="Streak" value={streak} />
@@ -277,7 +277,7 @@ export default function BalloonPositivityGame() {
         <Stat label="Time" value={`${timeLeft}s`} />
       </div>
 
-      
+
       <div className="relative z-10 mx-auto mt-2 w-full max-w-5xl px-4 text-center text-slate-700">
         <p>
           Remove the {" "}
@@ -289,7 +289,7 @@ export default function BalloonPositivityGame() {
       <div
         ref={containerRef}
         className="relative z-0 mx-auto mt-4 h-[70vh] w-[min(1100px,94vw)] overflow-hidden rounded-3xl 
-               bg-white/30 shadow-2xl backdrop-blur border-4 border-transparent"
+               bg-crushed-silk/30 shadow-2xl backdrop-blur border-4 border-transparent"
         style={{
           borderImage: 'linear-gradient(to right, #ffd6e0, #fff1a8, #b5f2d8, #c5dbff) 1',
           borderImageSlice: 1,
@@ -301,9 +301,9 @@ export default function BalloonPositivityGame() {
           ))}
         </AnimatePresence>
 
-        
+
         {(!running && (lives <= 0 || timeLeft <= 0)) && (
-          <div className="absolute inset-0 grid place-items-center bg-white/70 backdrop-blur-sm">
+          <div className="absolute inset-0 grid place-items-center bg-crushed-silk/70 backdrop-blur-sm">
             <div className="rounded-3xl bg-gradient-to-br from-pink-100 to-yellow-100 p-6 text-center shadow-lg max-w-md">
               {lives <= 0 ? (
                 <h2 className="mb-2 text-2xl font-semibold text-rose-600">Game Over</h2>
@@ -325,26 +325,26 @@ export default function BalloonPositivityGame() {
         )}
       </div>
 
-      
+
       <AnimatePresence>
-  {message && (
-    <motion.div
-      key={message}
-      initial={{ opacity: 0, scale: 0.7 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.7 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 
-                 rounded-xl bg-white/90 px-4 py-2 text-base font-semibold 
+        {message && (
+          <motion.div
+            key={message}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.7 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 
+                 rounded-xl bg-crushed-silk/90 px-4 py-2 text-base font-semibold 
                  text-indigo-600 shadow-lg backdrop-blur-md"
-      onAnimationComplete={() => {
-        window.setTimeout(() => setMessage(null), 1500);
-      }}
-    >
-      {message}
-    </motion.div>
-  )}
-</AnimatePresence>
+            onAnimationComplete={() => {
+              window.setTimeout(() => setMessage(null), 1500);
+            }}
+          >
+            {message}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <footer className="relative z-10 mt-6 pb-8 text-center text-xs text-slate-500">
         <p>Designed for joy Click Start, then pop the negative words.</p>
@@ -358,7 +358,7 @@ export default function BalloonPositivityGame() {
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-white/80 p-3 text-center shadow-sm">
+    <div className="rounded-2xl bg-crushed-silk/80 p-3 text-center shadow-sm">
       <div className="text-[11px] uppercase tracking-wider text-slate-500">{label}</div>
       <div className="text-lg font-semibold text-slate-800">{value}</div>
     </div>
@@ -410,7 +410,7 @@ function BalloonItem({
         }}
       >
         <span className="drop-shadow-sm">{b.word}</span>
-        <span className="pointer-events-none absolute left-3 top-3 h-3 w-6 rounded-full bg-white/50 blur-[1px]" />
+        <span className="pointer-events-none absolute left-3 top-3 h-3 w-6 rounded-full bg-crushed-silk/50 blur-[1px]" />
       </button>
 
       <svg
@@ -429,11 +429,10 @@ function BalloonItem({
       </svg>
 
       <span
-        className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] shadow-md ${
-          b.kind === "negative"
+        className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] shadow-md ${b.kind === "negative"
             ? "bg-rose-500 text-white"
             : "bg-emerald-500 text-white"
-        }`}
+          }`}
       >
         {b.kind}
       </span>

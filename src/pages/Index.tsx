@@ -19,7 +19,7 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background text-text-primary transition-colors duration-300 flex items-center justify-center">
         <div className="text-center">
           <Brain className="h-12 w-12 text-primary mx-auto mb-4 pulse-gentle" />
           <p className="text-muted-foreground">Loading...</p>
@@ -29,16 +29,17 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
       <Header />
       <main>
         <WelcomeHero />
+
+        <FeaturesPreview />
         <DailyAffirmation />
 
         {/* 3D Avatar Conversation Showcase */}
         <AvatarShowcase />
 
-        <FeaturesPreview />
         <StatsSection />
         <TestimonialCarousel />
       </main>

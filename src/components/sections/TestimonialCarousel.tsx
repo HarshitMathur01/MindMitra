@@ -124,20 +124,22 @@ const TestimonialCarousel = () => {
                 {/* Filter Tabs */}
                 <div className="flex justify-center gap-3 mb-10">
                     {[
-                        { key: 'all' as const, label: 'All', icon: null },
+                        { key: 'all' as const, label: 'All', icon: Quote },
                         { key: 'student' as const, label: 'Students', icon: GraduationCap },
                         { key: 'therapist' as const, label: 'Therapists', icon: Stethoscope },
                     ].map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setFilter(tab.key)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${filter === tab.key
-                                    ? 'bg-primary text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            aria-label={tab.label}
+                            title={tab.label}
+                            className={`w-11 h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center ${filter === tab.key
+                                ? 'bg-primary text-white shadow-md'
+                                : 'bg-crushed-silk text-gray-600 hover:bg-crushed-silk/80 border border-border/60'
                                 }`}
                         >
-                            {tab.icon && <tab.icon className="h-4 w-4" />}
-                            {tab.label}
+                            <tab.icon className="h-4 w-4" />
+                            <span className="sr-only">{tab.label}</span>
                         </button>
                     ))}
                 </div>
@@ -146,14 +148,14 @@ const TestimonialCarousel = () => {
                 <div className="max-w-3xl mx-auto relative">
                     <button
                         onClick={prev}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 z-10 w-10 h-10 bg-crushed-silk rounded-full shadow-lg flex items-center justify-center hover:bg-crushed-silk/70 transition-colors"
                     >
                         <ChevronLeft className="h-5 w-5 text-gray-600" />
                     </button>
 
                     <button
                         onClick={next}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 z-10 w-10 h-10 bg-crushed-silk rounded-full shadow-lg flex items-center justify-center hover:bg-crushed-silk/70 transition-colors"
                     >
                         <ChevronRight className="h-5 w-5 text-gray-600" />
                     </button>
@@ -166,15 +168,15 @@ const TestimonialCarousel = () => {
                                 animate={{ opacity: 1, x: 0, scale: 1 }}
                                 exit={{ opacity: 0, x: -50, scale: 0.95 }}
                                 transition={{ duration: 0.4 }}
-                                className="bg-white rounded-2xl shadow-xl p-8 md:p-10 border border-gray-100 relative"
+                                className="bg-crushed-silk rounded-2xl shadow-xl p-8 md:p-10 border border-gray-100 relative"
                             >
                                 <Quote className="absolute top-6 left-6 h-8 w-8 text-primary/15" />
 
                                 {/* Type badge */}
                                 <div className="flex justify-end mb-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${testimonial.type === 'therapist'
-                                            ? 'bg-blue-100 text-blue-700'
-                                            : 'bg-green-100 text-green-700'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'bg-green-100 text-green-700'
                                         }`}>
                                         {testimonial.type === 'therapist' ? '🩺 Therapist Endorsement' : '🎓 Student Review'}
                                     </span>
@@ -186,8 +188,8 @@ const TestimonialCarousel = () => {
 
                                 <div className="flex items-center gap-4">
                                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${testimonial.type === 'therapist'
-                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600'
-                                            : 'bg-gradient-to-r from-green-500 to-teal-600'
+                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600'
+                                        : 'bg-gradient-to-r from-green-500 to-teal-600'
                                         }`}>
                                         {testimonial.avatar}
                                     </div>

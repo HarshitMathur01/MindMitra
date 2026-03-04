@@ -41,7 +41,7 @@ rag_memory:
 ### 3. Restart Server
 
 ```bash
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 **No code changes needed!** Configuration is loaded automatically.

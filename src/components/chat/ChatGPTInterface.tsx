@@ -7,15 +7,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
 import { useAuth } from "@/hooks/useAuth";
+import { useSettings } from "@/hooks/useSettings";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@radix-ui/react-avatar";
-import GirlAvatar from "./GirlAvatar"
+import TalkingHeadAvatar from "./TalkingHeadAvatar"
 import { useChat } from "../../hooks/useChat"
 import { motion, AnimatePresence } from "framer-motion"
+import MessageRenderer from "./MessageRenderer"
 import { jsPDF } from "jspdf";
 
 interface Message {
@@ -101,7 +103,7 @@ const TypewriterText = ({
     <span className={className}>
       {displayedText}
       {!isComplete && (
-        <span className="inline-block w-[2px] h-[1em] bg-blue-500 dark:bg-blue-400 ml-1 animate-pulse align-middle" />
+        <span className="inline-block w-[2px] h-[1em] bg-primary ml-1 animate-pulse align-middle" />
       )}
     </span>
   );
@@ -119,6 +121,7 @@ const ChatGPTInterface = () => {
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const { user } = useAuth();
+  const { settings } = useSettings();
   const { toast } = useToast();
   const { isRecording, isProcessing, toggleRecording, currentTranscript } = useVoiceRecording();
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
@@ -143,6 +146,16 @@ const ChatGPTInterface = () => {
       return;
     }
   }, [user, navigate]);
+
+  // Signal to PersonalitySelector that a chat session is open (enables mid-session switch warning)
+  useEffect(() => {
+    localStorage.setItem('mm-active-chat-session', 'true');
+    window.dispatchEvent(new StorageEvent('storage', { key: 'mm-active-chat-session', newValue: 'true' }));
+    return () => {
+      localStorage.removeItem('mm-active-chat-session');
+      window.dispatchEvent(new StorageEvent('storage', { key: 'mm-active-chat-session', newValue: null }));
+    };
+  }, []);
 
   // Initialize session from localStorage
   useEffect(() => {
@@ -171,6 +184,7 @@ const ChatGPTInterface = () => {
         startNewChat();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Refresh recent chats periodically to catch any new messages
@@ -182,6 +196,7 @@ const ChatGPTInterface = () => {
 
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Update temporary voice message with live transcript
@@ -247,6 +262,7 @@ const ChatGPTInterface = () => {
     return () => {
       clearVoiceSilenceTimer();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording, isAvatarVisible, currentTranscript, currentSessionId, voiceTempMsgId]);
 
   useEffect(() => {
@@ -493,7 +509,10 @@ const ChatGPTInterface = () => {
           user_message: textToSend,
           session_id: sessionIdToUse,
           voice_analysis: null,  // Can be extended for voice features
-          avatar_visible: isAvatarVisible  // ⚡ P0: Skip TTS when avatar hidden
+          avatar_visible: isAvatarVisible,  // ⚡ P0: Skip TTS when avatar hidden
+          personality: settings?.companion_personality || settings?.avatar_personality || 'mitra',
+          companion_name: settings?.companion_name || 'Mitra',
+          language: settings?.language || 'english',
         })
       });
 
@@ -801,8 +820,15 @@ const ChatGPTInterface = () => {
         return;
       }
 
+      const personalityId = settings?.companion_personality || settings?.avatar_personality || 'mitra';
+      const companionName = settings?.companion_name || '';
+
       console.log('👋 Fetching personalized greeting...');
-      const response = await fetch(`${backendUrl}/chat/greeting?session_id=${sessionId}`, {
+      const params = new URLSearchParams({ session_id: sessionId });
+      if (personalityId) params.set('personality', personalityId);
+      if (companionName) params.set('companion_name', companionName);
+
+      const response = await fetch(`${backendUrl}/chat/greeting?${params}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -848,19 +874,19 @@ const ChatGPTInterface = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="flex h-screen bg-background text-text-primary transition-colors duration-300">
       {/* Enhanced ChatGPT-style Sidebar with Glassmorphism */}
       <motion.div
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className={`${sidebarCollapsed ? 'w-0' : 'w-64'} transition-all duration-300 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col border-r border-gray-700/50 backdrop-blur-xl overflow-hidden shadow-2xl`}
+        className={`${sidebarCollapsed ? 'w-0' : 'w-72'} transition-all duration-300 bg-gradient-to-b from-primary/25 via-background to-background text-text-primary flex flex-col border-r border-border backdrop-blur-xl overflow-hidden shadow-theme`}
       >
         {/* Sidebar Header with Gradient */}
-        <div className="p-3 border-b border-gray-700/50 bg-gradient-to-r from-blue-600/10 to-purple-600/10">
+        <div className="p-4 border-b border-border bg-background/40">
           <Button
             onClick={startNewChat}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border-0 text-white justify-start gap-2 text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+            className="w-full h-12 rounded-2xl bg-[#0f172a] hover:bg-[#1e293b] border-0 text-white justify-start gap-2 text-sm font-semibold shadow-theme hover:shadow-theme-lg transition-all duration-300"
             variant="outline"
           >
             <Plus className="h-4 w-4" />
@@ -869,47 +895,48 @@ const ChatGPTInterface = () => {
         </div>
 
         {/* Search with Animation */}
-        <div className="p-3 border-b border-gray-700/50">
+        <div className="p-4 border-b border-border/80">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-400 transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary group-focus-within:text-primary transition-colors" />
             <Input
               placeholder="Search chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-gray-800/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm transition-all duration-300"
+              className="h-12 rounded-2xl pl-10 bg-background/75 border border-border text-text-primary placeholder:text-text-secondary focus:border-primary focus:ring-2 focus:ring-primary/25 text-sm transition-all duration-300"
             />
           </div>
         </div>
 
         {/* Navigation & Content */}
-        <div className="flex-1 overflow-hidden">
-          <div className="p-2 space-y-1 h-full flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Scrollable content area */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 custom-scrollbar">
             {/* Navigation Items with Hover Effects */}
             <Button
               variant="ghost"
-              className="w-full justify-start text-gray-300 hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:text-white text-sm flex-shrink-0 transition-all duration-300 hover:scale-[1.02]"
+              className="w-full h-12 rounded-2xl justify-start px-3 text-text-primary bg-background/60 hover:bg-background/90 text-sm font-medium flex-shrink-0 transition-all duration-300"
               onClick={() => navigate('/')}
             >
-              <Home className="h-4 w-4 mr-3" />
+              <Home className="h-5 w-5 mr-2" />
               Home
             </Button>
 
             {/* Recent Chats Section with Animations */}
-            <div className="pt-3 pb-1 flex-shrink-0">
-              <div className="flex items-center justify-between px-3 mb-2">
-                <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-wider">
+            <div className="pt-1 pb-1">
+              <div className="flex items-center justify-between px-1 mb-2">
+                <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider">
                   Recent Chats
                 </h3>
                 {(loadingChats || loadingSession) && (
-                  <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                 )}
               </div>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
+              <div className="space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar pr-1">
                 {recentChats.length === 0 ? (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="px-3 py-2 text-xs text-gray-500 italic"
+                    className="px-3 py-2 text-sm text-text-secondary italic"
                   >
                     No recent chats
                   </motion.div>
@@ -925,26 +952,28 @@ const ChatGPTInterface = () => {
                         <Button
                           variant="ghost"
                           disabled={loadingSession}
-                          className={`w-full text-left p-2 transition-all duration-300 text-xs hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 group relative border ${currentSessionId === chat.id
-                            ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-500/50 text-white shadow-lg'
-                            : 'border-transparent text-gray-300 hover:text-white hover:border-gray-700 hover:scale-[1.02]'
+                          className={`w-full h-auto rounded-2xl text-left p-3 transition-all duration-300 group relative border ${currentSessionId === chat.id
+                            ? 'bg-background/80 border-primary/45 text-text-primary shadow-theme'
+                            : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border hover:bg-background/50'
                             } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
                           onClick={() => selectRecentChat(chat.id)}
                         >
                           <div className="flex items-start gap-2 w-full">
-                            <motion.div
-                              animate={{
-                                scale: currentSessionId === chat.id ? [1, 1.2, 1] : 1,
-                              }}
-                              transition={{ duration: 0.3 }}
-                              className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${currentSessionId === chat.id ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' : 'bg-gray-500'
-                                }`}
-                            ></motion.div>
+                            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <motion.div
+                                animate={{
+                                  scale: currentSessionId === chat.id ? [1, 1.2, 1] : 1,
+                                }}
+                                transition={{ duration: 0.3 }}
+                                className={`w-2.5 h-2.5 rounded-full ${currentSessionId === chat.id ? 'bg-success shadow-theme' : 'bg-text-secondary/80'
+                                  }`}
+                              ></motion.div>
+                            </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate leading-tight font-medium">
+                              <p className="truncate leading-tight text-sm font-medium">
                                 {chat.title}
                               </p>
-                              <p className="text-xs text-gray-500 mt-0.5">
+                              <p className="text-xs text-text-secondary mt-0.5">
                                 {chat.messageCount || 0} messages • {new Date(chat.created_at).toLocaleDateString()}
                               </p>
                             </div>
@@ -958,19 +987,19 @@ const ChatGPTInterface = () => {
             </div>
 
             {/* Quick Topics Section with Gradient Effects */}
-            <div className="pt-1 pb-1 flex-shrink-0">
-              <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-wider px-3 mb-1">
+            <div className="pt-1 pb-1">
+              <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider px-1 mb-2">
                 Quick Topics
               </h3>
-              <div className="space-y-0">
+              <div className="space-y-0.5">
                 {quickCategories.map((category) => (
                   <Button
                     key={category.label}
                     variant="ghost"
-                    className="w-full justify-start text-gray-300 hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:text-white text-sm py-1 h-7 transition-all duration-300 hover:scale-[1.02]"
+                    className="w-full justify-start px-3 text-text-primary/90 hover:bg-background/60 hover:text-text-primary text-sm py-1 h-9 rounded-xl transition-all duration-300"
                     onClick={() => handleSendMessage(`Tell me about ${category.label.toLowerCase()}`)}
                   >
-                    <span className="mr-2 text-sm">{category.icon}</span>
+                    <span className="w-5 h-5 mr-2 flex items-center justify-center text-lg flex-shrink-0">{category.icon}</span>
                     {category.label}
                   </Button>
                 ))}
@@ -978,16 +1007,16 @@ const ChatGPTInterface = () => {
             </div>
 
             {/* Suggested Prompts Section with Hover Effects */}
-            <div className="pt-1 pb-1 flex-shrink-0">
-              <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-wider px-3 mb-1">
+            <div className="pt-1 pb-1">
+              <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider px-1 mb-2">
                 Suggested
               </h3>
-              <div className="space-y-0">
+              <div className="space-y-0.5">
                 {suggestedPrompts.slice(0, 3).map((prompt, index) => (
                   <Button
                     key={index}
                     variant="ghost"
-                    className="w-full justify-start text-gray-300 hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:text-white text-xs p-2 h-auto leading-tight transition-all duration-300 hover:scale-[1.02]"
+                    className="w-full justify-start px-3 text-text-secondary hover:bg-background/60 hover:text-text-primary text-sm p-2.5 h-auto leading-tight rounded-xl transition-all duration-300"
                     onClick={() => handleSendMessage(prompt)}
                   >
                     <span className="text-left line-clamp-2">
@@ -998,38 +1027,36 @@ const ChatGPTInterface = () => {
               </div>
             </div>
 
-            {/* Spacer to push footer to bottom */}
-            <div className="flex-1"></div>
+          </div>
 
-            {/* Footer with Gradient */}
-            <div className="flex-shrink-0 border-t border-gray-700/50 pt-2 bg-gradient-to-r from-blue-600/5 to-purple-600/5">
-              <div className="flex items-center justify-between px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                    <User className="h-3 w-3 text-white" />
-                  </div>
-                  <span className="text-sm text-gray-300 truncate">
-                    {user?.email?.split('@')[0] || 'User'}
-                  </span>
+          {/* Footer with Gradient — pinned at bottom */}
+          <div className="flex-shrink-0 border-t border-border pt-2 bg-background/30 px-3">
+            <div className="flex items-center justify-between px-1 py-2">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-theme">
+                  <User className="h-3 w-3 text-white" />
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors">
-                      <MoreVertical className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => navigate('/profile')}>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <span className="text-sm text-text-secondary truncate max-w-[170px]">
+                  {user?.email?.split('@')[0] || 'User'}
+                </span>
               </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-text-secondary hover:text-text-primary hover:bg-background transition-colors">
+                    <MoreVertical className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -1042,25 +1069,25 @@ const ChatGPTInterface = () => {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="border-b border-gray-200/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-4 flex items-center justify-between shadow-lg"
+          className="border-b border-border bg-surface/80 backdrop-blur-xl p-4 flex items-center justify-between shadow-theme"
         >
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
-              className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors"
+              className="hover:bg-background transition-colors"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
               {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-theme">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">MindMitra</h1>
+              <h1 className="text-xl font-bold text-text-primary">MindMitra</h1>
             </div>
             {isLoading && (
-              <Badge variant="secondary" className="animate-pulse bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              <Badge variant="secondary" className="animate-pulse bg-surface text-text-primary border border-border">
                 <motion.span
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
@@ -1086,8 +1113,8 @@ const ChatGPTInterface = () => {
                 className={`
                   group relative overflow-hidden transition-all duration-300
                   ${isAvatarVisible
-                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-300 dark:border-blue-700 hover:shadow-lg hover:shadow-blue-200 dark:hover:shadow-blue-900'
-                    : 'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900 border-gray-300 dark:border-gray-700 hover:shadow-lg hover:shadow-gray-200 dark:hover:shadow-gray-800'
+                    ? 'bg-surface border-primary/40 hover:shadow-theme'
+                    : 'bg-surface border-border hover:shadow-theme'
                   }
                 `}
               >
@@ -1108,9 +1135,9 @@ const ChatGPTInterface = () => {
                     transition={{ duration: 0.3 }}
                   >
                     {isAvatarVisible ? (
-                      <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <Eye className="h-4 w-4 text-primary" />
                     ) : (
-                      <EyeOff className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-text-secondary" />
                     )}
                   </motion.div>
                   <span className="font-medium">
@@ -1123,8 +1150,8 @@ const ChatGPTInterface = () => {
                     <div className={`
                       w-2 h-2 rounded-full 
                       ${isAvatarVisible
-                        ? 'bg-green-500 shadow-lg shadow-green-300 dark:shadow-green-700'
-                        : 'bg-gray-400 dark:bg-gray-600'
+                        ? 'bg-success shadow-theme'
+                        : 'bg-text-secondary'
                       }
                     `} />
                   </motion.div>
@@ -1133,7 +1160,7 @@ const ChatGPTInterface = () => {
             </motion.div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors">
+                <Button variant="ghost" size="sm" className="hover:bg-background transition-colors">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -1158,8 +1185,8 @@ const ChatGPTInterface = () => {
         {/* Messages Area with Animations - Conditional 50-50 split */}
         <div className={`grid grid-rows-1 h-[80%] ${isAvatarVisible ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {isAvatarVisible && (
-            <div className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
-              <GirlAvatar />
+            <div className="relative bg-background border-r border-border overflow-hidden transition-colors duration-300">
+              <TalkingHeadAvatar />
               {/* Real-time transcription subtitle overlay */}
               <AnimatePresence>
                 {avatarCurrentMessage?.text && (
@@ -1183,7 +1210,7 @@ const ChatGPTInterface = () => {
               </AnimatePresence>
             </div>
           )}
-          <div className="flex-1 overflow-y-scroll bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
+          <div className="flex-1 overflow-y-scroll bg-background transition-colors duration-300">
             <ScrollArea className="h-full">
               <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
                 <AnimatePresence>
@@ -1197,46 +1224,34 @@ const ChatGPTInterface = () => {
                       className="group"
                     >
                       {message.sender === "ai" ? (
-                        <div className="flex gap-4 items-start">
+                        <div className="flex gap-3 items-start">
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200 }}
-                            className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
+                            className="mm-avatar mm-avatar--ai flex-shrink-0"
                           >
-                            <Bot className="h-4 w-4 text-white" />
+                            <Bot className="h-4 w-4" />
                           </motion.div>
                           <div className="flex-1 space-y-2">
-                            <div className="text-sm font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">MindMitra</div>
                             <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              transition={{ delay: 0.2 }}
-                              className="prose prose-sm max-w-none dark:prose-invert"
+                              transition={{ delay: 0.1 }}
                             >
                               {isAvatarVisible && transcribingMsgId === message.id ? (
-                                <div className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm p-4 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-600/50 min-h-[2.5rem]">
+                                <div className="mm-bubble mm-bubble--ai min-h-[2.5rem]">
                                   <TypewriterText
                                     text={message.content}
                                     speed={350}
                                     onComplete={() => setTranscribingMsgId(null)}
-                                    className="text-gray-800 dark:text-gray-100"
+                                    className="text-text-primary"
                                   />
                                 </div>
                               ) : (
-                                <div
-                                  className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm p-4 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-600/50"
-                                  dangerouslySetInnerHTML={{
-                                    __html: message.content
-                                      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-600 dark:text-blue-400">$1</strong>')
-                                      .replace(/\*(.*?)\*/g, '<em class="text-purple-600 dark:text-purple-400">$1</em>')
-                                      .replace(/`(.*?)`/g, '<code class="bg-blue-100 dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono text-blue-800 dark:text-blue-300">$1</code>')
-                                      .replace(/^- (.+)$/gm, '<li class="mb-1">$1</li>')
-                                      .replace(/(<li.*<\/li>)/s, '<ul class="list-disc list-inside space-y-1 ml-4 my-2">$1</ul>')
-                                      .replace(/\n\n/g, '<br><br>')
-                                      .replace(/\n/g, '<br>')
-                                  }}
-                                />
+                                <div className="mm-bubble mm-bubble--ai">
+                                  <MessageRenderer content={message.content} />
+                                </div>
                               )}
                             </motion.div>
                             <motion.div
@@ -1248,18 +1263,18 @@ const ChatGPTInterface = () => {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-gray-700 hover:scale-110 transition-all"
+                                className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all"
                                 onClick={() => copyMessage(message.content)}
                               >
                                 <Copy className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-gray-700 hover:scale-110 transition-all">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all">
                                 <ThumbsUp className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-gray-700 hover:scale-110 transition-all">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-danger/10 hover:text-danger hover:scale-110 transition-all">
                                 <ThumbsDown className="h-3 w-3" />
                               </Button>
-                              <span className="text-xs text-gray-500 ml-2">
+                              <span className="text-xs text-text-secondary ml-2">
                                 {message.timestamp.toLocaleTimeString([], {
                                   hour: "2-digit",
                                   minute: "2-digit",
@@ -1269,46 +1284,44 @@ const ChatGPTInterface = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex gap-4 justify-end items-start">
-                          <div className="flex-1 flex justify-end">
-                            <div className="max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl">
-                              <motion.div
-                                initial={{ scale: 0.9 }}
-                                animate={{ scale: 1 }}
-                                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl px-5 py-3 inline-block shadow-lg hover:shadow-xl transition-shadow"
+                        <div className="flex gap-3 justify-end items-start">
+                          <div className="flex-1 flex flex-col items-end">
+                            <motion.div
+                              initial={{ scale: 0.95, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="mm-bubble mm-bubble--user"
+                            >
+                              <span className="mm-user-text">{message.content}</span>
+                            </motion.div>
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 0 }}
+                              whileHover={{ opacity: 1 }}
+                              className="flex items-center justify-end gap-2 mt-1 transition-opacity"
+                            >
+                              <span className="text-xs text-text-secondary opacity-70">
+                                {message.timestamp.toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all"
+                                onClick={() => copyMessage(message.content)}
                               >
-                                <p className="text-sm font-medium whitespace-pre-wrap break-words">{message.content}</p>
-                              </motion.div>
-                              <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 0 }}
-                                whileHover={{ opacity: 1 }}
-                                className="flex items-center justify-end gap-2 mt-2 transition-opacity"
-                              >
-                                <span className="text-xs text-gray-500">
-                                  {message.timestamp.toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all"
-                                  onClick={() => copyMessage(message.content)}
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </motion.div>
-                            </div>
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </motion.div>
                           </div>
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200 }}
-                            className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
+                            className="mm-avatar mm-avatar--user flex-shrink-0"
                           >
-                            <User className="h-4 w-4 text-white" />
+                            <User className="h-4 w-4" />
                           </motion.div>
                         </div>
                       )}
@@ -1322,27 +1335,27 @@ const ChatGPTInterface = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="flex gap-4 items-start"
+                    className="flex gap-3 items-start"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                      <Bot className="h-4 w-4 text-white" />
+                    <div className="mm-avatar mm-avatar--ai flex-shrink-0">
+                      <Bot className="h-4 w-4" />
                     </div>
-                    <div className="bg-white/80 dark:bg-gray-700/50 backdrop-blur-sm px-5 py-3 rounded-2xl shadow-md">
+                    <div className="mm-bubble mm-bubble--ai py-3 px-5">
                       <div className="flex gap-1">
                         <motion.div
                           animate={{ y: [0, -8, 0] }}
                           transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                          className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                          className="w-2 h-2 bg-primary rounded-full"
                         />
                         <motion.div
                           animate={{ y: [0, -8, 0] }}
                           transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                          className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                          className="w-2 h-2 bg-primary rounded-full"
                         />
                         <motion.div
                           animate={{ y: [0, -8, 0] }}
                           transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                          className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                          className="w-2 h-2 bg-primary rounded-full"
                         />
                       </div>
                     </div>
@@ -1359,7 +1372,7 @@ const ChatGPTInterface = () => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="border-t border-gray-200/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-4 shadow-lg"
+          className="border-t border-border bg-surface/80 backdrop-blur-xl p-4 shadow-theme"
         >
           <div className="max-w-4xl mx-auto">
             <div className="relative group">
@@ -1368,7 +1381,7 @@ const ChatGPTInterface = () => {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Message MindMitra..."
-                className="pr-20 py-4 text-sm rounded-2xl border-2 border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 dark:border-gray-500 dark:text-white transition-all duration-300 shadow-md focus:shadow-lg"
+                className="pr-20 py-4 text-sm rounded-2xl border-2 border-border focus:border-primary focus:ring-4 focus:ring-primary/20 bg-crushed-silk text-text-primary transition-all duration-300 shadow-theme focus:shadow-theme-lg"
                 disabled={isLoading}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -1377,14 +1390,14 @@ const ChatGPTInterface = () => {
                     size="sm"
                     variant="ghost"
                     className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${isRecording
-                      ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 shadow-lg shadow-red-500/20'
-                      : 'hover:bg-blue-100 dark:hover:bg-gray-600'
+                      ? 'text-danger bg-danger/10 hover:bg-danger/20 shadow-theme'
+                      : 'hover:bg-background'
                       }`}
                     onClick={handleVoiceInput}
                     disabled={isProcessing || isLoading}
                   >
                     {isProcessing ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                     ) : (
                       <motion.div
                         animate={isRecording ? { scale: [1, 1.2, 1] } : {}}
@@ -1402,7 +1415,7 @@ const ChatGPTInterface = () => {
                   <Button
                     onClick={() => handleSendMessage()}
                     disabled={!inputValue.trim() || isLoading}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white h-9 w-9 p-0 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-primary hover:bg-secondary text-white h-9 w-9 p-0 rounded-full shadow-theme hover:shadow-theme-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <motion.div
                       initial={{ rotate: 0 }}
@@ -1420,7 +1433,7 @@ const ChatGPTInterface = () => {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="absolute -bottom-6 right-2 text-xs text-gray-500"
+                  className="absolute -bottom-6 right-2 text-xs text-text-secondary"
                 >
                   {inputValue.length} characters
                 </motion.div>

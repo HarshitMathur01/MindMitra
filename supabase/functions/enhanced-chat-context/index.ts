@@ -17,7 +17,7 @@ serve(async (req) => {
   try {
     console.log('🚀 [EDGE] Enhanced chat function starting...')
     console.log('📥 [EDGE] Request method:', req.method)
-    
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -50,7 +50,7 @@ serve(async (req) => {
       voiceAnalysisKeys: requestData.voiceAnalysis ? Object.keys(requestData.voiceAnalysis) : []
     })
 
-    const { message, sessionId, voiceAnalysis } = requestData
+    const { message, sessionId, voiceAnalysis, personality, companion_name, language } = requestData
 
     // Log voice analysis details if provided
     if (voiceAnalysis) {
@@ -76,7 +76,7 @@ serve(async (req) => {
 
     const trimmedMessage = message.trim();
     console.log('📝 Message:', trimmedMessage);
-    
+
     // Log voice analysis if provided
     if (voiceAnalysis) {
       console.log('🎤 Voice analysis received:', voiceAnalysis.emotional_tone || 'unknown');
@@ -84,7 +84,7 @@ serve(async (req) => {
 
     // Handle session ID validation
     let currentSessionId: string = sessionId || crypto.randomUUID();
-    
+
     if (sessionId) {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(sessionId)) {
@@ -108,12 +108,12 @@ serve(async (req) => {
         }
       }
     }
-    
+
     console.log('📂 Using session ID:', currentSessionId)
 
     // PARALLEL DATA LOADING for faster performance
     console.log('� Loading user context in parallel...')
-    
+
     const [messagesResult, summaryResult, activitiesResult, userMessageSaved] = await Promise.all([
       // Load recent messages
       supabase
@@ -123,7 +123,7 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20),
-      
+
       // Load conversation summary from message_summaries table (🔥 FIX: conversation_summaries doesn't exist!)
       supabase
         .from('message_summaries')
@@ -132,7 +132,7 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1),
-      
+
       // Load user activities
       supabase
         .from('user_activities')
@@ -140,7 +140,7 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .order('completed_at', { ascending: false })
         .limit(5),
-      
+
       // Save user message immediately
       supabase
         .from('chat_messages')
@@ -156,10 +156,10 @@ serve(async (req) => {
     // Process results
     const recentMessages = messagesResult.data || [];
     if (recentMessages.length > 0) recentMessages.reverse(); // Chronological order
-    
+
     const conversationSummary = summaryResult.data?.[0] || {};
     const userActivities = activitiesResult.data || [];
-    
+
     console.log('✅ [EDGE] Context loaded successfully:')
     console.log('- Recent messages:', recentMessages.length)
     console.log('- User activities:', userActivities.length)
@@ -172,7 +172,7 @@ serve(async (req) => {
     console.log('- Message length:', trimmedMessage.length)
     console.log('- Recent messages:', recentMessages.length)
     console.log('- Voice data keys:', voiceAnalysis ? Object.keys(voiceAnalysis) : 'none')
-    
+
     const workflowResponse = await callWorkflow({
       user_message: trimmedMessage,
       recent_messages: recentMessages,
@@ -181,7 +181,10 @@ serve(async (req) => {
       user_patterns: {},
       voice_analysis: voiceAnalysis || null, // Include voice analysis
       user_id: user.id,
-      session_id: currentSessionId
+      session_id: currentSessionId,
+      personality: personality || null,
+      companion_name: companion_name || null,
+      language: language || null,
     });
 
     console.log('✅ [EDGE] Workflow response received from Python backend')
@@ -201,13 +204,13 @@ serve(async (req) => {
     const aiResponse = workflowResponse.message;
     const modality = workflowResponse.modality || 'Supportive';
     const processingTime = workflowResponse.processing_time || 0;
-    
+
     console.log(`🤖 [EDGE] LLM response validated (${aiResponse.length} chars, ${processingTime}s processing)`);
 
     // Save AI response to database
     try {
       console.log('💾 [EDGE] Saving AI response to database...');
-      
+
       const { error: saveError } = await supabase
         .from('chat_messages')
         .insert({
@@ -249,9 +252,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Function error:', error)
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message,
         sessionId: crypto.randomUUID(),
         debug: {
@@ -260,7 +263,7 @@ serve(async (req) => {
           timestamp: new Date().toISOString()
         }
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       }
@@ -271,16 +274,16 @@ serve(async (req) => {
 // CRITICAL: Proper workflow calling with comprehensive logging
 async function callWorkflow(data: any) {
   console.log('🔗 [WORKFLOW] Connecting to Python workflow backend...');
-  
+
   // Use the ngrok URL from environment variable
   const WORKFLOW_URL = Deno.env.get('WORKFLOW_URL') || 'http://localhost:8000/chat';
   const TIMEOUT_MS = 60000; // 60 seconds timeout
-  
+
   console.log('🌐 [WORKFLOW] Configuration:')
   console.log('- Workflow URL:', WORKFLOW_URL)
   console.log('- Timeout:', TIMEOUT_MS / 1000, 'seconds')
   console.log('- Has voice analysis:', !!data.voice_analysis)
-  
+
   try {
     console.log(`📡 [WORKFLOW] Sending request to Python backend...`)
     console.log('📊 [WORKFLOW] Request payload structure:', {
@@ -292,9 +295,9 @@ async function callWorkflow(data: any) {
       userId: data.user_id,
       sessionId: data.session_id
     })
-    
+
     const startTime = Date.now()
-    
+
     const response = await fetch(WORKFLOW_URL, {
       method: 'POST',
       headers: {
@@ -320,7 +323,7 @@ async function callWorkflow(data: any) {
     }
 
     const result = await response.json();
-    
+
     console.log('✅ [WORKFLOW] Response parsed successfully')
     console.log('📊 [WORKFLOW] Response validation:', {
       hasResult: !!result,
@@ -331,7 +334,7 @@ async function callWorkflow(data: any) {
       processingTime: result?.processing_time || 0,
       voiceAware: result?.voice_aware || false
     })
-    
+
     if (!result || typeof result.message !== 'string' || result.message.trim().length === 0) {
       console.error('❌ [WORKFLOW] Invalid response format:', {
         result: result ? 'exists' : 'null',
@@ -340,15 +343,15 @@ async function callWorkflow(data: any) {
       })
       throw new Error('Workflow returned invalid response format');
     }
-    
+
     console.log('✅ [WORKFLOW] Response validation passed')
     console.log(`📊 [WORKFLOW] Final stats: ${result.message.length} chars, ${result.processing_time || 0}s processing`)
     if (result.voice_aware) {
       console.log('🎤 [WORKFLOW] Response is voice-aware - psychology agents considered voice analysis')
     }
-    
+
     return result;
-    
+
   } catch (error) {
     console.error('❌ [WORKFLOW] Connection failed:', {
       error: error.message,

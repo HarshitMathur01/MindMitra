@@ -11,9 +11,9 @@ const statistics = [
     suffix: "+",
     label: "Students Helped",
     description: "Indian youth finding their mental wellness path",
-    iconGradient: "from-blue-500 to-indigo-600",
-    cardBorder: "border-blue-100/80",
-    cardAccent: "bg-blue-50/40",
+    iconGradient: "from-primary to-accent",
+    cardBorder: "border-border/70",
+    cardAccent: "bg-crushed-silk/85",
   },
   {
     icon: MessageCircle,
@@ -21,9 +21,9 @@ const statistics = [
     suffix: "+",
     label: "Therapy Sessions",
     description: "Meaningful conversations and breakthroughs",
-    iconGradient: "from-violet-500 to-purple-600",
-    cardBorder: "border-violet-100/80",
-    cardAccent: "bg-violet-50/40",
+    iconGradient: "from-primary to-accent",
+    cardBorder: "border-border/70",
+    cardAccent: "bg-crushed-silk/85",
   },
   {
     icon: TrendingUp,
@@ -31,9 +31,9 @@ const statistics = [
     suffix: "%",
     label: "Improvement Rate",
     description: "Users report better mental health",
-    iconGradient: "from-emerald-500 to-teal-600",
-    cardBorder: "border-emerald-100/80",
-    cardAccent: "bg-emerald-50/40",
+    iconGradient: "from-primary to-accent",
+    cardBorder: "border-border/70",
+    cardAccent: "bg-crushed-silk/85",
   },
   {
     icon: Heart,
@@ -41,24 +41,24 @@ const statistics = [
     suffix: "%",
     label: "Satisfaction Score",
     description: "Trust and positive feedback from our community",
-    iconGradient: "from-rose-500 to-pink-600",
-    cardBorder: "border-rose-100/80",
-    cardAccent: "bg-rose-50/40",
+    iconGradient: "from-primary to-accent",
+    cardBorder: "border-border/70",
+    cardAccent: "bg-crushed-silk/85",
   }
 ];
 
 const StatsSection = () => {
-  const [sectionRef, sectionInView] = useIntersectionObserver({ 
-    threshold: 0.3, 
-    triggerOnce: true 
+  const [sectionRef, sectionInView] = useIntersectionObserver({
+    threshold: 0.3,
+    triggerOnce: true
   });
 
   return (
-    <section ref={sectionRef} className="py-20 relative overflow-hidden">
+    <section ref={sectionRef} className="py-20 relative overflow-hidden bg-crushed-silk/35">
       {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-purple-50/50 to-pink-50/50"></div>
-      <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-200/20 to-purple-200/20 rounded-full blur-3xl transform -translate-y-1/2"></div>
-      
+      <div className="absolute inset-0 bg-gradient-to-r from-crushed-silk/60 via-crushed-silk/35 to-crushed-silk/60"></div>
+      <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-gradient-to-r from-primary/8 to-accent/8 rounded-full blur-3xl transform -translate-y-1/2"></div>
+
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
         <motion.div
@@ -67,7 +67,7 @@ const StatsSection = () => {
           animate={sectionInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
         >
-          <motion.h2 
+          <motion.h2
             className="text-4xl md:text-5xl font-bold text-gradient mb-6"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={sectionInView ? { opacity: 1, scale: 1 } : {}}
@@ -75,7 +75,7 @@ const StatsSection = () => {
           >
             Making a Real Difference
           </motion.h2>
-          <motion.p 
+          <motion.p
             className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             animate={sectionInView ? { opacity: 1, y: 0 } : {}}
@@ -90,7 +90,7 @@ const StatsSection = () => {
           {statistics.map((stat, index) => (
             <motion.div
               key={index}
-              className={`text-center group ${stat.cardAccent} backdrop-blur-sm rounded-2xl p-8 border ${stat.cardBorder} shadow-sm hover:shadow-md transition-all duration-300`}
+              className={`text-center group ${stat.cardAccent} rounded-2xl p-8 border ${stat.cardBorder} shadow-sm hover:shadow-md transition-all duration-300`}
               initial={{ opacity: 0, y: 50, scale: 0.8 }}
               animate={sectionInView ? { opacity: 1, y: 0, scale: 1 } : {}}
               transition={{
@@ -143,7 +143,7 @@ const StatsSection = () => {
           animate={sectionInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 1.5 }}
         >
-          <motion.p 
+          <motion.p
             className="text-lg text-muted-foreground mb-6"
             whileHover={{ scale: 1.02 }}
           >
@@ -156,10 +156,10 @@ const StatsSection = () => {
             transition={{ duration: 0.6, delay: 1.8 }}
           >
             <div className="flex -space-x-2">
-              {[1,2,3,4,5].map((i) => (
-                <motion.div 
+              {[1, 2, 3, 4, 5].map((i) => (
+                <motion.div
                   key={i}
-                  className="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full border-2 border-white flex items-center justify-center text-white font-semibold text-sm"
+                  className="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-full border-2 border-crushed-silk flex items-center justify-center text-white font-semibold text-sm"
                   initial={{ scale: 0, rotate: -180 }}
                   animate={sectionInView ? { scale: 1, rotate: 0 } : {}}
                   transition={{ duration: 0.5, delay: 2 + i * 0.1 }}

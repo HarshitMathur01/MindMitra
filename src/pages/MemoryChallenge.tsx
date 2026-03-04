@@ -21,10 +21,10 @@ const MemoryChallenge = () => {
   const [showingIndex, setShowingIndex] = useState(0);
   const [activeCard, setActiveCard] = useState<number | null>(null);
 
-  const gridSize = 9; 
+  const gridSize = 9;
   const cards = Array.from({ length: gridSize }, (_, i) => i);
 
-  
+
   useEffect(() => {
     successAudio.current = new Audio("/sounds/win.mp3");
     wrongAudio.current = new Audio("/sounds/wrong.mp3");
@@ -68,7 +68,7 @@ const MemoryChallenge = () => {
     setActiveCard(null);
   };
 
-  
+
   useEffect(() => {
     if (gameState === "showing" && showingIndex < sequence.length) {
       const timeout = setTimeout(() => {
@@ -94,16 +94,16 @@ const MemoryChallenge = () => {
     const newPlayerSequence = [...playerSequence, cardIndex];
     setPlayerSequence(newPlayerSequence);
 
-    
+
     if (sequence[newPlayerSequence.length - 1] !== cardIndex) {
-      wrongAudio.current?.play(); 
+      wrongAudio.current?.play();
       setGameState("finished");
       return;
     }
 
-    
+
     if (newPlayerSequence.length === sequence.length) {
-      successAudio.current?.play(); 
+      successAudio.current?.play();
       setScore((prev) => prev + currentLevel * 10);
       const nextLevel = currentLevel + 1;
       setCurrentLevel(nextLevel);
@@ -118,10 +118,10 @@ const MemoryChallenge = () => {
     gameState === "ready"
       ? "Ready"
       : gameState === "showing"
-      ? "Memorize"
-      : gameState === "playing"
-      ? "Repeat"
-      : "Finished";
+        ? "Memorize"
+        : gameState === "playing"
+          ? "Repeat"
+          : "Finished";
 
   const getCardStyle = (index: number) => {
     const baseStyle =
@@ -136,14 +136,14 @@ const MemoryChallenge = () => {
     }
 
     if (gameState === "playing") {
-      return `${baseStyle} bg-white/20 hover:scale-105 hover:shadow-xl border-white/30 text-white`;
+      return `${baseStyle} bg-crushed-silk/20 hover:scale-105 hover:shadow-xl border-white/30 text-white`;
     }
 
-    return `${baseStyle} bg-white/10 border-white/20 text-white opacity-60 cursor-default`;
+    return `${baseStyle} bg-crushed-silk/10 border-white/20 text-white opacity-60 cursor-default`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-tr from-pink-200 via-purple-200 to-yellow-100 flex flex-col">
+    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300 flex flex-col">
       <Header />
       <main className="container mx-auto px-4 py-10 max-w-2xl text-center">
         {/* Back Button & Title */}
@@ -161,7 +161,7 @@ const MemoryChallenge = () => {
             Memory Challenge
           </h1>
           <p className="text-muted-foreground text-lg">
-             Watch the sequence, then repeat it by clicking the magical cards in the same order.
+            Watch the sequence, then repeat it by clicking the magical cards in the same order.
           </p>
         </div>
 
@@ -203,19 +203,19 @@ const MemoryChallenge = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-5 text-center rounded-2xl shadow-md bg-white/50 backdrop-blur-md">
+          <Card className="p-5 text-center rounded-2xl shadow-md bg-crushed-silk/50 backdrop-blur-md">
             <div className="text-3xl font-bold text-purple-600">{currentLevel}</div>
             <div className="text-sm text-muted-foreground">Level</div>
           </Card>
-          <Card className="p-5 text-center rounded-2xl shadow-md bg-white/50 backdrop-blur-md">
+          <Card className="p-5 text-center rounded-2xl shadow-md bg-crushed-silk/50 backdrop-blur-md">
             <div className="text-3xl font-bold text-pink-600">{score}</div>
             <div className="text-sm text-muted-foreground">Score</div>
           </Card>
-          <Card className="p-5 text-center rounded-2xl shadow-md bg-white/50 backdrop-blur-md">
+          <Card className="p-5 text-center rounded-2xl shadow-md bg-crushed-silk/50 backdrop-blur-md">
             <div className="text-3xl font-bold text-yellow-600">{sequence.length}</div>
             <div className="text-sm text-muted-foreground">Sequence</div>
           </Card>
-          <Card className="p-5 text-center rounded-2xl shadow-md bg-white/50 backdrop-blur-md">
+          <Card className="p-5 text-center rounded-2xl shadow-md bg-crushed-silk/50 backdrop-blur-md">
             <div className="text-3xl font-bold text-indigo-600">{bestScore}</div>
             <div className="text-sm text-muted-foreground">Best</div>
           </Card>
@@ -244,7 +244,7 @@ const MemoryChallenge = () => {
         )}
 
         {/* Game Grid */}
-        <Card className="p-8 rounded-2xl bg-white/40 backdrop-blur-lg shadow-lg border border-white/50">
+        <Card className="p-8 rounded-2xl bg-crushed-silk/40 backdrop-blur-lg shadow-lg border border-white/50">
           <div className="grid grid-cols-3 gap-4">
             {cards.map((index) => (
               <div
@@ -281,7 +281,7 @@ const MemoryChallenge = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <Card className="p-8 rounded-2xl bg-white/10 backdrop-blur-lg shadow-xl border border-white/30 text-center">
+            <Card className="p-8 rounded-2xl bg-crushed-silk/10 backdrop-blur-lg shadow-xl border border-white/30 text-center">
               <div className="flex justify-center space-x-2 mb-6">
                 {"GAME OVER".split("").map((letter, i) => (
                   <motion.span

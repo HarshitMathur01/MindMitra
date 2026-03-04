@@ -88,6 +88,11 @@ app.add_middleware(
         "https://www.mindmitra.co.in",
         "https://mindmitra-seven.vercel.app",
         "http://localhost:8080",
+        # common local/dev origins to allow browser preflight during development
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8001",
+        "http://127.0.0.1:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -97,9 +102,11 @@ app.add_middleware(
 # ── Include routers (after /health) ────────────────────────────────────────
 from app.api.chat import router as chat_router
 from app.api.transcribe import router as transcribe_router
+from app.api.onboarding import router as onboarding_router
 
 app.include_router(chat_router)
 app.include_router(transcribe_router)
+app.include_router(onboarding_router)
 
 
 

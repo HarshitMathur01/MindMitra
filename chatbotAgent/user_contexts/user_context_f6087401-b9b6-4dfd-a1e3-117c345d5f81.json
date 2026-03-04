@@ -1,8 +1,8 @@
 {
     "user_id": "f6087401-b9b6-4dfd-a1e3-117c345d5f81",
-    "session_id": "4be7b3bd-a009-483e-abde-0ba2c7f87654",
-    "timestamp": "2026-02-20T16:29:09.519396+00:00",
-    "user_message": "Oh, beta, I\u2019m so sorry to hear that. It\u2019s completely normal to feel sad and lost after a tough exam. It\u2019s like you put in so much effort, and then the result doesn\u2019t feel right, right? It\u2019s okay to feel this way. Let\u2019s take a deep breath together\u2014inhale, exhale. What\u2019s going through your mind right now?",
+    "session_id": "5f1bcfc6-1380-40b1-8d58-1a41605c0daf",
+    "timestamp": "2026-03-03T18:40:14.707766+00:00",
+    "user_message": "hi how are you",
     "voice_analysis": {},
     "session_context": {
         "recent_messages": [
@@ -189,6 +189,154 @@
             {
                 "role": "user",
                 "content": "Oh, beta, I\u2019m so sorry to hear that. It\u2019s completely normal to feel sad and lost after a tough exam. It\u2019s like you put in so much effort, and then the result doesn\u2019t feel right, right? It\u2019s okay to feel this way. Let\u2019s take a deep breath together\u2014inhale, exhale. What\u2019s going through your mind right now?"
+            },
+            {
+                "role": "user",
+                "content": "Help me understand my personality type"
+            },
+            {
+                "role": "assistant",
+                "content": "Thank you for sharing that with me. I'm here to listen and support you. Let's explore your thoughts and feelings together. What would help you most right now?"
+            },
+            {
+                "role": "user",
+                "content": "hii"
+            },
+            {
+                "role": "assistant",
+                "content": "Hi there! Really happy to see you! How are you doing today? Is there anything I can do for you?"
+            },
+            {
+                "role": "assistant",
+                "content": "Hi \ud83d\udc4b! So good to see you again! How\u2019s your day going? Anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "what's your name"
+            },
+            {
+                "role": "assistant",
+                "content": "Hi there! My name is MindMitra, and I\u2019m here to chat with you whenever you need. How can I help you today? \ud83d\ude0a"
+            },
+            {
+                "role": "assistant",
+                "content": "Hi \ud83d\udc4b! Really happy to see you! Is there anything I can do for you?"
+            },
+            {
+                "role": "assistant",
+                "content": "Hi there! My name is MindMitra, and I\u2019m here to support you. How can I help you today?"
+            },
+            {
+                "role": "user",
+                "content": "how can you help me"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey! I\u2019m here to chat with you about whatever\u2019s on your mind, whether it\u2019s stress, confusion, or just exploring life\u2019s big questions. I can also guide you to resources or exercises that might help you feel more grounded. What\u2019s something you\u2019d like to explore together?"
+            },
+            {
+                "role": "user",
+                "content": "can i know your name"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey! You can call me MindMitra. I\u2019m here to support you through whatever you\u2019re navigating. No formal names or anything\u2014just a friendly space to talk. How can I help you today?"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey there! Really happy to see you. How are you doing today? Is there anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "What can I call you?"
+            },
+            {
+                "role": "assistant",
+                "content": "You can call me MindMitra! I\u2019m here to support you, and you can choose whatever name feels comfortable for you. How can I help you today?"
+            },
+            {
+                "role": "user",
+                "content": "Gwen"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey Gwen! Nice to have a name to call you by. \ud83d\ude0a How are you doing today? Is there anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "great"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey there! Sounds like you're doing okay. Is there anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "WHat's your name?"
+            },
+            {
+                "role": "user",
+                "content": "What is your name?"
+            },
+            {
+                "role": "assistant",
+                "content": "Hi there! My name is MindMitra, and I\u2019m here to chat with you and support you whenever you need. How can I help you today?"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey! I\u2019m MindMitra, your friendly support companion. I noticed you asked about my name again\u2014no worries at all! Is there something on your mind you\u2019d like to talk about? I\u2019m here to listen."
+            },
+            {
+                "role": "user",
+                "content": "What about the gwen"
+            },
+            {
+                "role": "assistant",
+                "content": "Oh, \"the gwen\" \u2013 that sounds like something specific you\u2019re thinking about! Could you tell me a bit more about what that means to you? I\u2019m here to listen without any judgment."
+            },
+            {
+                "role": "assistant",
+                "content": "Hi \ud83d\udc4b! Really happy to see you again! Is there anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "heyyo"
+            },
+            {
+                "role": "assistant",
+                "content": "Heyyo \ud83d\udc4b! So good to hear from you! What\u2019s on your mind today? Or if you just want to chill and chat, that\u2019s cool too! \ud83d\ude0a"
+            },
+            {
+                "role": "user",
+                "content": "heyy"
+            },
+            {
+                "role": "assistant",
+                "content": "Heyy \ud83d\udc4b! Really happy to see you! How are you doing today? Is there anything I can do for you?"
+            },
+            {
+                "role": "user",
+                "content": "what is your name"
+            },
+            {
+                "role": "assistant",
+                "content": "Heyy! My name is MindMitra, and I\u2019m here to support you. How can I help you today? \ud83d\ude0a"
+            },
+            {
+                "role": "user",
+                "content": "hi can you heko me"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey there! Of course, I'm here to help. What's on your mind? Feel free to share whatever's up, and we can figure things out together. \ud83d\ude0a"
+            },
+            {
+                "role": "user",
+                "content": "hi how are you"
+            },
+            {
+                "role": "assistant",
+                "content": "Hey there! I'm doing great, thanks for asking. How about you? How are things on your end? \ud83d\ude0a"
             }
         ],
         "conversation_summary": {},
@@ -198,7 +346,12 @@
             "episodic": []
         },
         "user_activities": [],
-        "user_patterns": {}
+        "user_patterns": {},
+        "retrieved_memories": {
+            "semantic": [],
+            "procedural": [],
+            "episodic": []
+        }
     },
     "nlp_analysis": {
         "emotions": {},
@@ -214,41 +367,39 @@
     },
     "cultural_context": {
         "language_style": "english",
-        "hindi_english_ratio": 0.005,
+        "hindi_english_ratio": 0.0,
         "code_switching_detected": false,
-        "cultural_sensitivity_flags": [
-            "exam_stress"
-        ],
-        "communication_pattern": "questioning",
+        "cultural_sensitivity_flags": [],
+        "communication_pattern": "terse",
         "regional_context": "urban_metro",
         "formality_level": "medium"
     },
     "psychological_analysis": {
-        "emotional_state": "unknown (user is expressing empathy for someone else's situation)",
+        "emotional_state": "neutral",
         "stress_categories": [
-            "Academic"
+            "Miscellaneous"
         ],
         "risk_assessment": "low",
-        "coping_assessment": "The user is demonstrating supportive and empathetic coping mechanisms by validating feelings and offering calming techniques (deep breathing).",
+        "coping_assessment": "No observable coping mechanisms or resilience noted at this stage.",
         "intervention_priority": "supportive",
         "psychological_insights": [
-            "The user is likely in a caregiving or supportive role, showing concern for another's emotional well-being.",
-            "The use of 'beta' suggests familiarity with Indian familial communication styles.",
-            "The user is normalizing the emotional response to academic stress, which is a healthy coping strategy."
+            "User may be testing engagement or seeking a simple connection.",
+            "Repetitive inquiry suggests potential discomfort or uncertainty in expressing deeper thoughts.",
+            "Limited emotional disclosure indicates a need for gradual trust-building."
         ],
-        "cultural_pressures": "Indian cultural emphasis on academic performance and the use of familial terms ('beta') reflect common Indian family dynamics where exams are a significant source of stress."
+        "cultural_pressures": "No specific Indian cultural/family/academic pressures identified from the interaction."
     },
     "technique_selection": {
-        "primary_technique": "Psychoeducation",
-        "therapeutic_approach": "Provide information about academic stress, its common effects, and healthy coping mechanisms. Normalize the experience of stress and emphasize that it is a shared challenge among peers. Encourage the user to share this knowledge with the person they are supporting.",
+        "primary_technique": "Person-Centered",
+        "therapeutic_approach": "Create a non-judgmental, empathetic space where the user feels safe to gradually express thoughts and emotions. Use active listening, reflection, and validation to build trust and encourage deeper self-disclosure.",
         "activity_recommendations": [
-            "Journaling about stressors and coping strategies",
-            "Yoga or deep breathing exercises to manage stress",
-            "Setting small, achievable academic goals to reduce overwhelm"
+            "Journaling prompts (e.g., 'What brings you comfort today?')",
+            "Mindful breathing exercises",
+            "Simple grounding exercise (5-4-3-2-1)"
         ],
-        "rationale": "The user is in a supportive role and normalizing the emotional response to academic stress. Psychoeducation is appropriate to validate their efforts and provide practical tools for both the user and the person they are supporting. It aligns with the cultural emphasis on academic ..."
+        "rationale": "The user's neutral emotional state, limited disclosure, and repetitive inquiry suggest a need for a supportive, trust-building approach. Person-Centered therapy aligns with this by fostering a safe environment for gradual self-exploration, which is culturally sensitive and avoids..."
     },
-    "ai_response": "Oh, beta, it\u2019s really thoughtful of you to be so understanding. You\u2019re absolutely right\u2014those feelings after a tough exam are completely normal. It\u2019s like you pour your heart into studying, and then the results can feel so unpredictable. It\u2019s okay to feel sad, lost, or even frustrated. Taking that deep breath with you just now was a small step to ease that tension. \n\nRemember, exams are just one part of the journey, and your worth isn\u2019t tied to a single result. If you want to talk more about what\u2019s on your mind or explore ways to cope, I\u2019m here. Maybe journaling those thoughts or setting tiny goals for the next step could help? Whatever feels right for you.",
+    "ai_response": "Hey there! I'm doing great, thanks for asking. How about you? How are things on your end? \ud83d\ude0a",
     "response_generated": true,
     "screening_assessments": {
         "phq9": {
@@ -265,7 +416,7 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-02-20T16:29:22.623170+00:00"
+            "last_updated": "2026-03-03T18:40:27.372295+00:00"
         },
         "gad7": {
             "score": 0,
@@ -279,7 +430,12 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-02-20T16:29:22.623170+00:00"
+            "last_updated": "2026-03-03T18:40:27.372295+00:00"
         }
+    },
+    "personality_settings": {
+        "personality": "calm",
+        "companion_name": "Qwen",
+        "language": "english"
     }
 }

@@ -163,7 +163,7 @@ const AvatarShowcase = () => {
                                     onClick={() => setSelectedAvatar(avatar.id)}
                                     className={`relative cursor-pointer rounded-2xl border-2 p-4 transition-all duration-300 ${selectedAvatar === avatar.id
                                         ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
-                                        : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                                        : 'border-gray-200 bg-crushed-silk hover:border-gray-300 hover:shadow-md'
                                         }`}
                                     initial={{ opacity: 0, x: -30 }}
                                     whileInView={{ opacity: 1, x: 0 }}
@@ -183,7 +183,7 @@ const AvatarShowcase = () => {
                                                     animate={{ scale: 1 }}
                                                     transition={{ type: 'spring' }}
                                                 >
-                                                    <div className="w-2 h-2 bg-white rounded-full" />
+                                                    <div className="w-2 h-2 bg-crushed-silk rounded-full" />
                                                 </motion.div>
                                             )}
                                         </div>
@@ -196,7 +196,7 @@ const AvatarShowcase = () => {
                                             </p>
                                             <div className="flex flex-wrap gap-1 mt-1.5">
                                                 {avatar.speciality.map((s, j) => (
-                                                    <span key={j} className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                                                    <span key={j} className="text-[10px] bg-crushed-silk/85 border border-border/60 text-gray-500 px-2 py-0.5 rounded-full">
                                                         {s}
                                                     </span>
                                                 ))}
@@ -330,7 +330,7 @@ const AvatarShowcase = () => {
 
                                     {/* Description Card */}
                                     <motion.div
-                                        className="mt-4 bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
+                                        className="mt-4 bg-crushed-silk rounded-xl border border-gray-200 p-4 shadow-sm"
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.2 }}
@@ -376,7 +376,7 @@ const AvatarShowcase = () => {
                         ].map((feat, i) => (
                             <motion.div
                                 key={i}
-                                className="text-center p-5 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-100 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+                                className="text-center p-5 rounded-xl bg-crushed-silk/80 backdrop-blur-sm border border-gray-100 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
                                 whileHover={{ y: -5, scale: 1.02 }}
                             >
                                 <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-primary/15 to-accent/15 flex items-center justify-center shadow-sm">

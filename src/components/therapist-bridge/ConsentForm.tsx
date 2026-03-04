@@ -13,6 +13,12 @@ interface ConsentFormProps {
 }
 
 const ConsentForm = ({ consentState, setConsentState, onReviewData }: ConsentFormProps) => {
+  const getMode = () => {
+    if (consentState.shareFullProfile) return "full";
+    if (consentState.shareAssessments && !consentState.sharePatterns) return "assessments";
+    return "custom";
+  };
+
   const setMode = (value: string) => {
     if (value === "full") {
       setConsentState((prev) => ({
@@ -68,7 +74,7 @@ const ConsentForm = ({ consentState, setConsentState, onReviewData }: ConsentFor
         <div className="rounded-lg border p-4 mb-6">
           <h4 className="font-semibold mb-3">Choose Sharing Mode</h4>
           <RadioGroup
-            defaultValue="full"
+            value={getMode()}
             onValueChange={setMode}
             className="space-y-3"
             aria-label="Data sharing mode"

@@ -80,7 +80,7 @@ const BreathingWidget = () => {
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        className="fixed bottom-20 left-4 z-50 w-72 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+                        className="fixed bottom-20 left-4 z-50 w-72 bg-crushed-silk/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
                         initial={{ opacity: 0, scale: 0.8, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -132,8 +132,8 @@ const BreathingWidget = () => {
                             <motion.button
                                 onClick={toggleExercise}
                                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${isActive
-                                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                        : 'bg-teal-500 text-white hover:bg-teal-600'
+                                    ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                    : 'bg-teal-500 text-white hover:bg-teal-600'
                                     }`}
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}

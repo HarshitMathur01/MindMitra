@@ -149,6 +149,207 @@ export type Database = {
         }
         Relationships: []
       }
+      crisis_events: {
+        Row: {
+          id: string
+          user_id: string
+          level: 'critical' | 'high' | 'medium'
+          source: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          level: 'critical' | 'high' | 'medium'
+          source: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          level?: 'critical' | 'high' | 'medium'
+          source?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      onboarding_analytics: {
+        Row: {
+          id: string
+          user_id: string
+          step: number
+          device_tier: 'full' | 'standard' | 'lite' | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          step: number
+          device_tier?: 'full' | 'standard' | 'lite' | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          step?: number
+          device_tier?: 'full' | 'standard' | 'lite' | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      platform_stats: {
+        Row: {
+          id: string
+          active_users_today: number
+          total_sessions_completed: number
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          active_users_today?: number
+          total_sessions_completed?: number
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          active_users_today?: number
+          total_sessions_completed?: number
+          recorded_at?: string
+        }
+        Relationships: []
+      }
+      user_onboarding: {
+        Row: {
+          id: string
+          user_id: string
+          consent_given: boolean
+          onboarding_step: number
+          onboarding_completed: boolean
+          steps_skipped: Json
+          device_tier: 'full' | 'standard' | 'lite' | null
+          personalization: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          consent_given?: boolean
+          onboarding_step?: number
+          onboarding_completed?: boolean
+          steps_skipped?: Json
+          device_tier?: 'full' | 'standard' | 'lite' | null
+          personalization?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          consent_given?: boolean
+          onboarding_step?: number
+          onboarding_completed?: boolean
+          steps_skipped?: Json
+          device_tier?: 'full' | 'standard' | 'lite' | null
+          personalization?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          id: string
+          user_id: string
+          companion_name: string | null
+          avatar_personality: string | null
+          companion_personality: 'mitra' | 'arjun' | 'diya' | 'riya' | 'zen'
+          companion_personality_locked: boolean
+          reminder_time: string | null
+          language: string | null
+          theme: string | null
+          privacy_mode: boolean
+          data_sharing_consent: boolean
+          notification_preferences: Json | null
+          accessibility_settings: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          companion_name?: string | null
+          avatar_personality?: string | null
+          companion_personality?: 'mitra' | 'arjun' | 'diya' | 'riya' | 'zen'
+          companion_personality_locked?: boolean
+          reminder_time?: string | null
+          language?: string | null
+          theme?: string | null
+          privacy_mode?: boolean
+          data_sharing_consent?: boolean
+          notification_preferences?: Json | null
+          accessibility_settings?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          companion_name?: string | null
+          avatar_personality?: string | null
+          companion_personality?: 'mitra' | 'arjun' | 'diya' | 'riya' | 'zen'
+          companion_personality_locked?: boolean
+          reminder_time?: string | null
+          language?: string | null
+          theme?: string | null
+          privacy_mode?: boolean
+          data_sharing_consent?: boolean
+          notification_preferences?: Json | null
+          accessibility_settings?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      companion_personalities: {
+        Row: {
+          id: string
+          name: string
+          emoji: string
+          tagline: string
+          best_for: string
+          color_accent: string
+          system_prompt_addition: string
+          voice_rate: number
+          avatar_animation_style: string
+        }
+        Insert: {
+          id: string
+          name: string
+          emoji: string
+          tagline: string
+          best_for: string
+          color_accent: string
+          system_prompt_addition: string
+          voice_rate: number
+          avatar_animation_style: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          emoji?: string
+          tagline?: string
+          best_for?: string
+          color_accent?: string
+          system_prompt_addition?: string
+          voice_rate?: number
+          avatar_animation_style?: string
+        }
+        Relationships: []
+      }
       voice_analytics: {
         Row: {
           analysis_model: string | null
@@ -213,7 +414,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      reset_onboarding: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

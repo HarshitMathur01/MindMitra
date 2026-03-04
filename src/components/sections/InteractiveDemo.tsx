@@ -167,10 +167,10 @@ const InteractiveDemo = () => {
                                 <div className="flex flex-col items-center gap-2">
                                     <motion.div
                                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${currentStage > i
-                                                ? `bg-gradient-to-r ${stage.color} text-white shadow-lg`
-                                                : currentStage === i + 1
-                                                    ? `bg-gradient-to-r ${stage.color} text-white shadow-lg ring-4 ring-offset-2 ring-primary/30`
-                                                    : 'bg-gray-100 text-gray-400'
+                                            ? `bg-gradient-to-r ${stage.color} text-white shadow-lg`
+                                            : currentStage === i + 1
+                                                ? `bg-gradient-to-r ${stage.color} text-white shadow-lg ring-4 ring-offset-2 ring-primary/30`
+                                                : 'bg-gray-100 text-gray-400'
                                             }`}
                                         animate={currentStage === i + 1 ? { scale: [1, 1.1, 1] } : {}}
                                         transition={{ repeat: Infinity, duration: 2 }}
@@ -202,11 +202,11 @@ const InteractiveDemo = () => {
                                     <div className="w-24 h-5 bg-gray-900 rounded-b-2xl" />
                                 </div>
 
-                                <div className="bg-white rounded-[2rem] overflow-hidden">
+                                <div className="bg-crushed-silk rounded-[2rem] overflow-hidden">
                                     {/* Chat Header */}
                                     <div className="bg-gradient-to-r from-primary to-accent p-4 text-white">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-crushed-silk/20 rounded-full flex items-center justify-center">
                                                 <Brain className="h-5 w-5" />
                                             </div>
                                             <div>
@@ -242,8 +242,8 @@ const InteractiveDemo = () => {
                                                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                                 >
                                                     <div className={`max-w-[85%] rounded-2xl p-3 text-sm leading-relaxed ${msg.role === 'user'
-                                                            ? 'bg-primary text-white rounded-br-md'
-                                                            : 'bg-white border border-gray-200 text-gray-700 rounded-bl-md shadow-sm'
+                                                        ? 'bg-primary text-white rounded-br-md'
+                                                        : 'bg-crushed-silk border border-gray-200 text-gray-700 rounded-bl-md shadow-sm'
                                                         }`}>
                                                         {msg.text}
                                                         {msg.technique && (
@@ -266,7 +266,7 @@ const InteractiveDemo = () => {
                                                 animate={{ opacity: 1 }}
                                                 className="flex items-center gap-2 text-xs text-gray-400"
                                             >
-                                                <div className="bg-white rounded-2xl px-4 py-2 border border-gray-200 flex items-center gap-2">
+                                                <div className="bg-crushed-silk rounded-2xl px-4 py-2 border border-gray-200 flex items-center gap-2">
                                                     <Heart className="h-3 w-3 text-pink-400 animate-pulse" />
                                                     <span className="text-gray-500 italic">
                                                         {demoConversation[visibleMessages]?.role === 'ai'
@@ -285,7 +285,7 @@ const InteractiveDemo = () => {
                                     </div>
 
                                     {/* Input bar mockup */}
-                                    <div className="p-3 border-t border-gray-100 bg-white">
+                                    <div className="p-3 border-t border-gray-100 bg-crushed-silk">
                                         <div className="flex items-center gap-2">
                                             <div className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-400">
                                                 Type your message...
@@ -338,7 +338,7 @@ const InteractiveDemo = () => {
                     <div className="space-y-4">
                         {/* Emotion Visualization */}
                         <motion.div
-                            className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
+                            className="bg-crushed-silk rounded-xl border border-gray-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.5 }}
@@ -351,10 +351,10 @@ const InteractiveDemo = () => {
                             <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden mb-2">
                                 <motion.div
                                     className={`h-full rounded-full transition-all duration-1000 ${(lastAiMessage?.stressLevel || 0) > 60
-                                            ? 'bg-gradient-to-r from-red-400 to-red-600'
-                                            : (lastAiMessage?.stressLevel || 0) > 40
-                                                ? 'bg-gradient-to-r from-orange-400 to-yellow-500'
-                                                : 'bg-gradient-to-r from-green-400 to-emerald-500'
+                                        ? 'bg-gradient-to-r from-red-400 to-red-600'
+                                        : (lastAiMessage?.stressLevel || 0) > 40
+                                            ? 'bg-gradient-to-r from-orange-400 to-yellow-500'
+                                            : 'bg-gradient-to-r from-green-400 to-emerald-500'
                                         }`}
                                     animate={{ width: `${lastAiMessage?.stressLevel || 0}%` }}
                                     transition={{ duration: 1 }}
@@ -369,7 +369,7 @@ const InteractiveDemo = () => {
 
                         {/* Avatar Emotion Wheel */}
                         <motion.div
-                            className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
+                            className="bg-crushed-silk rounded-xl border border-gray-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.5, delay: 0.1 }}
@@ -402,7 +402,7 @@ const InteractiveDemo = () => {
 
                         {/* Therapeutic Technique */}
                         <motion.div
-                            className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
+                            className="bg-crushed-silk rounded-xl border border-gray-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.5, delay: 0.2 }}
@@ -419,8 +419,8 @@ const InteractiveDemo = () => {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
                                     className={`px-3 py-2 rounded-lg text-xs font-medium ${lastAiMessage?.technique
-                                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                            : 'bg-gray-50 text-gray-400'
+                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                        : 'bg-gray-50 text-gray-400'
                                         }`}
                                 >
                                     {lastAiMessage?.technique || 'Not yet started'}
@@ -430,7 +430,7 @@ const InteractiveDemo = () => {
 
                         {/* Cultural Context Highlights */}
                         <motion.div
-                            className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
+                            className="bg-crushed-silk rounded-xl border border-gray-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.5, delay: 0.3 }}
@@ -447,8 +447,8 @@ const InteractiveDemo = () => {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
                                     className={`px-3 py-2 rounded-lg text-xs font-medium ${lastAiMessage?.culturalFlag
-                                            ? 'bg-orange-50 text-orange-700 border border-orange-200'
-                                            : 'bg-gray-50 text-gray-400'
+                                        ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                                        : 'bg-gray-50 text-gray-400'
                                         }`}
                                 >
                                     {lastAiMessage?.culturalFlag

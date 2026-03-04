@@ -104,13 +104,23 @@ def generate_elevenlabs_tts(text: str, emotion: str = "neutral", language_style:
         return None
 
 
-def generate_google_cloud_tts(text: str, emotion: str = "neutral", language_style: str = "english") -> Optional[str]:
+def generate_google_cloud_tts(
+    text: str,
+    emotion: str = "neutral",
+    language_style: str = "english",
+    personality_id: str | None = None,
+) -> Optional[str]:
     """Generate TTS via Google Cloud Text-to-Speech. Returns base64 WAV or None."""
     try:
         logger.info(f"🔊 [Google TTS] Generating audio ({len(text)} chars)…")
         client = texttospeech.TextToSpeechClient()
 
-        cfg = _EMOTION_SPEECH_CONFIGS.get(emotion, _EMOTION_SPEECH_CONFIGS["neutral"])
+        cfg = dict(_EMOTION_SPEECH_CONFIGS.get(emotion, _EMOTION_SPEECH_CONFIGS["neutral"]))
+        # Apply personality speaking-rate multiplier
+        if personality_id and personality_id in _PERSONALITY_VOICE_PARAMS:
+            pvp = _PERSONALITY_VOICE_PARAMS[personality_id]
+            cfg["speaking_rate"] = cfg["speaking_rate"] * pvp["rate_mult"]
+            cfg["pitch"] = cfg["pitch"] + pvp["pitch_shift"]
         synthesis_input = texttospeech.SynthesisInput(text=text)
 
         if language_style in ("hindi-mixed", "hinglish"):
@@ -157,11 +167,30 @@ def generate_gtts_audio(text: str, lang: str = "en") -> Optional[str]:
         return None
 
 
+# ── personality voice rates ────────────────────────────────────────────────
+# Maps companion personality id → (speaking_rate_multiplier, pitch_shift)
+_PERSONALITY_VOICE_PARAMS = {
+    "mitra":  {"rate_mult": 0.9,  "pitch_shift": 0.0},
+    "arjun":  {"rate_mult": 1.0,  "pitch_shift": 0.0},
+    "diya":   {"rate_mult": 0.95, "pitch_shift": 0.0},
+    "riya":   {"rate_mult": 1.1,  "pitch_shift": 2.0},
+    "zen":    {"rate_mult": 0.85, "pitch_shift": -2.0},
+}
+
+
 # ── main entry ─────────────────────────────────────────────────────────────
-def generate_tts_audio_v2(text: str, emotion: str = "neutral", language_style: str = "english") -> Optional[str]:
+def generate_tts_audio_v2(
+    text: str,
+    emotion: str = "neutral",
+    language_style: str = "english",
+    personality_id: str | None = None,
+) -> Optional[str]:
     """
     Fallback chain: ElevenLabs → Google Cloud TTS → gTTS.
     Returns base64-encoded audio (WAV or MP3) or None on complete failure.
+
+    If ``personality_id`` is provided (e.g. 'mitra', 'zen'), the speaking rate
+    from the emotion config is further scaled by the personality multiplier.
     """
     if ENABLE_ELEVENLABS_TTS:
         audio = generate_elevenlabs_tts(text, emotion, language_style)
@@ -170,7 +199,7 @@ def generate_tts_audio_v2(text: str, emotion: str = "neutral", language_style: s
         logger.warning("⚠️ [TTS] ElevenLabs failed, trying Google Cloud TTS…")
 
     if ENABLE_GOOGLE_TTS:
-        audio = generate_google_cloud_tts(text, emotion, language_style)
+        audio = generate_google_cloud_tts(text, emotion, language_style, personality_id)
         if audio:
             return audio
         logger.warning("⚠️ [TTS] Google Cloud TTS failed, trying gTTS…")

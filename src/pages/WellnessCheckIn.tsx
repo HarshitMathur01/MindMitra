@@ -158,14 +158,14 @@ const WellnessCheckIn = () => {
       setCurrentQuestion(prev => prev + 1);
     } else {
       setShowResults(true);
-      
+
       // Save wellness check-in data
       try {
         const totalScore = Object.values(answers).reduce((sum, score) => sum + score, 0);
         const averageScore = totalScore / Object.keys(answers).length;
         const categories = questions.map(q => q.metaphor);
         const duration = Date.now() - startTime;
-        
+
         await saveWellnessCheckIn(
           answers,
           Math.round(averageScore * 20), // Convert to 0-100 scale
@@ -192,7 +192,7 @@ const WellnessCheckIn = () => {
   const calculateResults = () => {
     const totalScore = Object.values(answers).reduce((sum, score) => sum + score, 0);
     const averageScore = totalScore / Object.keys(answers).length;
-    
+
     if (averageScore >= 4.5) return { level: "Thriving", emoji: "🌟", description: "You're doing exceptionally well! Your wellbeing is flourishing." };
     if (averageScore >= 3.5) return { level: "Balanced", emoji: "⚖️", description: "You're in a good place with some areas to nurture." };
     if (averageScore >= 2.5) return { level: "Managing", emoji: "🌱", description: "You're coping well, with room for self-care and growth." };
@@ -206,14 +206,14 @@ const WellnessCheckIn = () => {
   if (showResults) {
     const results = calculateResults();
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
         <Header />
         <main className="container mx-auto px-4 py-8">
           <Card className="max-w-2xl mx-auto p-8 text-center">
             <div className="text-6xl mb-4">{results.emoji}</div>
             <h1 className="text-3xl font-bold mb-4 text-primary">{results.level}</h1>
             <p className="text-lg text-muted-foreground mb-8">{results.description}</p>
-            
+
             <div className="grid gap-4 mb-8">
               <Button onClick={handleRestart} className="gap-2">
                 <RotateCcw className="h-4 w-4" />
@@ -235,12 +235,12 @@ const WellnessCheckIn = () => {
   const question = questions[currentQuestion];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => navigate('/qa-tests')}
             className="gap-2 mb-6"
           >
@@ -286,7 +286,7 @@ const WellnessCheckIn = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
-              
+
               <Button
                 onClick={handleNext}
                 disabled={!canGoNext}

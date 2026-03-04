@@ -8,3 +8,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     voice_analysis: Optional[Dict[str, Any]] = None  # Voice analysis is optional
     avatar_visible: bool = True  # Whether avatar is visible (controls TTS generation)
+    # Personality settings from user preferences
+    personality: Optional[str] = None  # 'mitra' | 'arjun' | 'diya' | 'riya' | 'zen' (legacy: 'calm' | 'energetic' | 'analytical')
+    companion_name: Optional[str] = None  # Custom name the user chose for the AI
+    language: Optional[str] = None  # 'english' | 'hindi' | 'hinglish'

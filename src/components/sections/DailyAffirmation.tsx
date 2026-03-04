@@ -88,7 +88,7 @@ const DailyAffirmation = () => {
                             <div className="flex items-center gap-1">
                                 <motion.button
                                     onClick={copyToClipboard}
-                                    className={`p-2 rounded-full hover:bg-white/60 transition-colors ${theme.text}`}
+                                    className={`p-2 rounded-full hover:bg-crushed-silk/60 transition-colors ${theme.text}`}
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.9 }}
                                     title={copied ? 'Copied!' : 'Copy affirmation'}
@@ -119,7 +119,7 @@ const DailyAffirmation = () => {
                                 </motion.button>
                                 <motion.button
                                     onClick={refresh}
-                                    className={`p-2 rounded-full hover:bg-white/60 transition-colors ${theme.text}`}
+                                    className={`p-2 rounded-full hover:bg-crushed-silk/60 transition-colors ${theme.text}`}
                                     whileHover={{ rotate: 180 }}
                                     whileTap={{ scale: 0.9 }}
                                     title="New affirmation"
@@ -139,7 +139,7 @@ const DailyAffirmation = () => {
                                 transition={{ duration: 0.3 }}
                                 className="flex items-start gap-4"
                             >
-                                <div className={`flex-shrink-0 w-10 h-10 rounded-full bg-white/60 flex items-center justify-center ${theme.text}`}>
+                                <div className={`flex-shrink-0 w-10 h-10 rounded-full bg-crushed-silk/60 flex items-center justify-center ${theme.text}`}>
                                     <Icon className="h-5 w-5" />
                                 </div>
                                 <p className={`text-lg md:text-xl font-medium ${theme.text} leading-relaxed italic`}>

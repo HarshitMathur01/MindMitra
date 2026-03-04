@@ -81,8 +81,8 @@ const CrisisSafetyDemo = () => {
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
                             className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeTab === tab.key
-                                    ? 'bg-red-600 text-white shadow-lg'
-                                    : 'bg-white text-gray-600 border border-gray-200 hover:border-red-200 hover:bg-red-50'
+                                ? 'bg-red-600 text-white shadow-lg'
+                                : 'bg-crushed-silk text-gray-600 border border-gray-200 hover:border-red-200 hover:bg-red-50'
                                 }`}
                         >
                             <tab.icon className="h-4 w-4" />
@@ -103,7 +103,7 @@ const CrisisSafetyDemo = () => {
                             className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8"
                         >
                             {/* Crisis Keywords */}
-                            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                            <div className="bg-crushed-silk rounded-2xl border border-gray-200 p-6 shadow-sm">
                                 <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
                                     <Eye className="h-5 w-5 text-red-500" />
                                     Crisis Detection Keywords
@@ -140,7 +140,7 @@ const CrisisSafetyDemo = () => {
 
                             {/* False Positive Handling + Boundaries */}
                             <div className="space-y-6">
-                                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                                <div className="bg-crushed-silk rounded-2xl border border-gray-200 p-6 shadow-sm">
                                     <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
                                         <XCircle className="h-5 w-5 text-blue-500" />
                                         False Positive Handling
@@ -158,7 +158,7 @@ const CrisisSafetyDemo = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                                <div className="bg-crushed-silk rounded-2xl border border-gray-200 p-6 shadow-sm">
                                     <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
                                         <FileWarning className="h-5 w-5 text-purple-500" />
                                         Safety Boundaries
@@ -167,7 +167,7 @@ const CrisisSafetyDemo = () => {
                                         {boundaryExamples.map((ex, i) => (
                                             <div key={i} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                                                 <p className="text-xs text-gray-500 mb-1.5">User: "{ex.input}"</p>
-                                                <p className="text-xs text-gray-700 bg-white rounded p-2 border border-gray-200">
+                                                <p className="text-xs text-gray-700 bg-crushed-silk rounded p-2 border border-gray-200">
                                                     <span className="text-purple-600 font-medium">MindMitra:</span> {ex.response}
                                                 </p>
                                             </div>
@@ -187,7 +187,7 @@ const CrisisSafetyDemo = () => {
                             exit={{ opacity: 0, y: -20 }}
                             className="max-w-3xl mx-auto"
                         >
-                            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                            <div className="bg-crushed-silk rounded-2xl border border-gray-200 p-8 shadow-sm">
                                 <h3 className="font-bold text-lg text-gray-800 mb-6 text-center">
                                     Escalation Pathway: From Detection to Professional Help
                                 </h3>
@@ -197,18 +197,18 @@ const CrisisSafetyDemo = () => {
                                         <React.Fragment key={i}>
                                             <motion.div
                                                 className={`flex items-start gap-4 p-4 rounded-xl transition-all ${step.status === 'active'
-                                                        ? 'bg-red-50 border-2 border-red-200 shadow-md'
-                                                        : step.status === 'complete'
-                                                            ? 'bg-green-50 border border-green-200'
-                                                            : 'bg-gray-50 border border-gray-200'
+                                                    ? 'bg-red-50 border-2 border-red-200 shadow-md'
+                                                    : step.status === 'complete'
+                                                        ? 'bg-green-50 border border-green-200'
+                                                        : 'bg-gray-50 border border-gray-200'
                                                     }`}
                                                 initial={{ opacity: 0, x: -30 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: i * 0.1 }}
                                             >
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${step.status === 'complete' ? 'bg-green-500 text-white' :
-                                                        step.status === 'active' ? 'bg-red-500 text-white animate-pulse' :
-                                                            'bg-gray-300 text-white'
+                                                    step.status === 'active' ? 'bg-red-500 text-white animate-pulse' :
+                                                        'bg-gray-300 text-white'
                                                     }`}>
                                                     <step.icon className="h-5 w-5" />
                                                 </div>
@@ -242,15 +242,15 @@ const CrisisSafetyDemo = () => {
                                         <h4 className="font-semibold text-sm">Safety Monitoring Dashboard (Backend View)</h4>
                                     </div>
                                     <div className="grid grid-cols-3 gap-4 text-center">
-                                        <div className="bg-white/10 rounded-lg p-3">
+                                        <div className="bg-crushed-silk/10 rounded-lg p-3">
                                             <p className="text-2xl font-bold text-green-400">0</p>
                                             <p className="text-xs text-gray-300">Active Alerts</p>
                                         </div>
-                                        <div className="bg-white/10 rounded-lg p-3">
+                                        <div className="bg-crushed-silk/10 rounded-lg p-3">
                                             <p className="text-2xl font-bold text-blue-400">24/7</p>
                                             <p className="text-xs text-gray-300">Monitoring</p>
                                         </div>
-                                        <div className="bg-white/10 rounded-lg p-3">
+                                        <div className="bg-crushed-silk/10 rounded-lg p-3">
                                             <p className="text-2xl font-bold text-yellow-400">&lt;30s</p>
                                             <p className="text-xs text-gray-300">Response Time</p>
                                         </div>
@@ -273,7 +273,7 @@ const CrisisSafetyDemo = () => {
                             exit={{ opacity: 0, y: -20 }}
                             className="max-w-3xl mx-auto"
                         >
-                            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                            <div className="bg-crushed-silk rounded-2xl border border-gray-200 p-6 shadow-sm">
                                 <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2">
                                     <MapPin className="h-5 w-5 text-red-500" />
                                     Regional Emergency Resources

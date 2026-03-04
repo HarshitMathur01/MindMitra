@@ -68,10 +68,32 @@ def _resolve_language_style(user_id: str) -> str:
     return "english"
 
 
+# ── personality greetings ──────────────────────────────────────────────────
+# Maps companion personality id → greeting template. {name} is replaced at runtime.
+_PERSONALITY_GREETINGS: Dict[str, str] = {
+    "mitra": "Namaste. I'm {name}, and I'm really glad you're here. This is your safe space — no rush, no pressure. How are you feeling today?",
+    "arjun": "Hey! I'm {name}. Let's figure out what's weighing on you and tackle it together — one step at a time. What's the biggest thing on your mind right now?",
+    "diya":  "Hi, I'm {name}! I love exploring the 'why' behind our feelings — because understanding them is the first step to changing them. What's been on your mind lately?",
+    "riya":  "Hey hey hey! I'm {name} and I'm SO glad you're here! Seriously, just showing up today? That takes courage. Now tell me — what's going on with you?",
+    "zen":   "Welcome... I'm {name}. Before anything else, let's just take one slow breath together. In... and out. There's nowhere else you need to be right now. What would you like to explore today?",
+}
+
+_PERSONALITY_NAMES: Dict[str, str] = {
+    "mitra": "Mitra", "arjun": "Arjun", "diya": "Diya",
+    "riya": "Riya", "zen": "Zen",
+}
+
+
 # ── public API ─────────────────────────────────────────────────────────────
-def generate_greeting(user_id: str, session_id: str) -> Dict[str, Any]:
+def generate_greeting(
+    user_id: str,
+    session_id: str,
+    personality: Optional[str] = None,
+    companion_name: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Generate a personalised greeting based on user context and time of day.
+    Generate a personalised greeting based on user context, time of day,
+    and selected companion personality.
 
     Returns:
         {
@@ -81,19 +103,39 @@ def generate_greeting(user_id: str, session_id: str) -> Dict[str, Any]:
             "time_slot":     str,
         }
     """
-    cache_key = f"{session_id}_{user_id}"
+    cache_key = f"{session_id}_{user_id}_{personality or ''}"
     if cache_key in _greeting_cache:
         logger.info(f"✅ [GREETING] Cache hit for session {session_id[:8]}…")
         return _greeting_cache[cache_key]
 
     try:
+        time_slot = _get_time_slot()
+
+        # If a companion personality is set, use its dedicated greeting
+        if personality and personality in _PERSONALITY_GREETINGS:
+            name = (companion_name or "").strip() or _PERSONALITY_NAMES.get(personality, "Mitra")
+            greeting_text = _PERSONALITY_GREETINGS[personality].format(name=name)
+            language_style = _resolve_language_style(user_id)
+            logger.info(
+                f"✅ [GREETING] personality={personality} name={name} "
+                f"time={time_slot} text={greeting_text[:40]}…"
+            )
+            result: Dict[str, Any] = {
+                "greeting":      greeting_text,
+                "show_greeting": True,
+                "language_used": language_style,
+                "time_slot":     time_slot,
+            }
+            _greeting_cache[cache_key] = result
+            return result
+
+        # Fallback: time-of-day greeting from pool
         pool = _load_greeting_pool()
 
         language_style = _resolve_language_style(user_id)
         if language_style not in pool:
             language_style = "english"
 
-        time_slot = _get_time_slot()
         if time_slot not in pool[language_style]:
             time_slot = "day"
 
@@ -103,7 +145,7 @@ def generate_greeting(user_id: str, session_id: str) -> Dict[str, Any]:
             f"text={greeting_text[:40]}…"
         )
 
-        result: Dict[str, Any] = {
+        result = {
             "greeting":      greeting_text,
             "show_greeting": True,
             "language_used": language_style,

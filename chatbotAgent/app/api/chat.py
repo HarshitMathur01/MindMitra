@@ -42,7 +42,12 @@ def _detect_emotion(text: str) -> Dict[str, str]:
     return {"emotion": "neutral", "facial_expression": "default"}
 
 
-def _build_avatar_package(ai_text: str, result: Dict[str, Any], avatar_visible: bool) -> Dict[str, Any]:
+def _build_avatar_package(
+    ai_text: str,
+    result: Dict[str, Any],
+    avatar_visible: bool,
+    personality_id: str | None = None,
+) -> Dict[str, Any]:
     """Generate TTS + lipsync and return avatar fields."""
     audio_base64 = None
     lipsync_data = None
@@ -67,7 +72,7 @@ def _build_avatar_package(ai_text: str, result: Dict[str, Any], avatar_visible: 
             .get("language_style", "english")
         )
 
-        audio_base64 = generate_tts_audio_v2(ai_text, emotion, lang_style)
+        audio_base64 = generate_tts_audio_v2(ai_text, emotion, lang_style, personality_id)
         animation = "Talking_0"
 
         if audio_base64:
@@ -111,6 +116,8 @@ def _maybe_trigger_memory(session_id: str, user_id: str) -> None:
 async def get_greeting(
     session_id: Optional[str] = None,
     user_id: Optional[str] = None,
+    personality: Optional[str] = None,
+    companion_name: Optional[str] = None,
     authorization: str = Header(None),
 ):
     """Generate a personalised greeting for a new chat session."""
@@ -120,7 +127,10 @@ async def get_greeting(
         if not session_id:
             return {"greeting": "Hey! What's on your mind?", "show_greeting": True, "language_used": "english", "time_slot": "day"}
 
-        greeting_data = generate_greeting(authenticated_user_id, session_id)
+        greeting_data = generate_greeting(
+            authenticated_user_id, session_id,
+            personality=personality, companion_name=companion_name,
+        )
         return greeting_data
 
     except HTTPException:
@@ -153,10 +163,13 @@ async def process_chat(
             voice_analysis=request.voice_analysis or {},
             user_id=user_id,
             session_id=request.session_id,
+            personality=request.personality,
+            companion_name=request.companion_name,
+            language=request.language,
         )
 
         ai_text = result.get("message", "")
-        avatar = _build_avatar_package(ai_text, result, request.avatar_visible)
+        avatar = _build_avatar_package(ai_text, result, request.avatar_visible, request.personality)
 
         if request.session_id:
             _maybe_trigger_memory(request.session_id, user_id)
@@ -204,6 +217,9 @@ async def process_chat_stream(
                     voice_analysis=request.voice_analysis or {},
                     user_id=user_id,
                     session_id=request.session_id,
+                    personality=request.personality,
+                    companion_name=request.companion_name,
+                    language=request.language,
                 )
 
                 ai_text = result.get("message", "")
@@ -215,7 +231,7 @@ async def process_chat_stream(
 
                 if request.avatar_visible and ai_text:
                     mood = _detect_emotion(ai_text)
-                    audio_b64 = generate_tts_audio_v2(ai_text, mood["emotion"])
+                    audio_b64 = generate_tts_audio_v2(ai_text, mood["emotion"], personality_id=request.personality)
 
                     if audio_b64:
                         yield (

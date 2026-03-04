@@ -1,0 +1,574 @@
+:root {
+    --background: #F5F0EB;
+    --surface: #F5F0EB;
+    --crushed-silk: #F5F0EB;
+    --primary: #2C7A86;
+    --secondary: #3F8D84;
+    --accent: #4E9A8A;
+    --text-primary: #1A2E35;
+    --text-secondary: #5C7A82;
+    --border: #F5F0EB;
+    --danger: #E05263;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --shadow: rgba(2, 128, 144, 0.08);
+}
+
+[data-theme="dark"] {
+    --background: #0D1F25;
+    --surface: #162830;
+    --crushed-silk: #2A3940;
+    --primary: #4FA3B2;
+    --secondary: #5CAE9F;
+    --accent: #68B6A4;
+    --text-primary: #E8F4F6;
+    --text-secondary: #7AB8C2;
+    --border: #1E3D47;
+    --danger: #FF6B7A;
+    --success: #34D399;
+    --warning: #FBBF24;
+    --shadow: rgba(0, 0, 0, 0.4);
+}
+
+*,
+*::before,
+*::after {
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 300ms;
+    transition-timing-function: ease;
+}
+
+.no-theme-transition,
+canvas,
+video,
+img {
+    transition: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MindMitra Chat UI — Therapeutic Text Formatting
+   Mobile-first · Dark-mode primary · Devanagari-aware
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Google Font for Devanagari ──────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap');
+
+.mm-devanagari,
+.mm-devanagari * {
+    font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+}
+
+/* ── Message Content Base Typography ─────────────────────────────── */
+.mm-message-content {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-primary);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.mm-message-content .mm-paragraph {
+    margin: 0;
+}
+
+.mm-message-content .mm-paragraph+.mm-paragraph,
+.mm-message-content .mm-paragraph+.mm-bullet-list,
+.mm-message-content .mm-paragraph+.mm-numbered-list,
+.mm-message-content .mm-paragraph+.mm-action-list,
+.mm-message-content .mm-paragraph+.mm-blockquote,
+.mm-message-content .mm-paragraph+.mm-affirmation,
+.mm-message-content .mm-paragraph+.mm-breathing,
+.mm-message-content .mm-bullet-list+.mm-paragraph,
+.mm-message-content .mm-action-list+.mm-paragraph,
+.mm-message-content .mm-blockquote+.mm-paragraph,
+.mm-message-content .mm-affirmation+.mm-paragraph,
+.mm-message-content .mm-breathing+.mm-paragraph,
+.mm-message-content .mm-heading+.mm-paragraph {
+    margin-top: 12px;
+}
+
+.mm-bold {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.mm-italic {
+    font-style: italic;
+    opacity: 0.92;
+}
+
+.mm-link {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+}
+
+.mm-link:hover {
+    opacity: 0.8;
+}
+
+.mm-heading {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0;
+}
+
+/* ── Blockquotes ─────────────────────────────────────────────────── */
+.mm-blockquote {
+    border-left: 3px solid var(--primary);
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-style: italic;
+    opacity: 0.9;
+    border-radius: 0 6px 6px 0;
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
+/* ── Bullet Lists ────────────────────────────────────────────────── */
+.mm-bullet-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+}
+
+.mm-bullet-item {
+    position: relative;
+    padding-left: 18px;
+    margin-bottom: 6px;
+    line-height: 1.6;
+}
+
+.mm-bullet-item:last-child {
+    margin-bottom: 0;
+}
+
+.mm-bullet-item::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 9px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--secondary);
+    opacity: 0.7;
+}
+
+/* ── Numbered / Action Items ─────────────────────────────────────── */
+.mm-numbered-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+    counter-reset: mm-num;
+}
+
+.mm-numbered-item {
+    counter-increment: mm-num;
+    position: relative;
+    padding-left: 24px;
+    margin-bottom: 6px;
+}
+
+.mm-numbered-item::before {
+    content: counter(mm-num) '.';
+    position: absolute;
+    left: 0;
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 13px;
+}
+
+/* Action item cards (numbered therapeutic steps) */
+.mm-action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.mm-action-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.mm-action-badge {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--surface);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+.mm-action-text {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ── Emotion Tags (pill style) ───────────────────────────────────── */
+.mm-emotion-tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-style: italic;
+    font-weight: 500;
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+    margin: 0 1px;
+    white-space: nowrap;
+}
+
+/* ── Affirmation Cards (✦ 💡 🌱) ────────────────────────────────── */
+.mm-affirmation {
+    padding: 10px 14px;
+    margin: 8px 0;
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+/* ── Breathing Exercises ─────────────────────────────────────────── */
+.mm-breathing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 12px;
+    margin: 8px 0;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--secondary) 6%, var(--surface));
+}
+
+.mm-breathing-phase {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 500;
+    opacity: 0;
+    animation: mm-fade-in 0.5s ease forwards;
+}
+
+@keyframes mm-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mm-breathing-phase {
+        animation: none;
+        opacity: 1;
+    }
+}
+
+/* ── Grounding Exercises (5 senses) ──────────────────────────────── */
+.mm-grounding-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+}
+
+.mm-grounding-icon {
+    font-size: 18px;
+    line-height: 1.4;
+    flex-shrink: 0;
+}
+
+.mm-grounding-text {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Chat Bubbles
+   ══════════════════════════════════════════════════════════════════ */
+
+.mm-bubble-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.mm-bubble-wrap--ai {
+    align-items: flex-start;
+}
+
+.mm-bubble-wrap--user {
+    align-items: flex-end;
+}
+
+.mm-bubble {
+    padding: 14px 18px;
+    max-width: 85%;
+    box-shadow: 0 1px 3px var(--shadow);
+}
+
+.mm-bubble--ai {
+    background: var(--crushed-silk);
+    color: var(--text-primary);
+    border-radius: 4px 18px 18px 18px;
+    border: 1px solid var(--border);
+}
+
+.mm-bubble--user {
+    background: var(--crushed-silk);
+    color: var(--text-primary);
+    border-radius: 18px 18px 4px 18px;
+    max-width: 75%;
+    border: 1px solid var(--border);
+}
+
+.mm-user-text {
+    font-size: 15px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.mm-bubble-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    opacity: 0.7;
+}
+
+.mm-bubble-time--user {
+    text-align: right;
+}
+
+.mm-bubble-time--ai {
+    text-align: left;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Streaming Text
+   ══════════════════════════════════════════════════════════════════ */
+
+.mm-streaming,
+.mm-streaming-done {
+    min-height: 1.65em;
+}
+
+.mm-streaming-text {
+    display: inline;
+}
+
+.mm-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--primary);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: mm-blink 1s step-end infinite;
+}
+
+@keyframes mm-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mm-cursor {
+        animation: none;
+        opacity: 1;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Quick Replies
+   ══════════════════════════════════════════════════════════════════ */
+
+.mm-quick-replies {
+    padding: 8px 0 4px;
+}
+
+.mm-quick-replies-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+}
+
+.mm-quick-replies-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.mm-quick-reply-chip {
+    flex: 0 0 auto;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 16px;
+    border-radius: 22px;
+    border: 1.5px solid var(--primary);
+    background: transparent;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mm-quick-reply-chip:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.mm-quick-reply-chip:active {
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    transform: scale(0.97);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Message Groups
+   ══════════════════════════════════════════════════════════════════ */
+
+.mm-message-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.mm-group {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.mm-group--user {
+    flex-direction: row-reverse;
+}
+
+.mm-group--ai {
+    flex-direction: row;
+}
+
+.mm-group-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.mm-group-bubble {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Avatar */
+.mm-avatar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-top: 4px;
+}
+
+.mm-avatar--ai {
+    background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+    color: var(--primary);
+    border: 1px solid var(--border);
+}
+
+.mm-avatar--user {
+    background: color-mix(in srgb, var(--primary) 20%, var(--surface));
+    color: var(--primary);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Dark mode refinements (already handled via CSS vars, but extras)
+   ══════════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .mm-bubble--ai {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .mm-action-item {
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
+[data-theme="dark"] .mm-affirmation {
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+[data-theme="dark"] .mm-breathing {
+    background: color-mix(in srgb, var(--secondary) 8%, var(--surface));
+}
+
+[data-theme="dark"] .mm-emotion-tag {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+[data-theme="dark"] .mm-quick-reply-chip:hover {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Mobile responsiveness (375px baseline)
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+    .mm-bubble {
+        padding: 12px 14px;
+        max-width: 88%;
+    }
+
+    .mm-bubble--user {
+        max-width: 80%;
+    }
+
+    .mm-message-content {
+        font-size: 14px;
+    }
+
+    .mm-quick-reply-chip {
+        font-size: 12px;
+        padding: 8px 14px;
+    }
+
+    .mm-avatar {
+        width: 26px;
+        height: 26px;
+    }
+
+    .mm-avatar svg {
+        width: 14px;
+        height: 14px;
+    }
+}

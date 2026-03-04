@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>MindMitra Avatar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        #avatar {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #status {
+            display: none;
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        #status.visible {
+            display: block;
+        }
+    </style>
+
+    <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+      "talkinghead": "/talkinghead/modules/talkinghead.mjs"
+    }
+  }
+  </script>
+
+    <script type="module">
+        import { TalkingHead } from "talkinghead";
+
+        // -- Config from URL params ---------------------------------------------
+        const params = new URLSearchParams(window.location.search);
+        const azureKey = params.get("azureKey") || "";
+        const azureRegion = params.get("azureRegion") || "westeurope";
+        const azureVoice = params.get("azureVoice") || "en-US-Emma2:DragonHDLatestNeural";
+        const azureLang = params.get("azureLang") || "en-US";
+        const avatarUrl = params.get("avatarUrl") || "/talkinghead/avatars/brunette.glb";
+
+        // Sentinel Google-format endpoint � TalkingHead needs a ttsEndpoint to
+        // enable TTS mode; our fetch interceptor silently redirects to Azure.
+        const SENTINEL_ENDPOINT = "https://eu-texttospeech.googleapis.com/v1beta1/text:synthesize";
+        const SENTINEL_APIKEY = "AIzaSyBYk4oTr16xFtsfoL3mgmU25lseg12B0BU";
+
+        // -- Azure TTS fetch interceptor ----------------------------------------
+        // Installed BEFORE TalkingHead is constructed so every TTS call is caught.
+        const _origFetch = window.fetch.bind(window);
+
+        window.fetch = async function patchedFetch(input, init) {
+            const url = typeof input === "string" ? input : input?.url;
+
+            // Only intercept TalkingHead's TTS calls (identified by sentinel URL)
+            if (!url || !url.startsWith(SENTINEL_ENDPOINT)) {
+                return _origFetch(input, init);
+            }
+
+            // 1. Parse TalkingHead's Google-format request body
+            let body;
+            try { body = JSON.parse(init?.body || "{}"); } catch { return _origFetch(input, init); }
+
+            const ssml = body?.input?.ssml || "";
+            const ssmlInner = extractSsmlBody(ssml);
+            const wordMarks = extractMarks(ssml);
+
+            // 2. Build Azure-format SSML
+            const azureSsml = buildAzureSsml(ssmlInner, azureVoice, azureLang);
+
+            // 3. Call Azure TTS REST API
+            const azureUrl = `https://${azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`;
+
+            let mp3Bytes;
+            try {
+                const resp = await _origFetch(azureUrl, {
+                    method: "POST",
+                    headers: {
+                        "Ocp-Apim-Subscription-Key": azureKey,
+                        "Content-Type": "application/ssml+xml",
+                        "X-Microsoft-OutputFormat": "audio-48khz-96kbitrate-mono-mp3",
+                        "User-Agent": "MindMitra-TalkingHead",
+                    },
+                    body: azureSsml,
+                });
+
+                if (!resp.ok) {
+                    const errText = await resp.text().catch(() => "");
+                    console.error(`[Azure TTS] ${resp.status}: ${errText}`);
+                    // Return empty so TalkingHead falls back to silent lipsync animation
+                    return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
+                }
+
+                mp3Bytes = await resp.arrayBuffer();
+            } catch (err) {
+                console.error("[Azure TTS] Network error:", err);
+                return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
+            }
+
+            // 4. Estimate audio duration: Azure returns 96 kbps MP3
+            //    duration (s) � bytes � 8 / 96 000
+            const estimatedDurationMs = (mp3Bytes.byteLength * 8 / 96_000) * 1000;
+
+            // 5. Build synthetic word timepoints proportional to character counts
+            const timepoints = buildTimepoints(wordMarks, estimatedDurationMs);
+
+            // 6. Base64-encode MP3 for Google TTS response compat
+            const audioContent = arrayBufferToBase64(mp3Bytes);
+
+            // 7. Return Google-format response that TalkingHead consumes natively
+            return new Response(
+                JSON.stringify({ audioContent, timepoints }),
+                { status: 200, headers: { "Content-Type": "application/json" } }
+            );
+        };
+
+        // -- Helpers -----------------------------------------------------------
+
+        /** Strip outer <speak>�</speak> tags */
+        function extractSsmlBody(ssml) {
+            return ssml.replace(/^<speak[^>]*>/, "").replace(/<\/speak>\s*$/, "");
+        }
+
+        /**
+         * Extract word marks from TalkingHead SSML.
+         * Pattern: `word0 <mark name='1'/> word1 <mark name='2'/> word2`
+         * Returns: [{markName, charsBefore}]
+         */
+        function extractMarks(ssml) {
+            const inner = extractSsmlBody(ssml);
+            const marks = [];
+            const parts = inner.split(/<mark name='(\d+)'\/>/);
+            let charCount = 0;
+            for (let i = 0; i < parts.length; i++) {
+                if (i % 2 === 0) {
+                    charCount += parts[i].replace(/<[^>]+>/g, "").trim().length;
+                } else {
+                    marks.push({ markName: parts[i], charsBefore: charCount });
+                }
+            }
+            return marks;
+        }
+
+        /** Distribute word marks evenly across estimated audio duration */
+        function buildTimepoints(marks, totalDurationMs) {
+            if (!marks.length) return [];
+            const totalChars = (marks[marks.length - 1].charsBefore || 0) + 1;
+            return marks.map(({ markName, charsBefore }) => ({
+                markName,
+                timeSeconds: (charsBefore / totalChars) * (totalDurationMs / 1000),
+            }));
+        }
+
+        /** Build Azure-format SSML wrapper around TalkingHead's inner SSML */
+        function buildAzureSsml(inner, voice, lang) {
+            return `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='${lang}'><voice name='${voice}'>${inner}</voice></speak>`;
+        }
+
+        /** ArrayBuffer ? base64 string */
+        function arrayBufferToBase64(buf) {
+            const bytes = new Uint8Array(buf);
+            let bin = "";
+            for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+            return btoa(bin);
+        }
+
+        // ----------------------------------------------------------------------
+        // TalkingHead init
+        // ----------------------------------------------------------------------
+        let head = null;
+        const statusEl = document.getElementById("status");
+
+        function setStatus(msg) {
+            statusEl.textContent = msg || "";
+            statusEl.classList.toggle("visible", !!msg);
+        }
+
+        function postToParent(data) {
+            window.parent.postMessage(data, "*");
+        }
+
+        async function init() {
+            setStatus("Loading avatar�");
+
+            head = new TalkingHead(document.getElementById("avatar"), {
+                ttsEndpoint: SENTINEL_ENDPOINT,
+                ttsApikey: SENTINEL_APIKEY,
+                lipsyncModules: ["en"],
+                cameraView: "mid",
+            });
+
+            try {
+                await head.showAvatar(
+                    {
+                        url: avatarUrl,
+                        body: "F",
+                        avatarMood: "neutral",
+                        ttsLang: azureLang,
+                        ttsVoice: azureVoice,
+                        lipsyncLang: "en",
+                    },
+                    (ev) => {
+                        if (ev.lengthComputable) {
+                            const pct = Math.min(100, Math.round((ev.loaded / ev.total) * 100));
+                            setStatus(`Loading ${pct}%`);
+                        }
+                    }
+                );
+                setStatus(null);
+                postToParent({ type: "ready" });
+            } catch (err) {
+                console.error("[TalkingHead] Avatar load error:", err);
+                setStatus("Failed to load avatar");
+                postToParent({ type: "error", message: err.toString() });
+            }
+        }
+
+        // -- Web Speech API fallback (used when no Azure key is configured) ----
+        let webSpeechUtterance = null;
+
+        function speakWithWebSpeech(text) {
+            if (!window.speechSynthesis) return false;
+            window.speechSynthesis.cancel(); // clear any pending
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = azureLang || "en-US";
+            utter.rate = 1.0;
+            utter.pitch = 1.05;
+
+            // Pick a female voice if available
+            const voices = window.speechSynthesis.getVoices();
+            const femaleVoice = voices.find(v =>
+                v.lang.startsWith("en") && /female|woman|zira|emma|aria|susan|hazel|karen/i.test(v.name)
+            ) || voices.find(v => v.lang.startsWith("en"));
+            if (femaleVoice) utter.voice = femaleVoice;
+
+            utter.onend = () => {
+                clearSpeakEndPoll();
+                postToParent({ type: "speakingEnd" });
+            };
+            utter.onerror = () => {
+                clearSpeakEndPoll();
+                postToParent({ type: "speakingEnd" });
+            };
+            webSpeechUtterance = utter;
+            window.speechSynthesis.speak(utter);
+            return true;
+        }
+
+        // -- Resume AudioContext on any user interaction (browser autoplay policy) --
+        let audioResumed = false;
+        async function ensureAudioCtx() {
+            if (audioResumed) return;
+            if (head && head.audioCtx && head.audioCtx.state === "suspended") {
+                try { await head.audioCtx.resume(); audioResumed = true; } catch { /* noop */ }
+            }
+        }
+        document.addEventListener("click", ensureAudioCtx, { once: false });
+        document.addEventListener("pointerdown", ensureAudioCtx, { once: false });
+
+        // -- Active speech-end poll handle -------------------------------------
+        let speakEndPoll = null;
+
+        function clearSpeakEndPoll() {
+            if (speakEndPoll !== null) { clearInterval(speakEndPoll); speakEndPoll = null; }
+        }
+
+        function startSpeakEndPoll() {
+            clearSpeakEndPoll();
+            let ticks = 0;
+            speakEndPoll = setInterval(() => {
+                ticks++;
+                // Give TalkingHead at least 3 ticks (~750 ms) to set isSpeaking=true
+                if (ticks > 3 && !head.isSpeaking && head.speechQueue.length === 0) {
+                    clearSpeakEndPoll();
+                    postToParent({ type: "speakingEnd" });
+                }
+            }, 250);
+        }
+
+        // -- PostMessage bridge (React ? iframe) --------------------------------
+        window.addEventListener("message", async (event) => {
+            if (!head) return;
+            const { type, text, mood } = event.data || {};
+
+            switch (type) {
+                case "speakText":
+                    if (!text) break;
+                    try {
+                        await ensureAudioCtx();
+                        clearSpeakEndPoll();
+                        head.speakText(text);
+                        postToParent({ type: "speakingStart" });
+
+                        if (!azureKey) {
+                            // No Azure key — use Web Speech API for audio,
+                            // TalkingHead handles lipsync animation only.
+                            // Voices may need a brief delay to load on first call.
+                            if (window.speechSynthesis.getVoices().length === 0) {
+                                window.speechSynthesis.addEventListener("voiceschanged", () => speakWithWebSpeech(text), { once: true });
+                            } else {
+                                speakWithWebSpeech(text);
+                            }
+                        } else {
+                            startSpeakEndPoll();
+                        }
+                    } catch (err) { console.error("[TalkingHead] speakText error:", err); }
+                    break;
+
+                case "stopSpeaking":
+                    clearSpeakEndPoll();
+                    if (!azureKey && window.speechSynthesis) window.speechSynthesis.cancel();
+                    try { head.stopSpeaking(); postToParent({ type: "speakingEnd" }); } catch { /* noop */ }
+                    break;
+
+                case "setMood":
+                    if (mood) try { head.setMood(mood); } catch { /* noop */ }
+                    break;
+
+                case "pause":
+                    try { head.stop(); } catch { /* noop */ }
+                    break;
+
+                case "resume":
+                    try { head.start(); } catch { /* noop */ }
+                    break;
+            }
+        });
+
+        document.addEventListener("visibilitychange", () => {
+            if (!head) return;
+            document.visibilityState === "visible" ? head.start() : head.stop();
+        });
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</head>
+
+<body>
+    <div id="avatar"></div>
+    <div id="status"></div>
+</body>
+
+</html>

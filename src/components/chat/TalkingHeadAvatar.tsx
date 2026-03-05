@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useChat } from "../../hooks/useChat";
-
+import { TalkingHead } from "@met4citizen/talkinghead";
 // Map the app's facialExpression values → TalkingHead mood names
 const EXPRESSION_TO_MOOD: Record<string, string> = {
     smile: "happy",

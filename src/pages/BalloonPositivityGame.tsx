@@ -215,14 +215,14 @@ export default function BalloonPositivityGame() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden font-sans bg-background text-text-primary transition-colors duration-300">
 
-      <div className="absolute inset-0 bg-gradient-to-br from-yellow-100 via-pink-100 to-sky-100" />
+      <div className="absolute inset-0 bg-gradient-to-br from-yellow-100 via-pink-100 to-sky-100 dark:from-primary/5 dark:via-surface dark:to-background" />
 
       <header className="relative z-10 flex items-center justify-between px-4 pt-4 md:px-8">
 
         <div>
           <button
             onClick={() => navigate("/games")}
-            className="flex items-center gap-2 rounded-xl bg-crushed-silk/80 px-3 py-1.5 text-sm font-medium text-slate-700 shadow hover:bg-yellow-400 hover:text-white transition"
+            className="flex items-center gap-2 rounded-xl bg-crushed-silk/80 px-3 py-1.5 text-sm font-medium text-text-primary shadow hover:bg-yellow-400 hover:text-white transition"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Games
@@ -230,7 +230,7 @@ export default function BalloonPositivityGame() {
         </div>
 
 
-        <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-3xl font-bold tracking-tight text-center text-pink-600 drop-shadow-sm">
+        <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-3xl font-bold tracking-tight text-center text-pink-600 dark:text-pink-400 drop-shadow-sm">
           MoodBloom
         </h1>
 
@@ -278,7 +278,7 @@ export default function BalloonPositivityGame() {
       </div>
 
 
-      <div className="relative z-10 mx-auto mt-2 w-full max-w-5xl px-4 text-center text-slate-700">
+      <div className="relative z-10 mx-auto mt-2 w-full max-w-5xl px-4 text-center text-text-primary">
         <p>
           Remove the {" "}
           <span className="font-semibold text-rose-600">gloom</span>, and welcome the bloom
@@ -304,13 +304,13 @@ export default function BalloonPositivityGame() {
 
         {(!running && (lives <= 0 || timeLeft <= 0)) && (
           <div className="absolute inset-0 grid place-items-center bg-crushed-silk/70 backdrop-blur-sm">
-            <div className="rounded-3xl bg-gradient-to-br from-pink-100 to-yellow-100 p-6 text-center shadow-lg max-w-md">
+            <div className="rounded-3xl bg-gradient-to-br from-pink-100 to-yellow-100 dark:from-surface dark:to-crushed-silk p-6 text-center shadow-lg max-w-md">
               {lives <= 0 ? (
                 <h2 className="mb-2 text-2xl font-semibold text-rose-600">Game Over</h2>
               ) : (
                 <h2 className="mb-2 text-2xl font-semibold text-indigo-600">Time’s Up!!</h2>
               )}
-              <p className="mb-2 text-slate-700">
+              <p className="mb-2 text-text-primary">
                 Final Score: <span className="font-bold">{score}</span>
               </p>
               <p className="mb-4 italic text-emerald-600">{finalAffirmation}</p>
@@ -346,10 +346,10 @@ export default function BalloonPositivityGame() {
         )}
       </AnimatePresence>
 
-      <footer className="relative z-10 mt-6 pb-8 text-center text-xs text-slate-500">
+      <footer className="relative z-10 mt-6 pb-8 text-center text-xs text-text-secondary">
         <p>Designed for joy Click Start, then pop the negative words.</p>
         {lastAffirmation && (
-          <p className="mt-1 italic text-slate-600">Last affirmation: {lastAffirmation}</p>
+          <p className="mt-1 italic text-text-secondary">Last affirmation: {lastAffirmation}</p>
         )}
       </footer>
     </div>
@@ -359,8 +359,8 @@ export default function BalloonPositivityGame() {
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-crushed-silk/80 p-3 text-center shadow-sm">
-      <div className="text-[11px] uppercase tracking-wider text-slate-500">{label}</div>
-      <div className="text-lg font-semibold text-slate-800">{value}</div>
+      <div className="text-[11px] uppercase tracking-wider text-text-secondary">{label}</div>
+      <div className="text-lg font-semibold text-text-primary">{value}</div>
     </div>
   );
 }

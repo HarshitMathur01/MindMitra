@@ -162,15 +162,15 @@ const EmojiMatch = () => {
 
             <div className="flex justify-center gap-8 mb-6">
               <div className="text-center">
-                <div className="text-3xl font-extrabold text-pink-600">{moves}</div>
+                <div className="text-3xl font-extrabold text-pink-600 dark:text-pink-400">{moves}</div>
                 <div className="text-sm text-muted-foreground">Moves</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-extrabold text-yellow-600">{formatTime(time)}</div>
+                <div className="text-3xl font-extrabold text-yellow-600 dark:text-yellow-400">{formatTime(time)}</div>
                 <div className="text-sm text-muted-foreground">Time</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-extrabold text-indigo-600">{matches}/{emojis.length}</div>
+                <div className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{matches}/{emojis.length}</div>
                 <div className="text-sm text-muted-foreground">Matches</div>
               </div>
             </div>
@@ -185,21 +185,21 @@ const EmojiMatch = () => {
           </div>
 
           <Dialog open={gameWon} onOpenChange={setGameWon}>
-            <DialogContent className="sm:max-w-md rounded-2xl shadow-2xl border-2 border-pink-400 bg-gradient-to-r from-pink-100 via-yellow-100 via-green-100 to-indigo-200">
+            <DialogContent className="sm:max-w-md rounded-2xl shadow-2xl border-2 border-pink-400 dark:border-primary/50 bg-gradient-to-r from-pink-100 via-yellow-100 via-green-100 to-indigo-200 dark:from-surface dark:via-surface dark:to-surface">
               <DialogHeader>
-                <DialogTitle className="text-3xl font-extrabold text-black-700 text-center drop-shadow-md">
+                  <DialogTitle className="text-3xl font-extrabold text-text-primary text-center drop-shadow-md">
                   Congratulations!
                 </DialogTitle>
-                <DialogDescription className="text-center text-lg text-black-800 font-semibold mt-2">
+                  <DialogDescription className="text-center text-lg text-text-secondary font-semibold mt-2">
                   You completed the game!
                 </DialogDescription>
               </DialogHeader>
 
               <div className="text-center mt-4 space-y-2">
-                <p className="text-xl text-indigo-700">
+                <p className="text-xl text-indigo-700 dark:text-indigo-300">
                   Moves: <span className="font-bold">{moves}</span>
                 </p>
-                <p className="text-xl text-indigo-700">
+                <p className="text-xl text-indigo-700 dark:text-indigo-300">
                   Time: <span className="font-bold">{formatTime(time)}</span>
                 </p>
               </div>
@@ -224,8 +224,8 @@ const EmojiMatch = () => {
                   transition-all duration-500 hover:scale-110 hover:rotate-3
                   border-4 rounded-2xl shadow-lg
                   ${card.isFlipped || card.isMatched
-                    ? "bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 border-pink-400"
-                    : "bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 border-indigo-300 hover:border-pink-400"
+                    ? "bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 border-pink-400 dark:from-surface dark:via-primary/10 dark:to-surface dark:border-primary/40"
+                    : "bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 border-indigo-300 hover:border-pink-400 dark:from-surface dark:via-background dark:to-surface dark:border-border"
                   }
                   ${card.isMatched ? "opacity-75 scale-105" : ""}
                 `}
@@ -234,7 +234,7 @@ const EmojiMatch = () => {
                 {card.isFlipped || card.isMatched ? (
                   <span className="text-3xl">{card.emoji}</span>
                 ) : (
-                  <span className="text-indigo-600 text-2xl">?</span>
+                  <span className="text-indigo-600 dark:text-text-secondary text-2xl">?</span>
                 )}
               </Card>
             ))}

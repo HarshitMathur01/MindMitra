@@ -22,12 +22,12 @@ const Footer = () => {
 
     return (
         <footer className="relative bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white overflow-hidden">
-            {/* Decorative top wave */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+            {/* Decorative top accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-rose-400 to-orange-300" />
 
             {/* Subtle background orbs */}
-            <div className="absolute top-20 left-10 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-10 right-20 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl" />
+            <div className="absolute top-20 left-10 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-10 right-20 w-48 h-48 bg-rose-500/5 rounded-full blur-3xl" />
 
             <div className="container mx-auto px-4 py-16 relative z-10">
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
@@ -39,11 +39,11 @@ const Footer = () => {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                         >
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <div className="w-10 h-10 bg-gradient-to-br from-violet-400 to-rose-400 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
                                 <Brain className="h-6 w-6 text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-violet-400 to-rose-400 bg-clip-text text-transparent">
                                     MindMitra
                                 </h3>
                                 <p className="text-xs text-slate-400">AI & Psychology Hub</p>
@@ -66,9 +66,9 @@ const Footer = () => {
                                 <li key={link.path}>
                                     <button
                                         onClick={() => navigate(link.path)}
-                                        className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-blue-400 transition-colors group"
+                                        className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-violet-400 transition-colors group"
                                     >
-                                        <link.icon className="h-4 w-4 text-slate-500 group-hover:text-blue-400 transition-colors" />
+                                        <link.icon className="h-4 w-4 text-slate-500 group-hover:text-violet-400 transition-colors" />
                                         {link.label}
                                     </button>
                                 </li>
@@ -76,9 +76,9 @@ const Footer = () => {
                             <li>
                                 <button
                                     onClick={() => navigate('/therapist-bridge')}
-                                    className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-blue-400 transition-colors group"
+                                    className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-violet-400 transition-colors group"
                                 >
-                                    <Phone className="h-4 w-4 text-slate-500 group-hover:text-blue-400 transition-colors" />
+                                    <Phone className="h-4 w-4 text-slate-500 group-hover:text-violet-400 transition-colors" />
                                     Therapist Bridge
                                 </button>
                             </li>
@@ -115,7 +115,7 @@ const Footer = () => {
                     {/* Wellness Reminder */}
                     <div>
                         <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Daily Reminder</h4>
-                        <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-slate-700/50 rounded-xl p-4 mb-5">
+                        <div className="bg-gradient-to-br from-violet-500/10 to-rose-500/10 border border-slate-700/50 rounded-xl p-4 mb-5">
                             <p className="text-sm text-slate-300 italic leading-relaxed">
                                 "Your mental health is a priority. Your happiness is essential. Your self-care is a necessity."
                             </p>

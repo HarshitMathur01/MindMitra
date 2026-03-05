@@ -35,7 +35,7 @@ const FeaturesPreview = () => {
       icon: MessageCircle,
       title: "AI Therapy Companion",
       description: "Professional psychology support with CBT, ACT, and MBCT techniques, delivered like a caring friend who understands Indian culture.",
-      gradient: "from-indigo-300 to-violet-400",
+      gradient: "from-violet-300 to-purple-300",
       action: () => navigate("/chat"),
       actionText: "Start Chatting",
       comingSoon: false,
@@ -44,7 +44,7 @@ const FeaturesPreview = () => {
       icon: Puzzle,
       title: "Mindfulness Games",
       description: "Interactive wellness activities designed to reduce stress, improve focus, and build emotional resilience through play.",
-      gradient: "from-indigo-300 to-violet-400",
+      gradient: "from-amber-300 to-orange-300",
       action: () => navigate("/games"),
       actionText: "Play Games",
       comingSoon: false,
@@ -53,7 +53,7 @@ const FeaturesPreview = () => {
       icon: BarChart,
       title: "Wellness Check-ins",
       description: "Regular mood tracking and progress monitoring to understand your mental health journey and celebrate growth.",
-      gradient: "from-indigo-300 to-violet-400",
+      gradient: "from-emerald-300 to-teal-300",
       action: () => navigate("/wellness-checkin"),
       actionText: "Check Progress",
       comingSoon: false,
@@ -62,7 +62,7 @@ const FeaturesPreview = () => {
       icon: TherapistBridgeIcon,
       title: "Therapist Bridge",
       description: "Get a warm referral to a licensed therapist who understands Indian culture. Your emotional profile is shared securely with consent.",
-      gradient: "from-indigo-300 to-violet-400",
+      gradient: "from-rose-300 to-pink-300",
       action: () => navigate("/therapist-bridge"),
       actionText: "Connect Now",
       comingSoon: false,
@@ -96,9 +96,9 @@ const FeaturesPreview = () => {
   return (
     <section className="py-20 relative overflow-hidden">
       {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-50/30 to-purple-50/30"></div>
-      <div className="absolute top-10 right-10 w-40 h-40 bg-gradient-to-r from-blue-200/10 to-purple-200/10 rounded-full"></div>
-      <div className="absolute bottom-20 left-10 w-32 h-32 bg-gradient-to-r from-green-200/10 to-blue-200/10 rounded-full"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-50/30 to-rose-50/20 dark:via-transparent dark:to-transparent"></div>
+      <div className="absolute top-10 right-10 w-40 h-40 bg-gradient-to-r from-amber-200/15 to-rose-200/10 dark:from-primary/5 dark:to-transparent rounded-full"></div>
+      <div className="absolute bottom-20 left-10 w-32 h-32 bg-gradient-to-r from-orange-200/15 to-amber-200/10 dark:from-primary/5 dark:to-transparent rounded-full"></div>
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}

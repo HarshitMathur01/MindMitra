@@ -1,33 +1,48 @@
+/* ── Google Font for Devanagari ──────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap');
+.mm-devanagari,
+.mm-devanagari * {
+    font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+}
 :root {
-    --background: #F5F0EB;
-    --surface: #F5F0EB;
-    --crushed-silk: #F5F0EB;
-    --primary: #2C7A86;
-    --secondary: #3F8D84;
-    --accent: #4E9A8A;
-    --text-primary: #1A2E35;
-    --text-secondary: #5C7A82;
-    --border: #F5F0EB;
-    --danger: #E05263;
-    --success: #10B981;
-    --warning: #F59E0B;
-    --shadow: rgba(2, 128, 144, 0.08);
+    /* Warm cream — base page background & surfaces */
+    --background: 35 40% 97%;      /* warm off-white ivory */
+    --surface: 35 38% 95%;         /* card surface, a step richer */
+    --crushed-silk: 35 38% 93%;    /* warm parchment mid-tone */
+
+    /* Brand teal — calm, trustworthy, grounding */
+    --primary: 188 51% 38%;        /* warm teal for buttons & accents */
+    --secondary: 173 35% 42%;      /* teal-green complement */
+    --accent: 35 50% 90%;          /* warm cream highlight for soft bgs */
+
+    /* Typography */
+    --text-primary: 196 33% 15%;   /* dark teal-gray */
+    --text-secondary: 197 17% 43%; /* muted secondary */
+
+    /* Structural */
+    --border: 35 30% 87%;          /* warm light border */
+
+    /* Semantic */
+    --danger: 353 66% 59%;
+    --success: 161 84% 38%;
+    --warning: 38 92% 50%;
+    --shadow: hsla(188, 30%, 15%, 0.08);
 }
 
 [data-theme="dark"] {
-    --background: #0D1F25;
-    --surface: #162830;
-    --crushed-silk: #2A3940;
-    --primary: #4FA3B2;
-    --secondary: #5CAE9F;
-    --accent: #68B6A4;
-    --text-primary: #E8F4F6;
-    --text-secondary: #7AB8C2;
-    --border: #1E3D47;
-    --danger: #FF6B7A;
-    --success: #34D399;
-    --warning: #FBBF24;
-    --shadow: rgba(0, 0, 0, 0.4);
+    --background: 196 47% 9%;       /* deep teal-black */
+    --surface: 196 30% 17%;          /* cards — clear step above bg */
+    --crushed-silk: 196 24% 25%;     /* hover/input surfaces */
+    --primary: 188 55% 62%;          /* tonal-200 — pops on dark bg */
+    --secondary: 172 40% 60%;        /* vivid teal-green complement */
+    --accent: 196 22% 28%;           /* subtle accent surface */
+    --text-primary: 190 10% 95%;     /* near-white, minimal teal tint — crisp & bright */
+    --text-secondary: 188 16% 73%;   /* readable muted text — not muddy */
+    --border: 196 26% 27%;           /* visible borders, well above surface */
+    --danger: 354 100% 71%;
+    --success: 160 84% 49%;
+    --warning: 43 96% 56%;
+    --shadow: hsla(196, 65%, 4%, 0.55); /* tinted deep teal shadow — not flat black */
 }
 
 *,
@@ -49,14 +64,6 @@ img {
    MindMitra Chat UI — Therapeutic Text Formatting
    Mobile-first · Dark-mode primary · Devanagari-aware
    ═══════════════════════════════════════════════════════════════════ */
-
-/* ── Google Font for Devanagari ──────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap');
-
-.mm-devanagari,
-.mm-devanagari * {
-    font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
-}
 
 /* ── Message Content Base Typography ─────────────────────────────── */
 .mm-message-content {
@@ -322,22 +329,31 @@ img {
 .mm-bubble {
     padding: 14px 18px;
     max-width: 85%;
-    box-shadow: 0 1px 3px var(--shadow);
 }
 
 .mm-bubble--ai {
-    background: var(--crushed-silk);
+    /* Cool-tinted near-white — perceptually distinct from the warm ivory page background.
+       Hue shift (188° teal) vs background (35° amber) creates immediate visual separation
+       even at near-identical lightness values. Combined with 3-layer shadow for elevation. */
+    background: hsl(188 30% 98%);
     color: var(--text-primary);
     border-radius: 4px 18px 18px 18px;
-    border: 1px solid var(--border);
+    border: 1px solid hsl(188 28% 88%);
+    border-left: 3px solid hsl(188 51% 38% / 0.30);
+    max-width: 78%;
+    box-shadow:
+        0 1px 2px hsl(188 40% 15% / 0.04),
+        0 4px 12px hsl(188 40% 15% / 0.08),
+        0 12px 28px hsl(188 40% 15% / 0.04);
 }
 
 .mm-bubble--user {
-    background: var(--crushed-silk);
-    color: var(--text-primary);
+    background: linear-gradient(135deg, hsl(188 55% 30%), hsl(168 50% 27%));
+    color: #ffffff;
     border-radius: 18px 18px 4px 18px;
     max-width: 75%;
-    border: 1px solid var(--border);
+    border: none;
+    box-shadow: 0 2px 10px hsl(188 50% 20% / 0.22);
 }
 
 .mm-user-text {
@@ -345,6 +361,7 @@ img {
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
+    color: #ffffff;
 }
 
 .mm-bubble-time {
@@ -516,7 +533,29 @@ img {
    Dark mode refinements (already handled via CSS vars, but extras)
    ══════════════════════════════════════════════════════════════════ */
 [data-theme="dark"] .mm-bubble--ai {
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    background: hsl(188 22% 20%);               /* elevated above surface (17%) */
+    border-color: hsl(188 26% 30%);             /* visible against bg */
+    border-left-color: hsl(188 55% 62% / 0.50); /* matches new --primary */
+    box-shadow:
+        0 1px 3px hsl(196 65% 3% / 0.22),
+        0 4px 14px hsl(188 55% 7% / 0.28),
+        0 16px 32px hsl(188 50% 5% / 0.18);     /* tinted shadow — depth without muddiness */
+}
+
+[data-theme="dark"] .mm-bubble--user {
+    background: linear-gradient(135deg, hsl(188 50% 25%), hsl(168 45% 22%));
+    box-shadow: 0 2px 10px hsl(188 50% 15% / 0.35);
+}
+
+/* Voice recording radial pulse ring */
+@keyframes voice-pulse-ring {
+    0% { box-shadow: 0 0 0 0 hsl(188 51% 38% / 0.45); }
+    70% { box-shadow: 0 0 0 14px hsl(188 51% 38% / 0); }
+    100% { box-shadow: 0 0 0 0 hsl(188 51% 38% / 0); }
+}
+
+.voice-recording-active {
+    animation: voice-pulse-ring 1.5s ease-out infinite;
 }
 
 [data-theme="dark"] .mm-action-item {
@@ -550,7 +589,8 @@ img {
     }
 
     .mm-bubble--user {
-        max-width: 80%;
+        max-width: 82%;
+        box-shadow: 0 2px 8px hsl(188 50% 20% / 0.20);
     }
 
     .mm-message-content {

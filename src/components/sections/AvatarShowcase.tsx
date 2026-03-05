@@ -27,8 +27,8 @@ const avatarOptions: AvatarOption[] = [
         role: 'AI Counselor',
         description: 'A warm, empathetic counselor who specializes in academic stress, family dynamics, and career anxiety. Perfect for deep, structured conversations.',
         image: '/avatars/Screenshot 2026-02-17 200939.png',
-        gradient: 'from-blue-500 to-indigo-600',
-        gradientBg: 'from-blue-100 via-indigo-50 to-blue-200',
+        gradient: 'from-violet-400 to-purple-500',
+        gradientBg: 'from-violet-100 via-purple-50 to-violet-100',
         fallbackIcon: Stethoscope,
         fallbackEmoji: '👩‍⚕️',
         speciality: ['Career Guidance', 'Family Issues', 'Academic Stress'],
@@ -39,8 +39,8 @@ const avatarOptions: AvatarOption[] = [
         role: '3D Interactive Avatar',
         description: 'A friendly 3D animated companion who reacts with real-time facial expressions, gestures, and emotional mirroring. Feels like talking to a real friend.',
         image: '/avatars/Screenshot 2026-02-17 201059.png',
-        gradient: 'from-purple-500 to-pink-600',
-        gradientBg: 'from-purple-100 via-pink-50 to-purple-200',
+        gradient: 'from-rose-400 to-pink-500',
+        gradientBg: 'from-rose-100 via-pink-50 to-rose-100',
         fallbackIcon: Sparkles,
         fallbackEmoji: '🧑‍💻',
         speciality: ['Emotional Support', 'Daily Check-ins', 'Mindfulness'],
@@ -51,8 +51,8 @@ const avatarOptions: AvatarOption[] = [
         role: 'Wellness Guide',
         description: 'A calming presence guiding you through meditation, breathing exercises, and mindfulness practices. Ideal for stress relief and building inner peace.',
         image: '/avatars/Screenshot 2026-02-17 201358.png',
-        gradient: 'from-green-500 to-teal-600',
-        gradientBg: 'from-green-100 via-emerald-50 to-teal-200',
+        gradient: 'from-emerald-400 to-teal-500',
+        gradientBg: 'from-emerald-100 via-teal-50 to-emerald-100',
         fallbackIcon: Flower2,
         fallbackEmoji: '🧘‍♀️',
         speciality: ['Meditation', 'Breathing', 'Yoga Nidra'],
@@ -71,8 +71,8 @@ const AvatarImage = ({ avatar, className = '' }: { avatar: AvatarOption; classNa
                 <div className={`w-14 h-14 rounded-full bg-gradient-to-r ${avatar.gradient} flex items-center justify-center shadow-lg`}>
                     <Icon className="h-7 w-7 text-white" />
                 </div>
-                <p className="mt-3 text-sm font-bold text-gray-700">{avatar.name}</p>
-                <p className="text-xs text-gray-500">{avatar.role}</p>
+                <p className="mt-3 text-sm font-bold text-text-primary">{avatar.name}</p>
+                <p className="text-xs text-text-secondary">{avatar.role}</p>
             </div>
         );
     }
@@ -98,7 +98,7 @@ const AvatarThumb = ({ avatar, isSelected }: { avatar: AvatarOption; isSelected:
     const Icon = avatar.fallbackIcon;
 
     return (
-        <div className={`w-16 h-16 rounded-full overflow-hidden border-2 ${isSelected ? 'border-primary' : 'border-gray-200'
+        <div className={`w-16 h-16 rounded-full overflow-hidden border-2 ${isSelected ? 'border-primary' : 'border-gray-200 dark:border-border'
             }`}>
             {imgFailed ? (
                 <div className={`w-full h-full bg-gradient-to-br ${avatar.gradientBg} flex items-center justify-center`}>
@@ -122,11 +122,11 @@ const AvatarShowcase = () => {
     const selected = avatarOptions.find(a => a.id === selectedAvatar)!;
 
     return (
-        <section className="py-14 bg-gradient-to-b from-white via-purple-50/40 to-white relative overflow-hidden">
+        <section className="py-14 bg-gradient-to-b from-background via-amber-50/40 dark:via-surface/20 to-background relative overflow-hidden">
             {/* Background blobs - warmer, richer */}
-            <div className="absolute top-20 left-10 w-80 h-80 bg-purple-200/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-            <div className="absolute bottom-20 right-10 w-72 h-72 bg-amber-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-100/15 rounded-full blur-3xl" />
+            <div className="absolute top-20 left-10 w-80 h-80 bg-rose-200/20 dark:bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+            <div className="absolute bottom-20 right-10 w-72 h-72 bg-amber-200/20 dark:bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-100/15 dark:bg-primary/3 rounded-full blur-3xl" />
 
             <div className="container mx-auto px-4 relative z-10">
                 {/* Section Header */}
@@ -137,7 +137,7 @@ const AvatarShowcase = () => {
                     transition={{ duration: 0.6 }}
                     viewport={{ once: true }}
                 >
-                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-pink-100 px-5 py-2 rounded-full text-sm text-purple-700 font-medium mb-4 border border-purple-200/50">
+                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-100 to-rose-100 dark:from-surface dark:to-surface px-5 py-2 rounded-full text-sm text-violet-700 dark:text-primary font-medium mb-4 border border-violet-200/50 dark:border-border">
                         <Video className="h-4 w-4" />
                         Face-to-Face AI Therapy
                     </div>
@@ -156,14 +156,14 @@ const AvatarShowcase = () => {
 
                         {/* Avatar Cards - Left Column */}
                         <div className="lg:col-span-2 space-y-4">
-                            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Choose your companion</p>
+                            <p className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-2">Choose your companion</p>
                             {avatarOptions.map((avatar, i) => (
                                 <motion.div
                                     key={avatar.id}
                                     onClick={() => setSelectedAvatar(avatar.id)}
                                     className={`relative cursor-pointer rounded-2xl border-2 p-4 transition-all duration-300 ${selectedAvatar === avatar.id
                                         ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
-                                        : 'border-gray-200 bg-crushed-silk hover:border-gray-300 hover:shadow-md'
+                                        : 'border-gray-200 dark:border-border bg-crushed-silk hover:border-gray-300 dark:hover:border-primary/40 hover:shadow-md'
                                         }`}
                                     initial={{ opacity: 0, x: -30 }}
                                     whileInView={{ opacity: 1, x: 0 }}
@@ -190,13 +190,13 @@ const AvatarShowcase = () => {
 
                                         {/* Info */}
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-gray-800">{avatar.name}</h4>
+                                            <h4 className="font-bold text-text-primary">{avatar.name}</h4>
                                             <p className={`text-xs font-medium bg-gradient-to-r ${avatar.gradient} bg-clip-text text-transparent`}>
                                                 {avatar.role}
                                             </p>
                                             <div className="flex flex-wrap gap-1 mt-1.5">
                                                 {avatar.speciality.map((s, j) => (
-                                                    <span key={j} className="text-[10px] bg-crushed-silk/85 border border-border/60 text-gray-500 px-2 py-0.5 rounded-full">
+                                                    <span key={j} className="text-[10px] bg-crushed-silk/85 border border-border/60 text-text-secondary px-2 py-0.5 rounded-full">
                                                         {s}
                                                     </span>
                                                 ))}
@@ -285,7 +285,7 @@ const AvatarShowcase = () => {
 
                                                 {/* Technique badge */}
                                                 <motion.div
-                                                    className="absolute top-3 right-3 bg-purple-500/80 backdrop-blur-md rounded-full px-3 py-1.5 flex items-center gap-1.5"
+                                                    className="absolute top-3 right-3 bg-primary/80 backdrop-blur-md rounded-full px-3 py-1.5 flex items-center gap-1.5"
                                                     initial={{ opacity: 0, x: 20 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: 0.5 }}
@@ -330,12 +330,12 @@ const AvatarShowcase = () => {
 
                                     {/* Description Card */}
                                     <motion.div
-                                        className="mt-4 bg-crushed-silk rounded-xl border border-gray-200 p-4 shadow-sm"
+                                        className="mt-4 bg-crushed-silk rounded-xl border border-border p-4 shadow-sm"
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.2 }}
                                     >
-                                        <p className="text-gray-600 leading-relaxed mb-4">{selected.description}</p>
+                                        <p className="text-text-secondary leading-relaxed mb-4">{selected.description}</p>
 
                                         <div className="flex flex-col sm:flex-row gap-3">
                                             <Button

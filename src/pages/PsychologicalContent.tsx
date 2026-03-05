@@ -402,7 +402,7 @@ const typeIconMap: Record<ContentType, React.ElementType> = {
 };
 
 const typeColorMap: Record<ContentType, string> = {
-    article: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    article: "bg-primary/10 text-primary",
     video: "bg-red-500/10 text-red-600 dark:text-red-400",
     audio: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
     exercise: "bg-green-500/10 text-green-600 dark:text-green-400",
@@ -417,7 +417,7 @@ const difficultyColors: Record<DifficultyLevel, string> = {
 const categoryColorMap: Record<string, string> = {
     primary: "bg-primary/10 text-primary",
     teal: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
-    blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    blue: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
     pink: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
     amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
@@ -428,7 +428,7 @@ const categoryColorMap: Record<string, string> = {
 const activeCatColorMap: Record<string, string> = {
     primary: "bg-primary text-white",
     teal: "bg-teal-500 text-white",
-    blue: "bg-blue-500 text-white",
+    blue: "bg-primary text-white",
     pink: "bg-pink-500 text-white",
     amber: "bg-amber-500 text-white",
     violet: "bg-violet-500 text-white",

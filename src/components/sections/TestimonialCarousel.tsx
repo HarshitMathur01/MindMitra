@@ -103,7 +103,7 @@ const TestimonialCarousel = () => {
     const testimonial = filteredTestimonials[current];
 
     return (
-        <section className="py-20 relative overflow-hidden bg-gradient-to-b from-white to-blue-50/30">
+        <section className="py-20 relative overflow-hidden bg-gradient-to-b from-background to-amber-50/30">
             <div className="container mx-auto px-4">
                 {/* Section Header */}
                 <motion.div
@@ -135,7 +135,7 @@ const TestimonialCarousel = () => {
                             title={tab.label}
                             className={`w-11 h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center ${filter === tab.key
                                 ? 'bg-primary text-white shadow-md'
-                                : 'bg-crushed-silk text-gray-600 hover:bg-crushed-silk/80 border border-border/60'
+                                : 'bg-crushed-silk text-text-secondary hover:bg-crushed-silk/80 border border-border/60'
                                 }`}
                         >
                             <tab.icon className="h-4 w-4" />
@@ -150,14 +150,14 @@ const TestimonialCarousel = () => {
                         onClick={prev}
                         className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 z-10 w-10 h-10 bg-crushed-silk rounded-full shadow-lg flex items-center justify-center hover:bg-crushed-silk/70 transition-colors"
                     >
-                        <ChevronLeft className="h-5 w-5 text-gray-600" />
+                        <ChevronLeft className="h-5 w-5 text-text-secondary" />
                     </button>
 
                     <button
                         onClick={next}
                         className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 z-10 w-10 h-10 bg-crushed-silk rounded-full shadow-lg flex items-center justify-center hover:bg-crushed-silk/70 transition-colors"
                     >
-                        <ChevronRight className="h-5 w-5 text-gray-600" />
+                        <ChevronRight className="h-5 w-5 text-text-secondary" />
                     </button>
 
                     <AnimatePresence mode="wait">
@@ -168,40 +168,40 @@ const TestimonialCarousel = () => {
                                 animate={{ opacity: 1, x: 0, scale: 1 }}
                                 exit={{ opacity: 0, x: -50, scale: 0.95 }}
                                 transition={{ duration: 0.4 }}
-                                className="bg-crushed-silk rounded-2xl shadow-xl p-8 md:p-10 border border-gray-100 relative"
+                                className="bg-crushed-silk rounded-2xl shadow-xl p-8 md:p-10 border border-border relative"
                             >
                                 <Quote className="absolute top-6 left-6 h-8 w-8 text-primary/15" />
 
                                 {/* Type badge */}
                                 <div className="flex justify-end mb-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${testimonial.type === 'therapist'
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-green-100 text-green-700'
+                                        ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
+                                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
                                         }`}>
                                         {testimonial.type === 'therapist' ? '🩺 Therapist Endorsement' : '🎓 Student Review'}
                                     </span>
                                 </div>
 
-                                <p className="text-lg md:text-xl text-gray-700 leading-relaxed mb-8 italic">
+                                <p className="text-lg md:text-xl text-text-secondary leading-relaxed mb-8 italic">
                                     "{testimonial.quote}"
                                 </p>
 
                                 <div className="flex items-center gap-4">
                                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${testimonial.type === 'therapist'
-                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600'
-                                        : 'bg-gradient-to-r from-green-500 to-teal-600'
+                                        ? 'bg-gradient-to-r from-violet-400 to-purple-500'
+                                        : 'bg-gradient-to-r from-emerald-400 to-teal-500'
                                         }`}>
                                         {testimonial.avatar}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                                        <p className="text-sm text-gray-500">{testimonial.role} • {testimonial.institution}</p>
+                                        <p className="font-semibold text-text-primary">{testimonial.name}</p>
+                                        <p className="text-sm text-text-secondary">{testimonial.role} • {testimonial.institution}</p>
                                     </div>
                                     <div className="flex gap-0.5">
                                         {Array.from({ length: 5 }).map((_, i) => (
                                             <Star
                                                 key={i}
-                                                className={`h-4 w-4 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+                                                className={`h-4 w-4 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 dark:text-border'}`}
                                             />
                                         ))}
                                     </div>
@@ -216,7 +216,7 @@ const TestimonialCarousel = () => {
                             <button
                                 key={i}
                                 onClick={() => { setCurrent(i); setAutoPlay(false); }}
-                                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === current ? 'bg-primary w-6' : 'bg-gray-300 hover:bg-gray-400'
+                                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === current ? 'bg-primary w-6' : 'bg-gray-300 dark:bg-border hover:bg-gray-400 dark:hover:bg-text-secondary'
                                     }`}
                             />
                         ))}

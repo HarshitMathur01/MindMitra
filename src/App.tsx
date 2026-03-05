@@ -45,8 +45,8 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-slate-950 flex items-center justify-center z-[9999]">
-        <div className="w-8 h-8 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-[9999]">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

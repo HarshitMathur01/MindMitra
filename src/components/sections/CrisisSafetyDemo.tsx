@@ -142,16 +142,16 @@ const CrisisSafetyDemo = () => {
                             <div className="space-y-6">
                                 <div className="bg-crushed-silk rounded-2xl border border-gray-200 p-6 shadow-sm">
                                     <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
-                                        <XCircle className="h-5 w-5 text-blue-500" />
+                                        <XCircle className="h-5 w-5 text-primary" />
                                         False Positive Handling
                                     </h3>
-                                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                                        <p className="text-sm text-blue-800 mb-3">
+                                    <div className="bg-surface/80 rounded-lg p-4 border border-primary/15">
+                                        <p className="text-sm text-text-primary mb-3">
                                             <strong>Example:</strong> "I killed that exam!"
                                         </p>
                                         <div className="flex items-start gap-2">
                                             <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                                            <p className="text-xs text-blue-700">
+                                            <p className="text-xs text-primary">
                                                 AI validates context before escalating. Positive/colloquial usage detected → No escalation triggered. Conversation continues normally.
                                             </p>
                                         </div>
@@ -247,7 +247,7 @@ const CrisisSafetyDemo = () => {
                                             <p className="text-xs text-gray-300">Active Alerts</p>
                                         </div>
                                         <div className="bg-crushed-silk/10 rounded-lg p-3">
-                                            <p className="text-2xl font-bold text-blue-400">24/7</p>
+                                            <p className="text-2xl font-bold text-[hsl(188,60%,65%)]">24/7</p>
                                             <p className="text-xs text-gray-300">Monitoring</p>
                                         </div>
                                         <div className="bg-crushed-silk/10 rounded-lg p-3">

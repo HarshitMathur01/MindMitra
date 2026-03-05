@@ -151,7 +151,7 @@ const MemoryChallenge = () => {
           <Button
             variant="ghost"
             onClick={() => navigate("/games")}
-            className="gap-2 mb-6 text-lg font-medium text-purple-700 hover:text-purple-900"
+            className="gap-2 mb-6 text-lg font-medium text-primary hover:text-primary/80"
           >
             <ArrowLeft className="h-5 w-5" />
             Back to Games
@@ -167,7 +167,7 @@ const MemoryChallenge = () => {
 
         {/* Game State Messages */}
         <div className="mb-6">
-          <div className="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-purple-700">
+          <div className="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-primary">
             <Sparkles className="h-4 w-4" />
             <span>{gameStatusLabel}</span>
           </div>
@@ -183,7 +183,7 @@ const MemoryChallenge = () => {
 
           {gameState === "showing" && (
             <div className="text-center">
-              <div className="text-xl font-semibold text-purple-700 mb-1"> Watch the sequence!</div>
+              <div className="text-xl font-semibold text-primary mb-1"> Watch the sequence!</div>
               <div className="text-muted-foreground">
                 Showing {showingIndex + 1} of {sequence.length}
               </div>
@@ -194,7 +194,7 @@ const MemoryChallenge = () => {
             <div className="text-center">
               <div className="text-xl font-semibold text-pink-600">Your turn!</div>
               <div className="text-muted-foreground">Click the cards in order</div>
-              <div className="text-sm text-purple-700 mt-1">
+              <div className="text-sm text-primary mt-1">
                 {sequence.length - playerSequence.length} moves left
               </div>
             </div>
@@ -233,7 +233,7 @@ const MemoryChallenge = () => {
         {/* Progress */}
         {gameState === "playing" && (
           <div className="mb-8">
-            <div className="flex justify-between text-sm mb-2 text-purple-700">
+            <div className="flex justify-between text-sm mb-2 text-primary">
               <span>Progress</span>
               <span>
                 {playerSequence.length} / {sequence.length}

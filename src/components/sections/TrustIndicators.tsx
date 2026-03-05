@@ -7,16 +7,16 @@ const TrustIndicators = () => {
         {
             icon: Stethoscope,
             text: "Backed by Licensed Therapists",
-            color: "text-blue-600",
-            bg: "bg-blue-50",
-            border: "border-blue-200"
+            color: "text-primary",
+            bg: "bg-primary/10",
+            border: "border-primary/25"
         },
         {
             icon: Award,
             text: "Clinically Validated Techniques",
-            color: "text-purple-600",
-            bg: "bg-purple-50",
-            border: "border-purple-200"
+            color: "text-violet-600",
+            bg: "bg-violet-50",
+            border: "border-violet-200"
         },
         {
             icon: Lock,
@@ -35,7 +35,7 @@ const TrustIndicators = () => {
     ];
 
     return (
-        <section className="py-8 bg-crushed-silk/60 backdrop-blur-sm border-y border-gray-100">
+        <section className="py-8 bg-crushed-silk/60 backdrop-blur-sm border-y border-border">
             <div className="container mx-auto px-4">
                 <motion.div
                     className="flex flex-wrap justify-center gap-4 md:gap-8"

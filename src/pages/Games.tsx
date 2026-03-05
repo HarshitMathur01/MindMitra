@@ -353,7 +353,7 @@ const Games = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 1 }}
           >
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Coming Soon</h2>
+            <h2 className="text-2xl font-bold mb-6 text-text-primary">Coming Soon</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {comingSoonGames.map((game, index) => {
                 const Icon = game.icon;
@@ -370,9 +370,9 @@ const Games = () => {
                     whileTap={{ scale: 0.99 }}
                     className="group"
                   >
-                    <Card className="relative p-6 h-full overflow-hidden bg-crushed-silk/40 backdrop-blur-sm border-2 border-dashed border-gray-300">
+                    <Card className="relative p-6 h-full overflow-hidden bg-crushed-silk/40 backdrop-blur-sm border-2 border-dashed border-border">
                       {/* Lock Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-gray-50/80 to-gray-100/80 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-50/80 to-gray-100/80 dark:from-background/80 dark:to-surface/80 backdrop-blur-[2px] z-10 flex items-center justify-center">
                         <motion.div
                           animate={{
                             scale: [1, 1.1, 1],
@@ -381,7 +381,7 @@ const Games = () => {
                           transition={{ duration: 2, repeat: Infinity }}
                           className="bg-crushed-silk/90 p-4 rounded-full shadow-lg"
                         >
-                          <Lock className="h-8 w-8 text-gray-400" />
+                          <Lock className="h-8 w-8 text-text-secondary" />
                         </motion.div>
                       </div>
 
@@ -393,12 +393,12 @@ const Games = () => {
 
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-bold text-lg text-gray-900">{game.title}</h3>
-                              <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
+                              <h3 className="font-bold text-lg text-text-primary">{game.title}</h3>
+                              <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 text-xs px-2 py-1 rounded-full font-medium">
                                 Soon
                               </span>
                             </div>
-                            <p className="text-gray-600 text-sm mb-3">
+                            <p className="text-text-secondary text-sm mb-3">
                               {game.description}
                             </p>
                           </div>
@@ -411,7 +411,7 @@ const Games = () => {
                               {game.difficulty}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-gray-500">
+                          <div className="flex items-center gap-1.5 text-text-secondary">
                             <Clock className="h-3.5 w-3.5" />
                             <span className="text-xs font-medium">{game.duration}</span>
                           </div>

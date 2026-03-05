@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Mic, Bot, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Send, Mic, Bot, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Sparkles, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
@@ -19,6 +18,7 @@ import { useChat } from "../../hooks/useChat"
 import { motion, AnimatePresence } from "framer-motion"
 import MessageRenderer from "./MessageRenderer"
 import { jsPDF } from "jspdf";
+import QuickReplies from "./QuickReplies";
 
 interface Message {
   id: string;
@@ -44,12 +44,12 @@ const suggestedPrompts = [
 ];
 
 const quickCategories = [
-  { label: "Mental Health", icon: "🧠", color: "bg-blue-100 text-blue-800" },
-  { label: "Personality", icon: "🎭", color: "bg-purple-100 text-purple-800" },
-  { label: "Stress Relief", icon: "🌿", color: "bg-green-100 text-green-800" },
-  { label: "Relationships", icon: "💖", color: "bg-pink-100 text-pink-800" },
-  { label: "Self-Care", icon: "✨", color: "bg-yellow-100 text-yellow-800" },
-  { label: "Therapy", icon: "💬", color: "bg-indigo-100 text-indigo-800" },
+  { label: "Mental Health", icon: "🧠", color: "bg-primary/15 text-primary" },
+  { label: "Personality", icon: "🎭", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+  { label: "Stress Relief", icon: "🌿", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+  { label: "Relationships", icon: "💖", color: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300" },
+  { label: "Self-Care", icon: "✨", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
+  { label: "Therapy", icon: "💬", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" },
 ];
 
 // Real-time transcription component — reveals text word by word
@@ -127,6 +127,14 @@ const ChatGPTInterface = () => {
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  // Mood check-in state (per session)
+  const [moodSelected, setMoodSelected] = useState(false);
+  const [moodValue, setMoodValue] = useState<number | null>(null);
+  // Send micro-interaction
+  const [justSent, setJustSent] = useState(false);
+  // Scroll-to-bottom button
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
   const voiceSilenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTranscriptRef = useRef('');
   const isAutoStoppingRef = useRef(false);
@@ -468,6 +476,9 @@ const ChatGPTInterface = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
+    // Send button micro-interaction
+    setJustSent(true);
+    setTimeout(() => setJustSent(false), 600);
 
     try {
       // Get current session for authentication
@@ -793,6 +804,8 @@ const ChatGPTInterface = () => {
     setMessages([]);
     setCurrentSessionId(newSessionId);
     setSearchQuery("");
+    setMoodSelected(false);
+    setMoodValue(null);
     localStorage.setItem('currentChatSession', newSessionId);
 
     console.log('✅ New chat session created:', newSessionId);
@@ -873,8 +886,72 @@ const ChatGPTInterface = () => {
     return null; // Will redirect to auth
   }
 
+  // ── Mood check-in handler ─────────────────────────────────────────────────
+  const handleMoodSelect = (value: number) => {
+    setMoodValue(value);
+    setMoodSelected(true);
+    const moodMap: Record<number, string> = {
+      1: "I'm really struggling right now",
+      2: "I'm feeling a bit low",
+      3: "I'm feeling okay",
+      4: "I'm feeling pretty good",
+      5: "I'm feeling great!",
+    };
+    // Auto-send mood as an opening message
+    handleSendMessage(moodMap[value]);
+  };
+
+  // ── Static quick-reply chips based on AI message topic ────────────────────
+  const getQuickReplies = (content: string): string[] => {
+    const lower = content.toLowerCase();
+    if (lower.includes('breath') || lower.includes('exhale') || lower.includes('inhale'))
+      return ['Guide me through it', 'How long should I do this?', 'What else can help?'];
+    if (lower.includes('stress') || lower.includes('overwhelm') || lower.includes('pressure'))
+      return ['Tell me more techniques', 'Why do I feel this way?', 'Help me calm down now'];
+    if (lower.includes('anxiet') || lower.includes('worry') || lower.includes('panic'))
+      return ['What causes anxiety?', 'Try a grounding exercise', 'When should I seek help?'];
+    if (lower.includes('sleep') || lower.includes('insomnia') || lower.includes('tired'))
+      return ['Give me sleep tips', 'Why can\'t I sleep?', 'Try a relaxation technique'];
+    if (lower.includes('sad') || lower.includes('depress') || lower.includes('hopeless'))
+      return ['I want to talk more', 'What can I do right now?', 'Help me find a therapist'];
+    if (lower.includes('motivat') || lower.includes('goal') || lower.includes('productiv'))
+      return ['How do I stay consistent?', 'Set a small goal with me', 'Why do I procrastinate?'];
+    if (lower.includes('relationship') || lower.includes('friend') || lower.includes('family'))
+      return ['Tell me more', 'How do I communicate better?', 'Set healthy boundaries'];
+    return ['Tell me more', 'How can I apply this?', 'What should I do next?'];
+  };
+
+  // ── Date separator helper ─────────────────────────────────────────────────
+  const formatDateSeparator = (date: Date): string => {
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    const d = date.toDateString();
+    if (d === today) return 'Today';
+    if (d === yesterday) return 'Yesterday';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+
+  // ── Group sidebar chats by date ───────────────────────────────────────────
+  const groupedChats = (() => {
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    return {
+      today: recentChats.filter(c => new Date(c.created_at).toDateString() === today),
+      yesterday: recentChats.filter(c => new Date(c.created_at).toDateString() === yesterday),
+      earlier: recentChats.filter(c => {
+        const d = new Date(c.created_at).toDateString();
+        return d !== today && d !== yesterday;
+      }),
+    };
+  })();
+
   return (
-    <div className="flex h-screen bg-background text-text-primary transition-colors duration-300">
+    <div className="flex h-screen bg-background text-text-primary transition-colors duration-300 relative overflow-hidden">
+      {/* Ambient depth blobs — warm teal + ivory */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-20 -right-10 w-80 h-80 rounded-full bg-primary/[0.06] blur-3xl" />
+        <div className="absolute -bottom-16 -left-10 w-72 h-72 rounded-full bg-[hsl(38,55%,80%)]/[0.14] blur-3xl" />
+      </div>
       {/* Enhanced ChatGPT-style Sidebar with Glassmorphism */}
       <motion.div
         initial={{ x: -100, opacity: 0 }}
@@ -886,7 +963,7 @@ const ChatGPTInterface = () => {
         <div className="p-4 border-b border-border bg-background/40">
           <Button
             onClick={startNewChat}
-            className="w-full h-12 rounded-2xl bg-[#0f172a] hover:bg-[#1e293b] border-0 text-white justify-start gap-2 text-sm font-semibold shadow-theme hover:shadow-theme-lg transition-all duration-300"
+            className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-[hsl(168,48%,34%)] hover:from-[hsl(188,55%,32%)] hover:to-[hsl(168,52%,28%)] border-0 text-white justify-start gap-2 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-300"
             variant="outline"
           >
             <Plus className="h-4 w-4" />
@@ -921,66 +998,51 @@ const ChatGPTInterface = () => {
               Home
             </Button>
 
-            {/* Recent Chats Section with Animations */}
+            {/* Recent Chats — grouped by date */}
             <div className="pt-1 pb-1">
               <div className="flex items-center justify-between px-1 mb-2">
                 <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider">
                   Recent Chats
                 </h3>
                 {(loadingChats || loadingSession) && (
-                  <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 )}
               </div>
-              <div className="space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+              <div className="space-y-0.5 max-h-52 overflow-y-auto custom-scrollbar pr-1">
                 {recentChats.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="px-3 py-2 text-sm text-text-secondary italic"
-                  >
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-3 py-2 text-sm text-text-secondary italic">
                     No recent chats
                   </motion.div>
                 ) : (
                   <AnimatePresence>
-                    {recentChats.map((chat, index) => (
-                      <motion.div
-                        key={chat.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                      >
-                        <Button
-                          variant="ghost"
-                          disabled={loadingSession}
-                          className={`w-full h-auto rounded-2xl text-left p-3 transition-all duration-300 group relative border ${currentSessionId === chat.id
-                            ? 'bg-background/80 border-primary/45 text-text-primary shadow-theme'
-                            : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border hover:bg-background/50'
-                            } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={() => selectRecentChat(chat.id)}
-                        >
-                          <div className="flex items-start gap-2 w-full">
-                            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <motion.div
-                                animate={{
-                                  scale: currentSessionId === chat.id ? [1, 1.2, 1] : 1,
-                                }}
-                                transition={{ duration: 0.3 }}
-                                className={`w-2.5 h-2.5 rounded-full ${currentSessionId === chat.id ? 'bg-success shadow-theme' : 'bg-text-secondary/80'
-                                  }`}
-                              ></motion.div>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate leading-tight text-sm font-medium">
-                                {chat.title}
-                              </p>
-                              <p className="text-xs text-text-secondary mt-0.5">
-                                {chat.messageCount || 0} messages • {new Date(chat.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </Button>
-                      </motion.div>
-                    ))}
+                    {(["today", "yesterday", "earlier"] as const).map((group) => {
+                      const chats = groupedChats[group];
+                      if (!chats.length) return null;
+                      const label = group === "today" ? "Today" : group === "yesterday" ? "Yesterday" : "Earlier";
+                      return (
+                        <div key={group}>
+                          <span className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/55 px-3 pt-2 pb-1">{label}</span>
+                          {chats.map((chat, index) => (
+                            <motion.div key={chat.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.04 }}>
+                              <Button
+                                variant="ghost"
+                                disabled={loadingSession}
+                                className={`w-full h-auto rounded-xl text-left px-3 py-2.5 transition-all duration-200 group relative border-l-2 ${currentSessionId === chat.id
+                                  ? 'bg-primary/10 border-l-primary text-text-primary'
+                                  : 'border-l-transparent text-text-secondary hover:text-text-primary hover:bg-background/50'
+                                } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                onClick={() => selectRecentChat(chat.id)}
+                              >
+                                <div className="min-w-0 w-full">
+                                  <p className="truncate leading-tight text-sm font-medium">{chat.title}</p>
+                                  <p className="text-xs text-text-secondary/70 mt-0.5">{chat.messageCount || 0} msgs</p>
+                                </div>
+                              </Button>
+                            </motion.div>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </AnimatePresence>
                 )}
               </div>
@@ -1081,21 +1143,18 @@ const ChatGPTInterface = () => {
               {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-theme">
-                <Sparkles className="h-4 w-4 text-white" />
+              <div className="relative">
+                <div className="w-9 h-9 bg-gradient-to-br from-primary to-[hsl(168,45%,34%)] rounded-full flex items-center justify-center shadow-sm">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+                {/* Online indicator dot — pulse when loading, steady when idle */}
+                <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-background ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
               </div>
-              <h1 className="text-xl font-bold text-text-primary">MindMitra</h1>
+              <div>
+                <h1 className="text-xl font-bold text-text-primary leading-tight">MindMitra</h1>
+                <p className="text-[11px] text-text-secondary leading-none">{isLoading ? 'Reflecting…' : 'Online'}</p>
+              </div>
             </div>
-            {isLoading && (
-              <Badge variant="secondary" className="animate-pulse bg-surface text-text-primary border border-border">
-                <motion.span
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  Thinking...
-                </motion.span>
-              </Badge>
-            )}
           </div>
           <div className="flex items-center gap-2">
             <motion.div
@@ -1210,161 +1269,192 @@ const ChatGPTInterface = () => {
               </AnimatePresence>
             </div>
           )}
-          <div className="flex-1 overflow-y-scroll bg-background transition-colors duration-300">
-            <ScrollArea className="h-full">
-              <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-                <AnimatePresence>
-                  {filteredMessages.map((message, index) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="group"
-                    >
-                      {message.sender === "ai" ? (
-                        <div className="flex gap-3 items-start">
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 200 }}
-                            className="mm-avatar mm-avatar--ai flex-shrink-0"
-                          >
-                            <Bot className="h-4 w-4" />
-                          </motion.div>
-                          <div className="flex-1 space-y-2">
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: 0.1 }}
-                            >
-                              {isAvatarVisible && transcribingMsgId === message.id ? (
-                                <div className="mm-bubble mm-bubble--ai min-h-[2.5rem]">
-                                  <TypewriterText
-                                    text={message.content}
-                                    speed={350}
-                                    onComplete={() => setTranscribingMsgId(null)}
-                                    className="text-text-primary"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="mm-bubble mm-bubble--ai">
-                                  <MessageRenderer content={message.content} />
-                                </div>
-                              )}
-                            </motion.div>
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 0 }}
-                              whileHover={{ opacity: 1 }}
-                              className="flex items-center gap-2 transition-opacity"
-                            >
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all"
-                                onClick={() => copyMessage(message.content)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all">
-                                <ThumbsUp className="h-3 w-3" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-danger/10 hover:text-danger hover:scale-110 transition-all">
-                                <ThumbsDown className="h-3 w-3" />
-                              </Button>
-                              <span className="text-xs text-text-secondary ml-2">
-                                {message.timestamp.toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                            </motion.div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex gap-3 justify-end items-start">
-                          <div className="flex-1 flex flex-col items-end">
-                            <motion.div
-                              initial={{ scale: 0.95, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              className="mm-bubble mm-bubble--user"
-                            >
-                              <span className="mm-user-text">{message.content}</span>
-                            </motion.div>
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 0 }}
-                              whileHover={{ opacity: 1 }}
-                              className="flex items-center justify-end gap-2 mt-1 transition-opacity"
-                            >
-                              <span className="text-xs text-text-secondary opacity-70">
-                                {message.timestamp.toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all"
-                                onClick={() => copyMessage(message.content)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </motion.div>
-                          </div>
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 200 }}
-                            className="mm-avatar mm-avatar--user flex-shrink-0"
-                          >
-                            <User className="h-4 w-4" />
-                          </motion.div>
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-
-                {/* Typing Indicator */}
-                {isLoading && (
+          <div className="flex-1 overflow-y-scroll bg-background transition-colors duration-300 relative"
+            ref={scrollAreaRef}
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 250);
+            }}
+          >
+            <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+              {/* ── Mood check-in widget (new session only) ──────────────── */}
+              <AnimatePresence>
+                {filteredMessages.length <= 1 && !moodSelected && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    key="mood-widget"
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="flex gap-3 items-start"
+                    exit={{ opacity: 0, y: -12, scale: 0.95 }}
+                    transition={{ duration: 0.35 }}
+                    className="mx-auto max-w-sm bg-surface/90 border border-border rounded-2xl p-5 text-center space-y-3 shadow-sm"
                   >
-                    <div className="mm-avatar mm-avatar--ai flex-shrink-0">
-                      <Bot className="h-4 w-4" />
+                    <p className="text-sm font-semibold text-text-primary">How are you feeling right now?</p>
+                    <div className="flex justify-center gap-2">
+                      {[
+                        { emoji: "😔", label: "Struggling", value: 1 },
+                        { emoji: "😕", label: "Low", value: 2 },
+                        { emoji: "😐", label: "Okay", value: 3 },
+                        { emoji: "🙂", label: "Good", value: 4 },
+                        { emoji: "😊", label: "Great", value: 5 },
+                      ].map(({ emoji, label, value }) => (
+                        <button
+                          key={value}
+                          onClick={() => handleMoodSelect(value)}
+                          className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-primary/10 transition-colors group"
+                          title={label}
+                        >
+                          <span className="text-2xl group-hover:scale-125 transition-transform duration-200 select-none">{emoji}</span>
+                          <span className="text-[10px] text-muted-foreground">{label}</span>
+                        </button>
+                      ))}
                     </div>
-                    <div className="mm-bubble mm-bubble--ai py-3 px-5">
-                      <div className="flex gap-1">
-                        <motion.div
-                          animate={{ y: [0, -8, 0] }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                          className="w-2 h-2 bg-primary rounded-full"
-                        />
-                        <motion.div
-                          animate={{ y: [0, -8, 0] }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                          className="w-2 h-2 bg-primary rounded-full"
-                        />
-                        <motion.div
-                          animate={{ y: [0, -8, 0] }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                          className="w-2 h-2 bg-primary rounded-full"
-                        />
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => setMoodSelected(true)}
+                      className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                    >
+                      Skip
+                    </button>
                   </motion.div>
                 )}
+              </AnimatePresence>
 
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
+              {/* ── Message list ─────────────────────────────────────────── */}
+              <AnimatePresence>
+                {filteredMessages.map((message, index) => {
+                  const isNewDay = index === 0 ||
+                    new Date(message.timestamp).toDateString() !== new Date(filteredMessages[index - 1].timestamp).toDateString();
+                  const isLastAi = message.sender === "ai" && index === filteredMessages.length - 1;
+                  return (
+                    <div key={message.id}>
+                      {/* Date separator */}
+                      {isNewDay && (
+                        <div className="flex items-center gap-3 my-2">
+                          <div className="flex-1 h-px bg-border/60" />
+                          <span className="text-[11px] text-muted-foreground/70 font-medium px-2">
+                            {formatDateSeparator(message.timestamp)}
+                          </span>
+                          <div className="flex-1 h-px bg-border/60" />
+                        </div>
+                      )}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.3 }}
+                        className="group"
+                      >
+                        {message.sender === "ai" ? (
+                          <div className="flex gap-3 items-start">
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: "spring", stiffness: 200 }}
+                              className="mm-avatar mm-avatar--ai flex-shrink-0"
+                            >
+                              <Bot className="h-4 w-4" />
+                            </motion.div>
+                            <div className="flex-1 space-y-1.5">
+                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                                {isAvatarVisible && transcribingMsgId === message.id ? (
+                                  <div className="mm-bubble mm-bubble--ai min-h-[2.5rem]">
+                                    <TypewriterText text={message.content} speed={350} onComplete={() => setTranscribingMsgId(null)} className="text-text-primary" />
+                                  </div>
+                                ) : (
+                                  <div className="mm-bubble mm-bubble--ai">
+                                    <MessageRenderer content={message.content} />
+                                  </div>
+                                )}
+                              </motion.div>
+                              {/* Quick-reply chips under last AI message */}
+                              {isLastAi && (
+                                <QuickReplies
+                                  suggestions={getQuickReplies(message.content)}
+                                  onSelect={(text) => handleSendMessage(text)}
+                                  visible={!isLoading}
+                                />
+                              )}
+                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }} whileHover={{ opacity: 1 }} className="flex items-center gap-2 transition-opacity">
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all" onClick={() => copyMessage(message.content)}>
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all">
+                                  <ThumbsUp className="h-3 w-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-danger/10 hover:text-danger hover:scale-110 transition-all">
+                                  <ThumbsDown className="h-3 w-3" />
+                                </Button>
+                                <span className="text-xs text-text-secondary ml-2">
+                                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </motion.div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-3 justify-end items-start">
+                            <div className="flex-1 flex flex-col items-end">
+                              <motion.div initial={{ scale: 0.95, opacity: 0, x: 12 }} animate={{ scale: 1, opacity: 1, x: 0 }} className="mm-bubble mm-bubble--user">
+                                <span className="mm-user-text">{message.content}</span>
+                              </motion.div>
+                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }} whileHover={{ opacity: 1 }} className="flex items-center justify-end gap-2 mt-1 transition-opacity">
+                                <span className="text-xs text-text-secondary opacity-70">
+                                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all" onClick={() => copyMessage(message.content)}>
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </motion.div>
+                            </div>
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }} className="mm-avatar mm-avatar--user flex-shrink-0">
+                              <User className="h-4 w-4" />
+                            </motion.div>
+                          </div>
+                        )}
+                      </motion.div>
+                    </div>
+                  );
+                })}
+              </AnimatePresence>
+
+              {/* Typing Indicator */}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="flex gap-3 items-start"
+                >
+                  <div className="mm-avatar mm-avatar--ai flex-shrink-0">
+                    <Bot className="h-4 w-4" />
+                  </div>
+                  <div className="mm-bubble mm-bubble--ai py-3 px-5">
+                    <p className="text-[11px] text-text-secondary mb-1.5">MindMitra is reflecting…</p>
+                    <div className="flex gap-1.5">
+                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 0.55, repeat: Infinity, delay: 0 }} className="w-2 h-2 bg-primary rounded-full" />
+                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 0.55, repeat: Infinity, delay: 0.16 }} className="w-2 h-2 bg-primary rounded-full" />
+                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 0.55, repeat: Infinity, delay: 0.32 }} className="w-2 h-2 bg-primary rounded-full" />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Scroll-to-bottom floating button */}
+            <AnimatePresence>
+              {showScrollBtn && (
+                <motion.button
+                  key="scroll-btn"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={scrollToBottom}
+                  className="fixed bottom-24 right-6 z-30 w-10 h-10 rounded-full bg-primary/90 text-white shadow-lg flex items-center justify-center hover:bg-primary transition-colors backdrop-blur-sm"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
         </div>
         {/* Enhanced Input Area with Glassmorphism */}
@@ -1390,11 +1480,12 @@ const ChatGPTInterface = () => {
                     size="sm"
                     variant="ghost"
                     className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${isRecording
-                      ? 'text-danger bg-danger/10 hover:bg-danger/20 shadow-theme'
+                      ? 'text-danger bg-danger/10 hover:bg-danger/20 voice-recording-active'
                       : 'hover:bg-background'
                       }`}
                     onClick={handleVoiceInput}
                     disabled={isProcessing || isLoading}
+                    aria-label={isRecording ? 'Stop recording' : 'Start voice recording'}
                   >
                     {isProcessing ? (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -1409,21 +1500,17 @@ const ChatGPTInterface = () => {
                   </Button>
                 </motion.div>
                 <motion.div
-                  whileHover={{ scale: 1.1 }}
+                  animate={justSent ? { scale: [1, 1.22, 0.95, 1], rotate: [0, 12, -6, 0] } : {}}
+                  transition={{ type: "spring", stiffness: 400, damping: 14 }}
+                  whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   <Button
                     onClick={() => handleSendMessage()}
                     disabled={!inputValue.trim() || isLoading}
-                    className="bg-primary hover:bg-secondary text-white h-9 w-9 p-0 rounded-full shadow-theme hover:shadow-theme-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-gradient-to-br from-primary to-[hsl(168,48%,34%)] hover:from-[hsl(188,55%,32%)] hover:to-[hsl(168,52%,28%)] text-white h-9 w-9 p-0 rounded-full shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <motion.div
-                      initial={{ rotate: 0 }}
-                      whileHover={{ rotate: 45 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Send className="h-4 w-4" />
-                    </motion.div>
+                    <Send className="h-4 w-4" />
                   </Button>
                 </motion.div>
               </div>

@@ -5,7 +5,7 @@ import { Wind, X, Play, Pause } from 'lucide-react';
 type BreathPhase = 'inhale' | 'hold' | 'exhale' | 'rest';
 
 const phaseConfig: Record<BreathPhase, { label: string; duration: number; color: string }> = {
-    inhale: { label: 'Breathe In', duration: 4000, color: 'from-blue-400 to-cyan-400' },
+    inhale: { label: 'Breathe In', duration: 4000, color: 'from-violet-400 to-rose-300' },
     hold: { label: 'Hold', duration: 4000, color: 'from-cyan-400 to-teal-400' },
     exhale: { label: 'Breathe Out', duration: 6000, color: 'from-teal-400 to-green-400' },
     rest: { label: 'Rest', duration: 2000, color: 'from-green-400 to-blue-400' },

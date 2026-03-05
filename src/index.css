@@ -9,72 +9,62 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Psychology-themed design system */
-    --background: 240 10% 98%;
-    --foreground: 240 10% 15%;
+    /* ── Warm Cream Light Mode ── */
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 15%;
+    /* Page background — warm ivory cream */
+    --background: 35 40% 97%;
+    --foreground: 196 33% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 15%;
+    /* Card / popover surface — a step warmer */
+    --card: 35 38% 95%;
+    --card-foreground: 196 33% 15%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    --popover: 35 38% 95%;
+    --popover-foreground: 196 33% 15%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 84% 4.9%;
+    /* Brand primary — muted warm teal (calm, trustworthy, grounding) */
+    --primary: 188 51% 38%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 188 45% 55%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 13% 37%;
+    /* Warm beige secondary */
+    --secondary: 35 25% 91%;
+    --secondary-foreground: 196 33% 15%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 84% 4.9%;
+    /* Muted: subdued warm neutral */
+    --muted: 35 20% 93%;
+    --muted-foreground: 197 12% 46%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    /* Accent: warm cream highlight */
+    --accent: 35 50% 90%;
+    --accent-foreground: 196 33% 15%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & inputs */
+    --border: 35 28% 87%;
+    --input: 35 28% 87%;
+    --ring: 188 51% 38%;
 
     --radius: 0.75rem;
 
-    /* Mental wellness color palette */
-    --calm-blue: 201 85% 85%;
-    --serene-green: 142 71% 85%;
-    --warm-purple: 262 52% 85%;
-    --soft-pink: 330 81% 90%;
-  }
+    /* ── Wellness tint palette (muted & warm) ── */
+    --calm-blue: 188 30% 88%;
+    --serene-green: 160 28% 88%;
+    --warm-purple: 280 25% 88%;
+    --soft-pink: 340 28% 91%;
 
-  .dark {
-    --background: 222 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 11%;
-
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 212 73% 64%;
+    /* ── Extended design tokens used in components ── */
+    /* All defined as channel values (hsl() added by Tailwind config) */
+    --crushed-silk: 35 38% 93%;
+    --surface: 35 38% 95%;
+    --text-primary: 196 33% 15%;
+    --text-secondary: 197 17% 43%;
+    --danger: 353 66% 59%;
+    --success: 161 84% 38%;
+    --warning: 38 92% 50%;
+    --shadow: hsla(188, 30%, 15%, 0.08);
   }
 }
 
@@ -135,12 +125,12 @@ All colors MUST be HSL.
     0%,
     100% {
       transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+      box-shadow: 0 0 0 0 hsl(188 51% 38% / 0.2);
     }
 
     50% {
       transform: scale(1.01);
-      box-shadow: 0 0 0 15px rgba(59, 130, 246, 0.05);
+      box-shadow: 0 0 0 15px hsl(188 51% 38% / 0.04);
     }
   }
 
@@ -235,13 +225,13 @@ All colors MUST be HSL.
 
   .wellness-card:hover {
     @apply scale-105 shadow-2xl;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+    background: linear-gradient(135deg, hsl(188 51% 38% / 0.07), hsl(168 42% 40% / 0.07));
   }
 
   /* Custom scrollbar styling */
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
+    scrollbar-color: hsl(188 51% 38% / 0.3) transparent;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -253,13 +243,13 @@ All colors MUST be HSL.
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3));
+    background: linear-gradient(135deg, hsl(188 51% 38% / 0.35), hsl(168 38% 42% / 0.35));
     border-radius: 3px;
     transition: all 0.3s ease;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(147, 51, 234, 0.5));
+    background: linear-gradient(135deg, hsl(188 51% 38% / 0.55), hsl(168 38% 42% / 0.55));
   }
 
   /* Advanced scroll-triggered animations */
@@ -351,7 +341,7 @@ All colors MUST be HSL.
 
   .magnetic-button:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 25px hsl(20 12% 18% / 0.1);
   }
 
   /* Enhanced scroll animations */
@@ -413,33 +403,33 @@ All colors MUST be HSL.
 
   .chat-session-card:hover {
     @apply transform scale-102 shadow-md;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+    background: linear-gradient(135deg, hsl(188 51% 38% / 0.06), hsl(168 42% 40% / 0.06));
   }
 
   /* Input focus animation */
   .chat-input:focus {
     @apply scale-102;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px hsl(188 51% 38% / 0.15);
     transform: translateY(-1px);
   }
 
-  /* Smooth Scrollbar */
+  /* Smooth Scrollbar (duplicate — kept for specificity cascade) */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: hsl(35 20% 93%);
     border-radius: 3px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, hsl(188 51% 42%), hsl(168 38% 46%));
     border-radius: 3px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+    background: linear-gradient(135deg, hsl(188 51% 34%), hsl(168 38% 38%));
   }
 }
 
@@ -447,14 +437,14 @@ All colors MUST be HSL.
 
   /* Text Gradients for Headings */
   .text-gradient {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, hsl(188, 51%, 32%) 0%, hsl(168, 38%, 40%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-calm-gradient {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, hsl(175, 38%, 48%) 0%, hsl(200, 40%, 58%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -471,11 +461,11 @@ All colors MUST be HSL.
 
   /* Gradient button styles */
   .gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, hsl(188, 51%, 38%) 0%, hsl(168, 38%, 42%) 100%);
   }
 
   .gradient-primary:hover {
-    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    background: linear-gradient(135deg, hsl(188, 51%, 30%) 0%, hsl(168, 38%, 35%) 100%);
   }
 
   /* Glow hover effect */
@@ -484,7 +474,7 @@ All colors MUST be HSL.
   }
 
   .hover-glow:hover {
-    box-shadow: 0 0 20px rgba(102, 126, 234, 0.4), 0 0 40px rgba(118, 75, 162, 0.2);
+    box-shadow: 0 0 20px hsl(188 51% 38% / 0.28), 0 0 40px hsl(168 38% 42% / 0.15);
   }
 
   /* Lift on hover */
@@ -494,7 +484,7 @@ All colors MUST be HSL.
 
   .hover-lift:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 30px hsl(20 12% 18% / 0.08);
   }
 
   /* Gentle pulse for wellness elements */
@@ -522,7 +512,7 @@ All colors MUST be HSL.
   }
 
   .wellness-glow:hover {
-    box-shadow: 0 0 30px rgba(167, 139, 250, 0.15), 0 0 60px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 30px hsl(188 51% 38% / 0.15), 0 0 60px hsl(168 38% 42% / 0.1);
   }
 
   /* Nature gradient for organic/calming elements */

@@ -261,7 +261,7 @@ const ThoughtDetective = () => {
       case 'easy': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'hard': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      default: return 'text-text-secondary bg-surface';
     }
   };
 
@@ -348,11 +348,11 @@ const ThoughtDetective = () => {
               <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-lg wellness-card">
                 <div className="p-4 text-center">
                   <div className="flex items-center justify-center mb-2">
-                    <Target className="h-5 w-5 text-blue-600 mr-2" />
-                    <span className="font-semibold text-gray-700">Score</span>
+                    <Target className="h-5 w-5 text-primary mr-2" />
+                    <span className="font-semibold text-text-primary">Score</span>
                   </div>
                   <motion.p
-                    className="text-2xl font-bold text-blue-600"
+                    className="text-2xl font-bold text-primary"
                     key={score}
                     initial={{ scale: 1.2 }}
                     animate={{ scale: 1 }}
@@ -367,7 +367,7 @@ const ThoughtDetective = () => {
                 <div className="p-4 text-center">
                   <div className="flex items-center justify-center mb-2">
                     <Brain className="h-5 w-5 text-purple-600 mr-2" />
-                    <span className="font-semibold text-gray-700">Level</span>
+                    <span className="font-semibold text-text-primary">Level</span>
                   </div>
                   <motion.p
                     className="text-2xl font-bold text-purple-600"
@@ -385,7 +385,7 @@ const ThoughtDetective = () => {
                 <div className="p-4 text-center">
                   <div className="flex items-center justify-center mb-2">
                     <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                    <span className="font-semibold text-gray-700">Cases Solved</span>
+                    <span className="font-semibold text-text-primary">Cases Solved</span>
                   </div>
                   <motion.p
                     className="text-2xl font-bold text-green-600"
@@ -403,7 +403,7 @@ const ThoughtDetective = () => {
                 <div className="p-4 text-center">
                   <div className="flex items-center justify-center mb-2">
                     <Award className="h-5 w-5 text-yellow-600 mr-2" />
-                    <span className="font-semibold text-gray-700">Badges</span>
+                    <span className="font-semibold text-text-primary">Badges</span>
                   </div>
                   <motion.p
                     className="text-2xl font-bold text-yellow-600"
@@ -421,7 +421,7 @@ const ThoughtDetective = () => {
             {/* Progress Bar */}
             <motion.div variants={itemVariants} className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-text-primary">
                   Case Progress
                 </span>
                 <Badge className={`${getDifficultyColor(currentCase.difficulty)}`}>
@@ -439,19 +439,19 @@ const ThoughtDetective = () => {
               <motion.div variants={itemVariants}>
                 <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-gray-800">
+                    <CardTitle className="flex items-center gap-2 text-text-primary">
                       <Search className="h-5 w-5" />
                       Case File #{currentCase.id.split('-')[1]}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                      <p className="text-gray-800 italic">
+                    <div className="bg-surface p-4 rounded-lg mb-6">
+                      <p className="text-text-primary italic">
                         "{currentCase.thought}"
                       </p>
                     </div>
 
-                    <h4 className="font-semibold mb-3 text-gray-800">
+                    <h4 className="font-semibold mb-3 text-text-primary">
                       Identify the cognitive distortions:
                     </h4>
                     <div className="grid grid-cols-1 gap-2">
@@ -466,7 +466,7 @@ const ThoughtDetective = () => {
                           onClick={() => handleDistortionToggle(distortion.id)}
                           className={`p-3 rounded-lg text-left transition-all duration-300 ${selectedDistortions.includes(distortion.id)
                               ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                              : 'bg-surface hover:bg-crushed-silk text-text-primary'
                             }`}
                         >
                           <div className="flex items-center gap-3">
@@ -487,13 +487,13 @@ const ThoughtDetective = () => {
               <motion.div variants={itemVariants}>
                 <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-gray-800">
+                    <CardTitle className="flex items-center gap-2 text-text-primary">
                       <Zap className="h-5 w-5" />
                       Choose a Healthier Alternative
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-sm text-text-secondary mb-4">
                       Which alternative thought would be most helpful?
                     </p>
 
@@ -509,7 +509,7 @@ const ThoughtDetective = () => {
                           onClick={() => handleAlternativeSelect(alternative)}
                           className={`p-4 rounded-lg text-left w-full transition-all duration-300 ${selectedAlternative === alternative
                               ? 'bg-gradient-to-r from-green-500 to-blue-600 text-white shadow-lg'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                              : 'bg-surface hover:bg-crushed-silk text-text-primary'
                             }`}
                         >
                           <p className="text-sm">{alternative}</p>
@@ -552,7 +552,7 @@ const ThoughtDetective = () => {
               </h2>
 
               <div className="mb-6">
-                <p className="text-xl text-gray-700 mb-4">
+                <p className="text-xl text-text-secondary mb-4">
                   You've successfully analyzed 5 thought patterns!
                 </p>
                 <p className="text-3xl font-bold text-purple-600 mb-4">
@@ -560,22 +560,22 @@ const ThoughtDetective = () => {
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="bg-indigo-50 p-4 rounded-lg">
-                    <p className="font-semibold text-indigo-700">Cases Solved</p>
-                    <p className="text-2xl text-indigo-600">{solvedCases}</p>
+                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+                    <p className="font-semibold text-indigo-700 dark:text-indigo-300">Cases Solved</p>
+                    <p className="text-2xl text-indigo-600 dark:text-indigo-300">{solvedCases}</p>
                   </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="font-semibold text-purple-700">Final Level</p>
-                    <p className="text-2xl text-purple-600">{level}</p>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                    <p className="font-semibold text-purple-700 dark:text-purple-300">Final Level</p>
+                    <p className="text-2xl text-purple-600 dark:text-purple-300">{level}</p>
                   </div>
                 </div>
 
                 {earnedBadges.length > 0 && (
                   <div className="mb-6">
-                    <p className="font-semibold text-gray-700 mb-2">Badges Earned:</p>
+                    <p className="font-semibold text-text-primary mb-2">Badges Earned:</p>
                     <div className="flex justify-center gap-2">
                       {earnedBadges.map((badge, index) => (
-                        <Badge key={index} className="bg-yellow-100 text-yellow-800">
+                        <Badge key={index} className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                           {badge === 'perfectionist' && '🎯 Perfectionist'}
                           {badge === 'detective' && '🕵️ Master Detective'}
                           {badge === 'expert' && '🧠 Expert Analyst'}

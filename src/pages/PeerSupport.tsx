@@ -117,7 +117,7 @@ function generateAvatarColor(name: string): string {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const colors = [
-        "bg-teal-500", "bg-blue-500", "bg-violet-500", "bg-amber-500",
+        "bg-teal-500", "bg-primary", "bg-violet-500", "bg-amber-500",
         "bg-pink-500", "bg-green-500", "bg-orange-500", "bg-red-400",
     ];
     return colors[Math.abs(hash) % colors.length];
@@ -129,7 +129,7 @@ const categoryColorMap: Record<string, { bg: string; text: string; border: strin
     primary: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30", activeBg: "bg-primary" },
     amber: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/30", activeBg: "bg-amber-500" },
     violet: { bg: "bg-violet-500/10", text: "text-violet-600 dark:text-violet-400", border: "border-violet-500/30", activeBg: "bg-violet-500" },
-    blue: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500/30", activeBg: "bg-blue-500" },
+    blue: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30", activeBg: "bg-primary" },
     teal: { bg: "bg-teal-500/10", text: "text-teal-600 dark:text-teal-400", border: "border-teal-500/30", activeBg: "bg-teal-500" },
     orange: { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", border: "border-orange-500/30", activeBg: "bg-orange-500" },
     pink: { bg: "bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", border: "border-pink-500/30", activeBg: "bg-pink-500" },
@@ -234,7 +234,7 @@ const PostTypeBadge = ({ type }: { type: PostType }) => {
         story: { label: "Story", className: "bg-primary/10 text-primary" },
         question: { label: "? Question", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
         win: { label: "🎉 Win!", className: "bg-green-500/10 text-green-600 dark:text-green-400" },
-        vent: { label: "💙 Just listen", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+        vent: { label: "💙 Just listen", className: "bg-primary/10 text-primary" },
     };
     const c = config[type];
     return <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${c.className}`}>{c.label}</span>;
@@ -489,7 +489,7 @@ const ReplyDrawer = ({
                 {/* Replies list */}
                 <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4">
                     {post.post_type === "vent" && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs">
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary text-xs">
                             <Heart className="h-3.5 w-3.5" />
                             <span>This is a vent post — the person just wants to be heard. Please be supportive, not prescriptive.</span>
                         </div>

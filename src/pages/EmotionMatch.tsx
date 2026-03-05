@@ -158,7 +158,7 @@ const EmotionMatch = () => {
     const percentage = (score / maxPossible) * 100;
 
     if (percentage >= 90) return { rating: "Emotional Intelligence Master!", color: "text-green-600", icon: Sparkles };
-    if (percentage >= 75) return { rating: "Great Emotional Awareness!", color: "text-blue-600", icon: Heart };
+    if (percentage >= 75) return { rating: "Great Emotional Awareness!", color: "text-primary", icon: Heart };
     if (percentage >= 60) return { rating: "Good Emotional Understanding!", color: "text-purple-600", icon: Brain };
     return { rating: "Keep exploring emotions!", color: "text-gray-600", icon: Heart };
   };
@@ -252,14 +252,14 @@ const EmotionMatch = () => {
             {/* Progress Bar */}
             <motion.div variants={itemVariants} className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-text-primary">
                   Progress: {currentImageIndex + 1} of {emotionImages.length}
                 </span>
                 <span className="text-sm font-medium text-purple-600">
                   Score: {score} points
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
+              <div className="w-full bg-surface rounded-full h-3">
                 <motion.div
                   className="bg-gradient-to-r from-rose-400 to-purple-500 h-3 rounded-full"
                   initial={{ width: 0 }}
@@ -273,7 +273,7 @@ const EmotionMatch = () => {
               {/* Image Section */}
               <motion.div variants={itemVariants}>
                 <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-xl p-6">
-                  <h3 className="text-xl font-semibold mb-4 text-center text-gray-800">
+                  <h3 className="text-xl font-semibold mb-4 text-center text-text-primary">
                     What emotion do you see?
                   </h3>
 
@@ -293,7 +293,7 @@ const EmotionMatch = () => {
                     </AnimatePresence>
                   </div>
 
-                  <p className="text-center text-gray-600 text-sm">
+                  <p className="text-center text-text-secondary text-sm">
                     {currentImage.alt}
                   </p>
                 </Card>
@@ -302,7 +302,7 @@ const EmotionMatch = () => {
               {/* Selection Section */}
               <motion.div variants={itemVariants}>
                 <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-xl p-6">
-                  <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                  <h3 className="text-xl font-semibold mb-4 text-text-primary">
                     Choose the emotion
                   </h3>
 
@@ -318,7 +318,7 @@ const EmotionMatch = () => {
                         onClick={() => handleEmotionSelect(emotion)}
                         className={`p-3 rounded-lg text-sm font-medium transition-all duration-300 ${selectedEmotion === emotion
                             ? 'bg-gradient-to-r from-rose-400 to-purple-500 text-white shadow-lg'
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            : 'bg-surface hover:bg-crushed-silk text-text-primary'
                           }`}
                       >
                         {emotion}
@@ -327,14 +327,14 @@ const EmotionMatch = () => {
                   </div>
 
                   <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-text-primary mb-2">
                       Describe what you see (optional):
                     </label>
                     <Textarea
                       value={customText}
                       onChange={(e) => setCustomText(e.target.value)}
                       placeholder="What details in the image show this emotion? What might this person be thinking or feeling?"
-                      className="bg-crushed-silk/50 border-gray-200 focus:border-purple-400 transition-colors"
+                      className="bg-crushed-silk/50 border-border focus:border-purple-400 transition-colors"
                       rows={3}
                     />
                   </div>
@@ -373,7 +373,7 @@ const EmotionMatch = () => {
               </h2>
 
               <div className="mb-6">
-                <p className="text-xl text-gray-700 mb-2">
+                <p className="text-xl text-text-secondary mb-2">
                   {getScoreRating().rating}
                 </p>
                 <p className="text-3xl font-bold text-purple-600 mb-4">
@@ -381,20 +381,20 @@ const EmotionMatch = () => {
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-rose-50 p-4 rounded-lg">
-                    <p className="font-semibold text-rose-700">Images Analyzed</p>
-                    <p className="text-2xl text-rose-600">{matches.length}</p>
+                  <div className="bg-rose-50 dark:bg-rose-900/20 p-4 rounded-lg">
+                    <p className="font-semibold text-rose-700 dark:text-rose-300">Images Analyzed</p>
+                    <p className="text-2xl text-rose-600 dark:text-rose-300">{matches.length}</p>
                   </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="font-semibold text-purple-700">Accuracy</p>
-                    <p className="text-2xl text-purple-600">
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                    <p className="font-semibold text-purple-700 dark:text-purple-300">Accuracy</p>
+                    <p className="text-2xl text-purple-600 dark:text-purple-300">
                       {Math.round((matches.filter(m => m.emotion.toLowerCase() ===
                         emotionImages.find(img => img.id === m.imageId)?.suggestedEmotion.toLowerCase()).length / matches.length) * 100)}%
                     </p>
                   </div>
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="font-semibold text-blue-700">Detailed Responses</p>
-                    <p className="text-2xl text-blue-600">
+                  <div className="bg-surface p-4 rounded-lg">
+                    <p className="font-semibold text-primary">Detailed Responses</p>
+                    <p className="text-2xl text-primary">
                       {matches.filter(m => m.customText.length > 10).length}
                     </p>
                   </div>

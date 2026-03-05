@@ -1,8 +1,8 @@
 {
     "user_id": "a0778b19-548f-47df-8413-296307566d0f",
-    "session_id": "159e9145-392e-41d3-badc-f7c1853fe594",
-    "timestamp": "2026-03-02T12:55:05.274077+00:00",
-    "user_message": "i am just feeling very good right now",
+    "session_id": "ec71ad84-bb34-4bae-bfbe-bd9219dcf291",
+    "timestamp": "2026-03-05T05:35:52.996730+00:00",
+    "user_message": "What should I do next?",
     "voice_analysis": {},
     "session_context": {
         "recent_messages": [
@@ -1263,26 +1263,31 @@
         "hindi_english_ratio": 0.0,
         "code_switching_detected": false,
         "cultural_sensitivity_flags": [],
-        "communication_pattern": "terse",
+        "communication_pattern": "questioning",
         "regional_context": "urban_metro",
-        "formality_level": "low"
+        "formality_level": "medium"
     },
     "psychological_analysis": {
-        "emotional_state": "neutral with a self-reported positive feeling",
-        "stress_categories": [],
+        "emotional_state": "neutral, with an underlying sense of uncertainty",
+        "stress_categories": [
+            "Miscellaneous"
+        ],
         "risk_assessment": "low",
-        "coping_assessment": "No observable coping mechanisms or resilience noted due to lack of context.",
+        "coping_assessment": "No observable coping mechanisms yet; the user appears to be seeking direction without expressing distress.",
         "intervention_priority": "supportive",
         "psychological_insights": [
-            "User may be experiencing a momentary positive state without deeper emotional context.",
-            "Terse communication style may indicate a need for further exploration to understand underlying emotions.",
-            "Self-reported positive feeling may be genuine or a superficial response."
+            "The user may be experiencing a transitional phase or decision-making uncertainty.",
+            "The neutral tone suggests a lack of immediate emotional distress but may mask deeper concerns.",
+            "The question 'What should I do next?' indicates a need for guidance or clarity.",
+            "Limited emotional expression may indicate suppression or lack of awareness",
+            "Terse communication style may suggest discomfort or avoidance",
+            "Neutral sentiment could reflect a stable baseline or emotional numbness"
         ],
-        "cultural_pressures": "No specific Indian cultural/family/academic pressures identified in this brief statement."
+        "cultural_pressures": "No specific Indian cultural/family/academic pressures identified from the message. No specific cultural pressures identified at this time, but Indian youth often face expectations related to academics, career choices, and family responsibilities, which may influence their decision-making process."
     },
     "screening_assessments": {
         "phq9": {
-            "score": 0,
+            "score": 1,
             "severity": "minimal",
             "responses": [
                 "...",
@@ -1295,10 +1300,10 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-03-02T12:55:25.341745+00:00"
+            "last_updated": "2026-03-05T05:36:15.824147+00:00"
         },
         "gad7": {
-            "score": 0,
+            "score": 1,
             "severity": "minimal",
             "responses": [
                 "...",
@@ -1309,19 +1314,27 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-03-02T12:55:25.341745+00:00"
+            "last_updated": "2026-03-05T05:36:15.824147+00:00"
         }
     },
     "technique_selection": {
-        "primary_technique": "Person-Centered",
-        "therapeutic_approach": "Create a non-judgmental, empathetic space to encourage the user to explore their feelings and thoughts more deeply. Use active listening and reflective questioning to help them uncover underlying emotions or concerns.",
+        "primary_technique": "Solution-Focused",
+        "therapeutic_approach": "Focus on identifying small, achievable goals and future aspirations to help the user navigate uncertainty. Encourage them to envision a preferred future and explore steps to move toward it, while acknowledging their current neutral state. Create a non-judgmental, empathetic space for the individual to explore their feelings and thoughts at their own pace. Use active listening, reflection, and validation to help them gain self-awareness and emotional expression.",
         "activity_recommendations": [
-            "Journaling prompts to explore feelings and thoughts",
-            "Mindful breathing exercises to enhance self-awareness",
-            "Yoga or stretching to connect mind and body"
+            "Journaling about future aspirations and small steps to achieve them",
+            "Mindfulness grounding exercises to stay present and reduce uncertainty",
+            "Yoga or light physical activity to manage underlying stress",
+            "Journaling prompts to explore emotions",
+            "Mindful breathing exercises",
+            "Yoga or stretching for physical grounding"
         ],
-        "rationale": "The neutral yet positive emotional state, combined with a terse communication style, suggests a need for a supportive and exploratory approach. Person-Centered therapy aligns well with this by fostering trust and openness, allowing the user to self-direct their emotional exploration."
+        "rationale": "The user's neutral emotional state and underlying uncertainty suggest a need for clarity and direction rather than deep emotional processing. Solution-Focused therapy is ideal for this as it is future-oriented, practical, and supportive, aligning with the low-risk, supportive intervention priority. The neutral emotional state and limited expression suggest a need for a supportive, non-directive approach. Person-Centered therapy aligns with the low intervention priority and helps address potential emotional suppression or avoidance. It is culturally adaptable and fosters self-exploration."
     },
-    "ai_response": "That\u2019s wonderful to hear! Feeling good is a great space to be in. What\u2019s been making you feel so positive today? Sometimes it\u2019s the little things that make the biggest difference. \ud83d\ude0a",
-    "response_generated": true
+    "ai_response": "Hey there! It\u2019s totally okay to feel a bit uncertain about what\u2019s next. Sometimes, when we\u2019re in a neutral space, it\u2019s like we\u2019re waiting for the right signal to move forward. Have you thought about what small step might feel good to take, even if it\u2019s just exploring an idea or trying something new? Let\u2019s think about what could bring a little clarity or excitement for you.",
+    "response_generated": true,
+    "personality_settings": {
+        "personality": "mitra",
+        "companion_name": "Mitra",
+        "language": "english"
+    }
 }

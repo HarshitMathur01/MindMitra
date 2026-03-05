@@ -408,8 +408,8 @@ const InteractiveDemo = () => {
                             transition={{ duration: 0.5, delay: 0.2 }}
                             viewport={{ once: true }}
                         >
-                            <h4 className="font-semibold text-sm text-gray-800 mb-3 flex items-center gap-2">
-                                <BookOpen className="h-4 w-4 text-blue-500" />
+                            <h4 className="font-semibold text-sm text-text-primary mb-3 flex items-center gap-2">
+                                <BookOpen className="h-4 w-4 text-primary" />
                                 Technique Being Used
                             </h4>
                             <AnimatePresence mode="wait">
@@ -419,8 +419,8 @@ const InteractiveDemo = () => {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
                                     className={`px-3 py-2 rounded-lg text-xs font-medium ${lastAiMessage?.technique
-                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                        : 'bg-gray-50 text-gray-400'
+                                        ? 'bg-surface text-primary border border-primary/20'
+                                        : 'bg-background text-text-secondary'
                                         }`}
                                 >
                                     {lastAiMessage?.technique || 'Not yet started'}

@@ -216,7 +216,7 @@ const MoodMountain = () => {
             initial={{ y: -30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: "spring", stiffness: 220, damping: 18 }}
-            className="bg-crushed-silk dark:bg-slate-900 rounded-2xl p-6 shadow-xl text-center max-w-sm"
+            className="bg-crushed-silk dark:bg-surface rounded-2xl p-6 shadow-xl text-center max-w-sm"
           >
             <h3 className="text-2xl font-bold mb-2"> Summit Reached!</h3>
             <p className="text-sm text-muted-foreground mb-4">

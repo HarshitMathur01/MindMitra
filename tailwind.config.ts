@@ -19,25 +19,25 @@ export default {
 		},
 		extend: {
 			colors: {
-				border: 'var(--border)',
+				border: 'hsl(var(--border) / <alpha-value>)',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
-				background: 'var(--background)',
-				surface: 'var(--surface)',
-				'crushed-silk': 'var(--crushed-silk)',
-				foreground: 'var(--text-primary)',
-				'text-primary': 'var(--text-primary)',
-				'text-secondary': 'var(--text-secondary)',
-				danger: 'var(--danger)',
-				success: 'var(--success)',
-				warning: 'var(--warning)',
+				background: 'hsl(var(--background))',
+				surface: 'hsl(var(--surface) / <alpha-value>)',
+				'crushed-silk': 'hsl(var(--crushed-silk) / <alpha-value>)',
+				foreground: 'hsl(var(--text-primary))',
+				'text-primary': 'hsl(var(--text-primary))',
+				'text-secondary': 'hsl(var(--text-secondary))',
+				danger: 'hsl(var(--danger))',
+				success: 'hsl(var(--success))',
+				warning: 'hsl(var(--warning))',
 				primary: {
-					DEFAULT: 'var(--primary)',
+					DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
 					foreground: 'hsl(var(--primary-foreground))',
 					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
-					DEFAULT: 'var(--secondary)',
+					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
 				},
 				destructive: {
@@ -49,15 +49,15 @@ export default {
 					foreground: 'hsl(var(--muted-foreground))'
 				},
 				accent: {
-					DEFAULT: 'var(--accent)',
+					DEFAULT: 'hsl(var(--accent) / <alpha-value>)',
 					foreground: 'hsl(var(--accent-foreground))'
 				},
 				popover: {
-					DEFAULT: 'var(--surface)',
+					DEFAULT: 'hsl(var(--surface) / <alpha-value>)',
 					foreground: 'hsl(var(--popover-foreground))'
 				},
 				card: {
-					DEFAULT: 'var(--surface)',
+					DEFAULT: 'hsl(var(--surface) / <alpha-value>)',
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				sidebar: {

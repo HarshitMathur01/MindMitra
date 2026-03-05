@@ -66,6 +66,39 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --shadow: hsla(188, 30%, 15%, 0.08);
   }
+
+  /* ═══════════════════════════════════════════════════════════
+     Dark Mode — shadcn token overrides
+     All subtitle/body text classes (text-muted-foreground,
+     text-foreground, text-card-foreground) map here.
+     Without these overrides they render as dark text on dark bg.
+     ═══════════════════════════════════════════════════════════ */
+  [data-theme="dark"] {
+    /* Foreground: near-white with minimal teal tint */
+    --foreground: 190 10% 95%;
+    --card-foreground: 190 10% 95%;
+    --popover-foreground: 190 10% 95%;
+
+    /* Muted foreground: readable subtitle text — was 46% lightness (unreadable dark gray) */
+    --muted-foreground: 188 16% 70%;
+
+    /* Surface tokens for shadcn components */
+    --card: 196 30% 17%;
+    --popover: 196 30% 17%;
+    --muted: 196 24% 25%;
+    --secondary: 196 24% 25%;
+    --secondary-foreground: 190 10% 95%;
+    --accent-foreground: 190 10% 95%;
+
+    /* Primary: tonal-200 range for dark mode */
+    --primary: 188 55% 62%;
+    --primary-foreground: 196 47% 9%;
+
+    /* Structural */
+    --border: 196 26% 27%;
+    --input: 196 26% 27%;
+    --ring: 188 55% 62%;
+  }
 }
 
 @layer base {
@@ -438,6 +471,15 @@ All colors MUST be HSL.
   /* Text Gradients for Headings */
   .text-gradient {
     background: linear-gradient(135deg, hsl(188, 51%, 32%) 0%, hsl(168, 38%, 40%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Dark mode heading gradient — tonal-200 range (72%→67% lightness)
+     Contrast on bg (9% lightness) ≈ 10:1 — exceeds WCAG AAA 7:1 */
+  [data-theme="dark"] .text-gradient {
+    background: linear-gradient(135deg, hsl(188, 58%, 72%) 0%, hsl(173, 50%, 66%) 50%, hsl(168, 48%, 67%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

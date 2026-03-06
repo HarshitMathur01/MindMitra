@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MindMitra — Therapeutic Avatar Demo (6 Paper Features)</title>
+    <meta charset="utf-8">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        #avatar-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* ── Side Panel ─────────────────────────────── */
+        #panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 340px;
+            height: 100%;
+            background: rgba(16, 16, 40, 0.92);
+            backdrop-filter: blur(12px);
+            border-left: 1px solid rgba(100, 140, 255, 0.15);
+            padding: 16px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        h2 {
+            font-size: 16px;
+            color: #7b8cff;
+            margin: 14px 0 8px;
+            letter-spacing: 0.5px;
+        }
+
+        h2:first-child {
+            margin-top: 0;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+
+        /* ── Emotion Buttons ────────────────────────── */
+        .emotion-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .emotion-btn {
+            padding: 8px 6px;
+            border: 1px solid rgba(100, 140, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(100, 140, 255, 0.08);
+            color: #c0c8ff;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .emotion-btn:hover {
+            background: rgba(100, 140, 255, 0.2);
+        }
+
+        .emotion-btn.active {
+            background: rgba(100, 140, 255, 0.35);
+            border-color: #7b8cff;
+            color: #fff;
+        }
+
+        /* ── Intensity Slider ───────────────────────── */
+        .intensity-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .intensity-row label {
+            font-size: 11px;
+            color: #888;
+            min-width: 55px;
+        }
+
+        .intensity-row input[type=range] {
+            flex: 1;
+            accent-color: #7b8cff;
+        }
+
+        .intensity-val {
+            font-size: 12px;
+            color: #aab;
+            min-width: 32px;
+            text-align: right;
+        }
+
+        /* ── Gesture Buttons ────────────────────────── */
+        .gesture-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .gesture-btn {
+            padding: 7px 6px;
+            border: 1px solid rgba(100, 200, 140, 0.2);
+            border-radius: 6px;
+            background: rgba(100, 200, 140, 0.08);
+            color: #a0d8b0;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .gesture-btn:hover {
+            background: rgba(100, 200, 140, 0.2);
+        }
+
+        /* ── Speak Section ──────────────────────────── */
+        #speak-text {
+            width: 100%;
+            height: 56px;
+            resize: none;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(100, 140, 255, 0.15);
+            border-radius: 6px;
+            padding: 8px;
+            color: #ddd;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        #speak-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            background: linear-gradient(135deg, #5b6cff, #7b8cff);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        #speak-btn:hover {
+            opacity: 0.85;
+        }
+
+        /* ── Timeline Demo ──────────────────────────── */
+        #timeline-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            background: linear-gradient(135deg, #ff6b9d, #c44dff);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        #timeline-btn:hover {
+            opacity: 0.85;
+        }
+
+        /* ── Status Bar ─────────────────────────────── */
+        #status {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(16, 16, 40, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(100, 140, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 12px;
+            z-index: 10;
+            max-width: calc(100% - 370px);
+        }
+
+        #status .label {
+            color: #666;
+        }
+
+        #status .value {
+            color: #7b8cff;
+            font-weight: 600;
+        }
+
+        /* ── Loading Overlay ────────────────────────── */
+        #loading-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a2e;
+            z-index: 100;
+            font-size: 18px;
+            color: #7b8cff;
+            text-align: center;
+            padding: 32px;
+            white-space: pre-wrap;
+        }
+
+        #loading-overlay.hidden {
+            display: none;
+        }
+    </style>
+
+    <script type="importmap">
+  { "imports":
+    {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+
+    <!-- Azure Cognitive Services Speech SDK -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+
+    <script type="module">
+        // ── Load TalkingHead from local modules ────────────
+        import { TalkingHead } from "../modules/talkinghead.mjs";
+        import { enhanceAvatar } from "../modules/avatar-enhancements.mjs";
+        import {
+            MindMitraBridge,
+            THERAPEUTIC_INTENSITIES,
+            INTENSITY_LEVELS,
+        } from "../modules/mindmitra-bridge.mjs";
+
+        // ── Azure viseme ID → TalkingHead Oculus viseme name ──
+        const azureVisemeMap = [
+            "sil", "aa", "aa", "O", "E", "E", "I", "U", "O", "aa", "O", "I",
+            "kk", "RR", "nn", "SS", "SS", "TH", "FF", "DD", "kk", "PP"
+        ];
+
+        let head, bridge;
+        let azureSynthesizer = null;
+        let azureSynthRegion = "";
+        let azureSynthKey = "";
+
+        // ── Azure Speech SDK helpers ─────────────────────
+        function escapeXml(text) {
+            return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+        }
+
+        function getSpeechRatePercent() {
+            const slider = document.getElementById('speech-rate-slider');
+            if (!slider) return -12;
+            const parsed = parseInt(slider.value, 10);
+            return Number.isFinite(parsed) ? parsed : -12;
+        }
+
+        function ensureAzureSynthesizer() {
+            const region = document.getElementById('azure-region').value.trim();
+            const key = document.getElementById('azure-key').value.trim();
+            if (!region || !key) throw new Error('Azure region and API key are required.');
+
+            if (!azureSynthesizer || region !== azureSynthRegion || key !== azureSynthKey) {
+                if (azureSynthesizer) { azureSynthesizer.close(); azureSynthesizer = null; }
+                const cfg = window.SpeechSDK.SpeechConfig.fromSubscription(key, region);
+                cfg.speechSynthesisOutputFormat =
+                    window.SpeechSDK.SpeechSynthesisOutputFormat.Raw22050Hz16BitMonoPcm;
+                cfg.setProperty(
+                    window.SpeechSDK.PropertyId.SpeechServiceResponse_RequestSentenceBoundary, "true"
+                );
+                azureSynthesizer = new window.SpeechSDK.SpeechSynthesizer(cfg, null);
+                azureSynthRegion = region;
+                azureSynthKey = key;
+            }
+            return azureSynthesizer;
+        }
+
+        /**
+         * Synthesize text via Azure TTS, returning the data object
+         * that TalkingHead.speakAudio() expects.
+         */
+        function speakAzure(text) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const synth = ensureAzureSynthesizer();
+                    const voice = "en-US-Ava3:DragonHDLatestNeural";
+                    const speechRatePercent = getSpeechRatePercent();
+
+                    const speak = {
+                        audio: [], words: [], wtimes: [], wdurations: [],
+                        visemes: [], vtimes: [], vdurations: [], markers: [], mtimes: []
+                    };
+
+                    synth.visemeReceived = function (_sender, ev) {
+                        const viseme = azureVisemeMap[ev.visemeId] || "sil";
+                        const time = ev.audioOffset / 10000;
+                        const len = speak.vdurations.length;
+                        if (len > 0) {
+                            speak.vdurations[len - 1] = time - speak.vtimes[len - 1];
+                        }
+                        speak.visemes.push(viseme);
+                        speak.vtimes.push(time);
+                        speak.vdurations.push(80);
+                    };
+
+                    synth.wordBoundary = function (_sender, ev) {
+                        if (ev.boundaryType === "WordBoundary" || ev.boundaryType === "PunctuationBoundary") {
+                            speak.words.push(ev.text);
+                            speak.wtimes.push(ev.audioOffset / 10000);
+                            speak.wdurations.push(ev.duration / 10000);
+                        }
+                    };
+
+                    const ssml =
+                        `<speak version='1.0' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='en-US'>` +
+                        `<voice name='${voice}'><mstts:viseme type='redlips_front'/><prosody rate='${speechRatePercent}%'>${escapeXml(text)}</prosody></voice></speak>`;
+
+                    synth.speakSsmlAsync(
+                        ssml,
+                        function (result) {
+                            if (result.reason === window.SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                                speak.audio.push(result.audioData);
+                                resolve(speak);
+                            } else {
+                                reject(new Error('Azure TTS synthesis failed: ' + result.errorDetails));
+                            }
+                        },
+                        function (err) { reject(new Error(err)); }
+                    );
+                } catch (err) { reject(err); }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+
+            // ── 1. Instantiate TalkingHead (no Google TTS — using Azure) ──
+            const avatarNode = document.getElementById('avatar-container');
+            head = new TalkingHead(avatarNode, {
+                lipsyncModules: ["en"],
+                cameraView: "upper",
+                modelFPS: 30,
+                avatarMood: "neutral",
+                avatarIdleEyeContact: 0.3,
+                avatarSpeakingEyeContact: 0.6,
+                avatarSpeakingHeadMove: 0.6,
+            });
+
+            // Restore saved Azure credentials (fall back to hardcoded defaults)
+            document.getElementById('azure-region').value =
+                localStorage.getItem('mm_azure_region') || 'eastus';
+            document.getElementById('azure-key').value =
+                localStorage.getItem('mm_azure_key') || '';
+
+            // Restore and wire speech rate slider (-25%..0%, default -12%)
+            const speechRateSlider = document.getElementById('speech-rate-slider');
+            const speechRateValue = document.getElementById('speech-rate-value');
+            const savedRate = localStorage.getItem('mm_azure_speech_rate');
+            const initialRate = savedRate !== null ? parseInt(savedRate, 10) : -12;
+            const normalizedRate = Number.isFinite(initialRate) ? initialRate : -12;
+            speechRateSlider.value = String(normalizedRate);
+            speechRateValue.textContent = `${normalizedRate}%`;
+            speechRateSlider.addEventListener('input', () => {
+                speechRateValue.textContent = `${speechRateSlider.value}%`;
+                localStorage.setItem('mm_azure_speech_rate', speechRateSlider.value);
+            });
+
+            // ── 2. Load avatar ─────────────────────────────
+            const loadingEl = document.getElementById('loading-overlay');
+
+            // Bone rename map: Sveta.glb custom rig → Mixamo standard names
+            // required by TalkingHead. Applied in onpreprocess before validation.
+            const SVETA_TO_MIXAMO = {
+                // Root / torso
+                'Hip': 'Hips',
+                'Waist': 'Spine',
+                'Spine01': 'Spine1',
+                'Spine02': 'Spine2',
+                'NeckTwist01': 'Neck',
+                // Eyes (required for avatar height estimation)
+                'L_Eye': 'LeftEye',
+                'R_Eye': 'RightEye',
+                // Shoulders (clavicles)
+                'L_Clavicle': 'LeftShoulder',
+                'R_Clavicle': 'RightShoulder',
+                // Upper arms
+                'L_Upperarm': 'LeftArm',
+                'R_Upperarm': 'RightArm',
+                // Forearms
+                'L_Forearm': 'LeftForeArm',
+                'R_Forearm': 'RightForeArm',
+                // Hands
+                'L_Hand': 'LeftHand',
+                'R_Hand': 'RightHand',
+                // Left fingers
+                'L_Thumb1': 'LeftHandThumb1',
+                'L_Thumb2': 'LeftHandThumb2',
+                'L_Thumb3': 'LeftHandThumb3',
+                'L_Index1': 'LeftHandIndex1',
+                'L_Index2': 'LeftHandIndex2',
+                'L_Index3': 'LeftHandIndex3',
+                'L_Mid1': 'LeftHandMiddle1',
+                'L_Mid2': 'LeftHandMiddle2',
+                'L_Mid3': 'LeftHandMiddle3',
+                'L_Ring1': 'LeftHandRing1',
+                'L_Ring2': 'LeftHandRing2',
+                'L_Ring3': 'LeftHandRing3',
+                'L_Pinky1': 'LeftHandPinky1',
+                'L_Pinky2': 'LeftHandPinky2',
+                'L_Pinky3': 'LeftHandPinky3',
+                // Right fingers
+                'R_Thumb1': 'RightHandThumb1',
+                'R_Thumb2': 'RightHandThumb2',
+                'R_Thumb3': 'RightHandThumb3',
+                'R_Index1': 'RightHandIndex1',
+                'R_Index2': 'RightHandIndex2',
+                'R_Index3': 'RightHandIndex3',
+                'R_Mid1': 'RightHandMiddle1',
+                'R_Mid2': 'RightHandMiddle2',
+                'R_Mid3': 'RightHandMiddle3',
+                'R_Ring1': 'RightHandRing1',
+                'R_Ring2': 'RightHandRing2',
+                'R_Ring3': 'RightHandRing3',
+                'R_Pinky1': 'RightHandPinky1',
+                'R_Pinky2': 'RightHandPinky2',
+                'R_Pinky3': 'RightHandPinky3',
+                // Legs
+                'L_Thigh': 'LeftUpLeg',
+                'R_Thigh': 'RightUpLeg',
+                'L_Calf': 'LeftLeg',
+                'R_Calf': 'RightLeg',
+                'L_Foot': 'LeftFoot',
+                'R_Foot': 'RightFoot',
+                'L_ToeBase': 'LeftToeBase',
+                'R_ToeBase': 'RightToeBase',
+            };
+
+            // Blend shape rename map: Sveta → ARKit/Oculus names expected by TalkingHead
+            const SVETA_MORPHS = {
+                // Eye blink
+                'Eye_Blink_L': 'eyeBlinkLeft',
+                'Eye_Blink_R': 'eyeBlinkRight',
+                // Eye look (left eye: looking left = outward, looking right = inward)
+                'Eye_L_Look_L': 'eyeLookOutLeft',
+                'Eye_L_Look_R': 'eyeLookInLeft',
+                'Eye_L_Look_Up': 'eyeLookUpLeft',
+                'Eye_L_Look_Down': 'eyeLookDownLeft',
+                // Eye look (right eye: looking right = outward, looking left = inward)
+                'Eye_R_Look_R': 'eyeLookOutRight',
+                'Eye_R_Look_L': 'eyeLookInRight',
+                'Eye_R_Look_Up': 'eyeLookUpRight',
+                'Eye_R_Look_Down': 'eyeLookDownRight',
+                // Eye wide / squint
+                'Eye_Wide_L': 'eyeWideLeft',
+                'Eye_Wide_R': 'eyeWideRight',
+                'Eye_Squint_L': 'eyeSquintLeft',
+                'Eye_Squint_R': 'eyeSquintRight',
+                // Jaw
+                'Jaw_Open': 'jawOpen',
+                'Jaw_L': 'jawLeft',
+                'Jaw_R': 'jawRight',
+                'Jaw_Forward': 'jawForward',
+                // Mouth smile / frown
+                'Mouth_Smile_L': 'mouthSmileLeft',
+                'Mouth_Smile_R': 'mouthSmileRight',
+                'Mouth_Frown_L': 'mouthFrownLeft',
+                'Mouth_Frown_R': 'mouthFrownRight',
+                // Mouth misc (required by mtRandomized)
+                'Mouth_Dimple_L': 'mouthDimpleLeft',
+                'Mouth_Dimple_R': 'mouthDimpleRight',
+                'Mouth_L': 'mouthLeft',
+                'Mouth_R': 'mouthRight',
+                'Mouth_Press_L': 'mouthPressLeft',
+                'Mouth_Press_R': 'mouthPressRight',
+                'Mouth_Stretch_L': 'mouthStretchLeft',
+                'Mouth_Stretch_R': 'mouthStretchRight',
+                'Mouth_Shrug_Lower': 'mouthShrugLower',
+                'Mouth_Shrug_Upper': 'mouthShrugUpper',
+                'Mouth_Roll_In_Lower_L': 'mouthRollLower',
+                'Mouth_Roll_In_Upper_L': 'mouthRollUpper',
+                'Mouth_Close': 'mouthClose',
+                'Mouth_Pucker_Up_L': 'mouthPucker',
+                'Mouth_Funnel_Up_L': 'mouthFunnel',
+                'Mouth_Down_Lower_L': 'mouthLowerDownLeft',
+                'Mouth_Down_Lower_R': 'mouthLowerDownRight',
+                'Mouth_Up_Upper_L': 'mouthUpperUpLeft',
+                'Mouth_Up_Upper_R': 'mouthUpperUpRight',
+                // Brow (required by mtRandomized + mtOnchange + mtLimits)
+                'Brow_Drop_L': 'browDownLeft',
+                'Brow_Drop_R': 'browDownRight',
+                'Brow_Raise_Outer_L': 'browOuterUpLeft',
+                'Brow_Raise_Outer_R': 'browOuterUpRight',
+                'Brow_Raise_Inner_L': 'browInnerUp',
+                // Cheek (required by mtRandomized)
+                'Cheek_Puff_L': 'cheekPuff',
+                'Cheek_Raise_L': 'cheekSquintLeft',
+                'Cheek_Raise_R': 'cheekSquintRight',
+                // Nose (required by mtRandomized)
+                'Nose_Sneer_L': 'noseSneerLeft',
+                'Nose_Sneer_R': 'noseSneerRight',
+                // Visemes (Oculus format used by TalkingHead)
+                'V_None': 'viseme_sil',
+                'V_Explosive': 'viseme_PP',
+                'V_Dental_Lip': 'viseme_FF',
+                'V_Tongue_out': 'viseme_TH',
+                'V_Tongue_Curl_D': 'viseme_DD',
+                'V_Tongue_Lower': 'viseme_kk',
+                'V_Affricate': 'viseme_CH',
+                'V_Tongue_Narrow': 'viseme_SS',
+                'V_Tongue_Raise': 'viseme_nn',
+                'V_Tongue_Curl_U': 'viseme_RR',
+                'V_Open': 'viseme_aa',
+                'V_Wide': 'viseme_E',
+                'V_Lip_Open': 'viseme_I',
+                'V_Tight_O': 'viseme_O',
+                'V_Tight': 'viseme_U',
+            };
+
+            const progressCb = (ev) => {
+                if (ev.lengthComputable) {
+                    const pct = Math.min(100, Math.round(ev.loaded / ev.total * 100));
+                    loadingEl.textContent = `Loading Sveta.glb ${pct}%…`;
+                } else {
+                    loadingEl.textContent = `Loading Sveta.glb (96 MB, please wait)…`;
+                }
+            };
+
+            const preprocessCb = (gltf) => {
+                console.log('[MindMitra] preprocess: renaming bones and morphs');
+                gltf.scene.traverse(obj => {
+                    if (SVETA_TO_MIXAMO[obj.name]) {
+                        obj.name = SVETA_TO_MIXAMO[obj.name];
+                    }
+                    if (obj.morphTargetDictionary) {
+                        const dict = obj.morphTargetDictionary;
+                        Object.keys(dict).forEach(oldKey => {
+                            const newKey = SVETA_MORPHS[oldKey];
+                            if (newKey && !dict.hasOwnProperty(newKey)) {
+                                dict[newKey] = dict[oldKey];
+                                delete dict[oldKey];
+                            }
+                        });
+                        console.log('[MindMitra] morph dict sample keys:',
+                            Object.keys(dict).slice(0, 8).join(', '));
+                    }
+                });
+            };
+
+            // ─ Try Sveta.glb first, fall back to brunette.glb ─
+            let avatarLoaded = false;
+            try {
+                loadingEl.textContent = 'Loading Sveta.glb (96 MB, please wait)…';
+                await head.showAvatar({
+                    url: '../avatars/Sveta.glb',
+                    body: 'F',
+                    avatarMood: 'neutral',
+                    lipsyncLang: 'en',
+                }, progressCb, preprocessCb);
+                avatarLoaded = true;
+                console.log('[MindMitra] Sveta.glb loaded successfully');
+            } catch (svetaErr) {
+                console.error('[MindMitra] Sveta.glb failed:', svetaErr);
+                loadingEl.style.fontSize = '13px';
+                loadingEl.textContent =
+                    `⚠ Sveta.glb error: ${svetaErr.message}\n→ Falling back to brunette.glb…`;
+                await new Promise(r => setTimeout(r, 1800)); // show for 1.8 s
+            }
+
+            if (!avatarLoaded) {
+                try {
+                    loadingEl.textContent = 'Loading brunette.glb…';
+                    await head.showAvatar({
+                        url: '../avatars/brunette.glb',
+                        body: 'F',
+                        avatarMood: 'neutral',
+                        lipsyncLang: 'en',
+                    }, (ev) => {
+                        if (ev.lengthComputable) {
+                            const pct = Math.min(100, Math.round(ev.loaded / ev.total * 100));
+                            loadingEl.textContent = `Loading brunette.glb ${pct}%…`;
+                        }
+                    });
+                    avatarLoaded = true;
+                    console.log('[MindMitra] brunette.glb loaded as fallback');
+                } catch (fallbackErr) {
+                    loadingEl.textContent = `Error: ${fallbackErr}`;
+                    console.error('[MindMitra] fallback also failed:', fallbackErr);
+                    return;
+                }
+            }
+
+            loadingEl.classList.add('hidden');
+
+            // ── 2.5. Apply visual enhancements (SSS, eyes, HDRI, SSAO, lashes) ──
+            try {
+                const enhancements = enhanceAvatar(head, {
+                    skin: { sssIntensity: 0.35, roughness: 0.5, sheenIntensity: 0.3 },
+                    eyes: { clearcoat: 1.0, clearcoatRoughness: 0.03, specularIntensity: 1.8 },
+                    lips: { clearcoat: 0.7, clearcoatRoughness: 0.08 },
+                    hdri: { showBackground: false, backgroundColor: 0x1a1a2e, environmentIntensity: 1.5 },
+                    ssao: { kernelRadius: 0.5, minDistance: 0.001, maxDistance: 0.1 },
+                    eyelashes: { upperLashCount: 28, lowerLashCount: 16, upperCurl: 0.45 },
+                });
+                console.log('[MindMitra] Visual enhancements applied:', enhancements);
+            } catch (enhErr) {
+                console.warn('[MindMitra] Visual enhancements failed (non-fatal):', enhErr);
+            }
+
+            // ── 3. Initialize MindMitra Bridge ─────────────
+            bridge = new MindMitraBridge(head);
+            bridge.init();
+            updateStatus();
+
+            // ── 4. Wire up UI controls ─────────────────────
+            wireEmotionButtons();
+            wireIntensitySlider();
+            wireGestureButtons();
+            wireSpeakButton();
+            wireTimelineDemo();
+
+            // ── Pause when tab hidden ──────────────────────
+            document.addEventListener("visibilitychange", () => {
+                document.visibilityState === "visible" ? head.start() : head.stop();
+            });
+        });
+
+
+        // ═══════════════════════════════════════════════
+        //  UI WIRING
+        // ═══════════════════════════════════════════════
+
+        function wireEmotionButtons() {
+            const grid = document.getElementById('emotion-grid');
+            const emotions = bridge.getTherapeuticEmotions();
+
+            emotions.forEach(em => {
+                const btn = document.createElement('button');
+                btn.className = 'emotion-btn' + (em === 'neutral' ? ' active' : '');
+                btn.textContent = em;
+                btn.dataset.emotion = em;
+                btn.addEventListener('click', () => {
+                    // Deactivate all, activate clicked
+                    grid.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    const intensity = parseFloat(document.getElementById('intensity-slider').value);
+                    bridge.setEmotion(em, intensity);
+                    updateStatus();
+                });
+                grid.appendChild(btn);
+            });
+        }
+
+        function wireIntensitySlider() {
+            const slider = document.getElementById('intensity-slider');
+            const valEl = document.getElementById('intensity-val');
+
+            slider.addEventListener('input', () => {
+                const val = parseFloat(slider.value);
+                valEl.textContent = val.toFixed(1) + '×';
+
+                // Re-apply current emotion with new intensity
+                bridge.setEmotion(bridge.getCurrentEmotion(), val);
+                updateStatus();
+            });
+        }
+
+        function wireGestureButtons() {
+            document.querySelectorAll('.gesture-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    bridge.triggerGesture(btn.dataset.gesture);
+                });
+            });
+        }
+
+        function wireSpeakButton() {
+            const textArea = document.getElementById('speak-text');
+            const speakBtn = document.getElementById('speak-btn');
+
+            speakBtn.addEventListener('click', async () => {
+                if (head?.audioCtx?.state === 'suspended') {
+                    try { await head.audioCtx.resume(); } catch (e) { }
+                }
+
+                const text = textArea.value.trim();
+                if (!text) return;
+
+                // Save Azure credentials
+                localStorage.setItem('mm_azure_region', document.getElementById('azure-region').value.trim());
+                localStorage.setItem('mm_azure_key', document.getElementById('azure-key').value.trim());
+
+                // Get currently selected emotion
+                const activeBtn = document.querySelector('.emotion-btn.active');
+                const emotion = activeBtn ? activeBtn.dataset.emotion : 'neutral';
+
+                speakBtn.disabled = true;
+                speakBtn.textContent = 'Synthesizing...';
+
+                try {
+                    // Synthesize with Azure TTS
+                    const azureData = await speakAzure(text);
+
+                    // Start emotion timeline
+                    bridge.onAvatarStartSpeaking([{ text, emotion }]);
+
+                    // Play via TalkingHead's speakAudio (includes viseme lip-sync)
+                    head.speakAudio(azureData);
+                    updateStatus();
+                } catch (err) {
+                    console.error('[Azure TTS]', err);
+                    alert('Azure TTS error: ' + err.message);
+                } finally {
+                    speakBtn.disabled = false;
+                    speakBtn.textContent = 'Speak with Emotion';
+                }
+            });
+        }
+
+        function wireTimelineDemo() {
+            const btn = document.getElementById('timeline-btn');
+            btn.addEventListener('click', async () => {
+                if (head?.audioCtx?.state === 'suspended') {
+                    try { await head.audioCtx.resume(); } catch (e) { }
+                }
+
+                // ── Paper Feature #2: Emotion Timeline Demo ──────
+                // This simulates an AI response that shifts emotions mid-sentence.
+                const emotionCues = [
+                    {
+                        text: "I hear you, and I want you to know that your feelings are completely valid.",
+                        emotion: "empathy"
+                    },
+                    {
+                        text: "It sounds like you've been carrying a lot,",
+                        emotion: "concern"
+                    },
+                    {
+                        text: "and the fact that you're talking about it shows real strength.",
+                        emotion: "encouragement"
+                    },
+                    {
+                        text: "Let's take a moment to explore what might help.",
+                        emotion: "acknowledgment"
+                    },
+                ];
+
+                const fullText = emotionCues.map(c => c.text).join(" ");
+
+                // Save Azure credentials
+                localStorage.setItem('mm_azure_region', document.getElementById('azure-region').value.trim());
+                localStorage.setItem('mm_azure_key', document.getElementById('azure-key').value.trim());
+
+                try {
+                    const azureData = await speakAzure(fullText);
+                    bridge.onAvatarStartSpeaking(emotionCues);
+                    head.speakAudio(azureData);
+                } catch (err) {
+                    console.error('[Azure TTS]', err);
+                    alert('Azure TTS error: ' + err.message);
+                    return;
+                }
+                updateStatus();
+
+                // Visual feedback — highlight which emotion segment is active
+                const statusLine = document.getElementById('timeline-status');
+                statusLine.textContent = '▶ Playing emotion timeline...';
+
+                let elapsed = 0;
+                const tick = setInterval(() => {
+                    elapsed += 100;
+                    const sec = elapsed / 1000;
+                    const segments = [];
+                    let cumTime = 0;
+                    for (const cue of emotionCues) {
+                        const words = cue.text.trim().split(/\s+/).length;
+                        const dur = (words / 130) * 60;
+                        if (sec >= cumTime && sec < cumTime + dur) {
+                            statusLine.textContent = `▶ ${cue.emotion.toUpperCase()}: "${cue.text.substring(0, 40)}..."`;
+                            break;
+                        }
+                        cumTime += dur;
+                    }
+                    if (bridge.getState() !== 'speaking') {
+                        statusLine.textContent = '✓ Timeline complete';
+                        clearInterval(tick);
+                        updateStatus();
+                    }
+                }, 100);
+            });
+        }
+
+        function updateStatus() {
+            document.getElementById('state-val').textContent = bridge ? bridge.getState() : '—';
+            document.getElementById('emotion-val').textContent = bridge ? bridge.getCurrentEmotion() : '—';
+        }
+
+    </script>
+</head>
+
+<body>
+
+    <!-- Avatar viewport -->
+    <div id="avatar-container"></div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay">Loading MindMitra avatar...</div>
+
+    <!-- Control panel -->
+    <div id="panel">
+
+        <h2>🎭 Emotion (Paper #4)</h2>
+        <div class="section">
+            <div class="emotion-grid" id="emotion-grid">
+                <!-- Buttons injected by JS -->
+            </div>
+
+            <h2>📊 Intensity (Paper #5)</h2>
+            <div class="intensity-row">
+                <label>Scale</label>
+                <input type="range" id="intensity-slider" min="1.0" max="2.0" step="0.1" value="1.0">
+                <span class="intensity-val" id="intensity-val">1.0×</span>
+            </div>
+            <div style="font-size:10px; color:#555; margin-top:4px;">
+                6 levels: 1.0× 1.2× 1.3× 1.4× 1.6× 2.0×
+            </div>
+        </div>
+
+        <h2>🤝 Gestures (Paper #6)</h2>
+        <div class="section">
+            <div class="gesture-grid">
+                <button class="gesture-btn" data-gesture="slow_nod">Empathetic Nod</button>
+                <button class="gesture-btn" data-gesture="lean_forward">Lean Forward</button>
+                <button class="gesture-btn" data-gesture="thinking_tilt">Thinking Tilt</button>
+                <button class="gesture-btn" data-gesture="agreement_nod">Agreement Nod</button>
+            </div>
+        </div>
+
+        <h2>🔊 Azure TTS</h2>
+        <div class="section">
+            <input id="azure-region" type="text" placeholder="Azure region (e.g. eastus)" style="width:100%; margin-bottom:6px; padding:7px 8px; background:rgba(255,255,255,0.06);
+                          border:1px solid rgba(100,140,255,0.15); border-radius:6px; color:#ddd; font-size:12px;">
+            <input id="azure-key" type="password" placeholder="Azure Speech API key" style="width:100%; padding:7px 8px; background:rgba(255,255,255,0.06);
+                          border:1px solid rgba(100,140,255,0.15); border-radius:6px; color:#ddd; font-size:12px;">
+            <div style="margin-top:8px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                    <span style="font-size:11px; color:#aab;">Speech rate</span>
+                    <span id="speech-rate-value" style="font-size:11px; color:#aab;">-12%</span>
+                </div>
+                <input id="speech-rate-slider" type="range" min="-25" max="0" step="1" value="-12"
+                    style="width:100%; accent-color:#7b8cff;">
+            </div>
+            <div style="font-size:10px; color:#555; margin-top:4px;">
+                Voice: en-US-Ava3:DragonHDLatestNeural
+            </div>
+        </div>
+
+        <h2>💬 Speak (Paper #1 + #4)</h2>
+        <div class="section">
+            <textarea id="speak-text">I understand how you feel. That takes courage to share.</textarea>
+            <button id="speak-btn">Speak with Emotion</button>
+            <div style="font-size:10px; color:#555; margin-top:4px;">
+                Azure TTS + selected emotion + amplitude-scaled jaw aperture
+            </div>
+        </div>
+
+        <h2>🎬 Emotion Timeline (Paper #2)</h2>
+        <div class="section">
+            <button id="timeline-btn">▶ Play Multi-Emotion Response</button>
+            <div id="timeline-status" style="font-size:11px; color:#888; margin-top:6px;">
+                Cycles: empathy → concern → encouragement → acknowledgment
+            </div>
+        </div>
+
+        <h2 style="font-size:11px; color:#444; margin-top:20px;">Paper Features</h2>
+        <div style="font-size:10px; color:#555; line-height:1.6;">
+            1️⃣ Frame-wise amplitude → jaw aperture<br>
+            2️⃣ Emotion timeline (mid-response changes)<br>
+            3️⃣ Disentangled 4-layer architecture<br>
+            4️⃣ 7 core emotion templates<br>
+            5️⃣ 6 intensity levels (1.0×–2.0×)<br>
+            6️⃣ Natural vs controlled head pose
+        </div>
+    </div>
+
+    <!-- Status bar -->
+    <div id="status">
+        <span class="label">State:</span> <span class="value" id="state-val">idle</span>
+        &nbsp;&middot;&nbsp;
+        <span class="label">Emotion:</span> <span class="value" id="emotion-val">neutral</span>
+    </div>
+
+</body>
+
+</html>

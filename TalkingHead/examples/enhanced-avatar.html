@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Talking Head - Enhanced Avatar (Cinematic Quality)</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      background-color: #1a1a2e;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #avatar {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #controls {
+      display: flex;
+      gap: 8px;
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 10;
+    }
+
+    #text {
+      flex: 1;
+      height: 40px;
+      padding: 0 12px;
+      font-size: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: white;
+      backdrop-filter: blur(10px);
+    }
+
+    #speak {
+      height: 40px;
+      width: 90px;
+      font-size: 14px;
+      font-weight: 600;
+      background: rgba(100, 120, 255, 0.6);
+      border: 1px solid rgba(100, 120, 255, 0.8);
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+    }
+
+    #speak:hover {
+      background: rgba(100, 120, 255, 0.8);
+    }
+
+    #panel {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(12px);
+      border-radius: 10px;
+      padding: 14px;
+      min-width: 220px;
+      font-size: 13px;
+    }
+
+    #panel h3 {
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #aab;
+      letter-spacing: 0.5px;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .toggle-row label {
+      cursor: pointer;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      accent-color: #6478ff;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .status-dot.on {
+      background: #4caf50;
+    }
+
+    .status-dot.off {
+      background: #666;
+    }
+
+    #loading {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform: translate(-50%, 50%);
+      font-size: 18px;
+      z-index: 20;
+      text-align: center;
+    }
+  </style>
+
+  <script type="importmap">
+  { "imports":
+    {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { TalkingHead } from "../modules/talkinghead.mjs?v=20260306";
+    import { enhanceAvatar, disposeEnhancements } from "../modules/avatar-enhancements.mjs?v=20260306";
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      const nodeLoading = document.getElementById('loading');
+      try {
+        let head;
+        let enhancementResults = null;
+
+        const nodeAvatar = document.getElementById('avatar');
+        nodeLoading.textContent = "Creating TalkingHead...";
+
+        // Create TalkingHead instance with dark background
+        head = new TalkingHead(nodeAvatar, {
+          lipsyncModules: ["en", "fi"],
+          cameraView: "upper",
+          modelPixelRatio: 1.5,
+          lightAmbientIntensity: 2,
+          lightDirectIntensity: 30,
+          lightDirectPhi: 1,
+          lightDirectTheta: 2,
+        });
+
+        // Load avatar
+        nodeLoading.textContent = "Loading avatar...";
+        await head.showAvatar({
+          url: '../avatars/brunette.glb',
+          body: 'F',
+          avatarMood: 'neutral',
+          lipsyncLang: 'en',
+        }, (ev) => {
+          if (ev.lengthComputable) {
+            let pct = Math.min(100, Math.round(ev.loaded / ev.total * 100));
+            nodeLoading.textContent = `Loading ${pct}%`;
+          }
+        });
+
+        // Apply all enhancements
+        nodeLoading.textContent = "Applying enhancements...";
+        enhancementResults = enhanceAvatar(head, {
+          skin: {
+            sssIntensity: 0.35,
+            roughness: 0.5,
+            sheenIntensity: 0.3,
+          },
+          eyes: {
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.03,
+            specularIntensity: 1.8,
+          },
+          lips: {
+            clearcoat: 0.7,
+            clearcoatRoughness: 0.08,
+          },
+          hdri: {
+            showBackground: false,
+            backgroundColor: 0x1a1a2e,
+            environmentIntensity: 1.5,
+          },
+          ssao: {
+            kernelRadius: 0.5,
+            minDistance: 0.001,
+            maxDistance: 0.1,
+          },
+          eyelashes: {
+            upperLashCount: 28,
+            lowerLashCount: 16,
+            upperLength: 0.008,
+            lowerLength: 0.004,
+            upperCurl: 0.45,
+            opacity: 0.9,
+          },
+        });
+
+        nodeLoading.style.display = 'none';
+        updatePanel();
+
+        console.log('Enhancement results:', enhancementResults);
+
+        // Speak button
+        document.getElementById('speak').addEventListener('click', async function () {
+          try {
+            if (head && head.audioCtx && head.audioCtx.state === 'suspended') {
+              await head.audioCtx.resume();
+            }
+            const text = document.getElementById('text').value;
+            if (text) {
+              head.speakText(text);
+            }
+          } catch (error) {
+            console.log(error);
+          }
+        });
+
+        // Visibility handler
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "visible") {
+            head.start();
+          } else {
+            head.stop();
+          }
+        });
+
+        function updatePanel() {
+          if (!enhancementResults) return;
+          const items = [
+            { id: 'chk-skin', label: 'SSS Skin', active: enhancementResults.skin.length > 0 },
+            { id: 'chk-eyes', label: 'Eye Enhancement', active: enhancementResults.eyes.length > 0 },
+            { id: 'chk-lips', label: 'Lip Wetness', active: enhancementResults.lips.length > 0 },
+            { id: 'chk-hdri', label: 'Studio HDRI', active: enhancementResults.hdri },
+            { id: 'chk-ssao', label: 'SSAO', active: enhancementResults.ssao !== null },
+            { id: 'chk-lash', label: 'Eyelashes', active: enhancementResults.eyelashes.length > 0 },
+          ];
+          items.forEach(item => {
+            const dot = document.querySelector(`#${item.id} .status-dot`);
+            const chk = document.querySelector(`#${item.id} input`);
+            if (dot) {
+              dot.className = `status-dot ${item.active ? 'on' : 'off'}`;
+            }
+            if (chk) {
+              chk.checked = item.active;
+            }
+          });
+        }
+
+      } catch (error) {
+        console.error('Init error:', error);
+        nodeLoading.textContent = 'ERROR: ' + error.message;
+        nodeLoading.style.color = '#ff4444';
+        nodeLoading.style.fontSize = '14px';
+        nodeLoading.style.maxWidth = '80%';
+        nodeLoading.style.wordBreak = 'break-all';
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <div id="avatar"></div>
+
+  <div id="controls">
+    <input id="text" type="text" value="Hello! The visual enhancements make me look much more realistic."
+      placeholder="Type something to say...">
+    <button id="speak">Speak</button>
+  </div>
+
+  <div id="panel">
+    <h3>ENHANCEMENTS</h3>
+    <div class="toggle-row" id="chk-skin">
+      <label><span class="status-dot off"></span>SSS Skin</label>
+      <input type="checkbox" disabled>
+    </div>
+    <div class="toggle-row" id="chk-eyes">
+      <label><span class="status-dot off"></span>Eye Enhancement</label>
+      <input type="checkbox" disabled>
+    </div>
+    <div class="toggle-row" id="chk-lips">
+      <label><span class="status-dot off"></span>Lip Wetness</label>
+      <input type="checkbox" disabled>
+    </div>
+    <div class="toggle-row" id="chk-hdri">
+      <label><span class="status-dot off"></span>Studio HDRI</label>
+      <input type="checkbox" disabled>
+    </div>
+    <div class="toggle-row" id="chk-ssao">
+      <label><span class="status-dot off"></span>SSAO</label>
+      <input type="checkbox" disabled>
+    </div>
+    <div class="toggle-row" id="chk-lash">
+      <label><span class="status-dot off"></span>Eyelashes</label>
+      <input type="checkbox" disabled>
+    </div>
+  </div>
+
+  <div id="loading">Initializing...</div>
+</body>
+
+</html>

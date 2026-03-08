@@ -1,17 +1,23 @@
 /**
- * OnboardingAvatar.jsx — Lightweight 3D avatar for the onboarding flow.
+ * OnboardingAvatar.jsx — 3D avatar for the onboarding flow with full lip-sync support.
  *
- * Unlike the main Avatar.jsx (which is coupled to useChat, lipsync, audio,
- * and debug controls), this component shows a self-contained idle avatar
- * with:
+ * Features:
  *   - Idle animation loop
- *   - Gentle / compassionate facial expression
- *   - Natural eye movement
- *   - Subtle idle breathing
- *   - Soft head sway
- *   - Natural blinking
+ *   - Gentle / compassionate facial expression presets
+ *   - Natural eye movement & natural blinking
+ *   - Subtle idle breathing + soft head sway
+ *   - Full viseme-based lip-sync (same quality as the main Avatar)
+ *   - Coarticulation blending between consecutive visemes
+ *   - Jaw coupling tied to viseme openness
+ *   - Procedural talking fallback (sine-wave mouth) when isSpeaking=true but no lipsync data
  *
- * It does NOT depend on ChatProvider or any chat hooks.
+ * Props:
+ *   expression  — "gentle" | "compassionate" | "listening"  (default: "gentle")
+ *   lipsync     — Rhubarb mouthCues object  { mouthCues: [{start,end,value},...] }
+ *   audio       — base64 audio string OR HTMLAudioElement; when provided syncs lipsync to audio time
+ *   isSpeaking  — boolean; triggers procedural talking when no lipsync data is available
+ *
+ * Does NOT depend on ChatProvider or any chat hooks.
  */
 
 import { useAnimations, useGLTF } from "@react-three/drei";
@@ -54,9 +60,41 @@ const EXPRESSIONS = {
     },
 };
 
+// ── Viseme config: intensity, jaw-open coupling, cheek puff, lip funnel/pucker ──
+const VISEME_CONFIG = {
+    //                            intensity  jawOpen  cheek  funnel  pucker
+    viseme_PP: { intensity: 0.85, jawOpen: 0.00, cheek: 0.00, funnel: 0.00, pucker: 0.10 }, // p,b,m — pressed
+    viseme_kk: { intensity: 0.70, jawOpen: 0.12, cheek: 0.05, funnel: 0.00, pucker: 0.00 }, // k,g   — back stop
+    viseme_I: { intensity: 0.80, jawOpen: 0.25, cheek: 0.10, funnel: 0.00, pucker: 0.00 }, // i,ee  — stretch
+    viseme_AA: { intensity: 0.90, jawOpen: 0.50, cheek: 0.05, funnel: 0.00, pucker: 0.00 }, // a,aa  — wide open
+    viseme_O: { intensity: 0.85, jawOpen: 0.35, cheek: 0.00, funnel: 0.55, pucker: 0.00 }, // o     — rounded
+    viseme_U: { intensity: 0.80, jawOpen: 0.15, cheek: 0.00, funnel: 0.30, pucker: 0.50 }, // u,oo  — puckered
+    viseme_FF: { intensity: 0.75, jawOpen: 0.08, cheek: 0.00, funnel: 0.00, pucker: 0.00 }, // f,v   — teeth-lip
+    viseme_TH: { intensity: 0.70, jawOpen: 0.18, cheek: 0.00, funnel: 0.00, pucker: 0.00 }, // th,l  — tongue
+};
+
+// ── Rhubarb phoneme letter → Three.js viseme morph target ────────────────
+const PHONEME_TO_VISEME = {
+    A: "viseme_PP",  // Closed mouth (p, b, m)
+    B: "viseme_kk",  // Clenched teeth
+    C: "viseme_I",   // Open mouth (vowels)
+    D: "viseme_AA",  // Wide open mouth
+    E: "viseme_O",   // Rounded mouth
+    F: "viseme_U",   // Puckered lips
+    G: "viseme_FF",  // F/V sounds
+    H: "viseme_TH",  // Tongue/L sounds
+    X: "viseme_PP",  // Rest/pause — closed (natural resting position)
+};
+
 // ── Component ─────────────────────────────────────────────────────────────
 
-export function OnboardingAvatar({ expression = "gentle", ...props }) {
+export function OnboardingAvatar({
+    expression = "gentle",
+    lipsync = null,    // { mouthCues: [{start, end, value},...] } from Rhubarb
+    audio = null,    // base64 string OR HTMLAudioElement for time-sync
+    isSpeaking = false,   // boolean — enables procedural talking when no lipsync
+    ...props
+}) {
     const group = useRef();
     const { nodes, materials, scene } = useGLTF(
         "/models/68c43859d830ce77ae036e51.glb"
@@ -68,8 +106,14 @@ export function OnboardingAvatar({ expression = "gentle", ...props }) {
     const breathingRef = useRef({ time: 0, originalScaleY: null });
     const eyeRef = useRef({ currentX: 0, currentY: 0, nextChangeTime: 0 });
     const headRef = useRef({ yawTime: 0 });
+    const proceduralRef = useRef({ time: 0 }); // procedural talking fallback timer
     const [eyeTarget, setEyeTarget] = useState({ x: 0, y: 0 });
     const [blink, setBlink] = useState(false);
+
+    // ── Lipsync state ───────────────────────────────────────────────────
+    const playbackTimeRef = useRef(0); // ref avoids async state drift inside useFrame
+    const audioElemRef = useRef(null); // holds HTMLAudioElement when audio prop is a string
+    const lastCueIdxRef = useRef(0);   // cached cue index — O(1) amortised search per frame
 
     // ── Enhance materials (same warm Indian skin tones as main Avatar) ──
     useEffect(() => {
@@ -148,6 +192,43 @@ export function OnboardingAvatar({ expression = "gentle", ...props }) {
         return () => clearTimeout(timeout);
     }, []);
 
+    // ── Audio / lipsync setup ────────────────────────────────────────────
+    // Accepts either:
+    //   • an HTMLAudioElement (used directly)
+    //   • a base64 audio string (creates an Audio element internally)
+    //   • null (timer-based playback used instead)
+    useEffect(() => {
+        if (!lipsync) {
+            playbackTimeRef.current = 0;
+            lastCueIdxRef.current = 0;
+            audioElemRef.current = null;
+            return;
+        }
+
+        playbackTimeRef.current = 0; // reset timer whenever new lipsync arrives
+        lastCueIdxRef.current = 0;
+
+        if (audio instanceof HTMLAudioElement) {
+            audioElemRef.current = audio;
+        } else if (typeof audio === "string" && audio.length > 0) {
+            const isWav = audio.startsWith("UklGR");
+            const mime = isWav ? "audio/wav" : "audio/mp3";
+            const elem = new Audio(`data:${mime};base64,` + audio);
+            elem.play().catch(() => { }); // autoplay — falls back to timer sync if blocked
+            audioElemRef.current = elem;
+        } else {
+            audioElemRef.current = null;
+        }
+
+        return () => {
+            if (audioElemRef.current && typeof audio === "string") {
+                audioElemRef.current.pause();
+                audioElemRef.current = null;
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lipsync]);
+
     // ── Helper: lerp a single morph target across all skinned meshes ───
     const lerpMorphTarget = (target, value, speed = 0.1) => {
         scene.traverse((child) => {
@@ -224,6 +305,167 @@ export function OnboardingAvatar({ expression = "gentle", ...props }) {
             const tilt = Math.cos(headRef.current.yawTime * 0.12) * 0.010;
             nodes.Head.rotation.y = THREE.MathUtils.lerp(nodes.Head.rotation.y, sway, 0.03);
             nodes.Head.rotation.z = THREE.MathUtils.lerp(nodes.Head.rotation.z, tilt, 0.03);
+        }
+
+        // ── LIP-SYNC ────────────────────────────────────────────────────
+
+        const appliedVisemes = [];
+        let jawOpenTarget = 0;
+        let cheekTarget = 0;
+
+        const hasMouthCues =
+            lipsync &&
+            Array.isArray(lipsync.mouthCues) &&
+            lipsync.mouthCues.length > 0;
+
+        if (hasMouthCues) {
+            // ── Advance playback via ref — no async setState drift ──────
+            if (!audioElemRef.current) {
+                playbackTimeRef.current += delta;
+            }
+            const currentTime = audioElemRef.current
+                ? audioElemRef.current.currentTime
+                : playbackTimeRef.current;
+
+            // ── O(1) amortised cue search via cached index ────────────────
+            const cues = lipsync.mouthCues;
+            let idx = lastCueIdxRef.current;
+            // Advance forward past expired cues
+            while (idx < cues.length - 1 && currentTime > cues[idx].end) idx++;
+            // Walk back on audio seek / restart
+            while (idx > 0 && currentTime < cues[idx].start) idx--;
+            lastCueIdxRef.current = idx;
+
+            let currentCue = null;
+            let nextCue = null;
+            const c = cues[idx];
+            if (
+                c &&
+                typeof c.start === "number" &&
+                typeof c.end === "number" &&
+                c.value &&
+                currentTime >= c.start &&
+                currentTime <= c.end
+            ) {
+                currentCue = c;
+                nextCue = cues[idx + 1] || null;
+            }
+
+            let funnelTarget = 0;
+            let puckerTarget = 0;
+
+            if (currentCue) {
+                const viseme = PHONEME_TO_VISEME[currentCue.value];
+                if (viseme) {
+                    const cfg = VISEME_CONFIG[viseme] || { intensity: 0.8, jawOpen: 0.2, cheek: 0, funnel: 0, pucker: 0 };
+                    const cueDuration = Math.max(currentCue.end - currentCue.start, 0.01);
+                    const progress = Math.min((currentTime - currentCue.start) / cueDuration, 1.0);
+
+                    // Envelope: faster attack (0→15 %), flat sustain, gentle partial release (75→100 %)
+                    let envelope = 1.0;
+                    if (progress < 0.15) {
+                        envelope = progress / 0.15;                               // Fast attack
+                    } else if (progress > 0.75) {
+                        envelope = 1.0 - ((progress - 0.75) / 0.25) * 0.35;     // Partial release
+                    }
+
+                    const intensity = cfg.intensity * envelope;
+                    appliedVisemes.push(viseme);
+
+                    // Snappier lerp during attack, smooth during sustain/decay
+                    const lerpSpeed = progress < 0.15 ? 0.65 : 0.38;
+                    lerpMorphTarget(viseme, intensity, lerpSpeed);
+
+                    jawOpenTarget = cfg.jawOpen * envelope;
+                    cheekTarget = cfg.cheek * envelope;
+                    funnelTarget = (cfg.funnel || 0) * envelope;
+                    puckerTarget = (cfg.pucker || 0) * envelope;
+
+                    // Suppress mouthClose during open vowels to prevent half-shut look
+                    if (jawOpenTarget > 0.2) {
+                        lerpMorphTarget("mouthClose", 0, 0.55);
+                    }
+
+                    // Coarticulation: blend toward next viseme in last 40 %
+                    if (nextCue && progress > 0.6) {
+                        const nextViseme = PHONEME_TO_VISEME[nextCue.value];
+                        if (nextViseme && nextViseme !== viseme) {
+                            const blend = (progress - 0.6) / 0.4;
+                            const nCfg = VISEME_CONFIG[nextViseme] || { intensity: 0.8, jawOpen: 0.2, cheek: 0, funnel: 0, pucker: 0 };
+                            lerpMorphTarget(nextViseme, nCfg.intensity * blend * 0.5, 0.28);
+                            appliedVisemes.push(nextViseme);
+                            jawOpenTarget = THREE.MathUtils.lerp(jawOpenTarget, nCfg.jawOpen, blend * 0.4);
+                            funnelTarget = THREE.MathUtils.lerp(funnelTarget, nCfg.funnel || 0, blend * 0.4);
+                            puckerTarget = THREE.MathUtils.lerp(puckerTarget, nCfg.pucker || 0, blend * 0.4);
+                        }
+                    }
+                }
+            }
+
+            // Reset inactive visemes — faster to prevent ghosting
+            Object.values(PHONEME_TO_VISEME).forEach((v) => {
+                if (!appliedVisemes.includes(v)) {
+                    lerpMorphTarget(v, 0, 0.30);
+                }
+            });
+
+            // Apply jaw, cheek puff, lip rounding, lip pucker, cheek squint
+            lerpMorphTarget("jawOpen", jawOpenTarget, 0.42);
+            lerpMorphTarget("cheekPuff", cheekTarget, 0.25);
+            lerpMorphTarget("mouthFunnel", funnelTarget, 0.38);
+            lerpMorphTarget("mouthPucker", puckerTarget, 0.38);
+            lerpMorphTarget("cheekSquintLeft", cheekTarget * 0.4, 0.22);
+            lerpMorphTarget("cheekSquintRight", cheekTarget * 0.4, 0.22);
+
+        } else if (isSpeaking) {
+            // ── Procedural talking fallback (no Rhubarb data) ─────────────
+            // Layered multi-sine for natural speech rhythm with phrase-level amplitude variation
+            proceduralRef.current.time += delta;
+            const pt = proceduralRef.current.time;
+
+            // Syllable open/close at ~2.8 syllables/sec
+            const syllable = Math.max(0, Math.sin(pt * Math.PI * 2.8));
+            const ampMod = 0.6 + 0.4 * Math.sin(pt * Math.PI * 0.7); // phrase-level variation
+            const openClose = syllable * ampMod * 0.55;
+
+            // Shape oscillation: cycles between wide 'A', rounded 'O', and stretched 'I'
+            const vowelPhase = Math.sin(pt * Math.PI * 1.8) * 0.5 + 0.5;
+            const iFlicker = Math.max(0, Math.sin(pt * Math.PI * 5.3)) * 0.30;
+
+            const aaVal = openClose * (1.0 - vowelPhase) * 0.95;
+            const oVal = openClose * vowelPhase * 0.85;
+            const iVal = iFlicker * (1.0 - openClose);       // 'I' appears in quick closures
+            // Consonant lip closure pulses (~1/sec)
+            const ppPulse = Math.max(0, Math.sin(pt * Math.PI * 1.1 + 1.5)) * 0.42 * (1.0 - openClose);
+
+            lerpMorphTarget("viseme_AA", aaVal, 0.38);
+            lerpMorphTarget("viseme_O", oVal, 0.38);
+            lerpMorphTarget("viseme_I", iVal, 0.32);
+            lerpMorphTarget("viseme_PP", ppPulse, 0.45);
+            lerpMorphTarget("jawOpen", openClose * 0.42, 0.38);
+            lerpMorphTarget("mouthFunnel", oVal * 0.55, 0.32);
+
+            // Reset unused visemes
+            ["viseme_kk", "viseme_U", "viseme_FF", "viseme_TH"].forEach((v) =>
+                lerpMorphTarget(v, 0, 0.25)
+            );
+            lerpMorphTarget("cheekPuff", 0, 0.2);
+            lerpMorphTarget("mouthPucker", 0, 0.2);
+            lerpMorphTarget("cheekSquintLeft", 0, 0.2);
+            lerpMorphTarget("cheekSquintRight", 0, 0.2);
+
+        } else {
+            // ── Idle / silent: gently close the mouth ──────────────────────
+            Object.values(PHONEME_TO_VISEME).forEach((v) => lerpMorphTarget(v, 0, 0.15));
+            lerpMorphTarget("jawOpen", 0, 0.20);
+            lerpMorphTarget("cheekPuff", 0, 0.20);
+            lerpMorphTarget("mouthFunnel", 0, 0.20);
+            lerpMorphTarget("mouthPucker", 0, 0.20);
+            lerpMorphTarget("cheekSquintLeft", 0, 0.15);
+            lerpMorphTarget("cheekSquintRight", 0, 0.15);
+            proceduralRef.current.time = 0; // reset procedural timer
+            playbackTimeRef.current = 0; // reset timer sync
+            lastCueIdxRef.current = 0;
         }
     });
 

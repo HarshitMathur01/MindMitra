@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Mic, Bot, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Sparkles, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Send, Mic, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,6 +139,13 @@ const ChatGPTInterface = () => {
   const lastTranscriptRef = useRef('');
   const isAutoStoppingRef = useRef(false);
   const { isAvatarVisible, toggleAvatar, closeAvatar, addAvatarMessage, clearAvatarMessages, message: avatarCurrentMessage } = useChat();
+  const userDisplayName =
+    user?.user_metadata?.full_name ??
+    user?.user_metadata?.name ??
+    user?.email?.split("@")[0] ??
+    "U";
+  const userAvatarUrl = user?.user_metadata?.avatar_url as string | undefined;
+  const userInitial = userDisplayName.trim().charAt(0).toUpperCase() || "U";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1030,7 +1037,7 @@ const ChatGPTInterface = () => {
                                 className={`w-full h-auto rounded-xl text-left px-3 py-2.5 transition-all duration-200 group relative border-l-2 ${currentSessionId === chat.id
                                   ? 'bg-primary/10 border-l-primary text-text-primary'
                                   : 'border-l-transparent text-text-secondary hover:text-text-primary hover:bg-background/50'
-                                } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 onClick={() => selectRecentChat(chat.id)}
                               >
                                 <div className="min-w-0 w-full">
@@ -1145,7 +1152,7 @@ const ChatGPTInterface = () => {
             <div className="flex items-center gap-2">
               <div className="relative">
                 <div className="w-9 h-9 bg-gradient-to-br from-primary to-[hsl(168,45%,34%)] rounded-full flex items-center justify-center shadow-sm">
-                  <Sparkles className="h-4 w-4 text-white" />
+                  <img src="/image.png" alt="MindMitra" className="h-4 w-4 object-cover" />
                 </div>
                 {/* Online indicator dot — pulse when loading, steady when idle */}
                 <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-background ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
@@ -1351,7 +1358,7 @@ const ChatGPTInterface = () => {
                               transition={{ type: "spring", stiffness: 200 }}
                               className="mm-avatar mm-avatar--ai flex-shrink-0"
                             >
-                              <Bot className="h-4 w-4" />
+                              <img src="/image6.png" alt="AI companion" className="h-4 w-4 object-cover" />
                             </motion.div>
                             <div className="flex-1 space-y-1.5">
                               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
@@ -1405,7 +1412,13 @@ const ChatGPTInterface = () => {
                               </motion.div>
                             </div>
                             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }} className="mm-avatar mm-avatar--user flex-shrink-0">
-                              <User className="h-4 w-4" />
+                              {userAvatarUrl ? (
+                                <img src={userAvatarUrl} alt={userDisplayName} className="h-4 w-4 rounded-full object-cover" />
+                              ) : (
+                                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
+                                  {userInitial}
+                                </span>
+                              )}
                             </motion.div>
                           </div>
                         )}
@@ -1424,7 +1437,7 @@ const ChatGPTInterface = () => {
                   className="flex gap-3 items-start"
                 >
                   <div className="mm-avatar mm-avatar--ai flex-shrink-0">
-                    <Bot className="h-4 w-4" />
+                    <img src="/image6.png" alt="AI companion" className="h-4 w-4 object-cover" />
                   </div>
                   <div className="mm-bubble mm-bubble--ai py-3 px-5">
                     <p className="text-[11px] text-text-secondary mb-1.5">MindMitra is reflecting…</p>

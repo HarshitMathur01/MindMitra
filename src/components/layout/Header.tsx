@@ -1,4 +1,4 @@
-import { Brain, MessageSquare, Puzzle, BookOpen, LogOut, User, Stethoscope, Menu, X, Settings, Users, GraduationCap, ChevronDown, CircleUserRound, Gamepad2 } from "lucide-react";
+import { MessageSquare, Puzzle, BookOpen, LogOut, User, Stethoscope, Menu, X, Settings, Users, GraduationCap, ChevronDown, CircleUserRound, Gamepad2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -69,11 +69,11 @@ const Header = () => {
             whileTap={{ scale: 0.98 }}
           >
             <motion.div
-              className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"
+              className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden"
               whileHover={{ rotate: 5, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <Brain className="h-6 w-6 text-primary-foreground" />
+              <img src="/image.png" alt="MindMitra Logo" className="w-10 h-10 object-contain" />
             </motion.div>
             <div>
               <h1 className="text-xl font-bold text-text-primary">

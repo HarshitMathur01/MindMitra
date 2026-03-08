@@ -27,6 +27,9 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import PeerSupport from "./pages/PeerSupport";
 import PsychologicalContent from "./pages/PsychologicalContent";
+import GroundingRitualsArticle from "./pages/GroundingRitualsArticle";
+import NervousSystemResetArticle from "./pages/NervousSystemResetArticle";
+import BedtimeRoutineArticle from "./pages/BedtimeRoutineArticle";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +83,18 @@ function AppContent() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/peer-support" element={<PeerSupport />} />
       <Route path="/psychological-content" element={<PsychologicalContent />} />
+      <Route
+        path="/articles/grounding-rituals-busy-mornings"
+        element={<GroundingRitualsArticle />}
+      />
+      <Route
+        path="/articles/reset-your-nervous-system"
+        element={<NervousSystemResetArticle />}
+      />
+      <Route
+        path="/articles/calming-bedtime-routine"
+        element={<BedtimeRoutineArticle />}
+      />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>

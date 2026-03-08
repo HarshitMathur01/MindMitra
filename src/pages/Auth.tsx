@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Mail, Lock, User, ArrowRight, Chrome } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Chrome } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,8 +55,8 @@ const Auth = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 hover-glow">
-            <Brain className="h-8 w-8 text-primary-foreground" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 hover-glow overflow-hidden">
+            <img src="/favicon.png" alt="MindMitra Logo" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-2xl font-bold gradient-primary bg-clip-text text-transparent">
             Welcome to MindMitra
@@ -223,6 +223,15 @@ const Auth = () => {
         </Card>
 
         <div className="text-center mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            className="mb-3 w-full border-border/80 bg-white/80 text-sm font-semibold text-foreground shadow-sm transition-smooth hover:bg-white hover:text-primary"
+            onClick={() => navigate('/')}
+          >
+            Sign in later
+          </Button>
+
           <p className="text-sm text-muted-foreground">
             By continuing, you agree to our terms of service and privacy policy.
           </p>

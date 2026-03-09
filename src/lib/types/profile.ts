@@ -38,6 +38,8 @@ export interface UserSettings {
     reminder_time?: string;
     language: 'hindi' | 'english' | 'hinglish';
     theme: 'light' | 'dark' | 'auto';
+    /** Selected TalkingHead avatar model id. Matches AVATAR_OPTIONS in src/lib/avatarOptions.ts */
+    avatar_model?: string;
     // Privacy
     privacy_data_sharing: boolean;
     privacy_therapist_share: boolean;
@@ -96,6 +98,7 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'user_id'> = {
     reminder_time: '09:00',
     language: 'english',
     theme: 'auto',
+    avatar_model: 'brunette',
     privacy_data_sharing: false,
     privacy_therapist_share: false,
     privacy_crisis_alert: true,

@@ -62,10 +62,26 @@
         // -- Config from URL params ---------------------------------------------
         const params = new URLSearchParams(window.location.search);
         const azureKey = params.get("azureKey") || "";
-        const azureRegion = params.get("azureRegion") || "westeurope";
-        const azureVoice = params.get("azureVoice") || "en-US-Emma2:DragonHDLatestNeural";
+        const azureRegion = params.get("azureRegion") || "eastasia";
+        const azureVoice = params.get("azureVoice") || "en-US-AriaNeural";
         const azureLang = params.get("azureLang") || "en-US";
-        const avatarUrl = params.get("avatarUrl") || "/talkinghead/avatars/brunette.glb";
+        const avatarUrl = params.get("avatarUrl") || "/talkinghead/avatars/Brunette.glb";
+
+        // -- Startup diagnostics -----------------------------------------------
+        const TTS_MODE = azureKey ? "azure" : "webspeech-fallback";
+        console.info(
+            `%c[MindMitra Avatar] Startup%c\n` +
+            `  TTS mode   : ${TTS_MODE}\n` +
+            `  Azure key  : ${azureKey ? `${azureKey.slice(0,6)}…(${azureKey.length} chars)` : "NOT SET — using Web Speech fallback"}\n` +
+            `  Region     : ${azureRegion}\n` +
+            `  Voice      : ${azureVoice}\n` +
+            `  Avatar URL : ${avatarUrl}`,
+            "background:#0d1117;color:#58c4dc;font-weight:bold",
+            "background:#0d1117;color:#e2e8f0"
+        );
+        if (!azureKey) {
+            console.warn("[MindMitra Avatar] ⚠ VITE_AZURE_TTS_KEY not passed to iframe — TTS will use browser Web Speech API (no Azure audio).");
+        }
 
         // Sentinel Google-format endpoint � TalkingHead needs a ttsEndpoint to
         // enable TTS mode; our fetch interceptor silently redirects to Azure.
@@ -83,6 +99,14 @@
             if (!url || !url.startsWith(SENTINEL_ENDPOINT)) {
                 return _origFetch(input, init);
             }
+
+            // ── Guard: no Azure key → silent lipsync, no network call ──────────
+            if (!azureKey) {
+                console.log("[MindMitra Avatar] TTS intercepted — no Azure key, returning empty response (Web Speech handles audio)");
+                return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
+            }
+
+            console.log(`[MindMitra Avatar] Azure TTS → ${azureRegion} | voice: ${azureVoice}`);
 
             // 1. Parse TalkingHead's Google-format request body
             let body;
@@ -113,14 +137,17 @@
 
                 if (!resp.ok) {
                     const errText = await resp.text().catch(() => "");
-                    console.error(`[Azure TTS] ${resp.status}: ${errText}`);
-                    // Return empty so TalkingHead falls back to silent lipsync animation
+                    console.error(`[MindMitra Avatar] ❌ Azure TTS ${resp.status} from ${azureRegion}: ${errText}`);
+                    console.warn("[MindMitra Avatar] Azure TTS failed — falling back to silent lipsync (no audio)");
                     return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
                 }
 
                 mp3Bytes = await resp.arrayBuffer();
+                const durationEst = ((mp3Bytes.byteLength * 8) / 96_000).toFixed(2);
+                console.log(`[MindMitra Avatar] ✅ Azure TTS OK — ${mp3Bytes.byteLength} bytes (~${durationEst}s audio)`);
             } catch (err) {
-                console.error("[Azure TTS] Network error:", err);
+                console.error("[MindMitra Avatar] ❌ Azure TTS network error:", err);
+                console.warn("[MindMitra Avatar] Falling back to silent lipsync (no audio)");
                 return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
             }
 
@@ -207,7 +234,8 @@
         }
 
         async function init() {
-            setStatus("Loading avatar�");
+            setStatus("Loading avatar\u2026");
+            console.info(`[MindMitra Avatar] Loading model: ${avatarUrl}`);
 
             head = new TalkingHead(document.getElementById("avatar"), {
                 ttsEndpoint: SENTINEL_ENDPOINT,
@@ -234,9 +262,10 @@
                     }
                 );
                 setStatus(null);
+                console.info(`[MindMitra Avatar] ✅ Avatar ready — TTS mode: ${TTS_MODE}`);
                 postToParent({ type: "ready" });
             } catch (err) {
-                console.error("[TalkingHead] Avatar load error:", err);
+                console.error("[MindMitra Avatar] ❌ Avatar load error:", err);
                 setStatus("Failed to load avatar");
                 postToParent({ type: "error", message: err.toString() });
             }
@@ -246,7 +275,10 @@
         let webSpeechUtterance = null;
 
         function speakWithWebSpeech(text) {
-            if (!window.speechSynthesis) return false;
+            if (!window.speechSynthesis) {
+                console.warn("[MindMitra Avatar] Web Speech API not available in this browser");
+                return false;
+            }
             window.speechSynthesis.cancel(); // clear any pending
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = azureLang || "en-US";
@@ -260,11 +292,15 @@
             ) || voices.find(v => v.lang.startsWith("en"));
             if (femaleVoice) utter.voice = femaleVoice;
 
+            console.info(`[MindMitra Avatar] 🔊 Web Speech fallback — voice: "${femaleVoice?.name || "browser default"}" | lang: ${utter.lang}`);
+
             utter.onend = () => {
+                console.log("[MindMitra Avatar] Web Speech finished");
                 clearSpeakEndPoll();
                 postToParent({ type: "speakingEnd" });
             };
-            utter.onerror = () => {
+            utter.onerror = (e) => {
+                console.warn("[MindMitra Avatar] Web Speech error:", e.error);
                 clearSpeakEndPoll();
                 postToParent({ type: "speakingEnd" });
             };
@@ -312,6 +348,7 @@
             switch (type) {
                 case "speakText":
                     if (!text) break;
+                    console.log(`[MindMitra Avatar] speakText received (${text.length} chars) | mode: ${TTS_MODE}`);
                     try {
                         await ensureAudioCtx();
                         clearSpeakEndPoll();
@@ -323,24 +360,30 @@
                             // TalkingHead handles lipsync animation only.
                             // Voices may need a brief delay to load on first call.
                             if (window.speechSynthesis.getVoices().length === 0) {
+                                console.log("[MindMitra Avatar] Voices not loaded yet — waiting for voiceschanged event");
                                 window.speechSynthesis.addEventListener("voiceschanged", () => speakWithWebSpeech(text), { once: true });
                             } else {
                                 speakWithWebSpeech(text);
                             }
                         } else {
+                            console.log("[MindMitra Avatar] Azure TTS in progress — polling for speakingEnd");
                             startSpeakEndPoll();
                         }
-                    } catch (err) { console.error("[TalkingHead] speakText error:", err); }
+                    } catch (err) { console.error("[MindMitra Avatar] ❌ speakText error:", err); }
                     break;
 
                 case "stopSpeaking":
+                    console.log("[MindMitra Avatar] stopSpeaking received");
                     clearSpeakEndPoll();
                     if (!azureKey && window.speechSynthesis) window.speechSynthesis.cancel();
                     try { head.stopSpeaking(); postToParent({ type: "speakingEnd" }); } catch { /* noop */ }
                     break;
 
                 case "setMood":
-                    if (mood) try { head.setMood(mood); } catch { /* noop */ }
+                    if (mood) {
+                        console.log(`[MindMitra Avatar] setMood → ${mood}`);
+                        try { head.setMood(mood); } catch { /* noop */ }
+                    }
                     break;
 
                 case "pause":

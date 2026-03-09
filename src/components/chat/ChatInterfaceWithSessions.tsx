@@ -582,7 +582,7 @@ export function ChatInterfaceWithSessions() {
                     placeholder={
                       isRecording ? 'Listening…' :
                       isProcessing ? 'Processing voice…' :
-                      'Share what's on your mind…'
+                          "Share what's on your mind…"
                     }
                     disabled={isRecording || isProcessing}
                     className="flex-1 h-10 px-4 text-[14px] bg-background border border-border rounded-xl placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-colors disabled:opacity-60"

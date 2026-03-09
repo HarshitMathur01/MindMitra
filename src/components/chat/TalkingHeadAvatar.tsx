@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useChat } from "../../hooks/useChat";
-import { TalkingHead } from "@met4citizen/talkinghead";
 // Map the app's facialExpression values → TalkingHead mood names
 const EXPRESSION_TO_MOOD: Record<string, string> = {
     smile: "happy",
@@ -35,7 +34,7 @@ interface Props {
     /** Azure region, e.g. "eastus". Falls back to VITE_AZURE_TTS_REGION env var. */
     azureRegion?: string;
     /** Azure Neural voice name. Default: en-US-Emma2:DragonHDLatestNeural */
-    azureVoice?: string;
+     azureVoice?: string;
     /** BCP-47 language tag for the voice. Default: en-US */
     azureLang?: string;
     /** Avatar GLB URL relative to public root. Defaults to brunette. */
@@ -45,7 +44,7 @@ interface Props {
 const TalkingHeadAvatar = ({
     azureKey,
     azureRegion,
-    azureVoice = "en-US-Emma2:DragonHDLatestNeural",
+    azureVoice = "en-US-JennyNeural",
     azureLang = "en-US",
     avatarUrl = "/talkinghead/avatars/brunette.glb",
 }: Props) => {

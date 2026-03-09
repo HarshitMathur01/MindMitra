@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import MessageRenderer from "./MessageRenderer"
 import { jsPDF } from "jspdf";
 import QuickReplies from "./QuickReplies";
+import { AVATAR_OPTIONS } from "@/lib/avatarOptions";
 
 interface Message {
   id: string;
@@ -121,7 +122,7 @@ const ChatGPTInterface = () => {
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const { user } = useAuth();
-  const { settings } = useSettings();
+  const { settings, saveSettings } = useSettings();
   const { toast } = useToast();
   const { isRecording, isProcessing, toggleRecording, currentTranscript } = useVoiceRecording();
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
@@ -139,6 +140,18 @@ const ChatGPTInterface = () => {
   const lastTranscriptRef = useRef('');
   const isAutoStoppingRef = useRef(false);
   const { isAvatarVisible, toggleAvatar, closeAvatar, addAvatarMessage, clearAvatarMessages, message: avatarCurrentMessage } = useChat();
+
+  // ── Avatar model selection ───────────────────────────────────────────────────────
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string>(
+    settings?.avatar_model ?? 'brunette'
+  );
+  useEffect(() => {
+    if (settings?.avatar_model) {
+      setSelectedAvatarId(settings.avatar_model);
+    }
+  }, [settings?.avatar_model]);
+  const selectedAvatar = AVATAR_OPTIONS.find(a => a.id === selectedAvatarId) ?? AVATAR_OPTIONS[0];
+
   const userDisplayName =
     user?.user_metadata?.full_name ??
     user?.user_metadata?.name ??
@@ -1234,6 +1247,42 @@ const ChatGPTInterface = () => {
                 </div>
               </Button>
             </motion.div>
+
+            {/* ── Avatar model picker ───────────────────────────────────────── */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-surface border-border hover:shadow-theme gap-2"
+                >
+                  <User className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-sm hidden sm:inline">{selectedAvatar.name}</span>
+                  <ChevronDown className="h-3 w-3 text-text-secondary" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {AVATAR_OPTIONS.map((avatar) => (
+                  <DropdownMenuItem
+                    key={avatar.id}
+                    onClick={() => {
+                      setSelectedAvatarId(avatar.id);
+                      saveSettings({ avatar_model: avatar.id });
+                    }}
+                    className="flex items-center justify-between py-2"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{avatar.name}</p>
+                      <p className="text-xs text-muted-foreground">{avatar.description}</p>
+                    </div>
+                    {selectedAvatarId === avatar.id && (
+                      <div className="w-2 h-2 rounded-full bg-primary ml-2 flex-shrink-0" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="hover:bg-background transition-colors">
@@ -1262,7 +1311,7 @@ const ChatGPTInterface = () => {
         <div className={`grid grid-rows-1 h-[80%] ${isAvatarVisible ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {isAvatarVisible && (
             <div className="relative bg-background border-r border-border overflow-hidden transition-colors duration-300">
-              <TalkingHeadAvatar />
+              <TalkingHeadAvatar key={selectedAvatarId} avatarUrl={selectedAvatar.url} />
               {/* Real-time transcription subtitle overlay */}
               <AnimatePresence>
                 {avatarCurrentMessage?.text && (

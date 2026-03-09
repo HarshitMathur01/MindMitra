@@ -146,6 +146,21 @@ ehthumbs.db
 Thumbs.db
 
 # ─────────────────────────────────────────────────────────────
+# TalkingHead / 3D Assets
+# ─────────────────────────────────────────────────────────────
+
+# TalkingHead library bundle — large file, comes from npm / CDN, not source code
+public/talkinghead/modules/
+
+# 3D avatar models — large binary assets, track via Git LFS or external storage
+# Uncomment the line below if you move GLBs to a CDN/LFS
+# public/talkinghead/avatars/*.glb
+
+# Misplaced secrets file inside public/ — already covered by .env.local rule
+# but listed explicitly so it's obvious
+public/talkinghead/.env.local
+
+# ─────────────────────────────────────────────────────────────
 # Project-Specific (Keep these out of Git)
 # ─────────────────────────────────────────────────────────────
 

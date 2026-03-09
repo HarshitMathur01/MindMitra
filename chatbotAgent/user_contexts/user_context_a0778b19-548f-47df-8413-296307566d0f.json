@@ -1,8 +1,8 @@
 {
     "user_id": "a0778b19-548f-47df-8413-296307566d0f",
-    "session_id": "ec71ad84-bb34-4bae-bfbe-bd9219dcf291",
-    "timestamp": "2026-03-05T05:35:52.996730+00:00",
-    "user_message": "What should I do next?",
+    "session_id": "e9d4cb82-3d4c-447e-9a5a-55e5e648b801",
+    "timestamp": "2026-03-09T21:05:04.682728+00:00",
+    "user_message": "can you talk to me?",
     "voice_analysis": {},
     "session_context": {
         "recent_messages": [
@@ -1263,31 +1263,28 @@
         "hindi_english_ratio": 0.0,
         "code_switching_detected": false,
         "cultural_sensitivity_flags": [],
-        "communication_pattern": "questioning",
+        "communication_pattern": "terse",
         "regional_context": "urban_metro",
-        "formality_level": "medium"
+        "formality_level": "low"
     },
     "psychological_analysis": {
-        "emotional_state": "neutral, with an underlying sense of uncertainty",
+        "emotional_state": "neutral, seeking connection",
         "stress_categories": [
             "Miscellaneous"
         ],
         "risk_assessment": "low",
-        "coping_assessment": "No observable coping mechanisms yet; the user appears to be seeking direction without expressing distress.",
+        "coping_assessment": "No observable coping mechanisms yet; user appears open to engagement but lacks context for assessment.",
         "intervention_priority": "supportive",
         "psychological_insights": [
-            "The user may be experiencing a transitional phase or decision-making uncertainty.",
-            "The neutral tone suggests a lack of immediate emotional distress but may mask deeper concerns.",
-            "The question 'What should I do next?' indicates a need for guidance or clarity.",
-            "Limited emotional expression may indicate suppression or lack of awareness",
-            "Terse communication style may suggest discomfort or avoidance",
-            "Neutral sentiment could reflect a stable baseline or emotional numbness"
+            "User may be testing the environment or seeking validation.",
+            "Terse communication could indicate discomfort or uncertainty.",
+            "Open-ended request suggests a need for emotional support or guidance."
         ],
-        "cultural_pressures": "No specific Indian cultural/family/academic pressures identified from the message. No specific cultural pressures identified at this time, but Indian youth often face expectations related to academics, career choices, and family responsibilities, which may influence their decision-making process."
+        "cultural_pressures": "No specific cultural pressures identified from the message; further context needed."
     },
     "screening_assessments": {
         "phq9": {
-            "score": 1,
+            "score": 0,
             "severity": "minimal",
             "responses": [
                 "...",
@@ -1300,10 +1297,10 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-03-05T05:36:15.824147+00:00"
+            "last_updated": "2026-03-09T21:05:17.334939+00:00"
         },
         "gad7": {
-            "score": 1,
+            "score": 0,
             "severity": "minimal",
             "responses": [
                 "...",
@@ -1314,23 +1311,20 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-03-05T05:36:15.824147+00:00"
+            "last_updated": "2026-03-09T21:05:17.334939+00:00"
         }
     },
     "technique_selection": {
-        "primary_technique": "Solution-Focused",
-        "therapeutic_approach": "Focus on identifying small, achievable goals and future aspirations to help the user navigate uncertainty. Encourage them to envision a preferred future and explore steps to move toward it, while acknowledging their current neutral state. Create a non-judgmental, empathetic space for the individual to explore their feelings and thoughts at their own pace. Use active listening, reflection, and validation to help them gain self-awareness and emotional expression.",
+        "primary_technique": "Person-Centered",
+        "therapeutic_approach": "Create a non-judgmental, empathetic space where the youth can explore their feelings and thoughts at their own pace. Use active listening, validation, and reflective questioning to foster trust and self-discovery.",
         "activity_recommendations": [
-            "Journaling about future aspirations and small steps to achieve them",
-            "Mindfulness grounding exercises to stay present and reduce uncertainty",
-            "Yoga or light physical activity to manage underlying stress",
-            "Journaling prompts to explore emotions",
-            "Mindful breathing exercises",
-            "Yoga or stretching for physical grounding"
+            "Journaling prompts to explore feelings and thoughts",
+            "Mindful breathing exercises to enhance self-awareness",
+            "Yoga or stretching to connect mind and body"
         ],
-        "rationale": "The user's neutral emotional state and underlying uncertainty suggest a need for clarity and direction rather than deep emotional processing. Solution-Focused therapy is ideal for this as it is future-oriented, practical, and supportive, aligning with the low-risk, supportive intervention priority. The neutral emotional state and limited expression suggest a need for a supportive, non-directive approach. Person-Centered therapy aligns with the low intervention priority and helps address potential emotional suppression or avoidance. It is culturally adaptable and fosters self-exploration."
+        "rationale": "The neutral emotional state and need for connection suggest a supportive, non-directive approach is most appropriate. Person-Centered therapy aligns with the low-risk, supportive intervention priority and helps address the potential discomfort or uncertainty indicated by terse co..."
     },
-    "ai_response": "Hey there! It\u2019s totally okay to feel a bit uncertain about what\u2019s next. Sometimes, when we\u2019re in a neutral space, it\u2019s like we\u2019re waiting for the right signal to move forward. Have you thought about what small step might feel good to take, even if it\u2019s just exploring an idea or trying something new? Let\u2019s think about what could bring a little clarity or excitement for you.",
+    "ai_response": "Of course, I\u2019m here to talk whenever you need. What\u2019s on your mind, or how can I support you right now? No pressure at all\u2014just take your time. \ud83d\ude0a",
     "response_generated": true,
     "personality_settings": {
         "personality": "mitra",

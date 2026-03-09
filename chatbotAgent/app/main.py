@@ -81,19 +81,29 @@ else:
     logger.warning("⚠️ [INIT] Google Cloud credentials not found — Google TTS will use gTTS fallback")
 
 # ── CORS ──────────────────────────────────────────────────────────────────
+default_cors_origins = [
+    "https://mindmitra.co.in",
+    "https://www.mindmitra.co.in",
+    "https://mindmitra-seven.vercel.app",
+    "http://localhost:8080",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8001",
+    "http://127.0.0.1:8000",
+]
+
+extra_cors_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+cors_origins = list(dict.fromkeys(default_cors_origins + extra_cors_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://mindmitra.co.in",
-        "https://www.mindmitra.co.in",
-        "https://mindmitra-seven.vercel.app",
-        "http://localhost:8080",
-        # common local/dev origins to allow browser preflight during development
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8001",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=cors_origins,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

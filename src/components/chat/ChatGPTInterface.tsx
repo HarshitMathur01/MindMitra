@@ -1151,16 +1151,26 @@ const ChatGPTInterface = () => {
             </Button>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <div className="w-9 h-9 bg-gradient-to-br from-primary to-[hsl(168,45%,34%)] rounded-full flex items-center justify-center shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="w-9 h-9 bg-gradient-to-br from-primary to-[hsl(168,45%,34%)] rounded-full flex items-center justify-center shadow-sm"
+                  aria-label="Go to home"
+                >
                   <img src="/image.png" alt="MindMitra" className="h-4 w-4 object-cover" />
-                </div>
+                </button>
                 {/* Online indicator dot — pulse when loading, steady when idle */}
                 <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-background ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
               </div>
-              <div>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="text-left"
+                aria-label="Go to home"
+              >
                 <h1 className="text-xl font-bold text-text-primary leading-tight">MindMitra</h1>
                 <p className="text-[11px] text-text-secondary leading-none">{isLoading ? 'Reflecting…' : 'Online'}</p>
-              </div>
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-2">

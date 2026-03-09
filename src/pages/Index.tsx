@@ -58,12 +58,35 @@ const moodOptions: MoodOption[] = [
   { emoji: "🤩", label: "Excited", ring: "ring-[#FDA4AF]", bg: "bg-[#FFF1F2]" },
 ];
 
-const affirmations = [
-  "You are stronger than you think, and braver than you feel. 🏋️",
-  "A gentle step forward is still a powerful kind of progress. 🌤️",
-  "Your mind deserves the same kindness you give to everyone else. 💛",
-  "Today can be soft, steady, and beautifully enough for you. 🌸",
-];
+const affirmationsByPeriod: Record<"morning" | "afternoon" | "evening", string[]> = {
+  morning: [
+    "You are stronger than you think, and braver than you feel. 🏋️",
+    "A steady start is still powerful progress. 🌤️",
+    "Today begins with your courage, one breath at a time. 🌱",
+  ],
+  afternoon: [
+    "You are doing enough for this moment, and that matters. 💛",
+    "Pause, reset, and continue with self-trust. 🌿",
+    "Your effort today carries quiet strength. ✨",
+  ],
+  evening: [
+    "You made it through today with heart—rest is deserved. 🌙",
+    "You can release today gently and keep your peace. 🕊️",
+    "Your worth is not measured by productivity; you are enough. 🌸",
+  ],
+};
+
+const culturalPrefixByRegion: Record<string, string[]> = {
+  IN: ["Namaste", "Shubh din"],
+  PK: ["Assalamu alaikum", "Khush aamdeed"],
+  BD: ["Nomoskar", "Assalamu alaikum"],
+  NP: ["Namaste", "Namaskar"],
+  LK: ["Ayubowan", "Vanakkam"],
+  US: ["You belong", "You are seen"],
+  GB: ["You belong", "You are seen"],
+  CA: ["You belong", "You are seen"],
+  AU: ["You belong", "You are seen"],
+};
 
 const quickActions: QuickAction[] = [
   {
@@ -103,27 +126,57 @@ const pastMoodTags = [
   "🤩 Energized by good news",
 ];
 
+const morningHeroImages = [
+  "https://images.unsplash.com/photo-1470137430626-983a37b8ea46?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8Z29vZCUyMG1vcm5pbmd8ZW58MHwwfDB8fHww",
+  "https://images.unsplash.com/photo-1526344966-89049886b28d?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTh8fGdvb2QlMjBtb3JuaW5nfGVufDB8MHwwfHx8MA%3D%3D",
+];
+
+const afternoonHeroImages = [
+  "https://images.unsplash.com/photo-1581205445756-15c1d2e9a8df?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGdvb2QlMjBhZnRlcm5vb258ZW58MHwwfDB8fHww",
+  "https://images.unsplash.com/photo-1700409670474-08236194ff99?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fGFmdGVybm9vbiUyMHNreXxlbnwwfDB8MHx8fDA%3D",
+];
+
+const eveningHeroImages = [
+  "https://plus.unsplash.com/premium_photo-1673002094195-f18084be89ce?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8c3Vuc2V0fGVufDB8MHwwfHx8MA%3D%3D",
+  "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8bGFuZHNjYXBlfGVufDB8MHwwfHx8MA%3D%3D",
+  "https://images.unsplash.com/photo-1433838552652-f9a46b332c40?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fGxhbmRzY2FwZXxlbnwwfDB8MHx8fDA%3D",
+];
+
 const contentCards: ContentCard[] = [
   {
     title: "3 grounding rituals for busy mornings",
     type: "Article",
     href: "/articles/grounding-rituals-busy-mornings",
     image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+      "https://plus.unsplash.com/premium_photo-1666794846975-c07e4374bc48?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDIwfHx8ZW58MHx8fHx8",
   },
   {
     title: "How to reset your nervous system in 2 minutes",
     type: "Carousel",
     href: "/articles/reset-your-nervous-system",
     image:
-      "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1599168215926-ebe820046d54?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Zm9yZXN0JTIwbW91bnRhaW58ZW58MHx8MHx8fDA%3D",
   },
   {
     title: "A calming bedtime routine for deep rest",
     type: "Video",
     href: "/articles/calming-bedtime-routine",
     image:
-      "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80",
+      "https://plus.unsplash.com/premium_photo-1661953124438-3959644bbcb4?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Zm9yZXN0JTIwbW91bnRhaW58ZW58MHx8MHx8fDA%3D",
+  },
+  {
+    title: "Mountain reset for a calmer mind",
+    type: "Guide",
+    href: "/articles/mountain-reset-calmer-mind",
+    image:
+      "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8NGslMjBtb3VudGFpbnxlbnwwfHwwfHx8MA%3D%3D",
+  },
+  {
+    title: "Nature focus: 5-minute visual grounding",
+    type: "Mindful View",
+    href: "/articles/nature-focus-visual-grounding",
+    image:
+      "https://plus.unsplash.com/premium_photo-1661964177687-57387c2cbd14?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fDRrJTIwbW91bnRhaW58ZW58MHwwfDB8fHww",
   },
 ];
 
@@ -180,12 +233,14 @@ const featureCards: FeatureCard[] = [
 ];
 
 const weekLabels = ["M", "T", "W", "T", "F", "S", "S"];
-const loggedWeekMoods = ["😊", "😌", "😰", "😐", "🤩", "😊", null] as const;
+const dummyWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "🤩", "😊", null];
+const loggedWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "🤩", "😊", null];
 
 const sectionTitleClass = "text-[18px] font-semibold text-[#1A1A1A]";
 const cardClass = "rounded-[24px] bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5";
 const horizontalScrollClass =
   "flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+const visibleContentCardCount = 3;
 
 const getGreeting = (hours: number) => {
   if (hours < 12) return "Good morning,";
@@ -193,10 +248,62 @@ const getGreeting = (hours: number) => {
   return "Good evening,";
 };
 
+const getDayPeriod = (hours: number): "morning" | "afternoon" | "evening" => {
+  if (hours < 12) return "morning";
+  if (hours < 17) return "afternoon";
+  return "evening";
+};
+
+const pickRandomImage = (images: string[]) => images[Math.floor(Math.random() * images.length)] ?? "";
+
+const getHeroBackgroundPosition = (dayPeriod: "morning" | "afternoon" | "evening") => {
+  if (dayPeriod === "morning") return "center 28%";
+  if (dayPeriod === "afternoon") return "center 40%";
+  return "center 52%";
+};
+
 const getDayOfYear = (date: Date) => {
   const start = new Date(date.getFullYear(), 0, 0);
   const diff = date.getTime() - start.getTime();
   return Math.floor(diff / 86400000);
+};
+
+const getRegionCode = () => {
+  const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+  const parts = locale.split(/[-_]/);
+  return parts.length > 1 ? parts[1]?.toUpperCase() ?? "" : "";
+};
+
+const getDynamicAffirmation = (date: Date, period: "morning" | "afternoon" | "evening") => {
+  const dayIndex = getDayOfYear(date);
+  const hourIndex = date.getHours();
+  const pool = affirmationsByPeriod[period];
+  const baseAffirmation = pool[(dayIndex + hourIndex) % pool.length];
+
+  const region = getRegionCode();
+  const culturalPrefixes = culturalPrefixByRegion[region] ?? ["You are valued", "You are supported"];
+  const prefix = culturalPrefixes[(dayIndex + hourIndex) % culturalPrefixes.length];
+
+  return `${prefix} — ${baseAffirmation}`;
+};
+
+const getNextDayPeriodBoundary = (current: Date) => {
+  const next = new Date(current);
+  const hours = current.getHours();
+
+  if (hours < 12) {
+    next.setHours(12, 0, 0, 0);
+    return next;
+  }
+
+  if (hours < 17) {
+    next.setHours(17, 0, 0, 0);
+    return next;
+  }
+
+  next.setDate(next.getDate() + 1);
+  next.setHours(12, 0, 0, 0);
+  return next;
 };
 
 const SectionHeader = ({
@@ -222,10 +329,20 @@ const Index = () => {
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [isMoodToastVisible, setIsMoodToastVisible] = useState(false);
   const [isMoodCardVisible, setIsMoodCardVisible] = useState(true);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [contentCarouselIndex, setContentCarouselIndex] = useState(0);
+  const [isContentCarouselAnimating, setIsContentCarouselAnimating] = useState(true);
 
-  const now = new Date();
+  const now = currentTime;
   const currentDayIndex = (now.getDay() + 6) % 7;
+  const dayPeriod = getDayPeriod(now.getHours());
   const greeting = getGreeting(now.getHours());
+  const heroBackgroundImage = useMemo(() => {
+    if (dayPeriod === "morning") return pickRandomImage(morningHeroImages);
+    if (dayPeriod === "afternoon") return pickRandomImage(afternoonHeroImages);
+    return pickRandomImage(eveningHeroImages);
+  }, [dayPeriod]);
+  const heroBackgroundPosition = getHeroBackgroundPosition(dayPeriod);
 
   const displayName = useMemo(() => {
     const metadataName =
@@ -241,13 +358,37 @@ const Index = () => {
   }, [user]);
 
   const avatarInitial = displayName.charAt(0).toUpperCase() || "F";
-  const affirmation = affirmations[getDayOfYear(now) % affirmations.length];
+  const affirmation = getDynamicAffirmation(now, dayPeriod);
+  const resolvedWeekMoods = loggedWeekMoods.length > 0 ? loggedWeekMoods : dummyWeekMoods;
+  const loopedContentCards = useMemo(
+    () => (
+      contentCards.length > visibleContentCardCount
+        ? [...contentCards, ...contentCards.slice(0, visibleContentCardCount)]
+        : contentCards
+    ),
+    [],
+  );
 
   const weekMoodData = weekLabels.map((label, index) => ({
     label,
-    mood: index < currentDayIndex ? loggedWeekMoods[index] : null,
+    mood: index < currentDayIndex ? (resolvedWeekMoods[index] ?? null) : null,
     isToday: index === currentDayIndex,
   }));
+  const loggedMoodCount = weekMoodData.filter((day) => day.mood !== null).length;
+  const moodCompletionPercent = Math.round((loggedMoodCount / weekMoodData.length) * 100);
+
+  useEffect(() => {
+    const nextBoundary = getNextDayPeriodBoundary(currentTime);
+    const delayMs = Math.max(0, nextBoundary.getTime() - Date.now());
+
+    const timer = window.setTimeout(() => {
+      setCurrentTime(new Date());
+    }, delayMs);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [currentTime]);
 
   useEffect(() => {
     if (!selectedMood) {
@@ -270,6 +411,24 @@ const Index = () => {
       window.clearTimeout(hideCardTimer);
     };
   }, [selectedMood]);
+
+  const handleNextContentCards = () => {
+    if (contentCards.length <= visibleContentCardCount) {
+      return;
+    }
+
+    setIsContentCarouselAnimating(true);
+    setContentCarouselIndex((previousIndex) => previousIndex + 1);
+  };
+
+  const handleContentCarouselTransitionEnd = () => {
+    if (contentCarouselIndex < contentCards.length) {
+      return;
+    }
+
+    setIsContentCarouselAnimating(false);
+    setContentCarouselIndex(0);
+  };
 
   if (loading) {
     return (
@@ -295,22 +454,28 @@ const Index = () => {
           className="relative min-h-[220px] overflow-hidden rounded-[32px] px-4 pb-6 pt-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:min-h-[280px] sm:px-6"
           style={{
             backgroundImage:
-              "linear-gradient(180deg, rgba(17,24,39,0.12) 0%, rgba(15,23,42,0.48) 100%), url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1400&q=80')",
+              `linear-gradient(180deg, rgba(17,24,39,0.12) 0%, rgba(15,23,42,0.48) 100%), url('${heroBackgroundImage}')`,
             backgroundSize: "cover",
-            backgroundPosition: "center",
+            backgroundPosition: heroBackgroundPosition,
+            backgroundRepeat: "no-repeat",
           }}
         >
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(15,23,42,0.22))]" />
 
           <div className="relative z-10 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => navigate("/chat")}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/18 backdrop-blur-md transition-transform duration-150 hover:scale-105"
-              aria-label="Open AI companion"
-            >
-              <img src="/image5.png" alt="AI companion" className="h-7 w-7 rounded-full object-cover" />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/chat")}
+                className="flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-full border border-white/40 bg-white/25 p-0 ring-2 ring-white/70 shadow-lg shadow-white/30 backdrop-blur-md transition-transform duration-150 hover:scale-105"
+                aria-label="Open AI companion"
+              >
+                <img src="/image5.png" alt="AI companion" className="h-full w-full rounded-full object-cover" />
+              </button>
+              <p className="breathing-hero font-genz max-w-[10rem] text-xs font-semibold leading-tight text-white/95 sm:text-sm">
+                Meet your 3D avatar companion
+              </p>
+            </div>
 
             <div className="flex items-center gap-2">
               <button
@@ -498,15 +663,30 @@ const Index = () => {
               <p className="text-sm font-medium text-[#F97316]">What&apos;s fresh?</p>
               <h2 className="mt-1 text-[18px] font-semibold text-[#1A1A1A]">Latest content for you</h2>
             </div>
-            <button className="text-sm font-medium text-[#6B7280] transition-transform duration-150 hover:scale-[1.02] hover:text-[#3B82F6]">
-              View All →
-            </button>
+            {contentCards.length > visibleContentCardCount ? (
+              <button
+                type="button"
+                onClick={handleNextContentCards}
+                aria-label="Show more content cards"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#1F2937] shadow-[0_12px_24px_rgba(15,23,42,0.08)] transition-all duration-150 hover:-translate-y-0.5 hover:text-[#2563EB]"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            ) : null}
           </div>
 
-          <div className={`${horizontalScrollClass} md:grid md:grid-cols-3 md:overflow-visible`}>
-            {contentCards.map((card) => (
+          <div className="overflow-hidden">
+            <div
+              className={`grid grid-flow-col gap-3 ${isContentCarouselAnimating ? "transition-transform duration-500 ease-out" : "transition-none"}`}
+              style={{
+                gridAutoColumns: "calc((100% - 1.5rem) / 3)",
+                transform: `translateX(calc(-${contentCarouselIndex} * ((100% - 1.5rem) / 3 + 0.75rem)))`,
+              }}
+              onTransitionEnd={handleContentCarouselTransitionEnd}
+            >
+              {loopedContentCards.map((card, index) => (
               <article
-                key={card.title}
+                key={`${card.title}-${index}`}
                 role={card.href ? "button" : undefined}
                 tabIndex={card.href ? 0 : undefined}
                 onClick={card.href ? () => navigate(card.href) : undefined}
@@ -516,7 +696,7 @@ const Index = () => {
                     navigate(card.href);
                   }
                 } : undefined}
-                className={`group relative min-w-[220px] overflow-hidden rounded-[24px] bg-white shadow-[0_16px_35px_rgba(15,23,42,0.08)] transition-all duration-150 md:min-w-0 ${card.href
+                className={`group relative overflow-hidden rounded-[24px] bg-white shadow-[0_16px_35px_rgba(15,23,42,0.08)] transition-all duration-150 ${card.href
                   ? "cursor-pointer hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-2"
                   : ""
                   }`}
@@ -547,7 +727,8 @@ const Index = () => {
                   </h3>
                 </div>
               </article>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
@@ -608,18 +789,27 @@ const Index = () => {
         </section>
 
         <section className="rounded-[24px] bg-[#F8FAFC] p-4 shadow-[0_16px_35px_rgba(148,163,184,0.08)] sm:p-5">
-          <h2 className={sectionTitleClass}>This week&apos;s mood</h2>
-          <div className="mt-4 grid grid-cols-7 gap-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className={sectionTitleClass}>This week&apos;s mood</h2>
+              <p className="mt-1 text-xs font-medium text-[#64748B]">Track your emotional pattern, one day at a time</p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#2563EB] shadow-[0_8px_20px_rgba(59,130,246,0.15)]">
+              {moodCompletionPercent}% logged
+            </span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-7 gap-2 sm:gap-3">
             {weekMoodData.map((day, index) => (
               <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-2">
                 <span className={`text-xs font-semibold ${day.isToday ? "text-[#3B82F6]" : "text-[#6B7280]"}`}>
                   {day.label}
                 </span>
                 <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-full border text-lg ${day.isToday
-                    ? "border-[#93C5FD] bg-[#EFF6FF] text-[#3B82F6]"
+                  className={`flex h-11 w-11 items-center justify-center rounded-full border text-lg transition-all duration-200 ${day.isToday
+                    ? "border-[#93C5FD] bg-[#EFF6FF] text-[#3B82F6] ring-2 ring-[#BFDBFE]"
                     : day.mood
-                      ? "border-white bg-white"
+                      ? "border-white bg-white text-[#1F2937] shadow-[0_6px_14px_rgba(15,23,42,0.08)]"
                       : "border-dashed border-[#CBD5E1] bg-transparent text-[#94A3B8]"
                     }`}
                 >
@@ -628,17 +818,29 @@ const Index = () => {
               </div>
             ))}
           </div>
+
+          <div className="mt-4">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white">
+              <div className="h-full rounded-full bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" style={{ width: `${moodCompletionPercent}%` }} />
+            </div>
+            <p className="mt-2 text-xs font-medium text-[#64748B]">{loggedMoodCount} of {weekMoodData.length} days logged</p>
+          </div>
         </section>
       </main>
 
-      <button
-        type="button"
-        onClick={() => navigate("/chat")}
-        className="fixed bottom-24 right-4 z-30 h-14 w-14 overflow-hidden rounded-full shadow-[0_18px_40px_rgba(17,24,39,0.28)] transition-transform duration-150 hover:scale-105 sm:right-6"
-        aria-label="Open AI companion"
-      >
-        <img src="/image5.png" alt="AI companion" className="h-full w-full object-cover" />
-      </button>
+      <div className="fixed bottom-24 right-4 z-30 flex items-center gap-2 sm:right-6">
+        <p className="breathing-hero rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-[#1F2937] shadow-[0_12px_28px_rgba(15,23,42,0.14)]">
+          {greeting} Chat with me 👋
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate("/chat")}
+          className="h-14 w-14 overflow-hidden rounded-full shadow-[0_18px_40px_rgba(17,24,39,0.28)] transition-transform duration-150 hover:scale-105"
+          aria-label="Open AI companion"
+        >
+          <img src="/image5.png" alt="AI companion" className="h-full w-full object-cover" />
+        </button>
+      </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-[#F3E8DA] bg-white/96 px-6 py-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center justify-around">

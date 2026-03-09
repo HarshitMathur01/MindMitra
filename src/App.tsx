@@ -30,6 +30,8 @@ import PsychologicalContent from "./pages/PsychologicalContent";
 import GroundingRitualsArticle from "./pages/GroundingRitualsArticle";
 import NervousSystemResetArticle from "./pages/NervousSystemResetArticle";
 import BedtimeRoutineArticle from "./pages/BedtimeRoutineArticle";
+import MountainResetGuideArticle from "./pages/MountainResetGuideArticle";
+import NatureFocusVisualGroundingArticle from "./pages/NatureFocusVisualGroundingArticle";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +96,14 @@ function AppContent() {
       <Route
         path="/articles/calming-bedtime-routine"
         element={<BedtimeRoutineArticle />}
+      />
+      <Route
+        path="/articles/mountain-reset-calmer-mind"
+        element={<MountainResetGuideArticle />}
+      />
+      <Route
+        path="/articles/nature-focus-visual-grounding"
+        element={<NatureFocusVisualGroundingArticle />}
       />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />

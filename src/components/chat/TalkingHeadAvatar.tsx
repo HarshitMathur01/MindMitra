@@ -43,7 +43,7 @@ const TalkingHeadAvatar = ({
     googleKey,
     ttsVoice = "en-IN-Neural2-A",
     ttsLang = "en-IN",
-    avatarUrl = "/talkinghead/avatars/brunette.glb",
+    avatarUrl = "/talkinghead/avatars/Brunette.glb",
 }: Props) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isReady, setIsReady] = useState(false);

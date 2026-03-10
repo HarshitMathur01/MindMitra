@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
     readonly VITE_AZURE_TTS_KEY?: string;
+    readonly VITE_AZURE_TTS_REGION?: string;
+    readonly VITE_GOOGLE_TTS_KEY?: string;
     // add more env vars here as needed
     [key: string]: string | undefined;
 }

@@ -59,168 +59,164 @@
     <script type="module">
         import { TalkingHead } from "talkinghead";
 
-        // -- Config from URL params ---------------------------------------------
+        // -- Config from URL params --------------------------------------------------------
         const params = new URLSearchParams(window.location.search);
-        const azureKey = params.get("azureKey") || "";
-        const azureRegion = params.get("azureRegion") || "eastasia";
-        const azureVoice = params.get("azureVoice") || "en-US-AriaNeural";
-        const azureLang = params.get("azureLang") || "en-US";
-        const avatarUrl = params.get("avatarUrl") || "/talkinghead/avatars/Brunette.glb";
+        const googleKey  = params.get("googleKey")  || "";
+        const ttsVoice   = params.get("ttsVoice")   || "en-IN-Neural2-A";  // Indian English female, Neural2
+        const ttsLang    = params.get("ttsLang")    || "en-IN";
+        const avatarUrl  = params.get("avatarUrl")  || "/talkinghead/avatars/Brunette.glb";
 
-        // -- Startup diagnostics -----------------------------------------------
-        const TTS_MODE = azureKey ? "azure" : "webspeech-fallback";
+        // ── TTS endpoint selection ────────────────────────────────────────────────────────
+        //
+        // Google Cloud TTS v1beta1 supports `enableTimePointing` which makes TalkingHead
+        // return REAL word timestamps (not estimated). This is the key to accurate lipsync:
+        // each word's viseme window is anchored to the exact acoustic onset in the audio.
+        //
+        // When no Google key is provided, a sentinel endpoint + fetch interceptor is used.
+        // TalkingHead runs text-based lipsync; Web Speech API handles audio.
+        const GOOGLE_TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1beta1/text:synthesize";
+        const SENTINEL_ENDPOINT   = "https://eu-texttospeech.googleapis.com/v1beta1/text:synthesize";
+
+        const ttsEndpoint = googleKey ? GOOGLE_TTS_ENDPOINT : SENTINEL_ENDPOINT;
+        const ttsApikey   = googleKey ? googleKey           : "";
+        const TTS_MODE    = googleKey ? "google-cloud-tts"  : "webspeech-fallback";
+
         console.info(
             `%c[MindMitra Avatar] Startup%c\n` +
-            `  TTS mode   : ${TTS_MODE}\n` +
-            `  Azure key  : ${azureKey ? `${azureKey.slice(0,6)}…(${azureKey.length} chars)` : "NOT SET — using Web Speech fallback"}\n` +
-            `  Region     : ${azureRegion}\n` +
-            `  Voice      : ${azureVoice}\n` +
-            `  Avatar URL : ${avatarUrl}`,
+            `  TTS mode    : ${TTS_MODE}\n` +
+            `  Google key  : ${googleKey ? googleKey.slice(0,8) + "…(" + googleKey.length + " chars)" : "NOT SET — using Web Speech fallback"}\n` +
+            `  Voice       : ${ttsVoice}\n` +
+            `  Avatar URL  : ${avatarUrl}`,
             "background:#0d1117;color:#58c4dc;font-weight:bold",
             "background:#0d1117;color:#e2e8f0"
         );
-        if (!azureKey) {
-            console.warn("[MindMitra Avatar] ⚠ VITE_AZURE_TTS_KEY not passed to iframe — TTS will use browser Web Speech API (no Azure audio).");
+
+        // ── "No-key" fallback intercept ───────────────────────────────────────────────────
+        // Intercept sentinel calls → return empty 200 so TalkingHead skips audio but still
+        // runs its lipsync animation queue. Web Speech API handles audio separately.
+        if (!googleKey) {
+            const _origFetch = window.fetch.bind(window);
+            window.fetch = async function patchedFetch(input, init) {
+                const url = typeof input === "string" ? input : input?.url;
+                if (url && url.startsWith(SENTINEL_ENDPOINT)) {
+                    return new Response(
+                        JSON.stringify({}),
+                        { status: 200, headers: { "Content-Type": "application/json" } }
+                    );
+                }
+                return _origFetch(input, init);
+            };
         }
 
-        // Sentinel Google-format endpoint � TalkingHead needs a ttsEndpoint to
-        // enable TTS mode; our fetch interceptor silently redirects to Azure.
-        const SENTINEL_ENDPOINT = "https://eu-texttospeech.googleapis.com/v1beta1/text:synthesize";
-        const SENTINEL_APIKEY = "AIzaSyBYk4oTr16xFtsfoL3mgmU25lseg12B0BU";
+        // ── Helpers ──────────────────────────────────────────────────────────────────────
 
-        // -- Azure TTS fetch interceptor ----------------------------------------
-        // Installed BEFORE TalkingHead is constructed so every TTS call is caught.
-        const _origFetch = window.fetch.bind(window);
+        /**
+         * Strip common Markdown formatting so TTS does not say symbols aloud.
+         * e.g. "**bold**" → "bold", "# Heading" → "Heading"
+         */
+        function stripMarkdown(text) {
+            return text
+                .replace(/\*\*(.+?)\*\*/gs, "$1")       // **bold**
+                .replace(/\*(.+?)\*/gs, "$1")            // *italic*
+                .replace(/__(.+?)__/gs, "$1")            // __bold__
+                .replace(/_(.+?)_/gs, "$1")              // _italic_
+                .replace(/~~(.+?)~~/gs, "$1")            // ~~strikethrough~~
+                .replace(/`{1,3}[^`]*`{1,3}/g, "")       // `code` / ```block```
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [link](url)
+                .replace(/^#+\s+/gm, "")                 // # Headings
+                .replace(/^[-*+]\s+/gm, "")              // - bullet points
+                .replace(/^\d+\.\s+/gm, "")              // 1. numbered lists
+                .replace(/\n{3,}/g, "\n\n")              // collapse excess blank lines
+                .trim();
+        }
 
-        window.fetch = async function patchedFetch(input, init) {
-            const url = typeof input === "string" ? input : input?.url;
+        /** Decode a base64 string (Google TTS audioContent) to an ArrayBuffer. */
+        function b64ToArrayBuffer(b64) {
+            const bin = atob(b64);
+            const buf = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+            return buf.buffer;
+        }
 
-            // Only intercept TalkingHead's TTS calls (identified by sentinel URL)
-            if (!url || !url.startsWith(SENTINEL_ENDPOINT)) {
-                return _origFetch(input, init);
-            }
-
-            // ── Guard: no Azure key → silent lipsync, no network call ──────────
-            if (!azureKey) {
-                console.log("[MindMitra Avatar] TTS intercepted — no Azure key, returning empty response (Web Speech handles audio)");
-                return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
-            }
-
-            console.log(`[MindMitra Avatar] Azure TTS → ${azureRegion} | voice: ${azureVoice}`);
-
-            // 1. Parse TalkingHead's Google-format request body
-            let body;
-            try { body = JSON.parse(init?.body || "{}"); } catch { return _origFetch(input, init); }
-
-            const ssml = body?.input?.ssml || "";
-            const ssmlInner = extractSsmlBody(ssml);
-            const wordMarks = extractMarks(ssml);
-
-            // 2. Build Azure-format SSML
-            const azureSsml = buildAzureSsml(ssmlInner, azureVoice, azureLang);
-
-            // 3. Call Azure TTS REST API
-            const azureUrl = `https://${azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`;
-
-            let mp3Bytes;
-            try {
-                const resp = await _origFetch(azureUrl, {
-                    method: "POST",
-                    headers: {
-                        "Ocp-Apim-Subscription-Key": azureKey,
-                        "Content-Type": "application/ssml+xml",
-                        "X-Microsoft-OutputFormat": "audio-48khz-96kbitrate-mono-mp3",
-                        "User-Agent": "MindMitra-TalkingHead",
-                    },
-                    body: azureSsml,
-                });
-
-                if (!resp.ok) {
-                    const errText = await resp.text().catch(() => "");
-                    console.error(`[MindMitra Avatar] ❌ Azure TTS ${resp.status} from ${azureRegion}: ${errText}`);
-                    console.warn("[MindMitra Avatar] Azure TTS failed — falling back to silent lipsync (no audio)");
-                    return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
-                }
-
-                mp3Bytes = await resp.arrayBuffer();
-                const durationEst = ((mp3Bytes.byteLength * 8) / 96_000).toFixed(2);
-                console.log(`[MindMitra Avatar] ✅ Azure TTS OK — ${mp3Bytes.byteLength} bytes (~${durationEst}s audio)`);
-            } catch (err) {
-                console.error("[MindMitra Avatar] ❌ Azure TTS network error:", err);
-                console.warn("[MindMitra Avatar] Falling back to silent lipsync (no audio)");
-                return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
-            }
-
-            // 4. Estimate audio duration: Azure returns 96 kbps MP3
-            //    duration (s) � bytes � 8 / 96 000
-            const estimatedDurationMs = (mp3Bytes.byteLength * 8 / 96_000) * 1000;
-
-            // 5. Build synthetic word timepoints proportional to character counts
-            const timepoints = buildTimepoints(wordMarks, estimatedDurationMs);
-
-            // 6. Base64-encode MP3 for Google TTS response compat
-            const audioContent = arrayBufferToBase64(mp3Bytes);
-
-            // 7. Return Google-format response that TalkingHead consumes natively
-            return new Response(
-                JSON.stringify({ audioContent, timepoints }),
-                { status: 200, headers: { "Content-Type": "application/json" } }
-            );
-        };
-
-        // -- Helpers -----------------------------------------------------------
-
-        /** Strip outer <speak>�</speak> tags */
-        function extractSsmlBody(ssml) {
-            return ssml.replace(/^<speak[^>]*>/, "").replace(/<\/speak>\s*$/, "");
+        /** XML-escape a word so it is safe inside an SSML <speak> element. */
+        function escapeXml(t) {
+            return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
         }
 
         /**
-         * Extract word marks from TalkingHead SSML.
-         * Pattern: `word0 <mark name='1'/> word1 <mark name='2'/> word2`
-         * Returns: [{markName, charsBefore}]
+         * Make ONE Google TTS v1beta1 request for all words.
+         * Returns { audioContent, timepoints, words } or null on error.
+         *
+         * SSML mark strategy:
+         *   word0 <mark name='1'/> word1 <mark name='2'/> word2 …
+         * Mark i fires at the acoustic ONSET of word i+1, so:
+         *   wtimes[0] = 0
+         *   wtimes[i] = timepoints[i-1].timeSeconds * 1000  (i > 0)
          */
-        function extractMarks(ssml) {
-            const inner = extractSsmlBody(ssml);
-            const marks = [];
-            const parts = inner.split(/<mark name='(\d+)'\/>/);
-            let charCount = 0;
-            for (let i = 0; i < parts.length; i++) {
-                if (i % 2 === 0) {
-                    charCount += parts[i].replace(/<[^>]+>/g, "").trim().length;
-                } else {
-                    marks.push({ markName: parts[i], charsBefore: charCount });
+        async function fetchGoogleTTS(words) {
+            let ssml = "<speak>";
+            words.forEach((w, i) => {
+                if (i > 0) ssml += " <mark name='" + i + "'/> ";
+                ssml += escapeXml(w);
+            });
+            ssml += "</speak>";
+
+            // Map TalkingHead's internal encoding name to the Google API value.
+            const encMap = { "OGG-OPUS": "OGG_OPUS", "MP3": "MP3" };
+            const audioEncoding = encMap[head.ttsAudioEncoding] || "MP3";
+
+            try {
+                const resp = await fetch(
+                    "https://texttospeech.googleapis.com/v1beta1/text:synthesize?key=" + googleKey,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json; charset=utf-8" },
+                        body: JSON.stringify({
+                            input: { ssml },
+                            voice: { languageCode: ttsLang, name: ttsVoice },
+                            audioConfig: { audioEncoding, speakingRate: 0.9, pitch: 2.0 },
+                            enableTimePointing: [1]
+                        })
+                    }
+                );
+                if (!resp.ok) {
+                    console.error("[MindMitra Avatar] Google TTS HTTP " + resp.status);
+                    return null;
                 }
+                const data = await resp.json();
+                return { audioContent: data.audioContent, timepoints: data.timepoints || [], words };
+            } catch (err) {
+                console.error("[MindMitra Avatar] Google TTS fetch error:", err);
+                return null;
             }
-            return marks;
         }
 
-        /** Distribute word marks evenly across estimated audio duration */
-        function buildTimepoints(marks, totalDurationMs) {
-            if (!marks.length) return [];
-            const totalChars = (marks[marks.length - 1].charsBefore || 0) + 1;
-            return marks.map(({ markName, charsBefore }) => ({
-                markName,
-                timeSeconds: (charsBefore / totalChars) * (totalDurationMs / 1000),
-            }));
+        /**
+         * Convert Google TTS timepoints to TalkingHead's wtimes / wdurations arrays.
+         * All values are in absolute milliseconds from the start of the audio buffer.
+         *
+         * wtimes[0]  = 0          (first word always starts at 0)
+         * wtimes[i]  = timepoints[i-1].timeSeconds * 1000  (i > 0)
+         * wdurations[i] = wtimes[i+1] − wtimes[i]  (last word fills to audioDurationMs)
+         */
+        function buildWordTimingsFromTimepoints(words, timepoints, audioDurationMs) {
+            const wtimes = [];
+            const wdurations = [];
+            for (let i = 0; i < words.length; i++) {
+                const tMs = i === 0
+                    ? 0
+                    : ((timepoints[i - 1]?.timeSeconds ?? (wtimes[i - 1] / 1000)) * 1000);
+                wtimes.push(Math.round(tMs));
+            }
+            for (let i = 0; i < words.length; i++) {
+                const next = i + 1 < words.length ? wtimes[i + 1] : audioDurationMs;
+                wdurations.push(Math.max(50, next - wtimes[i]));
+            }
+            return { words, wtimes, wdurations };
         }
 
-        /** Build Azure-format SSML wrapper around TalkingHead's inner SSML */
-        function buildAzureSsml(inner, voice, lang) {
-            return `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='${lang}'><voice name='${voice}'>${inner}</voice></speak>`;
-        }
-
-        /** ArrayBuffer ? base64 string */
-        function arrayBufferToBase64(buf) {
-            const bytes = new Uint8Array(buf);
-            let bin = "";
-            for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
-            return btoa(bin);
-        }
-
-        // ----------------------------------------------------------------------
-        // TalkingHead init
-        // ----------------------------------------------------------------------
+        // ── TalkingHead init ─────────────────────────────────────────────────────────────
         let head = null;
         const statusEl = document.getElementById("status");
 
@@ -235,11 +231,13 @@
 
         async function init() {
             setStatus("Loading avatar\u2026");
-            console.info(`[MindMitra Avatar] Loading model: ${avatarUrl}`);
+            console.info("[MindMitra Avatar] Loading model: " + avatarUrl);
 
             head = new TalkingHead(document.getElementById("avatar"), {
-                ttsEndpoint: SENTINEL_ENDPOINT,
-                ttsApikey: SENTINEL_APIKEY,
+                // Real Google TTS endpoint when key is present → word timestamps → perfect lipsync.
+                // Sentinel endpoint when absent → intercepted → empty response.
+                ttsEndpoint: ttsEndpoint,
+                ttsApikey:   ttsApikey,
                 lipsyncModules: ["en"],
                 cameraView: "mid",
             });
@@ -250,19 +248,23 @@
                         url: avatarUrl,
                         body: "F",
                         avatarMood: "neutral",
-                        ttsLang: azureLang,
-                        ttsVoice: azureVoice,
+                        ttsLang:  ttsLang,
+                        ttsVoice: ttsVoice,
+                        // ttsRate maps to Google speakingRate (0.25–4.0). 0.9 = slightly slower.
+                        ttsRate:  0.9,
+                        // ttsPitch maps to Google pitch in semitones (-20 to +20). +2 = gentle warmth.
+                        ttsPitch: 2,
                         lipsyncLang: "en",
                     },
                     (ev) => {
                         if (ev.lengthComputable) {
                             const pct = Math.min(100, Math.round((ev.loaded / ev.total) * 100));
-                            setStatus(`Loading ${pct}%`);
+                            setStatus("Loading " + pct + "%");
                         }
                     }
                 );
                 setStatus(null);
-                console.info(`[MindMitra Avatar] ✅ Avatar ready — TTS mode: ${TTS_MODE}`);
+                console.info("[MindMitra Avatar] ✅ Avatar ready — TTS mode: " + TTS_MODE);
                 postToParent({ type: "ready" });
             } catch (err) {
                 console.error("[MindMitra Avatar] ❌ Avatar load error:", err);
@@ -271,56 +273,37 @@
             }
         }
 
-        // -- Web Speech API fallback (used when no Azure key is configured) ----
-        let webSpeechUtterance = null;
-
+        // ── Web Speech API fallback (used when no Google key) ───────────────────────────
         function speakWithWebSpeech(text) {
-            if (!window.speechSynthesis) {
-                console.warn("[MindMitra Avatar] Web Speech API not available in this browser");
-                return false;
-            }
-            window.speechSynthesis.cancel(); // clear any pending
+            if (!window.speechSynthesis) return false;
+            window.speechSynthesis.cancel();
             const utter = new SpeechSynthesisUtterance(text);
-            utter.lang = azureLang || "en-US";
-            utter.rate = 1.0;
+            utter.lang  = ttsLang || "en-IN";
+            utter.rate  = 0.9;
             utter.pitch = 1.05;
-
-            // Pick a female voice if available
             const voices = window.speechSynthesis.getVoices();
             const femaleVoice = voices.find(v =>
                 v.lang.startsWith("en") && /female|woman|zira|emma|aria|susan|hazel|karen/i.test(v.name)
             ) || voices.find(v => v.lang.startsWith("en"));
             if (femaleVoice) utter.voice = femaleVoice;
-
-            console.info(`[MindMitra Avatar] 🔊 Web Speech fallback — voice: "${femaleVoice?.name || "browser default"}" | lang: ${utter.lang}`);
-
-            utter.onend = () => {
-                console.log("[MindMitra Avatar] Web Speech finished");
-                clearSpeakEndPoll();
-                postToParent({ type: "speakingEnd" });
-            };
-            utter.onerror = (e) => {
-                console.warn("[MindMitra Avatar] Web Speech error:", e.error);
-                clearSpeakEndPoll();
-                postToParent({ type: "speakingEnd" });
-            };
-            webSpeechUtterance = utter;
+            utter.onend   = () => { clearSpeakEndPoll(); postToParent({ type: "speakingEnd" }); };
+            utter.onerror = () => { clearSpeakEndPoll(); postToParent({ type: "speakingEnd" }); };
             window.speechSynthesis.speak(utter);
             return true;
         }
 
-        // -- Resume AudioContext on any user interaction (browser autoplay policy) --
+        // ── Resume AudioContext on first user interaction (browser autoplay policy) ──────
         let audioResumed = false;
         async function ensureAudioCtx() {
             if (audioResumed) return;
-            if (head && head.audioCtx && head.audioCtx.state === "suspended") {
+            if (head?.audioCtx?.state === "suspended") {
                 try { await head.audioCtx.resume(); audioResumed = true; } catch { /* noop */ }
             }
         }
-        document.addEventListener("click", ensureAudioCtx, { once: false });
-        document.addEventListener("pointerdown", ensureAudioCtx, { once: false });
+        document.addEventListener("click",       ensureAudioCtx);
+        document.addEventListener("pointerdown", ensureAudioCtx);
 
-        // -- Active speech-end poll handle -------------------------------------
+        // ── Speech-end detection poll ────────────────────────────────────────────────────
         let speakEndPoll = null;
 
         function clearSpeakEndPoll() {
@@ -332,7 +315,6 @@
             let ticks = 0;
             speakEndPoll = setInterval(() => {
                 ticks++;
-                // Give TalkingHead at least 3 ticks (~750 ms) to set isSpeaking=true
                 if (ticks > 3 && !head.isSpeaking && head.speechQueue.length === 0) {
                     clearSpeakEndPoll();
                     postToParent({ type: "speakingEnd" });
@@ -340,7 +322,7 @@
             }, 250);
         }
 
-        // -- PostMessage bridge (React ? iframe) --------------------------------
+        // ── PostMessage bridge (React ↔ iframe) ──────────────────────────────────────────
         window.addEventListener("message", async (event) => {
             if (!head) return;
             const { type, text, mood } = event.data || {};
@@ -348,40 +330,63 @@
             switch (type) {
                 case "speakText":
                     if (!text) break;
-                    console.log(`[MindMitra Avatar] speakText received (${text.length} chars) | mode: ${TTS_MODE}`);
+                    console.log("[MindMitra Avatar] speakText (" + text.length + " chars) | TTS: " + TTS_MODE);
                     try {
                         await ensureAudioCtx();
                         clearSpeakEndPoll();
-                        head.speakText(text);
-                        postToParent({ type: "speakingStart" });
+                        const cleanText = stripMarkdown(text);
 
-                        if (!azureKey) {
-                            // No Azure key — use Web Speech API for audio,
-                            // TalkingHead handles lipsync animation only.
-                            // Voices may need a brief delay to load on first call.
-                            if (window.speechSynthesis.getVoices().length === 0) {
-                                console.log("[MindMitra Avatar] Voices not loaded yet — waiting for voiceschanged event");
-                                window.speechSynthesis.addEventListener("voiceschanged", () => speakWithWebSpeech(text), { once: true });
+                        if (googleKey) {
+                            // ── Single-fetch speakAudio() path: zero inter-sentence pauses ──
+                            // We make ONE Google TTS call for the entire response text.
+                            // This gives us a single AudioBuffer + real per-word timestamps
+                            // (timepoints[i].timeSeconds). speakAudio() hands it all to
+                            // TalkingHead in one shot — no sentence-boundary queuing, no gaps.
+                            const plainWords = cleanText.split(/\s+/).filter(w => w.length > 0);
+                            const result = await fetchGoogleTTS(plainWords);
+                            if (result) {
+                                const arraybuf = b64ToArrayBuffer(result.audioContent);
+                                const audioBuffer = await head.audioCtx.decodeAudioData(arraybuf);
+                                const { words, wtimes, wdurations } = buildWordTimingsFromTimepoints(
+                                    result.words, result.timepoints, audioBuffer.duration * 1000
+                                );
+                                console.log("[MindMitra Avatar] speakAudio → " + words.length + " words, " + audioBuffer.duration.toFixed(2) + "s");
+                                head.speakAudio({ audio: audioBuffer, words, wtimes, wdurations });
+                                postToParent({ type: "speakingStart" });
+                                startSpeakEndPoll();
                             } else {
-                                speakWithWebSpeech(text);
+                                // Fallback: speakText has sentence pauses but better than silence.
+                                head.speakText(cleanText);
+                                postToParent({ type: "speakingStart" });
+                                startSpeakEndPoll();
                             }
                         } else {
-                            console.log("[MindMitra Avatar] Azure TTS in progress — polling for speakingEnd");
+                            // ── No-key fallback: lipsync queue + Web Speech audio ─────────
+                            head.speakText(cleanText); // queues lipsync animations (no audio from TH)
+                            postToParent({ type: "speakingStart" });
+                            const fireWebSpeech = () => speakWithWebSpeech(cleanText);
+                            if (window.speechSynthesis.getVoices().length === 0) {
+                                window.speechSynthesis.addEventListener("voiceschanged", fireWebSpeech, { once: true });
+                            } else {
+                                fireWebSpeech();
+                            }
                             startSpeakEndPoll();
                         }
-                    } catch (err) { console.error("[MindMitra Avatar] ❌ speakText error:", err); }
+                    } catch (err) {
+                        console.error("[MindMitra Avatar] ❌ speakText error:", err);
+                    }
                     break;
 
                 case "stopSpeaking":
-                    console.log("[MindMitra Avatar] stopSpeaking received");
+                    console.log("[MindMitra Avatar] stopSpeaking");
                     clearSpeakEndPoll();
-                    if (!azureKey && window.speechSynthesis) window.speechSynthesis.cancel();
+                    if (!googleKey && window.speechSynthesis) window.speechSynthesis.cancel();
                     try { head.stopSpeaking(); postToParent({ type: "speakingEnd" }); } catch { /* noop */ }
                     break;
 
                 case "setMood":
                     if (mood) {
-                        console.log(`[MindMitra Avatar] setMood → ${mood}`);
+                        console.log("[MindMitra Avatar] setMood → " + mood);
                         try { head.setMood(mood); } catch { /* noop */ }
                     }
                     break;

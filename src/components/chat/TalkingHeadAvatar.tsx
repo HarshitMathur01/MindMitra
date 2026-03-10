@@ -27,25 +27,22 @@ function estimateSpeakDurationMs(text: string): number {
 }
 
 interface Props {
-    /** Azure Cognitive Services TTS subscription key.
-     *  Falls back to VITE_AZURE_TTS_KEY env var.
-     *  Without a key the avatar still animates (text-based lipsync). */
-    azureKey?: string;
-    /** Azure region, e.g. "eastus". Falls back to VITE_AZURE_TTS_REGION env var. */
-    azureRegion?: string;
-    /** Azure Neural voice name. Default: en-US-Emma2:DragonHDLatestNeural */
-     azureVoice?: string;
-    /** BCP-47 language tag for the voice. Default: en-US */
-    azureLang?: string;
+    /** Google Cloud TTS API key.
+     *  Falls back to VITE_GOOGLE_TTS_KEY env var.
+     *  Without a key the avatar still animates using Web Speech API for audio. */
+    googleKey?: string;
+    /** Google Cloud TTS voice name. Default: en-IN-Neural2-A (Indian English female, Neural2) */
+    ttsVoice?: string;
+    /** BCP-47 language tag for the voice. Default: en-IN */
+    ttsLang?: string;
     /** Avatar GLB URL relative to public root. Defaults to brunette. */
     avatarUrl?: string;
 }
 
 const TalkingHeadAvatar = ({
-    azureKey,
-    azureRegion,
-    azureVoice = "en-US-JennyNeural",
-    azureLang = "en-US",
+    googleKey,
+    ttsVoice = "en-IN-Neural2-A",
+    ttsLang = "en-IN",
     avatarUrl = "/talkinghead/avatars/brunette.glb",
 }: Props) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -55,21 +52,18 @@ const TalkingHeadAvatar = ({
     const playbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastMessageTextRef = useRef<string>("");
 
-    // Resolve Azure key & region: prop > env var > fallback
-    const resolvedAzureKey: string =
-        azureKey || import.meta.env.VITE_AZURE_TTS_KEY || "";
-    const resolvedAzureRegion: string =
-        azureRegion || import.meta.env.VITE_AZURE_TTS_REGION || "eastus";
+    // Resolve Google key: prop > env var > empty (Web Speech fallback)
+    const resolvedGoogleKey: string =
+        googleKey || import.meta.env.VITE_GOOGLE_TTS_KEY || "";
 
     const { message: avatarCurrentMessage, onMessagePlayed } = useChat();
 
-    // Build iframe src — pass Azure config as URL search params
+    // Build iframe src — pass Google TTS config as URL search params
     const iframeSrc = (() => {
         const params = new URLSearchParams();
-        if (resolvedAzureKey) params.set("azureKey", resolvedAzureKey);
-        params.set("azureRegion", resolvedAzureRegion);
-        params.set("azureVoice", azureVoice);
-        params.set("azureLang", azureLang);
+        if (resolvedGoogleKey) params.set("googleKey", resolvedGoogleKey);
+        params.set("ttsVoice", ttsVoice);
+        params.set("ttsLang", ttsLang);
         params.set("avatarUrl", avatarUrl);
         return `/talkinghead.html?${params.toString()}`;
     })();

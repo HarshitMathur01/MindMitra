@@ -1,32 +1,25 @@
 """
-MindMitra Pipeline Workflow — orchestrates all agents through the 8-step pipeline.
+MindMitra Pipeline Workflow — intent-routed pipeline with mem0 memory.
 """
 import json
 import logging
 import os
 import threading
-from concurrent.futures import Future, ThreadPoolExecutor
+import time
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from uuid import UUID
 
 from supabase import Client, create_client
 
-from ..agents.cultural_agent import CulturalContextModule
+from ..agents.intent_router import IntentRouter
 from ..agents.nlp_agent import GroqNLPModule
-from ..agents.psychologist_agent import PsychologistAnalysisAgent
-from ..agents.query_decision import QueryDecisionAgent
 from ..agents.response_agent import ResponseGenerator
+from ..agents.memory_manager import memory_manager
 from ..agents.screening_agent import ScreeningAssessmentAgent
-from ..agents.technique_agent import TechniqueSelectorAgent
-from ..controllers.embeddings import EmbeddingService
 from ..controllers.glm_controller import GLMController
 from ..core.config import config
-from ..memory.deduplicator import MemoryDeduplicator
-from ..memory.episodic_promoter import EpisodicPromoter
-from ..memory.memory_system import UniversalMemorySystem
-from ..memory.rag_retrieval import MemoryRetriever
 from ..pipeline.context import create_empty_user_context
 from ..utils.json_utils import compact_for_merge_prompt, parse_json_from_llm_output
 
@@ -35,16 +28,13 @@ logger = logging.getLogger(__name__)
 
 class MindMitraWorkflow:
     """
-    Orchestrates the full 8-step pipeline:
+    Orchestrates the intent-routed pipeline:
       1. Build UserContext JSON
-      2. Fetch memories → session_context
-      3. Groq NLP → nlp_analysis
-      4. Cultural context → cultural_context
-      4.5 RAG memory retrieval
-      5. GLM Psychologist → psychological_analysis
-      6. GLM Technique Selector → technique_selection
-      7. GLM Response Generator → ai_response
-      8. Return result in original format
+      2. Fetch session memories
+      3. Route intent → Path A (casual) / B (emotional) / C (therapeutic) / D (crisis)
+      4. Each path runs only the analysis + agents it needs
+      5. mem0 memory retrieval injected at route time
+      6. Return result
     """
 
     def __init__(self) -> None:
@@ -71,61 +61,23 @@ class MindMitraWorkflow:
 
         self._user_contexts_table_available: bool = self.feature_flags.get("user_contexts_table", True)
 
-        # ── Memory system ─────────────────────────────────────
-        google_api_key = config.get_api_key("google") or os.getenv("GOOGLE_API_KEY", "")
-        try:
-            if google_api_key and self.feature_flags.get("background_memory_extraction", True):
-                self.memory_system: Optional[UniversalMemorySystem] = UniversalMemorySystem(api_key=google_api_key)
-                logger.info("✅ [WORKFLOW] Memory system ready")
-            else:
-                self.memory_system = None
-        except Exception as e:
-            self.memory_system = None
-            logger.error(f"❌ [WORKFLOW] Memory system init failed: {e}")
-
         # ── Agents & controllers ──────────────────────────────
         self.groq_nlp: Optional[GroqNLPModule] = GroqNLPModule() if self.feature_flags.get("nlp_analysis", True) else None
         self.glm = GLMController()
-        self.cultural_module: Optional[CulturalContextModule] = (
-            CulturalContextModule(groq_nlp=self.groq_nlp) if self.feature_flags.get("cultural_context", True) else None
-        )
         self.screening_agent: Optional[ScreeningAssessmentAgent] = (
             ScreeningAssessmentAgent(self.groq_nlp, self.glm) if self.feature_flags.get("screening_assessments", True) else None
         )
-        self.agent_psychologist = PsychologistAnalysisAgent(self.glm)
-        self.agent_technique = TechniqueSelectorAgent(self.glm)
         self.response_gen = ResponseGenerator(self.glm)
 
-        # ── RAG components ────────────────────────────────────
-        if self.feature_flags.get("rag_memory_retrieval", True):
-            try:
-                self.embedding_service: Optional[EmbeddingService] = EmbeddingService()
-                self.query_agent: Optional[QueryDecisionAgent] = QueryDecisionAgent(
-                    groq_client=self.groq_nlp.client if self.groq_nlp else None,
-                    glm_controller=self.glm,
-                )
-                self.memory_retriever: Optional[MemoryRetriever] = MemoryRetriever(
-                    supabase_client=self.supabase,
-                    embedding_service=self.embedding_service,
-                )
-                self.memory_deduplicator: Optional[MemoryDeduplicator] = MemoryDeduplicator(
-                    supabase_client=self.supabase,
-                    embedding_service=self.embedding_service,
-                )
-                self.episodic_promoter: Optional[EpisodicPromoter] = EpisodicPromoter(
-                    supabase_client=self.supabase,
-                    embedding_service=self.embedding_service,
-                    gemini_model=self.memory_system.model if self.memory_system else None,
-                )
-                logger.info("✅ [WORKFLOW] RAG memory system initialised")
-            except Exception as e:
-                logger.error(f"⚠️ [WORKFLOW] RAG init failed (non-blocking): {e}")
-                self.embedding_service = self.query_agent = None
-                self.memory_retriever = self.memory_deduplicator = self.episodic_promoter = None
+        # ── Intent router (reuses groq_nlp client — no new API key) ──────────
+        if self.groq_nlp and self.groq_nlp.client:
+            self.intent_router: Optional[IntentRouter] = IntentRouter(
+                groq_client=self.groq_nlp.client,
+                model=self.groq_nlp.model,
+            )
         else:
-            logger.info("ℹ️ [WORKFLOW] RAG memory retrieval disabled by config")
-            self.embedding_service = self.query_agent = None
-            self.memory_retriever = self.memory_deduplicator = self.episodic_promoter = None
+            self.intent_router = None
+            logger.warning("⚠️ [WORKFLOW] Intent router disabled (Groq client unavailable)")
 
         self._summarization_cache: Dict = {}
         self._last_summarization_count: Dict = {}
@@ -226,7 +178,6 @@ class MindMitraWorkflow:
                 return
             payload = {
                 "user_id": user_id,
-                "session_id": context.get("session_id"),
                 "context": context,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
@@ -261,18 +212,13 @@ class MindMitraWorkflow:
                 except Exception:
                     return None
 
-            with ThreadPoolExecutor(max_workers=2) as executor:
+            with ThreadPoolExecutor(max_workers=1) as executor:
                 fut_existing = executor.submit(_read_existing)
-                fut_screening = executor.submit(
-                    self.screening_agent.generate, deepcopy(user_context)
-                ) if self.screening_agent else None
-
                 existing_ctx = fut_existing.result()
-                screening_payload = fut_screening.result() if fut_screening else {}
 
-            if screening_payload:
-                user_context.setdefault("screening_assessments", {})
-                user_context["screening_assessments"].update(screening_payload)
+            # NOTE: Screening is no longer run per-message.
+            # PHQ-9/GAD-7 assessment runs at session-end intervals
+            # (see chat.py _run_session_end_jobs) for better accuracy.
 
             merged_ctx = (
                 self._merge_contexts_with_llm(existing_ctx, user_context)
@@ -287,148 +233,664 @@ class MindMitraWorkflow:
         except Exception as e:
             logger.error(f"❌ [FILE] Failed to save user context: {e}")
 
-    def fetch_session_memories(self, session_id: str) -> Dict[str, List[Dict]]:
-        empty: Dict[str, List] = {"procedural": [], "semantic": [], "episodic": []}
-        if not self.supabase or not session_id:
-            return empty
+    # ── core pipeline ──────────────────────────────────────────────────────
+
+    # ── class-level constants ──────────────────────────────────────────────
+
+    # Crisis keywords that trigger immediate fast-path (no LLM needed)
+    _CRISIS_HARD_KEYWORDS = (
+        "kill myself", "killing myself", "end my life", "ending my life",
+        "take my life", "taking my life", "suicidal",
+        "want to die", "wanna die", "want to hurt myself", "i want to hurt myself",
+        "self harm", "self-harm", "cutting myself", "cut myself",
+        "no reason to live", "not worth living", "better off dead",
+        "don't want to live", "dont want to live", "shouldn't be alive",
+        # Hindi / Hinglish equivalents
+        "maar dunga", "maar lunga", "maar lungi", "khatam kar lunga",
+        "khatam kar lungi", "khatam ho jaana chahta", "khatam ho jaana chahti",
+        "zindagi khatam", "jeena nahi chahta", "jeena nahi chahti",
+        "marna chahta", "marna chahti", "khud ko maar",
+    )
+
+    # Keywords that may or may not signal crisis — escalate to LLM for disambiguation.
+    # NOTE: bare "suicide" is here (not HARD) to avoid false-positives on informational
+    # use ("suicide rates", "suicide prevention", etc.).  The LLM check correctly
+    # escalates "I'm thinking about suicide" while passing academic/news references.
+    _CRISIS_AMBIGUOUS_KEYWORDS = (
+        "suicide",
+        "hurt myself", "hurt yourself", "hurting myself",
+        "end it all", "end it", "can't go on", "cant go on",
+        "nobody cares", "worthless", "hopeless", "disappear forever",
+    )
+
+    # Hardcoded crisis resources (India-specific)
+    _CRISIS_RESPONSE = (
+        "Hey, I'm really glad you reached out, and I want you to know "
+        "you're not alone right now. What you're feeling is real, and it matters deeply. "
+        "Please talk to someone who can really be there for you:\n\n"
+        "📞 iCall India: 9152987821\n"
+        "📞 Vandrevala Foundation: 1860-2662-345\n\n"
+        "You deserve real support. I'm here too — can you share a little more "
+        "about what's been happening?"
+    )
+
+    # Technique → 2-line system-prompt directive (pure Python, zero LLM)
+    _TECHNIQUE_DIRECTIVES: Dict[str, str] = {
+        "validate": (
+            "Focus entirely on making this person feel deeply understood. "
+            "Do not offer advice or reframes."
+        ),
+        "reframe": (
+            "Gently offer one alternative way to look at this situation. "
+            "Don't push — just open a door."
+        ),
+        "ground": (
+            "Naturally bring their attention to the present moment — "
+            "their body, breath, or surroundings."
+        ),
+        "problem-solve": (
+            "Help identify one small, concrete next step they can actually take right now."
+        ),
+        "refer": (
+            "Warmly acknowledge this is bigger than a chat can hold. "
+            "Gently and compassionately mention professional support."
+        ),
+        "psychoeducation": (
+            "Share one simple, relatable insight about what they're experiencing. "
+            "Keep it accessible, not clinical."
+        ),
+    }
+
+    # ── crisis helpers ─────────────────────────────────────────────────────
+
+    def _check_crisis_keywords(self, text: str) -> str:
+        """
+        Fast keyword scan. Returns: "hard" | "ambiguous" | "safe".
+        pure-Python, zero I/O, ~0 ms.
+        """
+        tl = text.lower()
+        for kw in self._CRISIS_HARD_KEYWORDS:
+            if kw in tl:
+                logger.warning(f"🚨 [CRISIS-KW] Hard match: '{kw}'")
+                return "hard"
+        for kw in self._CRISIS_AMBIGUOUS_KEYWORDS:
+            if kw in tl:
+                logger.info(f"⚠️ [CRISIS-KW] Ambiguous match: '{kw}'")
+                return "ambiguous"
+        return "safe"
+
+    def _crisis_llm_check(self, text: str) -> bool:
+        """
+        Lightweight LLM call for ambiguous crisis signals.
+        Only called when keyword scan returns "ambiguous".
+        Returns True if crisis intent detected.
+        """
+        if not (self.groq_nlp and self.groq_nlp.client):
+            return False
         try:
-            resp = (
-                self.supabase.table("memories")
-                .select("*")
-                .eq("session_id", session_id)
-                .order("created_at", desc=True)
-                .execute()
+            resp = self.groq_nlp.client.chat.completions.create(
+                model=self.groq_nlp.model,
+                messages=[{
+                    "role": "user",
+                    "content": (
+                        "Does this message express intent to harm oneself or end one's life? "
+                        f'Answer only "yes" or "no".\nMessage: "{text[:300]}"'
+                    ),
+                }],
+                temperature=0.0,
+                max_tokens=5,
             )
-            if not resp.data:
-                return empty
-            memories: Dict[str, List] = {"procedural": [], "semantic": [], "episodic": []}
-            for row in resp.data:
-                for mem_type in ("procedural", "semantic", "episodic"):
-                    raw = row.get(f"{mem_type}_memories", [])
-                    if isinstance(raw, str):
-                        try:
-                            raw = json.loads(raw)
-                        except Exception:
-                            raw = []
-                    for mem in (raw if isinstance(raw, list) else []):
-                        memories[mem_type].append({
-                            "memory_content": mem.get("memory_content", mem.get("content", str(mem))),
-                            "confidence": mem.get("confidence", 0.5),
-                            "created_at": row.get("created_at"),
-                            "memory_id": row.get("id"),
-                            "importance": mem.get("importance", "medium"),
-                            "category": mem.get("category", "general"),
-                        })
-            total = sum(len(v) for v in memories.values())
-            logger.info(f"✅ [FETCH_MEMORIES] {total} memories retrieved")
-            return memories
+            answer = (resp.choices[0].message.content.strip().lower()) if resp.choices else "no"
+            return answer.startswith("yes")
         except Exception as e:
-            logger.error(f"❌ [FETCH_MEMORIES] {e}")
-            return empty
+            logger.warning(f"⚠️ [CRISIS-LLM] Check failed: {e}")
+            return False
 
-    def fetch_last_n_messages(self, session_id: str, n: int = 15) -> List[Dict]:
-        if not self.supabase or not session_id:
-            return []
+    def _crisis_fast_path(self, ctx: Dict) -> None:
+        """
+        Path D — immediate empathetic crisis response. Logs event. Under ~1s.
+        Sets ctx["ai_response"] directly, sets analysis to crisis defaults.
+        """
+        logger.critical(
+            f"🚨 [CRISIS] Fast-path triggered | session={str(ctx.get('session_id','?'))[:8]}"
+        )
+        # Log to crisis_events table (non-blocking)
+        if self.supabase:
+            try:
+                self.supabase.table("crisis_events").insert({
+                    "user_id": ctx.get("user_id", "anonymous"),
+                    "level": "high",
+                    "source": "intent_router_crisis_path",
+                }).execute()
+            except Exception as e:
+                logger.error(f"❌ [CRISIS] Supabase log failed: {e}")
+
+        ctx["ai_response"] = self._CRISIS_RESPONSE
+        ctx["response_generated"] = True
+        ctx["intervention_directive"] = ""
+
+        # Store crisis memory (background, non-blocking)
         try:
-            resp = (
-                self.supabase.table("chat_messages")
-                .select("id, role, content, created_at")
-                .eq("session_id", session_id)
-                .eq("processed_into_memory", False)
-                .order("created_at", desc=False)
-                .limit(n)
-                .execute()
-            )
-            return [
-                {"id": r["id"], "role": r["role"], "content": r["content"], "timestamp": r["created_at"]}
-                for r in (resp.data or [])
-            ]
-        except Exception as e:
-            logger.error(f"❌ [WORKFLOW] fetch_last_n_messages error: {e}")
-            return []
+            threading.Thread(
+                target=memory_manager.add_crisis_memory,
+                args=(
+                    ctx.get("user_id", "anonymous"),
+                    ctx.get("user_message", ""),
+                    ctx.get("session_id"),
+                ),
+                daemon=True,
+            ).start()
+        except Exception as crisis_mem_exc:
+            logger.error(f"❌ [CRISIS] Memory save failed: {crisis_mem_exc}")
 
-    def trigger_memory_extraction(self, session_id: str, user_id: str) -> None:
-        """Trigger legacy memory extraction (v1 compat)."""
+        ctx["psychological_analysis"] = {
+            "emotional_state": "crisis",
+            "stress_categories": ["Crisis"],
+            "risk_assessment": "crisis",
+            "coping_assessment": "immediate intervention required",
+            "intervention_priority": "immediate",
+            "psychological_insights": ["User expressed crisis-level distress"],
+            "cultural_pressures": "",
+        }
+        ctx["technique_selection"] = {
+            "primary_technique": "Crisis-Protocol",
+            "therapeutic_approach": "refer",
+            "activity_recommendations": [],
+            "rationale": "immediate safety — crisis fast-path",
+        }
+
+    # ── technique directive lookup ─────────────────────────────────────────
+
+    def _technique_directive(self, intervention: str) -> str:
+        """Pure Python dict lookup. Zero LLM calls."""
+        return self._TECHNIQUE_DIRECTIVES.get(intervention.lower(), self._TECHNIQUE_DIRECTIVES["validate"])
+
+    # ── activity summary for analysis prompts ──────────────────────────────
+
+    @staticmethod
+    def _activity_context_block(ctx: Dict, max_items: int = 5) -> str:
+        """
+        Build a compact activity summary string for injection into analysis prompts.
+        Returns empty string if no recent activities.
+        """
+        activities = ctx.get("session_context", {}).get("user_activities", [])
+        if not activities:
+            return ""
+        lines = []
+        for act in activities[:max_items]:
+            atype = act.get("activity_type", "?")
+            score = act.get("score", "?")
+            accuracy = act.get("accuracy_percentage")
+            insights = act.get("insights_generated", {})
+            perf = insights.get("performance_level", "") if isinstance(insights, dict) else ""
+            patterns = insights.get("key_patterns", []) if isinstance(insights, dict) else []
+            acc_str = f" acc={accuracy}%" if accuracy is not None else ""
+            perf_str = f" perf={perf}" if perf else ""
+            pat_str = f" signals={patterns}" if patterns else ""
+            lines.append(f"  - {atype}: score={score}{acc_str}{perf_str}{pat_str}")
+        return "Recent game/assessment activity (last 24h):\n" + "\n".join(lines)
+
+    # ── combined emotion + cultural analysis (replaces old Prompts 1+2) ───
+
+    def _combined_emotion_cultural_analyse(self, ctx: Dict) -> Dict:
+        """
+        Path B helper — ONE Groq call replaces old NLP + cultural calls.
+        Returns: {primary_emotion, intensity, cultural_pressure, language_style,
+                  user_needs, tone_match}
+        """
+        defaults = {
+            "primary_emotion": "neutral",
+            "intensity": 0.5,
+            "cultural_pressure": "none",
+            "language_style": "english",
+            "user_needs": "validation",
+            "tone_match": "warm",
+        }
+        if not (self.groq_nlp and self.groq_nlp.client):
+            return defaults
+
+        text = ctx.get("user_message", "")
+        recent = ctx["session_context"].get("recent_messages", [])[-3:]
+        history = " | ".join(
+            f"{m.get('role', '?')}: {m.get('content', '')[:100]}" for m in recent
+        )
+        ctx_line = f"Context: {history[:400]}\n" if history else ""
+
+        act_block = self._activity_context_block(ctx)
+        act_line = f"\n{act_block}\n" if act_block else ""
+
+        prompt = (
+            "Analyse this message for a mental-health chatbot. "
+            "Return ONLY valid JSON:\n"
+            "{\n"
+            '  "primary_emotion": "<strongest emotion>",\n'
+            '  "intensity": <float 0-1>,\n'
+            '  "cultural_pressure": "<none|exam|family|social|identity|career|stigma>",\n'
+            '  "language_style": "<english|hinglish|hindi>",\n'
+            '  "user_needs": "<just_to_vent|validation|practical_help|information|company>",\n'
+            '  "tone_match": "<playful|warm|gentle|calm|energetic>"\n'
+            "}\n\n"
+            f"{ctx_line}"
+            f"{act_line}"
+            f'Message: "{text[:600]}"\n\nJSON:'
+        )
         try:
-            messages = self.fetch_last_n_messages(session_id, n=15)
-            if not messages or not self.memory_system:
-                return
-            chat_data = {"data_type": "chat", "user_id": user_id, "session_id": session_id, "chat_history": messages}
-            result = self.memory_system.process_data_to_memories(chat_data)
-            memory_record = {
-                "user_id": user_id,
-                "session_id": session_id,
-                "data_type": "chat",
-                "procedural_memories": result["memories"].get("procedural", []),
-                "semantic_memories": result["memories"].get("semantic", []),
-                "episodic_memories": result["memories"].get("episodic", []),
-                "memory_summary": {
-                    "procedural_count": len(result["memories"].get("procedural", [])),
-                    "semantic_count": len(result["memories"].get("semantic", [])),
-                    "episodic_count": len(result["memories"].get("episodic", [])),
-                    "extraction_timestamp": datetime.now(timezone.utc).isoformat(),
-                },
-                "source_message_ids": [msg["id"] for msg in messages],
-                "metadata": {"message_count": len(messages), "extraction_method": "parallel_llm"},
-                "processed_at": datetime.now(timezone.utc).isoformat(),
-            }
-            if self.supabase:
-                self.supabase.table("memories").insert(memory_record).execute()
-                ids = [msg["id"] for msg in messages]
-                if ids:
-                    self.supabase.table("chat_messages").update({"processed_into_memory": True}).in_("id", ids).execute()
-            logger.info("✅ [MEMORY EXTRACTION] Done")
+            _t_groq = time.monotonic()
+            logger.debug(f"  📡 [COMBINED-ANALYSIS] Groq API call ({self.groq_nlp.model}) ...")
+            resp = self.groq_nlp.client.chat.completions.create(
+                model=self.groq_nlp.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=180,
+            )
+            _groq_ms = (time.monotonic() - _t_groq) * 1000
+            raw = (resp.choices[0].message.content.strip()) if resp.choices else ""
+            parsed = parse_json_from_llm_output(raw)
+            if isinstance(parsed, dict):
+                for k, v in defaults.items():
+                    if k not in parsed:
+                        parsed[k] = v
+                logger.info(
+                    f"✅ [COMBINED-ANALYSIS] Groq {_groq_ms:.0f}ms | "
+                    f"emotion={parsed.get('primary_emotion')} "
+                    f"intensity={parsed.get('intensity',0):.2f} "
+                    f"lang={parsed.get('language_style')} "
+                    f"needs={parsed.get('user_needs')}"
+                )
+                return parsed
         except Exception as e:
-            logger.error(f"❌ [MEMORY EXTRACTION] Failed: {e}")
+            logger.error(f"❌ [COMBINED-ANALYSIS] Groq call failed: {e}")
+        return defaults
 
-    def _background_unified_extraction(self, session_id: str, user_id: str, message_count: int) -> None:
-        """Background worker for unified memory extraction (RAG system)."""
+    # ── optimised psychological analysis (replaces old Prompt 3 for Path C) ──
+
+    def _optimized_psych_analysis(self, ctx: Dict) -> Dict:
+        """
+        Path C helper — lighter GLM prompt, ~40% fewer tokens than full analysis.
+        Returns: {emotional_state, primary_stressor, risk_level, intervention,
+                  insight, cultural_factor}
+        """
+        defaults = {
+            "emotional_state": "distressed",
+            "primary_stressor": "General",
+            "risk_level": "moderate",
+            "intervention": "validate",
+            "insight": "User needs support and validation",
+            "cultural_factor": None,
+        }
+        nlp = ctx.get("nlp_analysis", {})
+        emotion = nlp.get("primary_emotion", "unknown")
+        intensity = nlp.get("intensity", 0.0)
+
+        session = ctx.get("session_context", {})
+        recent = session.get("recent_messages", [])[-3:]
+
+        # mem0 retrieved memories (injected before routing)
+        mem0_context = ctx.get("memory_context", "")
+        mem_block = mem0_context[:400] if mem0_context else "None"
+
+        conv = "\n".join(
+            f"{'U' if m.get('role') == 'user' else 'A'}: {m.get('content', '')[:80]}"
+            for m in recent
+        ) or "New conversation."
+
+        act_block = self._activity_context_block(ctx)
+        act_line = f"\n{act_block}\n" if act_block else ""
+
+        # Cross-session context for clinical continuity
+        prev = ctx.get("previous_session_summary", {})
+        prev_line = ""
+        if prev and prev.get("summary"):
+            prev_line = f"\nPrevious session: {prev['summary'][:200]}\n"
+
+        prompt = (
+            "You are a clinical psychologist. Return ONLY valid JSON:\n"
+            "{\n"
+            '  "emotional_state": "<2-3 word description>",\n'
+            '  "primary_stressor": "<Academic|Family|Social|Identity|Career|Relationship|Health>",\n'
+            '  "risk_level": "<low|moderate|high|crisis>",\n'
+            '  "intervention": "<validate|reframe|ground|problem-solve|refer|psychoeducation>",\n'
+            '  "insight": "<single most important clinical observation, one sentence>",\n'
+            '  "cultural_factor": "<specific Indian pressure if relevant, else null>"\n'
+            "}\n\n"
+            f'Message: "{ctx["user_message"][:600]}"\n'
+            f"Emotion: {emotion} (intensity {intensity:.1f})\n"
+            f"User memories:\n{mem_block}\n"
+            f"{act_line}"
+            f"{prev_line}"
+            f"Recent:\n{conv}\n\nJSON:"
+        )
         try:
-            logger.info(f"🧠 [UNIFIED_EXTRACTION] session={session_id[:8]} user={user_id} msgs={message_count}")
-            messages = self.fetch_last_n_messages(session_id, n=12)
-            if len(messages) < 12:
-                return
-            chunk_number = message_count // 12 - 1
-            result = self.memory_system.extract_all_with_summary_unified(
-                messages=messages, chunk_number=chunk_number, session_id=session_id
-            )
-            if self.supabase:
-                try:
-                    self.supabase.from_("session_chunk_summaries").insert({
-                        "session_id": session_id, "user_id": user_id, "chunk_number": chunk_number,
-                        "message_count": len(messages),
-                        "summary_content": result["session_summary"]["summary"],
-                        "emotional_progression": result["session_summary"]["emotional_progression"],
-                        "key_themes": result["session_summary"]["key_themes"],
-                        "source_message_ids": [msg["id"] for msg in messages],
-                    }).execute()
-                except Exception as e:
-                    logger.error(f"❌ [UNIFIED_EXTRACTION] Summary save failed: {e}")
-
-            saved_counts: Dict[str, int] = {"semantic": 0, "procedural": 0, "episodic": 0}
-            for mem_type in ("semantic", "procedural", "episodic"):
-                for memory in result["memories"].get(mem_type, []):
-                    if self.memory_deduplicator:
-                        mem_id = self.memory_deduplicator.process_and_save_memory(
-                            memory=memory, session_id=session_id, user_id=user_id, memory_type=mem_type
-                        )
-                        if mem_id:
-                            saved_counts[mem_type] += 1
-                            if mem_type == "episodic" and self.episodic_promoter:
-                                if self.episodic_promoter.track_and_promote(episodic=memory, session_id=session_id, user_id=user_id):
-                                    pass  # promoted_count tracked if needed
-
-            if self.supabase:
-                ids = [msg["id"] for msg in messages]
-                if ids:
-                    self.supabase.from_("chat_messages").update({"processed_into_memory": True}).in_("id", ids).execute()
-
-            logger.info(
-                f"✅ [UNIFIED_EXTRACTION] semantic={saved_counts['semantic']} "
-                f"procedural={saved_counts['procedural']} episodic={saved_counts['episodic']}"
-            )
+            _t_glm = time.monotonic()
+            logger.debug(f"  📡 [PSYCH-OPT] GLM API call ({getattr(self.glm, 'model_name', '?')}) ...")
+            resp = self.glm.invoke([{"role": "user", "content": prompt}])
+            _glm_ms = (time.monotonic() - _t_glm) * 1000
+            if resp and resp.content:
+                parsed = parse_json_from_llm_output(resp.content)
+                if isinstance(parsed, dict):
+                    for k, v in defaults.items():
+                        if k not in parsed:
+                            parsed[k] = v
+                    logger.info(
+                        f"✅ [PSYCH-OPT] GLM {_glm_ms:.0f}ms | "
+                        f"stressor={parsed.get('primary_stressor')} "
+                        f"risk={parsed.get('risk_level')} "
+                        f"intervention={parsed.get('intervention')}"
+                    )
+                    return parsed
         except Exception as e:
-            logger.error(f"❌ [UNIFIED_EXTRACTION] Failed: {e}")
+            logger.error(f"❌ [PSYCH-OPT] GLM call failed: {e}")
+        return defaults
+
+    # ── execution paths ────────────────────────────────────────────────────
+
+    def _path_light(self, ctx: Dict) -> None:
+        """
+        Path A — 1 GLM call. Casual / small-talk messages.
+        Minimal context. Short, warm, conversational response.
+        """
+        logger.info("━" * 50)
+        logger.info("💬 [PATH-A] ▶  EXECUTING: casual/light path (1 GLM call)")
+        logger.info("━" * 50)
+
+        # Per-path response length control
+        ctx["_response_max_tokens"] = 150
+
+        # Set minimal analysis stubs so return dict never KeyErrors
+        ctx["psychological_analysis"] = {
+            "emotional_state": "casual",
+            "stress_categories": [],
+            "risk_assessment": "low",
+            "coping_assessment": "",
+            "intervention_priority": "long-term",
+            "psychological_insights": [],
+            "cultural_pressures": "",
+        }
+        ctx["technique_selection"] = {
+            "primary_technique": "Companion",
+            "therapeutic_approach": "casual",
+            "activity_recommendations": [],
+            "rationale": "light conversation",
+        }
+        # Inject directive: enforce short companion tone, remove clinical framing
+        ctx["intervention_directive"] = (
+            "This is casual conversation. Be a warm, friendly companion. "
+            "Keep your response to 1-3 sentences. Ask one curious question at most. "
+            "No clinical framing whatsoever."
+        )
+        logger.info(f"  📞 [PATH-A] Calling GLM response-gen (model={getattr(self.glm, 'model_name', '?')})...")
+        _t = time.monotonic()
+        self.response_gen.generate(ctx)
+        logger.info(
+            f"  ✅ [PATH-A] GLM done in {(time.monotonic()-_t)*1000:.0f}ms | "
+            f"response={len(ctx.get('ai_response', ''))} chars"
+        )
+
+    def _path_standard(self, ctx: Dict) -> None:
+        """
+        Path B — 2 LLM calls (1 Groq combined analysis + 1 GLM response).
+        For emotional messages. Memory already fetched before routing.
+        """
+        logger.info("━" * 50)
+        logger.info("❤️  [PATH-B] ▶  EXECUTING: emotional/standard path (1 Groq + 1 GLM)")
+        logger.info("━" * 50)
+
+        # Per-path response length control
+        ctx["_response_max_tokens"] = 300
+
+        logger.info(f"  📞 [PATH-B] Calling Groq combined-analysis (model={getattr(getattr(self, 'groq_nlp', None), 'model', '?')})...")
+        _t_combined = time.monotonic()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            fut_combined = executor.submit(self._combined_emotion_cultural_analyse, ctx)
+            combined = fut_combined.result()
+        logger.info(f"  ✅ [PATH-B] Groq combined-analysis done in {(time.monotonic()-_t_combined)*1000:.0f}ms")
+
+        # Populate context fields from combined analysis
+        ctx["nlp_analysis"] = {
+            "primary_emotion": combined.get("primary_emotion", "unknown"),
+            "intensity": combined.get("intensity", 0.5),
+            "emotions": {},
+            "sentiment": {"score": 0.0, "label": "neutral"},
+            "key_phrases": [],
+            "language_detected": "en",
+            "urgency_flag": False,
+        }
+        cultural_pressure = combined.get("cultural_pressure", "none")
+        ctx["cultural_context"] = {
+            "language_style": combined.get("language_style", "english"),
+            "hindi_english_ratio": 0.0,
+            "code_switching_detected": combined.get("language_style") in ("hinglish", "hindi"),
+            "cultural_sensitivity_flags": (
+                [cultural_pressure] if cultural_pressure not in ("none", "") else []
+            ),
+            "communication_pattern": combined.get("tone_match", "warm"),
+            "regional_context": "",
+            "formality_level": "medium",
+        }
+        ctx["psychological_analysis"] = {
+            "emotional_state": combined.get("primary_emotion", "unknown"),
+            "stress_categories": (
+                [cultural_pressure.title()] if cultural_pressure not in ("none", "") else ["General"]
+            ),
+            "risk_assessment": "low",
+            "coping_assessment": "",
+            "intervention_priority": "supportive",
+            "psychological_insights": [],
+            "cultural_pressures": cultural_pressure if cultural_pressure != "none" else "",
+        }
+        ctx["technique_selection"] = {
+            "primary_technique": "Validation",
+            "therapeutic_approach": combined.get("user_needs", "validation"),
+            "activity_recommendations": [],
+            "rationale": "emotional support — standard path",
+        }
+
+        # Choose directive from user_needs
+        user_needs = combined.get("user_needs", "validation")
+        needs_to_intervention = {
+            "just_to_vent": "validate",
+            "validation": "validate",
+            "practical_help": "problem-solve",
+            "information": "psychoeducation",
+            "company": "validate",
+        }
+        ctx["intervention_directive"] = self._technique_directive(
+            needs_to_intervention.get(user_needs, "validate")
+        )
+        logger.info(
+            f"  🧩 [PATH-B] Analysis complete: "
+            f"emotion={combined.get('primary_emotion','?')} "
+            f"intensity={combined.get('intensity',0):.2f} "
+            f"needs={user_needs} "
+            f"lang={combined.get('language_style','?')} "
+            f"directive='{needs_to_intervention.get(user_needs,'validate')}'"
+        )
+        logger.info(f"  📞 [PATH-B] Calling GLM response-gen (model={getattr(self.glm, 'model_name', '?')})...")
+        _t_gen = time.monotonic()
+        self.response_gen.generate(ctx)
+        logger.info(
+            f"  ✅ [PATH-B] GLM response-gen done in {(time.monotonic()-_t_gen)*1000:.0f}ms | "
+            f"response={len(ctx.get('ai_response',''))} chars"
+        )
+
+    def _path_rich(self, ctx: Dict) -> None:
+        """
+        Path C — 2-3 LLM calls. For therapeutic messages.
+        Parallel: optimised psych analysis + optional crisis LLM check.
+        Memories already fetched before routing.
+        """
+        logger.info("━" * 50)
+        logger.info("🧠 [PATH-C] ▶  EXECUTING: therapeutic/rich path (1 GLM psych + 1 GLM response)")
+        logger.info("━" * 50)
+
+        # Per-path response length control
+        ctx["_response_max_tokens"] = 500
+
+        # Fast keyword check first (0 ms)
+        crisis_level = self._check_crisis_keywords(ctx["user_message"])
+        logger.debug(f"  🔍 [PATH-C] In-path crisis scan → '{crisis_level}'")
+        if crisis_level == "hard":
+            logger.warning("🚨 [PATH-C] Hard crisis keyword inside rich path — fast-pathing to D")
+            self._crisis_fast_path(ctx)
+            return
+
+        # Run psych analysis; if ambiguous crisis signal, also run LLM check in parallel
+        _workers = "GLM psych-analysis" + (" + Groq crisis-check [parallel]" if crisis_level == "ambiguous" else "")
+        logger.info(f"  📞 [PATH-C] Calling {_workers}...")
+        _t_psych = time.monotonic()
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            fut_psych = executor.submit(self._optimized_psych_analysis, deepcopy(ctx))
+            fut_crisis_llm = (
+                executor.submit(self._crisis_llm_check, ctx["user_message"])
+                if crisis_level == "ambiguous"
+                else None
+            )
+            psych_result = fut_psych.result()
+            is_crisis_llm = fut_crisis_llm.result() if fut_crisis_llm else False
+        logger.info(
+            f"  ✅ [PATH-C] Psych analysis done in {(time.monotonic()-_t_psych)*1000:.0f}ms | "
+            f"stressor={psych_result.get('primary_stressor','?')} "
+            f"risk={psych_result.get('risk_level','?')} "
+            f"intervention={psych_result.get('intervention','?')}"
+        )
+
+        # Crisis escalation: psych analysis or LLM check says crisis
+        if is_crisis_llm or psych_result.get("risk_level") == "crisis":
+            logger.warning(
+                f"🚨 [PATH-C] Crisis escalation: "
+                f"risk_level={psych_result.get('risk_level')} llm_crisis={is_crisis_llm}"
+            )
+            self._crisis_fast_path(ctx)
+            return
+
+        # Populate context fields
+        ctx["psychological_analysis"] = {
+            "emotional_state": psych_result.get("emotional_state", ""),
+            "stress_categories": [psych_result.get("primary_stressor", "General")],
+            "risk_assessment": psych_result.get("risk_level", "moderate"),
+            "coping_assessment": "",
+            "intervention_priority": (
+                "immediate" if psych_result.get("risk_level") == "high" else "supportive"
+            ),
+            "psychological_insights": (
+                [psych_result["insight"]] if psych_result.get("insight") else []
+            ),
+            "cultural_pressures": psych_result.get("cultural_factor") or "",
+        }
+        intervention = psych_result.get("intervention", "validate")
+        ctx["technique_selection"] = {
+            "primary_technique": intervention.replace("-", " ").title(),
+            "therapeutic_approach": intervention,
+            "activity_recommendations": [],
+            "rationale": psych_result.get("insight", ""),
+        }
+
+        # Inject directive from technique lookup (pure Python — zero LLM)
+        ctx["intervention_directive"] = self._technique_directive(intervention)
+        logger.info(
+            f"  🧩 [PATH-C] Psych complete: "
+            f"state='{psych_result.get('emotional_state','?')}' "
+            f"insight='{str(psych_result.get('insight',''))[:60]}' "
+            f"directive='{intervention}'"
+        )
+        logger.info(f"  📞 [PATH-C] Calling GLM response-gen (model={getattr(self.glm, 'model_name', '?')})...")
+        _t_gen = time.monotonic()
+        self.response_gen.generate(ctx)
+        logger.info(
+            f"  ✅ [PATH-C] GLM response-gen done in {(time.monotonic()-_t_gen)*1000:.0f}ms | "
+            f"response={len(ctx.get('ai_response',''))} chars"
+        )
+
+    # ── main router (safety gate — cannot be bypassed) ────────────────────
+
+    def _route_and_execute(self, ctx: Dict, session_id: Optional[str]) -> None:
+        """
+        Single entry point for the routed pipeline.
+
+        1. Classify intent via IntentRouter.
+        2. Safety gate: keyword crisis check overrides any non-crisis classification.
+        3. Dispatch to A / B / C / D.
+
+        This method is the ONLY way to reach the execution paths from process_chat
+        when use_routed_pipeline=True, ensuring the crisis gate cannot be skipped.
+        """
+        text = ctx["user_message"]
+        recent = ctx["session_context"].get("recent_messages", [])
+
+        _t_router = time.monotonic()
+
+        # ── Intent classification ──────────────────────────────────────────
+        activities = ctx.get("session_context", {}).get("user_activities", [])
+        if self.intent_router:
+            intent_result = self.intent_router.classify(text, recent, activities=activities)
+        else:
+            intent_result = {"intent": "emotional", "confidence": 0.5}
+            logger.warning("⚠️ [ROUTER] IntentRouter unavailable — defaulting to 'emotional'")
+        intent = intent_result.get("intent", "emotional")
+        confidence = intent_result.get("confidence", 0.0)
+        logger.info(
+            f"🤖 [ROUTER] IntentRouter → intent='{intent}' confidence={confidence:.2f} "
+            f"(Groq {getattr(getattr(self, 'groq_nlp', None), 'model', '?')})"
+        )
+
+        # ── Safety gate: crisis keyword check (CANNOT be bypassed) ────────
+        original_intent = intent
+        if intent != "crisis":
+            crisis_level = self._check_crisis_keywords(text)
+            logger.debug(f"🔍 [CRISIS-SCAN] keyword scan → '{crisis_level}'")
+            if crisis_level == "hard":
+                logger.warning(
+                    f"🚨 [CRISIS-GATE] Hard keyword match — overriding intent "
+                    f"'{original_intent}' → 'crisis' (no LLM call needed)"
+                )
+                intent = "crisis"
+            elif crisis_level == "ambiguous":
+                logger.info("⚠️ [CRISIS-GATE] Ambiguous keyword — escalating to LLM check")
+                _t_crisis = time.monotonic()
+                crisis_confirmed = self._crisis_llm_check(text)
+                logger.info(
+                    f"{'🚨' if crisis_confirmed else '✅'} [CRISIS-GATE] LLM check "
+                    f"→ {'CRISIS CONFIRMED' if crisis_confirmed else 'safe'} "
+                    f"({(time.monotonic()-_t_crisis)*1000:.0f}ms)"
+                )
+                if crisis_confirmed:
+                    intent = "crisis"
+            else:
+                logger.debug("✅ [CRISIS-GATE] No crisis signal detected")
+        else:
+            logger.info("🚨 [CRISIS-GATE] IntentRouter already classified as crisis")
+
+        logger.info(
+            f"🗺️  [ROUTER] DISPATCH → path={'D (crisis)' if intent=='crisis' else 'A (casual)' if intent=='casual' else 'B (emotional)' if intent=='emotional' else 'C (therapeutic)'} "
+            f"[router_time={(time.monotonic()-_t_router)*1000:.0f}ms]"
+        )
+
+        # ── Memory retrieval (mem0 — sync, fast) ─────────────────────────
+        try:
+            mem_ctx = memory_manager.retrieve_memories(
+                query=text,
+                user_id=ctx.get("user_id", "anonymous"),
+                intent=intent,
+            )
+            if mem_ctx:
+                ctx["memory_context"] = mem_ctx
+                logger.info(f"🧠 [MEMORY] Injected memory context ({len(mem_ctx)} chars)")
+        except Exception as mem_exc:
+            logger.error(f"❌ [MEMORY] retrieve_memories failed (non-blocking): {mem_exc}")
+
+        # ── Dispatch ───────────────────────────────────────────────────────
+        if intent == "crisis":
+            ctx["_pipeline_path"] = "D-crisis"
+            self._crisis_fast_path(ctx)
+        elif intent == "casual":
+            ctx["_pipeline_path"] = "A-casual"
+            self._path_light(ctx)
+        elif intent == "emotional":
+            ctx["_pipeline_path"] = "B-emotional"
+            self._path_standard(ctx)
+        else:  # therapeutic
+            ctx["_pipeline_path"] = "C-therapeutic"
+            self._path_rich(ctx)
 
     # ── core pipeline ──────────────────────────────────────────────────────
     def process_chat(
@@ -444,9 +906,20 @@ class MindMitraWorkflow:
         personality: Optional[str] = None,
         companion_name: Optional[str] = None,
         language: Optional[str] = None,
+        previous_session_summary: Optional[Dict] = None,
     ) -> Dict[str, Any]:
         """Main processing pipeline — same signature & return format as original."""
         start_time = datetime.now()
+        _t0 = time.monotonic()
+        logger.info(
+            "═" * 60 + "\n"
+            f"  🚀 MINDMITRA PIPELINE START\n"
+            f"  user={user_id[:12] if user_id else '?'}  "
+            f"session={str(session_id)[:8] if session_id else 'none'}\n"
+            f"  personality={personality or 'mitra'}  lang={language or 'english'}\n"
+            f"  msg_len={len(user_message)}  recent={len(recent_messages or [])}\n"
+            + "═" * 60
+        )
 
         # Step 1: build context envelope
         ctx = create_empty_user_context(user_id, session_id, user_message.strip())
@@ -455,6 +928,10 @@ class MindMitraWorkflow:
         ctx["session_context"]["conversation_summary"] = conversation_summary or {}
         ctx["session_context"]["user_activities"] = user_activities or []
         ctx["session_context"]["user_patterns"] = user_patterns or {}
+
+        # Cross-session continuity — previous session summary
+        if previous_session_summary:
+            ctx["previous_session_summary"] = previous_session_summary
 
         # Inject user personality preferences into context
         # Map personality names to default companion names
@@ -470,73 +947,9 @@ class MindMitraWorkflow:
             "language": language or "english",
         }
 
-        # Steps 2-4: parallel memory fetch + NLP + cultural
-        if self.feature_flags.get("parallel_processing", True):
-            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                fut_mem: Optional[Future] = executor.submit(self.fetch_session_memories, session_id) if session_id else None
-                fut_nlp: Optional[Future] = executor.submit(self.groq_nlp.analyse, ctx) if self.groq_nlp else None
-                fut_cul: Optional[Future] = executor.submit(self.cultural_module.analyse, ctx) if self.cultural_module else None
-
-                for fut, label in [(fut_mem, "memory"), (fut_nlp, "NLP"), (fut_cul, "cultural")]:
-                    if fut:
-                        try:
-                            result = fut.result()
-                            if label == "memory":
-                                ctx["session_context"]["session_memories"] = result
-                        except Exception as e:
-                            logger.error(f"❌ [PIPELINE] {label} error (non-fatal): {e}")
-        else:
-            if session_id:
-                try:
-                    ctx["session_context"]["session_memories"] = self.fetch_session_memories(session_id)
-                except Exception as e:
-                    logger.error(f"❌ [PIPELINE] Memory fetch error: {e}")
-            if self.groq_nlp:
-                try:
-                    self.groq_nlp.analyse(ctx)
-                except Exception as e:
-                    logger.error(f"❌ [PIPELINE] NLP error: {e}")
-            if self.cultural_module:
-                try:
-                    self.cultural_module.analyse(ctx)
-                except Exception as e:
-                    logger.error(f"❌ [PIPELINE] Cultural error: {e}")
-
-        # Step 4.5: RAG retrieval
-        if self.query_agent and self.memory_retriever and session_id:
-            try:
-                UUID(session_id)  # validate UUID format
-                decision = self.query_agent.should_query_memories(
-                    user_message=user_message,
-                    recent_messages=recent_messages or [],
-                    emotional_state=ctx["nlp_analysis"],
-                )
-                if decision.get("needs_memory", False):
-                    query = decision.get("query_hint", user_message)
-                    embedding = self.embedding_service.embed_text(query)
-                    retrieved = self.memory_retriever.retrieve_memories(
-                        query=query, query_embedding=embedding,
-                        memory_types=decision.get("memory_types", ["semantic", "procedural"]),
-                        confidence_threshold=decision.get("confidence_threshold", 0.6),
-                        user_id=user_id, session_id=session_id, top_k=5,
-                    )
-                    ctx["session_context"]["retrieved_memories"] = retrieved
-                    logger.info(f"✅ [RAG] Retrieved {sum(len(v) for v in retrieved.values())} memories")
-                else:
-                    ctx["session_context"]["retrieved_memories"] = {"semantic": [], "procedural": [], "episodic": []}
-            except ValueError:
-                logger.warning(f"⚠️ [RAG] Invalid session_id format: {str(session_id)[:20]}")
-                ctx["session_context"]["retrieved_memories"] = {"semantic": [], "procedural": [], "episodic": []}
-            except Exception as e:
-                logger.error(f"❌ [RAG] Memory retrieval failed (non-blocking): {e}")
-                ctx["session_context"]["retrieved_memories"] = {"semantic": [], "procedural": [], "episodic": []}
-        else:
-            ctx["session_context"]["retrieved_memories"] = {"semantic": [], "procedural": [], "episodic": []}
-
-        # Steps 5-7: GLM agents
-        ctx = self.agent_psychologist.run(ctx)
-        ctx = self.agent_technique.run(ctx)
-        ctx = self.response_gen.generate(ctx)
+        # ── Execute routed pipeline ──────────────────────────────────────────
+        # Crisis check + intent routing → path A / B / C / D
+        self._route_and_execute(ctx, session_id)
 
         processing_time = (datetime.now() - start_time).total_seconds()
 
@@ -547,28 +960,21 @@ class MindMitraWorkflow:
             daemon=True,
         ).start()
 
-        # Step 8.5: background memory extraction trigger
-        if session_id and self.supabase and self.memory_system:
-            try:
-                count_result = (
-                    self.supabase.from_("chat_messages")
-                    .select("id", count="exact")
-                    .eq("session_id", session_id)
-                    .eq("processed_into_memory", False)
-                    .execute()
-                )
-                unprocessed = count_result.count if hasattr(count_result, "count") else 0
-                if unprocessed >= 12:
-                    threading.Thread(
-                        target=self._background_unified_extraction,
-                        args=(session_id, user_id, unprocessed),
-                        daemon=True,
-                    ).start()
-            except Exception as e:
-                logger.error(f"❌ [BACKGROUND] Trigger check failed: {e}")
-
+        processing_elapsed = time.monotonic() - _t0
         psych = ctx["psychological_analysis"]
         technique = ctx["technique_selection"]
+        _path_tag = ctx.get("_pipeline_path", "legacy")
+        logger.info(
+            "═" * 60 + "\n"
+            f"  ✅ MINDMITRA PIPELINE COMPLETE\n"
+            f"  path={_path_tag}  total_time={processing_elapsed:.2f}s\n"
+            f"  emotion={psych.get('emotional_state','?')}  "
+            f"risk={psych.get('risk_assessment','?')}\n"
+            f"  technique={technique.get('primary_technique','?')}  "
+            f"intervention={technique.get('therapeutic_approach','?')}\n"
+            f"  response_len={len(ctx.get('ai_response',''))}\n"
+            + "═" * 60
+        )
 
         return {
             "message": ctx["ai_response"],
@@ -621,6 +1027,7 @@ def process_user_chat(
     personality: Optional[str] = None,
     companion_name: Optional[str] = None,
     language: Optional[str] = None,
+    previous_session_summary: Optional[Dict] = None,
 ) -> Dict[str, Any]:
     """Public entry point — identical signature to original v1."""
     import time
@@ -634,6 +1041,7 @@ def process_user_chat(
             user_message, recent_messages, conversation_summary,
             user_activities, user_patterns, voice_analysis, user_id, session_id,
             personality=personality, companion_name=companion_name, language=language,
+            previous_session_summary=previous_session_summary,
         )
         result["processing_time"] = round(time.time() - start, 2)
         result["voice_aware"] = bool(voice_analysis)

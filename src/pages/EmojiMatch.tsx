@@ -5,6 +5,7 @@ import { ArrowLeft, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Confetti from "react-confetti";
+import { useGameDataSaver } from "@/lib/gameDataSaver";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ const playSound = (file: string) => {
 
 const EmojiMatch = () => {
   const navigate = useNavigate();
+  const { saveEmojiMatch } = useGameDataSaver();
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -75,6 +77,16 @@ const EmojiMatch = () => {
       setGameWon(true);
       setGameStarted(false);
       playSound("/sounds/win.mp3");
+
+      // Save game result — all pairs matched
+      const efficiencyScore = Math.max(0, 100 - (moves - emojis.length) * 5);
+      saveEmojiMatch(
+        efficiencyScore,     // score based on move efficiency
+        matches,             // correctClassifications = matched pairs
+        emojis.length,       // totalImages = total pairs
+        time,                // duration in seconds
+        [],                  // no classification data for card matching
+      ).catch((err) => console.error('Failed to save EmojiMatch result:', err));
     }
   }, [matches]);
 

@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import Confetti from "react-confetti";
+import { useGameDataSaver } from "@/lib/gameDataSaver";
 
 interface Activity {
   id: string;
@@ -161,6 +162,7 @@ const getBgClass = (mood: number) => {
 const MoodMountain = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { saveMoodMountain } = useGameDataSaver();
 
   const [progress, setProgress] = useState(0);
   const [mood, setMood] = useState(5);
@@ -168,6 +170,7 @@ const MoodMountain = () => {
   const [showSummitPopup, setShowSummitPopup] = useState(false);
   const [confettiOn, setConfettiOn] = useState(false);
   const [currentWeather, setCurrentWeather] = useState<Weather>(weathers[0]);
+  const [startTime] = useState<number>(Date.now());
 
   useEffect(() => {
     let idx = 0;
@@ -192,6 +195,20 @@ const MoodMountain = () => {
     if (newProgress >= 100) {
       setShowSummitPopup(true);
       setConfettiOn(true);
+
+      // Save mood mountain data with mood level and completed activities
+      const duration = Math.round((Date.now() - startTime) / 1000);
+      const activityNames = [...completedActivities, activity.id].map(
+        (id) => activities.find((a) => a.id === id)?.name || id
+      );
+      // emotionsIdentified: use mood level as a proxy for emotional state
+      const moodLabel = mood >= 8 ? "great" : mood >= 6 ? "good" : mood >= 4 ? "okay" : mood >= 2 ? "low" : "struggling";
+      saveMoodMountain(
+        Math.round(newProgress / 10),     // level (1-10 scale)
+        [moodLabel, `mood_${mood}`],       // emotionsIdentified
+        duration,                          // duration in seconds
+        activityNames                      // exercises completed
+      ).catch((err) => console.error('Failed to save MoodMountain result:', err));
     }
   };
 

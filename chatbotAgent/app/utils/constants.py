@@ -17,6 +17,10 @@ RECENT_MESSAGES_COUNT: int = 5
 RESPONSE_RECENT_MESSAGES_COUNT: int = 3
 RESPONSE_MAX_MEMORIES: int = 3
 
+# ── Screening assessment ───────────────────────────────────────
+SCREENING_MIN_MESSAGES: int = 8           # minimum messages before running screening
+SCREENING_EMA_ALPHA: float = 0.6          # EMA weight for new scores (higher = more recent)
+
 # ── TTS / Audio ────────────────────────────────────────────────
 ELEVENLABS_TIMEOUT_S: float = 35.0
 GOOGLE_TTS_SAMPLE_RATE_HZ: int = 16_000    # 16 kHz PCM for Rhubarb compatibility

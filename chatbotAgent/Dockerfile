@@ -29,6 +29,14 @@ RUN find /usr/local/lib/python3.11/site-packages -type d -name "tests" -exec rm 
     find /usr/local/lib/python3.11/site-packages -type f -name "*.pyc" -delete && \
     find /usr/local/lib/python3.11/site-packages -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
+# Pre-download all-MiniLM-L6-v2 at build time (~90 MB).
+# Baking into the image avoids a cold-start HuggingFace download on Railway.
+RUN python -c "
+from sentence_transformers import SentenceTransformer
+SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+print('Model cached successfully')
+"
+
 # ──────────────────────────────────────────────────────────────
 # Stage 2: Runtime - Lean production image
 # ──────────────────────────────────────────────────────────────
@@ -39,6 +47,9 @@ WORKDIR /app
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy pre-baked HuggingFace model cache (all-MiniLM-L6-v2, ~90 MB)
+COPY --from=builder /root/.cache/huggingface /root/.cache/huggingface
 
 # Copy application code
 COPY . .

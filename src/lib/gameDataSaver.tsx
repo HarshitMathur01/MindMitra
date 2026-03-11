@@ -49,6 +49,10 @@ const ACTIVITY_TEMPLATES = {
   emoji_match: {
     description: "Match emojis to improve emotional recognition and processing speed",
     therapeutic_focus: ["emotional_processing", "reaction_time", "pattern_recognition"]
+  },
+  balloon_positivity: {
+    description: "Pop negative word balloons while avoiding positive ones — trains negativity bias recognition and impulse control",
+    therapeutic_focus: ["negativity_bias_awareness", "impulse_control", "emotional_discrimination", "resilience"]
   }
 };
 
@@ -204,10 +208,6 @@ function generateInsights(gameResult: GameResult, template: any): any {
 }
 
 export function useGameDataSaver() {
-  const getCurrentSessionId = () => {
-    return localStorage.getItem('currentChatSession') || undefined;
-  };
-
   return {
     saveMemoryChallenge: async (
       score: number, 
@@ -238,38 +238,7 @@ export function useGameDataSaver() {
           performance_trend: mistakes < 2 ? "excellent" : "developing"
         },
         accuracyPercentage: accuracy
-      }, sessionId || getCurrentSessionId());
-    },
-    
-    saveEmojiMatch: async (
-      score: number, 
-      correctMatches: number, 
-      totalAttempts: number, 
-      duration: number,
-      sessionId?: string
-    ) => {
-      const accuracy = (correctMatches / totalAttempts * 100);
-      
-      return saveGameResult({
-        activityType: 'emoji_match',
-        activityData: {
-          matches_found: correctMatches,
-          total_attempts: totalAttempts,
-          speed_bonus: duration < 60 ? 'fast' : 'normal',
-          average_time_per_match: duration / totalAttempts
-        },
-        score,
-        gameDuration: duration,
-        userResponseData: {
-          match_patterns: correctMatches > totalAttempts * 0.8 ? ["strong_recognition"] : ["needs_practice"],
-          reaction_times: duration / totalAttempts
-        },
-        evaluationData: {
-          emotional_processing_speed: duration < 120 ? "fast" : "moderate",
-          pattern_recognition: accuracy > 80 ? "strong" : "developing"
-        },
-        accuracyPercentage: accuracy
-      }, sessionId || getCurrentSessionId());
+      }, sessionId);
     },
 
     saveEmotionMatch: async (
@@ -304,7 +273,7 @@ export function useGameDataSaver() {
           processing_efficiency: duration / totalImages < 10 ? "efficient" : "deliberate"
         },
         accuracyPercentage: accuracy
-      }, sessionId || getCurrentSessionId());
+      }, sessionId);
     },
 
     saveMoodMountain: async (
@@ -336,7 +305,7 @@ export function useGameDataSaver() {
           mindfulness_engagement: exercisesCompleted.length > 2 ? "active" : "moderate"
         },
         accuracyPercentage: completion
-      }, sessionId || getCurrentSessionId());
+      }, sessionId);
     },
 
     saveThoughtDetective: async (
@@ -366,7 +335,7 @@ export function useGameDataSaver() {
           thought_pattern_recognition: identifiedDistortions.length > 3 ? "advanced" : "beginner"
         },
         accuracyPercentage: accuracy
-      }, sessionId || getCurrentSessionId());
+      }, sessionId);
     },
 
     saveQATest: async (
@@ -399,7 +368,7 @@ export function useGameDataSaver() {
           therapeutic_indicators: getTherapeuticIndicators(testType, answers)
         },
         accuracyPercentage: accuracy
-      }, sessionId || getCurrentSessionId());
+      }, sessionId);
     },
 
     saveWellnessCheckIn: async (
@@ -427,7 +396,48 @@ export function useGameDataSaver() {
           focus_areas: identifyFocusAreas(responses, categories)
         },
         accuracyPercentage: (overallScore / 100) * 100
-      }, sessionId || getCurrentSessionId());
+      }, sessionId);
+    },
+
+    saveBalloonPositivity: async (
+      score: number,
+      level: number,
+      streak: number,
+      livesLeft: number,
+      duration: number,
+      endReason: 'lives_lost' | 'time_up',
+      sessionId?: string
+    ) => {
+      // Higher score + lives remaining = better emotional resilience
+      const maxPossibleScore = duration * 1.5; // rough upper bound
+      const accuracy = Math.min(100, Math.round((score / Math.max(maxPossibleScore, 1)) * 100));
+
+      return saveGameResult({
+        activityType: 'balloon_positivity',
+        activityData: {
+          final_score: score,
+          level_reached: level,
+          best_streak: streak,
+          lives_remaining: livesLeft,
+          end_reason: endReason,
+          game_duration: duration,
+        },
+        score,
+        gameDuration: duration,
+        difficultyLevel: level <= 2 ? 'easy' : level <= 4 ? 'medium' : 'hard',
+        userResponseData: {
+          negative_bias_recognition: score > 10 ? 'strong' : score > 5 ? 'moderate' : 'developing',
+          impulse_control: livesLeft > 0 ? 'good' : 'needs_work',
+          streak_maintenance: streak >= 5 ? 'high_focus' : 'building',
+          end_reason: endReason,
+        },
+        evaluationData: {
+          emotional_discrimination: score > 10 ? 'excellent' : score > 5 ? 'good' : 'developing',
+          resilience_indicator: livesLeft >= 2 ? 'strong' : livesLeft >= 1 ? 'moderate' : 'low',
+          reaction_speed: duration > 0 ? (score / duration).toFixed(2) : '0',
+        },
+        accuracyPercentage: accuracy,
+      }, sessionId);
     }
   };
 }

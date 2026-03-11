@@ -71,3 +71,8 @@ docker-compose*.yml
 railway.toml
 .railway.toml
 Procfile
+*.md
+supabase_memory_migration.sql
+__pycache__
+.env*
+.git

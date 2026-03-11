@@ -84,6 +84,9 @@ def create_empty_user_context(
             "rationale": "",
         },
 
+        # ── memory context (populated by MemoryManager) ──
+        "memory_context": "",
+
         # ── final output ──
         "ai_response": "",
         "response_generated": False,

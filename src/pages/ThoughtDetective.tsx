@@ -38,6 +38,9 @@ const ThoughtDetective = () => {
   const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [startTime, setStartTime] = useState<number>(Date.now());
+  const [allIdentifiedDistortions, setAllIdentifiedDistortions] = useState<string[]>([]);
+  const [totalCorrectDistortions, setTotalCorrectDistortions] = useState(0);
+  const [totalPossibleDistortions, setTotalPossibleDistortions] = useState(0);
 
   const distortions: CognitiveDistortion[] = [
     {
@@ -199,6 +202,11 @@ const ThoughtDetective = () => {
     setScore(prev => prev + caseScore);
     setSolvedCases(prev => prev + 1);
 
+    // Track all identified distortions across cases for save
+    setAllIdentifiedDistortions(prev => [...new Set([...prev, ...selectedDistortions])]);
+    setTotalCorrectDistortions(prev => prev + correctDistortions.length);
+    setTotalPossibleDistortions(prev => prev + currentCase.distortions.length);
+
     // Check for badges
     const newBadges: string[] = [];
     if (correctDistortions.length === currentCase.distortions.length) {
@@ -231,8 +239,17 @@ const ThoughtDetective = () => {
     if (solvedCases + 1 >= 5) {
       setShowResults(true);
       const duration = Math.round((Date.now() - startTime) / 1000);
+      const finalCorrect = totalCorrectDistortions + correctDistortions.length;
+      const finalPossible = totalPossibleDistortions + currentCase.distortions.length;
+      const accuracyPct = Math.round((finalCorrect / Math.max(finalPossible, 1)) * 100);
+      const finalDistortions = [...new Set([...allIdentifiedDistortions, ...selectedDistortions])];
       try {
-        await saveThoughtDetective(score + caseScore, solvedCases + 1, 5, duration);
+        await saveThoughtDetective(
+          solvedCases + 1,       // casesCompleted
+          accuracyPct,           // accuracy percentage
+          duration,              // duration in seconds
+          finalDistortions       // all distortions identified
+        );
         console.log('✅ Thought Detective result saved!');
       } catch (error) {
         console.error('Failed to save game result:', error);
@@ -254,6 +271,9 @@ const ThoughtDetective = () => {
     setEarnedBadges([]);
     setShowResults(false);
     setStartTime(Date.now());
+    setAllIdentifiedDistortions([]);
+    setTotalCorrectDistortions(0);
+    setTotalPossibleDistortions(0);
   };
 
   const getDifficultyColor = (difficulty: string) => {

@@ -165,10 +165,6 @@ class Config:
             "nlp": "nlp_module.model",
             "groq_nlp": "nlp_module.model",
             "glm": "glm_controller.model",
-            "cultural_deep": "cultural_module.deep_analysis_model",
-            "query_decision_groq": "rag_memory.query_decision.groq_model",
-            "query_decision_glm": "rag_memory.query_decision.glm_fallback_model",
-            "embedding": "rag_memory.embeddings.model",
             "screening": "screening_assessments.groq_model",
         }
         path = model_paths.get(module)
@@ -194,8 +190,6 @@ class Config:
         temp_paths = {
             "nlp": "nlp_module.temperature",
             "glm": "glm_controller.temperature",
-            "cultural": "cultural_module.temperature",
-            "query_decision": "rag_memory.query_decision.temperature",
             "screening": "screening_assessments.temperature",
         }
         path = temp_paths.get(module)
@@ -204,8 +198,6 @@ class Config:
     def get_max_tokens(self, module: str) -> int:
         token_paths = {
             "nlp": "nlp_module.max_tokens",
-            "cultural": "cultural_module.max_tokens",
-            "query_decision": "rag_memory.query_decision.max_tokens",
             "screening": "screening_assessments.max_tokens",
         }
         path = token_paths.get(module)

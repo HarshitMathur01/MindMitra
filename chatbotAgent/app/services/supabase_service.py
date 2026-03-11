@@ -1,9 +1,11 @@
 """
 Supabase Service — session counters, user context, message helpers.
 """
+import json
 import logging
 import os
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from supabase import create_client, Client
@@ -69,17 +71,19 @@ async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
         return {"user_activities": [], "recent_messages": [], "conversation_summary": {}}
 
     try:
-        # Activities (last 50)
+        # Activities from last 24 hours only (recent game/QNA insights)
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
         act_resp = (
             supabase_client.table("user_activities")
             .select("*")
             .eq("user_id", user_id)
+            .gte("completed_at", cutoff)
             .order("completed_at", desc=True)
             .limit(50)
             .execute()
         )
         user_activities: List[Dict] = act_resp.data or []
-        logger.info(f"📊 [CONTEXT] {len(user_activities)} activities")
+        logger.info(f"📊 [CONTEXT] {len(user_activities)} activities (last 24h)")
 
         # Messages (last 10, chronological)
         msg_resp = (
@@ -96,37 +100,10 @@ async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
         ]
         logger.info(f"💬 [CONTEXT] {len(recent_messages)} messages")
 
-        # Summary (optional table)
-        conversation_summary: Dict[str, Any] = {}
-        try:
-            sum_resp = (
-                supabase_client.table("message_summaries")
-                .select("*")
-                .eq("session_id", session_id)
-                .order("created_at", desc=True)
-                .limit(1)
-                .execute()
-            )
-            if sum_resp.data:
-                d = sum_resp.data[0]
-                conversation_summary = {
-                    "summary":          d.get("summary", ""),
-                    "key_points":       d.get("key_points", []),
-                    "emotional_state":  d.get("emotional_state", "neutral"),
-                    "topics_discussed": d.get("topics_discussed", []),
-                }
-                logger.info("📝 [CONTEXT] Conversation summary loaded")
-        except Exception as exc:
-            err = str(exc)
-            if "PGRST205" in err or "does not exist" in err:
-                logger.warning("⚠️ [CONTEXT] 'message_summaries' table not found — skipping")
-            else:
-                logger.warning(f"⚠️ [CONTEXT] Summary fetch error: {exc}")
-
         return {
             "user_activities": user_activities,
             "recent_messages": recent_messages,
-            "conversation_summary": conversation_summary,
+            "conversation_summary": {},
         }
 
     except Exception as exc:
@@ -151,3 +128,106 @@ def fetch_last_n_messages(session_id: str, n: int = 10) -> List[Dict[str, str]]:
     except Exception as exc:
         logger.error(f"❌ [CONTEXT] fetch_last_n_messages: {exc}")
         return []
+
+
+def fetch_latest_screening_scores(user_id: str) -> Dict[str, Any]:
+    """Fetch the most recent PHQ-9/GAD-7 scores from user_contexts."""
+    if not supabase_client or not user_id:
+        return {}
+    try:
+        resp = (
+            supabase_client.table("user_contexts")
+            .select("context")
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if resp.data:
+            ctx = resp.data[0].get("context", {})
+            if isinstance(ctx, dict):
+                return ctx.get("screening_assessments", {})
+    except Exception as exc:
+        logger.error(f"❌ [CONTEXT] fetch_latest_screening_scores: {exc}")
+    return {}
+
+
+def save_screening_scores(user_id: str, session_id: str, scores: Dict[str, Any]) -> None:
+    """Save screening scores to user_contexts table (merges into existing context)."""
+    if not supabase_client or not user_id or not scores:
+        return
+    try:
+        resp = (
+            supabase_client.table("user_contexts")
+            .select("context")
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        existing_ctx: Dict = {}
+        if resp.data:
+            existing_ctx = resp.data[0].get("context", {})
+            if not isinstance(existing_ctx, dict):
+                existing_ctx = {}
+
+        existing_ctx["screening_assessments"] = scores
+        existing_ctx["screening_session_id"] = session_id
+
+        supabase_client.table("user_contexts").upsert(
+            {
+                "user_id": user_id,
+                "context": existing_ctx,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            on_conflict="user_id",
+        ).execute()
+        logger.info(f"✅ [SCREENING] Scores saved for user {user_id[:8]}…")
+    except Exception as exc:
+        logger.error(f"❌ [SCREENING] save_screening_scores: {exc}")
+
+
+def fetch_previous_session_summary(
+    user_id: str, current_session_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Fetch the most recent session summary for cross-session continuity.
+    Excludes the current session to get the PREVIOUS session's context.
+    """
+    if not supabase_client or not user_id:
+        return {}
+    try:
+        resp = (
+            supabase_client.table("session_summaries")
+            .select("summary_text, themes, emotional_arc, session_id")
+            .eq("user_id", user_id)
+            .order("updated_at", desc=True)
+            .limit(2)
+            .execute()
+        )
+        if not resp.data:
+            return {}
+
+        for row in resp.data:
+            if current_session_id and row.get("session_id") == current_session_id:
+                continue  # Skip current session, get previous one
+
+            themes = row.get("themes", "[]")
+            emotional_arc = row.get("emotional_arc", "[]")
+            if isinstance(themes, str):
+                try:
+                    themes = json.loads(themes)
+                except (json.JSONDecodeError, TypeError):
+                    themes = []
+            if isinstance(emotional_arc, str):
+                try:
+                    emotional_arc = json.loads(emotional_arc)
+                except (json.JSONDecodeError, TypeError):
+                    emotional_arc = []
+
+            return {
+                "summary": row.get("summary_text", ""),
+                "themes": themes,
+                "emotional_arc": emotional_arc,
+            }
+    except Exception as exc:
+        logger.error(f"❌ [CONTEXT] fetch_previous_session_summary: {exc}")
+    return {}

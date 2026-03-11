@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { useGameDataSaver } from "@/lib/gameDataSaver";
 
 type BalloonType = "positive" | "negative";
 
@@ -99,9 +100,13 @@ export default function BalloonPositivityGame() {
   const [lastAffirmation, setLastAffirmation] = useState<string | null>(null);
   const [finalAffirmation, setFinalAffirmation] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(15);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const containerRef = useRef<HTMLDivElement>(null);
   const spawnTimer = useRef<number | null>(null);
+  const hasSavedRef = useRef(false);
   const { ding, thud } = useAudio();
+  const { saveBalloonPositivity } = useGameDataSaver();
   const navigate = useNavigate();
 
   const maxBalloons = useMemo(() => Math.min(8, 4 + Math.floor(level * 0.8)), [level]);
@@ -162,6 +167,16 @@ export default function BalloonPositivityGame() {
   useEffect(() => {
     if (!running && (lives <= 0 || timeLeft <= 0)) {
       setFinalAffirmation(choice(AFFIRMATIONS));
+
+      // Save game result (only once per game)
+      if (!hasSavedRef.current) {
+        hasSavedRef.current = true;
+        const duration = Math.round((Date.now() - gameStartTime) / 1000);
+        const endReason: 'lives_lost' | 'time_up' = lives <= 0 ? 'lives_lost' : 'time_up';
+        saveBalloonPositivity(score, level, bestStreak, lives, duration, endReason).catch(
+          (err) => console.error('Failed to save BalloonPositivity result:', err)
+        );
+      }
     }
   }, [running, lives, timeLeft]);
 
@@ -172,10 +187,13 @@ export default function BalloonPositivityGame() {
     setLives(3);
     setLevel(1);
     setStreak(0);
+    setBestStreak(0);
     setMessage(null);
     setLastAffirmation(null);
     setFinalAffirmation(null);
     setTimeLeft(15);
+    setGameStartTime(Date.now());
+    hasSavedRef.current = false;
   };
 
   const endGame = () => {
@@ -186,7 +204,11 @@ export default function BalloonPositivityGame() {
     setBalloons((curr) => curr.filter((x) => x.id !== b.id));
     if (b.kind === "negative") {
       setScore((s) => s + 1);
-      setStreak((s) => s + 1);
+      setStreak((s) => {
+        const newStreak = s + 1;
+        setBestStreak((prev) => Math.max(prev, newStreak));
+        return newStreak;
+      });
       const affirmation = choice(AFFIRMATIONS);
       setLastAffirmation(affirmation);
       setMessage(affirmation);

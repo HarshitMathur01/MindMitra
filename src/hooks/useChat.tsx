@@ -1,6 +1,4 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { SessionManager } from "@/lib/sessionManager";
 
 const ChatContext = createContext(null);
 
@@ -289,58 +287,9 @@ export const ChatProvider = ({ children }) => {
   };
 
   const chat = async (message: string, opts?: { personality?: string; companion_name?: string; language?: string }) => {
-    setLoading(true);
-    try {
-      // Ensure user is authenticated (sign in anonymously if needed)
-      let { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        console.log('No session found, signing in anonymously...');
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) throw error;
-        session = data.session;
-      }
-
-      const userId = session?.user?.id || 'anonymous';
-
-      // Use SessionManager for consistent session IDs across app
-      // This fixes the critical session fragmentation bug
-      const sessionId = SessionManager.getSessionId();
-
-      console.log('Calling Edge Function with:', { userId, sessionId, message: message.substring(0, 50) });
-
-      // Call Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('enhanced-chat-context', {
-        body: {
-          message,
-          user_id: userId,
-          session_id: sessionId,
-          personality: opts?.personality || null,
-          companion_name: opts?.companion_name || null,
-          language: opts?.language || null,
-        }
-      });
-
-      if (error) {
-        console.error('Edge Function error:', error);
-        throw error;
-      }
-
-      console.log('Chat response:', data);
-      const resp = data.messages || [{ text: data.response || 'No response', audio: null }];
-      
-      // Transform messages for avatar if visible
-      const transformedMessages = resp.map(msg => transformToAvatarMessage(msg));
-      setMessages((messages) => [...messages, ...transformedMessages]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage = transformToAvatarMessage({ 
-        message: `Sorry, I encountered an error: ${error.message}. Please try again.`,
-        facialExpression: "sad"
-      });
-      setMessages((messages) => [...messages, errorMessage]);
-    }
-    setLoading(false);
+    // NOTE: Chat is handled directly by ChatGPTInterface → FastAPI /chat.
+    // This function is kept only as a no-op stub for type compatibility.
+    console.warn('[useChat] chat() is deprecated — use ChatGPTInterface.handleSendMessage() instead');
   };
 
   // chatWithAudio for future audio functionality

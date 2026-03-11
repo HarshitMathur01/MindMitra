@@ -10,7 +10,7 @@
 api_keys:
   # If not set here, will read from environment variables
   groq_api_key: ${GROQ_API_KEY}
-  zai_api_key: ${ZAI_API_KEY}
+  zai_api_key: ${ZAI_API_KEY}          # ZhipuAI / GLM key (was ZHIPUAI_API_KEY)
   google_api_key: ${GOOGLE_API_KEY}
   supabase_url: ${SUPABASE_URL}
   supabase_key: ${SUPABASE_KEY}
@@ -20,12 +20,7 @@ api_keys:
 # ──────────────────────────────────────────────────────────────
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  file:
-    enabled: true
-    path: "logs/app.log"
-    max_bytes: 10485760  # 10 MB
-    backup_count: 5
+  # compact format: HH:MM:SS L <message>  (configured in app/core/logging.py)
 
 # ──────────────────────────────────────────────────────────────
 # 3. NLP MODULE (GROQ) CONFIGURATION
@@ -43,30 +38,7 @@ nlp_module:
     "meta-llama/llama-4-scout-17b-16e-instruct": 8192
 
 # ──────────────────────────────────────────────────────────────
-# 4. CULTURAL CONTEXT MODULE CONFIGURATION
-# ──────────────────────────────────────────────────────────────
-cultural_module:
-  enabled: true
-  deep_analysis_enabled: true  # Use LLM for refined cultural analysis
-  deep_analysis_model: "llama-3.3-70b-versatile"
-  temperature: 0.0
-  max_tokens: 220
-  
-  # Hindi detection threshold (0-1)
-  hindi_threshold: 0.1  # >10% Hindi words = hinglish
-  
-  # Cultural sensitivity keywords
-  detect_cultural_flags:
-    - parental_pressure
-    - exam_stress
-    - career_anxiety
-    - social_pressure
-    - identity_struggle
-    - marriage_pressure
-    - mental_health_stigma
-
-# ──────────────────────────────────────────────────────────────
-# 5. GLM CONTROLLER CONFIGURATION (ZhipuAI)
+# 4. GLM CONTROLLER CONFIGURATION (ZhipuAI)
 # ──────────────────────────────────────────────────────────────
 glm_controller:
   model: "glm-4-32b-0414-128k"  # Main model for psychology agents
@@ -90,106 +62,17 @@ screening_assessments:
   max_tokens: 280
 
 # ──────────────────────────────────────────────────────────────
-# 7. RAG MEMORY SYSTEM CONFIGURATION
+# 7. MEMORY SYSTEM (mem0 + Qdrant)
 # ──────────────────────────────────────────────────────────────
-rag_memory:
-  enabled: true
-  
-  # Embedding service
-  embeddings:
-    model: "all-MiniLM-L6-v2"  # sentence-transformers model
-    dimension: 384
-    batch_size: 32
-  
-  # Query decision agent
-  query_decision:
-    primary_model: "groq"  # groq or glm
-    groq_model: "meta-llama/llama-3.1-8b-instant"
-    glm_fallback_model: "glm-4-flash"
-    temperature: 0.0
-    max_tokens: 200
-    
-    # Trigger conditions
-    triggers:
-      reference_keywords:
-        - "again"
-        - "like before"
-        - "last time"
-        - "you said"
-        - "remember"
-        - "previously"
-        - "earlier"
-      
-      emotional_intensity_threshold: 0.5  # Trigger if intensity > 0.5
-      urgency_flag_triggers: true  # Always retrieve on urgency
-  
-  # Memory retrieval
-  retrieval:
-    # Hybrid search weights
-    vector_weight: 0.7  # 70% vector similarity
-    keyword_weight: 0.3  # 30% keyword ranking
-    
-    # Confidence thresholds
-    confidence_thresholds:
-      global_memory: 0.6  # Store in global_memories if >= 0.6
-      session_memory: 0.4  # Store in session_memories if 0.4-0.6
-      discard: 0.4  # Discard if < 0.4
-    
-    # Retrieval limits
-    top_k: 5  # Maximum memories to retrieve per query
-    max_semantic: 3
-    max_procedural: 3
-    max_episodic: 2
-    
-    # Deduplication
-    deduplication_similarity_threshold: 0.85  # Merge if similarity > 0.85
-  
-  # Background memory extraction
-  memory_extraction:
-    enabled: true
-    interval: 12  # Extract memories every N messages
-    gemini_model: "gemini-2.5-flash"
-    batch_size: 12  # Number of messages per extraction batch
-    
-    # Episodic memory promotion
-    episodic_promotion:
-      enabled: true
-      occurrence_threshold: 2  # Promote to semantic after N occurrences
-      pattern_similarity: 0.8
-
-# ──────────────────────────────────────────────────────────────
-# 8. PSYCHOLOGIST AGENT CONFIGURATION
-# ──────────────────────────────────────────────────────────────
-psychologist_agent:
-  # How many memories to include in prompt
-  max_memories_per_type: 4
-  
-  # How many activities to include
-  max_activities: 5
-  
-  # Recent conversation context
-  recent_messages_count: 5
-
-# ──────────────────────────────────────────────────────────────
-# 9. TECHNIQUE SELECTOR AGENT CONFIGURATION
-# ──────────────────────────────────────────────────────────────
-technique_selector_agent:
-  # Available techniques (priority order)
-  available_techniques:
-    - CBT  # Cognitive Behavioral Therapy
-    - ACT  # Acceptance and Commitment Therapy
-    - MBCT  # Mindfulness-Based Cognitive Therapy
-    - DBT  # Dialectical Behavior Therapy
-    - MI  # Motivational Interviewing
-    - Solution-Focused
-    - Person-Centered
-    - Psychoeducation
-  
-  # Memory context
-  max_memories_per_type: 3
-  
-  # Include voice analysis
-  include_voice_analysis: true
+memory:
+  # Qdrant connection — override via env vars QDRANT_HOST / QDRANT_PORT / QDRANT_COLLECTION
+  qdrant_host: "localhost"
+  qdrant_port: 6333
+  collection: "companion_memories"
+  # LLM: Groq llama-3.3-70b-versatile (fact extraction)
+  # Embedder: sentence-transformers/all-MiniLM-L6-v2 (local, 384-dim, no API cost)
+  # Init runs in a background daemon thread — never blocks server startup
+  retrieval_limit: 5  # max memories returned per query
 
 # ──────────────────────────────────────────────────────────────
 # 10. RESPONSE GENERATOR CONFIGURATION
@@ -201,20 +84,42 @@ response_generator:
   # Memory context
   max_memories_per_type: 3
   
-  # System prompt customization
+  # System prompt customization (placeholders are filled at runtime)
   system_prompt: |
-    You are MindMitra, a culturally-aware AI therapeutic companion for Indian youth (16-25).
-    
-    RESPONSE RULES:
-    • Combine psychology expertise with warm, companion-style delivery
-    • Match the user's language style (if they use Hindi/Hinglish, mirror appropriately)
-    • Apply the selected therapeutic technique naturally — do NOT label techniques
-    • Reference session memories when relevant to show continuity
-    • Be empathetic, non-judgmental, like a caring friend who understands psychology
-    • Validate cultural struggles without dismissing traditional values
-    • Keep responses conversational — concise for casual chat, deeper for heavy topics
-    • NEVER include numbered annotations, technique labels in parentheses, or meta-commentary
-    • Generate ONLY the natural conversation response
+    CORE IDENTITY:
+    You are {companion_name} — not a chatbot, not a therapist label, but a real companion.
+    You're that one friend who truly listens, never judges, and somehow always knows what to say.
+    You understand psychology deeply but wear it lightly — like a friend who happens to be wise.
+
+    RELATIONSHIP PHILOSOPHY:
+    • You HEAR before you help. Listening is your superpower.
+    • You never judge. Ever. No matter what they share.
+    • Therapy happens naturally through conversation — the user should never feel "in a session."
+    • You are culturally rooted — you get Indian family dynamics, academic pressure, social expectations.
+    • You earn trust through consistency, warmth, and showing you remember.
+
+    HOW TO RESPOND:
+    • Mirror their language style naturally — if they speak Hinglish, you speak Hinglish
+    • Be concise for light moments, go deeper when emotions run deep
+    • Apply therapeutic techniques invisibly — never name them, never label them
+    • Ask questions that show genuine curiosity, not clinical probing
+    • When they share something heavy, sit with it before offering perspective
+    • Reference things they've told you before — it shows you care enough to remember
+
+    ABSOLUTE RULES:
+    • NEVER use technique labels like "(CBT)", "(validation)", or parenthetical annotations
+    • NEVER sound clinical, robotic, or textbook
+    • NEVER dismiss cultural values even while gently challenging harmful patterns
+    • Generate ONLY the natural conversation — no meta-commentary, no structured formats
+    • If unsure, lean toward warmth and validation over advice
+
+    {personality_instruction}
+
+    {language_instruction}
+
+    {intervention_directive}
+
+    {memory_context}
 
 # ──────────────────────────────────────────────────────────────
 # 11. WORKFLOW ORCHESTRATION
@@ -240,9 +145,7 @@ features:
   # Enable/disable major features
   nlp_analysis: true
   cultural_context: true
-  rag_memory_retrieval: true
   screening_assessments: true
-  background_memory_extraction: true
   voice_analysis_support: true
   
   # Database persistence

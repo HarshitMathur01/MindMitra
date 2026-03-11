@@ -7,6 +7,12 @@ from typing import Any, Dict
 
 from ..core.config import config
 
+
+# Safe format helper — missing placeholders become empty strings
+class _SafeFormatDict(dict):
+    def __missing__(self, key: str) -> str:
+        return ""
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,22 +21,40 @@ class ResponseGenerator:
         self.glm = glm
         self.BASE_SYSTEM_PROMPT = config.get(
             "response_generator.system_prompt",
-            default="""You are {companion_name}, a culturally-aware AI therapeutic companion for Indian youth (16-25).
+            default="""CORE IDENTITY:
+You are {companion_name} — not a chatbot, not a therapist label, but a real companion.
+You're that one friend who truly listens, never judges, and somehow always knows what to say.
+You understand psychology deeply but wear it lightly — like a friend who happens to be wise.
 
-RESPONSE RULES:
-• Combine psychology expertise with warm, companion-style delivery
-• Match the user's language style (if they use Hindi/Hinglish, mirror appropriately)
-• Apply the selected therapeutic technique naturally — do NOT label techniques
-• Reference session memories when relevant to show continuity
-• Be empathetic, non-judgmental, like a caring friend who understands psychology
-• Validate cultural struggles without dismissing traditional values
-• Keep responses conversational — concise for casual chat, deeper for heavy topics
-• NEVER include numbered annotations, technique labels in parentheses, or meta-commentary
-• Generate ONLY the natural conversation response
+RELATIONSHIP PHILOSOPHY:
+• You HEAR before you help. Listening is your superpower.
+• You never judge. Ever. No matter what they share.
+• Therapy happens naturally through conversation — the user should never feel "in a session."
+• You are culturally rooted — you get Indian family dynamics, academic pressure, social expectations.
+• You earn trust through consistency, warmth, and showing you remember.
+
+HOW TO RESPOND:
+• Mirror their language style naturally — if they speak Hinglish, you speak Hinglish
+• Be concise for light moments, go deeper when emotions run deep
+• Apply therapeutic techniques invisibly — never name them, never label them
+• Ask questions that show genuine curiosity, not clinical probing
+• When they share something heavy, sit with it before offering perspective
+• Reference things they've told you before — it shows you care enough to remember
+
+ABSOLUTE RULES:
+• NEVER use technique labels like "(CBT)", "(validation)", or parenthetical annotations
+• NEVER sound clinical, robotic, or textbook
+• NEVER dismiss cultural values even while gently challenging harmful patterns
+• Generate ONLY the natural conversation — no meta-commentary, no structured formats
+• If unsure, lean toward warmth and validation over advice
 
 {personality_instruction}
 
-{language_instruction}""",
+{language_instruction}
+
+{intervention_directive}
+
+{memory_context}""",
         )
 
         # Personality-specific tone instructions
@@ -114,11 +138,15 @@ RESPONSE RULES:
             language, self.LANGUAGE_INSTRUCTIONS["english"]
         )
 
-        return self.BASE_SYSTEM_PROMPT.format(
+        intervention_directive = user_context.get("intervention_directive", "")
+        memory_context = user_context.get("memory_context", "")
+        return self.BASE_SYSTEM_PROMPT.format_map(_SafeFormatDict(
             companion_name=companion_name,
             personality_instruction=personality_instruction,
             language_instruction=language_instruction,
-        )
+            intervention_directive=intervention_directive,
+            memory_context=memory_context,
+        ))
 
     # ── public entry ──────────────────────────────────────────────────────
     def generate(self, user_context: Dict[str, Any]) -> Dict[str, Any]:
@@ -127,7 +155,14 @@ RESPONSE RULES:
             system_prompt = self._build_system_prompt(user_context)
             system_msg = {"role": "system", "content": system_prompt}
             human_msg = {"role": "user", "content": self._build_context(user_context)}
-            resp = self.glm.invoke([system_msg, human_msg])
+
+            # Per-path max_tokens override (Path A=150, B=300, C=500)
+            invoke_kwargs: Dict[str, Any] = {}
+            path_max_tokens = user_context.get("_response_max_tokens")
+            if path_max_tokens:
+                invoke_kwargs["max_tokens"] = int(path_max_tokens)
+
+            resp = self.glm.invoke([system_msg, human_msg], **invoke_kwargs)
 
             if not resp or not resp.content:
                 logger.error("❌ [RESPONSE-GEN] GLM returned empty response, using default")
@@ -145,6 +180,96 @@ RESPONSE RULES:
         return user_context
 
     # ── internals ─────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _summarize_activities(activities: list) -> str:
+        """
+        Build a concise natural-language summary of the user's recent game/QNA
+        activities so the response generator can reference them conversationally.
+        Only includes activities from the last 24 hours (already filtered by backend).
+        """
+        if not activities:
+            return ""
+
+        _ACTIVITY_LABELS = {
+            "memory_challenge": "Memory Challenge (working-memory / focus game)",
+            "emoji_match": "Emoji Match (pattern-recognition card game)",
+            "emotion_match": "Emotion Match (emotional-intelligence game)",
+            "mood_mountain": "Mood Mountain (mood check-in + self-care activities)",
+            "thought_detective": "Thought Detective (CBT cognitive-distortion game)",
+            "balloon_positivity": "Balloon Positivity (negativity-bias awareness game)",
+            "wellness_checkin": "Wellness Check-In (10-dimension self-assessment)",
+        }
+
+        lines = []
+        for act in activities[:8]:  # cap to 8 most recent
+            atype = act.get("activity_type", "unknown")
+            label = _ACTIVITY_LABELS.get(atype, atype.replace("_", " ").title())
+            score = act.get("score")
+            accuracy = act.get("accuracy_percentage")
+            insights = act.get("insights_generated", {})
+            eval_data = act.get("evaluation_data", {})
+            user_resp = act.get("user_response_data", {})
+
+            parts = [f"• {label}"]
+            if score is not None:
+                parts.append(f"score={score}")
+            if accuracy is not None:
+                parts.append(f"accuracy={accuracy}%")
+
+            # Extract high-value therapeutic signals
+            perf = insights.get("performance_level") if isinstance(insights, dict) else None
+            if perf:
+                parts.append(f"performance={perf}")
+
+            patterns = insights.get("key_patterns", []) if isinstance(insights, dict) else []
+            if patterns:
+                parts.append(f"patterns={patterns}")
+
+            strengths = insights.get("strengths", []) if isinstance(insights, dict) else []
+            improvements = insights.get("improvement_areas", []) if isinstance(insights, dict) else []
+            if strengths:
+                parts.append(f"strengths={strengths}")
+            if improvements:
+                parts.append(f"areas_to_grow={improvements}")
+
+            # Activity-specific therapeutically relevant data
+            if atype == "emotion_match":
+                confusion = user_resp.get("confusion_patterns", [])
+                if confusion:
+                    parts.append(f"confused_emotions={[c.get('expected','?')+'→'+c.get('chosen','?') for c in confusion[:3]]}")
+            elif atype == "thought_detective":
+                distortions = user_resp.get("identified_distortions", [])
+                cbt_ready = eval_data.get("cbt_readiness", "")
+                if distortions:
+                    parts.append(f"distortions_found={distortions}")
+                if cbt_ready:
+                    parts.append(f"cbt_readiness={cbt_ready}")
+            elif atype == "mood_mountain":
+                emotions = user_resp.get("emotional_vocabulary", [])
+                exercises = user_resp.get("engagement_level", 0)
+                if emotions:
+                    parts.append(f"mood={emotions}")
+                parts.append(f"exercises_done={exercises}")
+            elif atype == "wellness_checkin":
+                wellness_level = eval_data.get("wellness_level", "")
+                focus = eval_data.get("focus_areas", [])
+                if wellness_level:
+                    parts.append(f"wellness={wellness_level}")
+                if focus:
+                    parts.append(f"focus_areas={focus}")
+            elif atype == "balloon_positivity":
+                discrimination = eval_data.get("emotional_discrimination", "")
+                resilience = eval_data.get("resilience_indicator", "")
+                if discrimination:
+                    parts.append(f"discrimination={discrimination}")
+                if resilience:
+                    parts.append(f"resilience={resilience}")
+
+            lines.append(", ".join(parts))
+
+        return "\n".join(lines)
+
     def _build_context(self, ctx: Dict) -> str:
         psych = ctx.get("psychological_analysis", {})
         technique = ctx.get("technique_selection", {})
@@ -175,6 +300,29 @@ VOICE ANALYSIS:
   Stress level: {voice.get('stress_level','N/A')}
   Speech pace: {voice.get('speech_pace','N/A')}"""
 
+        # Summarize recent game/QNA activities (last 24h)
+        activities = session.get("user_activities", [])
+        activity_summary = self._summarize_activities(activities)
+        activity_block = ""
+        if activity_summary:
+            activity_block = f"""
+RECENT GAME & ASSESSMENT INSIGHTS (last 24h):
+{activity_summary}
+Use these insights naturally — if relevant, reference their game performance, emotional patterns,
+or wellness indicators conversationally. Do NOT list scores or be clinical about it."""
+
+        # Cross-session continuity — previous session summary
+        prev_summary = ctx.get("previous_session_summary", {})
+        prev_session_block = ""
+        if prev_summary and prev_summary.get("summary"):
+            themes = prev_summary.get("themes", [])
+            arc = prev_summary.get("emotional_arc", [])
+            prev_session_block = f"""PREVIOUS SESSION CONTEXT:
+  Summary: {prev_summary['summary']}
+  Key themes: {themes}
+  Emotional journey: {arc}
+  Reference this naturally if it connects to what they're sharing now — it shows you remember."""
+
         return f"""PSYCHOLOGICAL ASSESSMENT:
   State: {psych.get('emotional_state','')}
   Stress: {psych.get('stress_categories',[])}
@@ -190,9 +338,11 @@ EMOTION: {nlp.get('primary_emotion','?')} (intensity {nlp.get('intensity',0):.1f
 LANGUAGE STYLE: {cultural.get('language_style','casual')}, formality={cultural.get('formality_level','medium')}
 CULTURAL FLAGS: {cultural.get('cultural_sensitivity_flags',[])}
 {voice_block}
+{activity_block}
 
 {f'MEMORIES:{chr(10)}{mem_block}' if mem_block else ''}
 
+{prev_session_block}
 CONVERSATION:
 {conv if conv else '(New conversation)'}
 

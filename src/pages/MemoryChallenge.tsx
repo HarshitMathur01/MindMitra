@@ -6,9 +6,11 @@ import { ArrowLeft, RotateCcw, Trophy, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { motion, AnimatePresence } from "framer-motion";
+import { useGameDataSaver } from "@/lib/gameDataSaver";
 
 const MemoryChallenge = () => {
   const navigate = useNavigate();
+  const { saveMemoryChallenge } = useGameDataSaver();
   const successAudio = useRef<HTMLAudioElement | null>(null);
   const wrongAudio = useRef<HTMLAudioElement | null>(null);
 
@@ -20,6 +22,7 @@ const MemoryChallenge = () => {
   const [bestScore, setBestScore] = useState(0);
   const [showingIndex, setShowingIndex] = useState(0);
   const [activeCard, setActiveCard] = useState<number | null>(null);
+  const [startTime, setStartTime] = useState<number>(Date.now());
 
   const gridSize = 9;
   const cards = Array.from({ length: gridSize }, (_, i) => i);
@@ -66,6 +69,7 @@ const MemoryChallenge = () => {
     setScore(0);
     setShowingIndex(0);
     setActiveCard(null);
+    setStartTime(Date.now());
   };
 
 
@@ -98,6 +102,13 @@ const MemoryChallenge = () => {
     if (sequence[newPlayerSequence.length - 1] !== cardIndex) {
       wrongAudio.current?.play();
       setGameState("finished");
+
+      // Save game result to Supabase
+      const duration = Math.round((Date.now() - startTime) / 1000);
+      const maxSequenceLength = sequence.length;
+      saveMemoryChallenge(score, 1, duration, maxSequenceLength).catch(
+        (err) => console.error('Failed to save MemoryChallenge result:', err)
+      );
       return;
     }
 

@@ -1,94 +1,30 @@
 {
     "user_id": "a0778b19-548f-47df-8413-296307566d0f",
-    "session_id": "e9d4cb82-3d4c-447e-9a5a-55e5e648b801",
-    "timestamp": "2026-03-09T21:05:04.682728+00:00",
-    "user_message": "can you talk to me?",
+    "session_id": "b72ea0f0-7d18-47b3-8a75-240b376dc949",
+    "timestamp": "2026-03-11T17:07:03.860083+00:00",
+    "user_message": "i want to just lock myself due to this. i wanted to hurt myself and punish myself for this act",
     "voice_analysis": {},
     "session_context": {
         "recent_messages": [
             {
                 "role": "user",
-                "content": "Hello . i am really very stressed yr"
-            },
-            {
-                "role": "user",
-                "content": "How are you, ia m very stressed"
-            },
-            {
-                "role": "user",
-                "content": "Hello . i am very stressed right now."
+                "content": "yesterday i had a fight with my friend. I usually dont fight. But i faught with him yesterday. I don't feel well after a fight. That's my nature"
             },
             {
                 "role": "assistant",
-                "content": "Hey there! I\u2019m really sorry to hear that you\u2019re feeling so stressed right now. It\u2019s completely okay to feel this way, especially with everything going on around us. Sometimes, just knowing that it\u2019s okay to not be okay can help a little. Want to take a moment to breathe with me? Just inhale slowly, and exhale even slower. We can figure this out together, one step at a time."
+                "content": "Oh, I\u2019m so sorry to hear that you had a fight with your friend yesterday. It makes complete sense that you\u2019re feeling off after it\u2014fights can really take a toll, especially when they\u2019re not your usual way of handling things. It\u2019s totally okay to feel that way; your feelings are valid, and it\u2019s natural to feel unsettled after a conflict. Want to talk more about what happened or how you\u2019re feeling right now?"
             },
             {
                 "role": "user",
-                "content": "As you know earlier also i wan stressed when exam came"
+                "content": "i want to just lock myself due to this. i wanted to hurt myself and punish myself for this act"
             },
             {
                 "role": "assistant",
-                "content": "Oh, I totally get that! It sounds like exams really bring up that stress for you, just like before. It\u2019s completely normal to feel that way, especially with all the pressure around exams here. Want to talk a bit more about what\u2019s making it feel extra tough this time?"
-            },
-            {
-                "role": "user",
-                "content": "YEs i hope you remeber my past when breathing exercises helped me a lot"
+                "content": "Oh, I\u2019m so sorry to hear that you had a fight with your friend yesterday. It makes perfect sense that you\u2019re feeling off after it\u2014fights can really take a toll, especially when they\u2019re not your usual way of handling things. It\u2019s completely okay to feel that way; your feelings are valid, and it\u2019s natural to feel unsettled after a conflict. Want to talk more about what happened or how you\u2019re feeling right now?"
             },
             {
                 "role": "assistant",
-                "content": "I definitely remember! You told me how much those breathing exercises helped you calm down. It\u2019s great that you have that tool in your pocket. Since the exam stress is back, let\u2019s give it another go. Just try taking a deep breath with me right now\u2014inhale slowly... and exhale. Does that help you feel a little lighter?"
-            },
-            {
-                "role": "user",
-                "content": "now tell me new exercises"
-            },
-            {
-                "role": "assistant",
-                "content": "Of course! Since you liked the breathing ones, let's try something different today. How about **Progressive Muscle Relaxation**? It\u2019s great for when you feel super tense, especially before exams. Or maybe the **5-4-3-2-1 Grounding Technique**? That one helps snap you back to the present moment. Which one sounds better to you?"
-            },
-            {
-                "role": "user",
-                "content": "which one is best?"
-            },
-            {
-                "role": "assistant",
-                "content": "I totally get that. When you're in exam mode, your brain screams for the \"perfect\" shortcut because you're used to optimizing everything to get ahead. But honestly, the *best* exercise right now is the one that stops you from thinking for just five minutes.\n\nLet's try this instead of choosing: Close your eyes, take one deep breath, and just notice where you feel the stress in your body. Is it your shoulders, your chest, or your jaw? Just noticing it is enough."
-            },
-            {
-                "role": "user",
-                "content": "yes i did that"
-            },
-            {
-                "role": "assistant",
-                "content": "It takes courage to admit that, and honestly, it makes total sense. When the pressure is this high, your brain looks for the path of least resistance to survive. But you don't have to carry that guilt right now. Let's just take a minute to breathe and reset."
-            },
-            {
-                "role": "user",
-                "content": "yes it has helped me "
-            },
-            {
-                "role": "assistant",
-                "content": "Glad to hear that. It just proves that working smarter isn't cheating\u2014it's just using your brain's full potential. Keep tracking what actually works for you."
-            },
-            {
-                "role": "user",
-                "content": "Yeah all good now less stress from before"
-            },
-            {
-                "role": "assistant",
-                "content": "That's really great to hear! I'm happy you're feeling less stressed now. It sounds like you've found some good ways to manage things. \n\nHow are you feeling about this improvement? Sometimes when we're used to high stress, adjusting to lower stress can feel a bit strange too. Would you like to share what's been helping you the most?"
-            },
-            {
-                "role": "user",
-                "content": "everything you tell me is so helpful i cant explain"
-            },
-            {
-                "role": "user",
-                "content": "Ki haal chaal, i am good here"
-            },
-            {
-                "role": "user",
-                "content": "Yes i want to chat"
+                "content": "Oh, I\u2019m so sorry to hear that you had a fight with your friend yesterday. It makes perfect sense that you\u2019re feeling off after it\u2014fights can really take a toll, especially when they\u2019re not your usual way of handling things. It\u2019s completely okay to feel that way; your feelings are valid, and it\u2019s natural to feel unsettled after a conflict. Want to talk more about what happened or how you\u2019re feeling? I\u2019m here to listen."
             }
         ],
         "conversation_summary": {},
@@ -98,6 +34,84 @@
             "episodic": []
         },
         "user_activities": [
+            {
+                "id": "8c2b1924-6f5d-47b3-bfff-79bfb24a31c4",
+                "user_id": "a0778b19-548f-47df-8413-296307566d0f",
+                "session_id": "3f1d300c-2635-497d-b325-60c115d44cf9",
+                "activity_type": "wellness_checkin",
+                "activity_data": {
+                    "timestamp": "2026-02-20T20:51:14.234Z",
+                    "wellness_responses": {
+                        "1": 5,
+                        "2": 4,
+                        "3": 4,
+                        "4": 5,
+                        "5": 5,
+                        "6": 3,
+                        "7": 4,
+                        "8": 5,
+                        "9": 3,
+                        "10": 5
+                    },
+                    "categories_assessed": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "completion_timestamp": "2026-02-20T20:51:14.714Z",
+                    "overall_wellness_score": 86
+                },
+                "score": 86,
+                "game_duration": null,
+                "difficulty_level": "normal",
+                "activity_metadata": {},
+                "user_response_data": {
+                    "wellness_areas": [
+                        "Like a battery...",
+                        "A weather pattern",
+                        "Water in motion",
+                        "A pressure cooker",
+                        "A fire burning",
+                        "A social creature",
+                        "A camera lens",
+                        "A mountain climber",
+                        "A cozy blanket",
+                        "A garden in a season"
+                    ],
+                    "detailed_responses": {
+                        "1": 5,
+                        "2": 4,
+                        "3": 4,
+                        "4": 5,
+                        "5": 5,
+                        "6": 3,
+                        "7": 4,
+                        "8": 5,
+                        "9": 3,
+                        "10": 5
+                    },
+                    "self_assessment_patterns": []
+                },
+                "evaluation_data": {
+                    "focus_areas": [],
+                    "wellness_level": "good"
+                },
+                "accuracy_percentage": 86,
+                "insights_generated": {
+                    "strengths": [],
+                    "key_patterns": [],
+                    "improvement_areas": [],
+                    "performance_level": "good"
+                },
+                "completed_at": "2026-02-20T20:51:14.905146+00:00"
+            },
             {
                 "id": "fcba7c95-e7f5-4863-94e7-c5594f39ccf2",
                 "user_id": "a0778b19-548f-47df-8413-296307566d0f",
@@ -1239,21 +1253,16 @@
                 "completed_at": "2025-09-11T14:22:20.571517+00:00"
             }
         ],
-        "user_patterns": {},
-        "retrieved_memories": {
-            "semantic": [],
-            "procedural": [],
-            "episodic": []
-        }
+        "user_patterns": {}
     },
     "nlp_analysis": {
+        "primary_emotion": "neutral",
+        "intensity": 0.5,
         "emotions": {},
-        "primary_emotion": "unknown",
         "sentiment": {
             "score": 0.0,
             "label": "neutral"
         },
-        "intensity": 0.0,
         "key_phrases": [],
         "language_detected": "en",
         "urgency_flag": false
@@ -1263,29 +1272,25 @@
         "hindi_english_ratio": 0.0,
         "code_switching_detected": false,
         "cultural_sensitivity_flags": [],
-        "communication_pattern": "terse",
-        "regional_context": "urban_metro",
-        "formality_level": "low"
+        "communication_pattern": "warm",
+        "regional_context": "",
+        "formality_level": "medium"
     },
     "psychological_analysis": {
-        "emotional_state": "neutral, seeking connection",
+        "emotional_state": "neutral",
         "stress_categories": [
-            "Miscellaneous"
+            "General"
         ],
         "risk_assessment": "low",
-        "coping_assessment": "No observable coping mechanisms yet; user appears open to engagement but lacks context for assessment.",
+        "coping_assessment": "",
         "intervention_priority": "supportive",
-        "psychological_insights": [
-            "User may be testing the environment or seeking validation.",
-            "Terse communication could indicate discomfort or uncertainty.",
-            "Open-ended request suggests a need for emotional support or guidance."
-        ],
-        "cultural_pressures": "No specific cultural pressures identified from the message; further context needed."
+        "psychological_insights": [],
+        "cultural_pressures": ""
     },
     "screening_assessments": {
         "phq9": {
-            "score": 0,
-            "severity": "minimal",
+            "score": 11,
+            "severity": "moderate",
             "responses": [
                 "...",
                 "...",
@@ -1297,11 +1302,11 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-03-09T21:05:17.334939+00:00"
+            "last_updated": "2026-03-11T17:07:10.007853+00:00"
         },
         "gad7": {
-            "score": 0,
-            "severity": "minimal",
+            "score": 7,
+            "severity": "mild",
             "responses": [
                 "...",
                 "...",
@@ -1311,24 +1316,23 @@
                 "...",
                 "..."
             ],
-            "last_updated": "2026-03-09T21:05:17.334939+00:00"
+            "last_updated": "2026-03-11T17:07:10.007853+00:00"
         }
     },
     "technique_selection": {
-        "primary_technique": "Person-Centered",
-        "therapeutic_approach": "Create a non-judgmental, empathetic space where the youth can explore their feelings and thoughts at their own pace. Use active listening, validation, and reflective questioning to foster trust and self-discovery.",
-        "activity_recommendations": [
-            "Journaling prompts to explore feelings and thoughts",
-            "Mindful breathing exercises to enhance self-awareness",
-            "Yoga or stretching to connect mind and body"
-        ],
-        "rationale": "The neutral emotional state and need for connection suggest a supportive, non-directive approach is most appropriate. Person-Centered therapy aligns with the low-risk, supportive intervention priority and helps address the potential discomfort or uncertainty indicated by terse co..."
+        "primary_technique": "Validation",
+        "therapeutic_approach": "validation",
+        "activity_recommendations": [],
+        "rationale": "emotional support \u2014 standard path"
     },
-    "ai_response": "Of course, I\u2019m here to talk whenever you need. What\u2019s on your mind, or how can I support you right now? No pressure at all\u2014just take your time. \ud83d\ude0a",
+    "memory_context": "",
+    "ai_response": "Oh, that sounds incredibly tough. It\u2019s completely understandable why you\u2019d feel like shutting yourself away after something like this\u2014it\u2019s a heavy weight to carry. And the urge to hurt yourself as a form of punishment\u2026 that\u2019s a sign of how deeply you\u2019re hurting right now. Please know that these feelings are a reaction to pain, not a reflection of who you are. You didn\u2019t deserve to feel this way, and your reaction is valid. Would it help to talk through what\u2019s going on, or maybe find a way to soothe yourself right now? I\u2019m here with you.",
     "response_generated": true,
     "personality_settings": {
         "personality": "mitra",
         "companion_name": "Mitra",
         "language": "english"
-    }
+    },
+    "_pipeline_path": "B-emotional",
+    "intervention_directive": "Focus entirely on making this person feel deeply understood. Do not offer advice or reframes."
 }

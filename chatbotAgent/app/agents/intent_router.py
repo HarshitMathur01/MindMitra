@@ -1,0 +1,135 @@
+"""
+IntentRouter — lightweight Groq-based message classifier.
+
+Makes ONE fast Groq call to classify every user message into:
+  casual | emotional | therapeutic | crisis
+
+Reuses the already-configured Groq client from GroqNLPModule.
+Designed to be instantiated once and called per request.
+
+Guarantee: never raises — always returns a valid dict.
+"""
+import logging
+from typing import Any, Dict, List, Optional
+
+from ..utils.json_utils import parse_json_from_llm_output
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_RESULT: Dict[str, Any] = {"intent": "emotional", "confidence": 0.5}
+
+_VALID_INTENTS = frozenset(("casual", "emotional", "therapeutic", "crisis"))
+
+
+class IntentRouter:
+    """
+    One-call intent classifier backed by Groq.
+
+    Args:
+        groq_client: a `groq.Groq` instance (pre-validated, not None)
+        model: the Groq model name already configured for the NLP module
+    """
+
+    def __init__(self, groq_client, model: str) -> None:
+        self.client = groq_client
+        self.model = model
+        logger.info(f"✅ [INTENT-ROUTER] Ready — model={model}")
+
+    # ── public ─────────────────────────────────────────────────────────────
+
+    def classify(
+        self,
+        user_message: str,
+        recent_messages: Optional[List[Dict]] = None,
+        activities: Optional[List[Dict]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Classify `user_message` into one of four intent buckets.
+
+        Returns:
+            {"intent": str, "confidence": float}
+
+        Never raises — falls back to {"intent": "emotional", "confidence": 0.5}.
+        """
+        if not self.client or not user_message.strip():
+            return _DEFAULT_RESULT.copy()
+
+        history = self._format_history(recent_messages)
+        activity_hint = self._format_activity_hint(activities)
+        prompt = self._build_prompt(user_message, history, activity_hint)
+
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=60,
+            )
+            raw = (resp.choices[0].message.content.strip()) if resp.choices else ""
+            parsed = parse_json_from_llm_output(raw)
+
+            if (
+                isinstance(parsed, dict)
+                and parsed.get("intent") in _VALID_INTENTS
+                and isinstance(parsed.get("confidence"), (int, float))
+            ):
+                result = {
+                    "intent": str(parsed["intent"]),
+                    "confidence": float(parsed["confidence"]),
+                }
+                logger.info(f"🎯 [INTENT-ROUTER] {result['intent']} ({result['confidence']:.2f})")
+                return result
+
+            logger.warning(f"⚠️ [INTENT-ROUTER] Unexpected response shape, using default")
+        except Exception as e:
+            logger.warning(f"⚠️ [INTENT-ROUTER] Classification failed: {e}")
+
+        return _DEFAULT_RESULT.copy()
+
+    # ── internals ──────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _format_history(recent_messages: Optional[List[Dict]]) -> str:
+        if not recent_messages:
+            return ""
+        last_two = recent_messages[-2:]
+        return " | ".join(
+            f"{m.get('role', '?')}: {m.get('content', '')[:80]}" for m in last_two
+        )
+
+    @staticmethod
+    def _format_activity_hint(activities: Optional[List[Dict]]) -> str:
+        """Build a short hint about the user's most recent game/assessment activity."""
+        if not activities:
+            return ""
+        latest = activities[0]  # already sorted by completed_at desc
+        atype = latest.get("activity_type", "")
+        if not atype:
+            return ""
+        score = latest.get("score")
+        wellness = (latest.get("evaluation_data") or {}).get("wellness_level", "")
+        hint = f"User just completed the '{atype.replace('_', ' ')}' game/assessment"
+        if score is not None:
+            hint += f" (score: {score})"
+        if wellness:
+            hint += f" (wellness: {wellness})"
+        return hint
+
+    @staticmethod
+    def _build_prompt(user_message: str, history: str, activity_hint: str = "") -> str:
+        ctx_line = f"Context: {history}\n" if history else ""
+        act_line = f"Recent activity: {activity_hint}\n" if activity_hint else ""
+        return (
+            'Classify the user message. Return ONLY JSON with keys "intent" and "confidence".\n'
+            '"intent" must be exactly one of: casual, emotional, therapeutic, crisis\n'
+            "Definitions:\n"
+            "  casual      — greetings, small talk, boredom, playful chat, simple curiosity\n"
+            "  emotional   — sharing feelings, mild stress, venting, seeking validation\n"
+            "  therapeutic — explicit distress, persistent low mood, trauma disclosure, mental health struggle\n"
+            "  crisis      — suicidal ideation, explicit self-harm statements, immediate safety risk\n"
+            '"confidence": float 0.0-1.0\n\n'
+            f"{ctx_line}"
+            f"{act_line}"
+            f'Message: "{user_message[:400]}"\n\n'
+            "JSON:"
+        )

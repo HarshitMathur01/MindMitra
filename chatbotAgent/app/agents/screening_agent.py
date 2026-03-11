@@ -70,6 +70,91 @@ JSON:"""
             return {}
         return self._validate(parsed)
 
+    def generate_session_assessment(
+        self,
+        messages: List[Dict[str, str]],
+        previous_scores: Optional[Dict[str, Any]] = None,
+        ema_alpha: float = 0.6,
+    ) -> Dict[str, Any]:
+        """
+        Generate PHQ-9/GAD-7 assessment from full session conversation.
+        Designed to run at session-end intervals, not on every message.
+        Applies EMA smoothing with previous scores if available.
+        """
+        if not messages or len(messages) < 3:
+            return {}
+
+        # Build conversation transcript (last 30 messages)
+        transcript = "\n".join(
+            f"{m.get('role', 'user')}: {m.get('content', '')[:200]}"
+            for m in messages[-30:]
+        )
+
+        prompt = f"""Based on the FULL conversation below, estimate screening scores for PHQ-9 and GAD-7.
+This is a session-level assessment — consider the overall emotional tone, recurring themes,
+and severity of distress across the entire conversation, not just a single message.
+
+Return ONLY valid JSON with exactly this structure:
+{{
+  "phq9": {{"responses": [<9 integers 0-3>], "score": <0-27 integer>, "severity": "<minimal|mild|moderate|moderately_severe|severe>"}},
+  "gad7": {{"responses": [<7 integers 0-3>], "score": <0-21 integer>, "severity": "<minimal|mild|moderate|severe>"}}
+}}
+
+Rules:
+- Assess based on patterns across the FULL conversation, not individual messages.
+- Infer cautiously from available data; do not exaggerate risk.
+- If user seems generally well with minor stress, keep scores low.
+- If user shows persistent sadness, hopelessness, or anxiety themes, score accordingly.
+- No markdown, no extra keys.
+
+Full conversation:
+{transcript[:3000]}
+
+JSON:"""
+
+        parsed = self._call_groq(prompt) or self._call_glm(prompt)
+        if not parsed:
+            return {}
+
+        validated = self._validate(parsed)
+
+        # Apply EMA if previous scores exist
+        if previous_scores:
+            validated = self._apply_ema(validated, previous_scores, ema_alpha)
+
+        return validated
+
+    def _apply_ema(
+        self, current: Dict[str, Any], previous: Dict[str, Any], alpha: float
+    ) -> Dict[str, Any]:
+        """Apply Exponential Moving Average: new = α * current + (1-α) * previous."""
+        result: Dict[str, Any] = {}
+        for scale in ("phq9", "gad7"):
+            curr = current.get(scale, {})
+            prev = previous.get(scale, {})
+
+            if not curr:
+                result[scale] = prev if prev else {}
+                continue
+            if not prev or prev.get("score") is None:
+                result[scale] = curr
+                continue
+
+            ema_score = round(alpha * curr["score"] + (1 - alpha) * prev["score"])
+            max_score = 27 if scale == "phq9" else 21
+            ema_score = min(max(ema_score, 0), max_score)
+
+            severity_fn = self._phq9_severity if scale == "phq9" else self._gad7_severity
+            result[scale] = {
+                "score": ema_score,
+                "severity": severity_fn(ema_score),
+                "responses": curr.get("responses", []),
+                "last_updated": curr.get("last_updated"),
+                "raw_session_score": curr["score"],
+                "ema_applied": True,
+            }
+        return result
+
     # ── internals ──────────────────────────────────────────────────────────
     def _call_groq(self, prompt: str) -> Optional[Dict]:
         if not self.groq_nlp or not getattr(self.groq_nlp, "client", None):

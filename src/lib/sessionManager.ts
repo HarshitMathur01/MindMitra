@@ -1,19 +1,33 @@
 /**
  * SessionManager - Unified session ID management for MindMitra
  * 
- * Fixes the critical session fragmentation issue where games and chat
- * were using different storage mechanisms and generating different session IDs.
- * 
- * This ensures:
- * - Single source of truth for session IDs
- * - Consistent UUID format validation
- * - Synchronized storage across localStorage and sessionStorage
- * - Game data and chat data link to the same session
+ * Single source of truth for session IDs across the entire app.
+ * Both chat and games use the same session key ('currentChatSession')
+ * to ensure all data links to the same session.
  */
 
 export class SessionManager {
-  private static readonly SESSION_KEY = 'mind_mate_session_id';
+  private static readonly SESSION_KEY = 'currentChatSession';
+  private static readonly LEGACY_KEY = 'mind_mate_session_id';
   private static readonly UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  private static _migrated = false;
+
+  /** One-time cleanup: migrate legacy key to the unified key */
+  private static migrateLegacyKey(): void {
+    if (this._migrated) return;
+    this._migrated = true;
+
+    const legacy = localStorage.getItem(this.LEGACY_KEY);
+    if (legacy && this.isValidUUID(legacy)) {
+      // Only adopt legacy ID if no current session exists
+      if (!localStorage.getItem(this.SESSION_KEY)) {
+        localStorage.setItem(this.SESSION_KEY, legacy);
+      }
+    }
+    // Clean up legacy keys from both storages
+    localStorage.removeItem(this.LEGACY_KEY);
+    sessionStorage.removeItem(this.LEGACY_KEY);
+  }
 
   /**
    * Get the current session ID, or create a new one if none exists.
@@ -22,31 +36,21 @@ export class SessionManager {
    * @returns A valid UUID session ID
    */
   static getSessionId(): string {
-    // Check localStorage first (primary storage)
-    let sessionId = localStorage.getItem(this.SESSION_KEY);
+    // Migrate legacy key on first access
+    this.migrateLegacyKey();
+
+    // Check localStorage (single source of truth)
+    const sessionId = localStorage.getItem(this.SESSION_KEY);
     
-    // Validate it's a proper UUID
     if (sessionId && this.isValidUUID(sessionId)) {
-      // Sync to sessionStorage to ensure consistency
-      this.syncToSessionStorage(sessionId);
-      console.log('[SessionManager] Retrieved session ID from localStorage:', sessionId);
       return sessionId;
     }
     
-    // Fallback: Check sessionStorage
-    sessionId = sessionStorage.getItem(this.SESSION_KEY);
-    if (sessionId && this.isValidUUID(sessionId)) {
-      // Sync back to localStorage (primary storage)
-      this.syncToLocalStorage(sessionId);
-      console.log('[SessionManager] Retrieved session ID from sessionStorage:', sessionId);
-      return sessionId;
-    }
-    
-    // No valid session found - generate new UUID
-    sessionId = crypto.randomUUID();
-    this.setSessionId(sessionId);
-    console.log('[SessionManager] Generated NEW session ID:', sessionId);
-    return sessionId;
+    // No valid session found — generate new UUID
+    const newId = crypto.randomUUID();
+    this.setSessionId(newId);
+    console.log('[SessionManager] Generated NEW session ID:', newId);
+    return newId;
   }
 
   /**
@@ -61,10 +65,7 @@ export class SessionManager {
       throw new Error(`Invalid session ID format: ${id}. Must be a valid UUID.`);
     }
     
-    // Store in both locations for consistency
     localStorage.setItem(this.SESSION_KEY, id);
-    sessionStorage.setItem(this.SESSION_KEY, id);
-    console.log('[SessionManager] Session ID set successfully:', id);
   }
 
   /**
@@ -72,8 +73,6 @@ export class SessionManager {
    */
   static clearSession(): void {
     localStorage.removeItem(this.SESSION_KEY);
-    sessionStorage.removeItem(this.SESSION_KEY);
-    console.log('[SessionManager] Session cleared');
   }
 
   /**
@@ -99,36 +98,18 @@ export class SessionManager {
   }
 
   /**
-   * Sync session ID to localStorage (primary storage)
-   */
-  private static syncToLocalStorage(id: string): void {
-    localStorage.setItem(this.SESSION_KEY, id);
-  }
-
-  /**
-   * Sync session ID to sessionStorage (secondary storage)
-   */
-  private static syncToSessionStorage(id: string): void {
-    sessionStorage.setItem(this.SESSION_KEY, id);
-  }
-
-  /**
    * Check if a valid session currently exists
-   * 
-   * @returns true if valid session exists, false otherwise
    */
   static hasValidSession(): boolean {
-    const sessionId = localStorage.getItem(this.SESSION_KEY) || sessionStorage.getItem(this.SESSION_KEY);
+    const sessionId = localStorage.getItem(this.SESSION_KEY);
     return sessionId !== null && this.isValidUUID(sessionId);
   }
 
   /**
    * Get session info for debugging
-   * 
-   * @returns Object with session status information
    */
   static getSessionInfo(): { hasSession: boolean; sessionId: string | null; isValid: boolean } {
-    const sessionId = localStorage.getItem(this.SESSION_KEY) || sessionStorage.getItem(this.SESSION_KEY);
+    const sessionId = localStorage.getItem(this.SESSION_KEY);
     const isValid = sessionId ? this.isValidUUID(sessionId) : false;
     
     return {

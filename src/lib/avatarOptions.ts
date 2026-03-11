@@ -8,7 +8,7 @@ export const AVATAR_OPTIONS = [
     id: 'brunette',
     name: 'Aria',
     description: 'Warm & expressive',
-    url: '/talkinghead/avatars/brunette.glb',
+    url: '/talkinghead/avatars/Brunette.glb',
   },
   {
     id: 'valentina',

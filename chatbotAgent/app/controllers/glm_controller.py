@@ -63,6 +63,11 @@ class GLMController:
 
     def invoke(self, messages: List[dict], **kwargs) -> GLMResponse:
         """Thread-safe invoke with semaphore gating and exponential back-off."""
+        # Allow per-call overrides for generation params
+        _max_tokens = kwargs.pop('max_tokens', self.max_tokens)
+        _temperature = kwargs.pop('temperature', self.temperature)
+        _top_p = kwargs.pop('top_p', self.top_p)
+
         if self._client is None:
             logger.error("❌ [GLM] Cannot invoke – client not initialised")
             return GLMResponse("Error: GLM client not initialised")
@@ -88,9 +93,9 @@ class GLMController:
                 response = self._client.chat.completions.create(
                     model=self.model_name,
                     messages=chat_messages,
-                    max_tokens=self.max_tokens,
-                    temperature=self.temperature,
-                    top_p=self.top_p,
+                    max_tokens=_max_tokens,
+                    temperature=_temperature,
+                    top_p=_top_p,
                     **kwargs,
                 )
 
@@ -141,8 +146,8 @@ class GLMController:
                         fb_resp = self._groq_fallback.chat.completions.create(
                             model="meta-llama/llama-4-scout-17b-16e-instruct",
                             messages=chat_messages,
-                            max_tokens=self.max_tokens,
-                            temperature=self.temperature,
+                            max_tokens=_max_tokens,
+                            temperature=_temperature,
                         )
                         fb_content = (
                             fb_resp.choices[0].message.content if fb_resp.choices else ""

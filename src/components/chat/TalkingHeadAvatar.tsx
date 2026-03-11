@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useChat } from "../../hooks/useChat";
+import { Skeleton } from "@/components/ui/skeleton";
+
 // Map the app's facialExpression values → TalkingHead mood names
 const EXPRESSION_TO_MOOD: Record<string, string> = {
     smile: "happy",
@@ -156,9 +158,14 @@ const TalkingHeadAvatar = ({
 
             {/* Loading overlay — shown until iframe reports ready */}
             {!isReady && !loadError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1a1a2e]/90 z-10">
-                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3" />
-                    <p className="text-white/70 text-sm font-medium">Loading avatar…</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1a1a2e] z-10 p-6 space-y-6 animate-pulse">
+                    <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-primary/10 border-4 border-primary/20 flex flex-col items-center justify-center space-y-4">
+                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                    <div className="space-y-3 flex flex-col items-center w-full">
+                        <Skeleton className="h-4 w-48 bg-primary/20" />
+                        <Skeleton className="h-3 w-32 bg-primary/10" />
+                    </div>
                 </div>
             )}
 

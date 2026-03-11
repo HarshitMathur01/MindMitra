@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import PublicLanding from "./PublicLanding";
+import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 
 type MoodOption = {
   emoji: string;
@@ -240,7 +241,24 @@ const sectionTitleClass = "text-[18px] font-semibold text-[#1A1A1A]";
 const cardClass = "rounded-[24px] bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5";
 const horizontalScrollClass =
   "flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
-const visibleContentCardCount = 3;
+const getVisibleContentCardCount = (width: number) => {
+  if (width < 640) return 1;
+  if (width < 1024) return 2;
+  return 3;
+};
+
+const getContentCardColumnWidth = (visibleCount: number) => {
+  if (visibleCount <= 1) return "100%";
+  return `calc((100% - ${(visibleCount - 1)}rem) / ${visibleCount})`;
+};
+
+const getContentCardActionLabel = (type: string) => {
+  if (type === "Video") return "Watch now";
+  if (type === "Carousel") return "Swipe through";
+  if (type === "Guide") return "Open guide";
+  if (type === "Mindful View") return "Start view";
+  return "Read now";
+};
 
 const getGreeting = (hours: number) => {
   if (hours < 12) return "Good morning,";
@@ -306,6 +324,14 @@ const getNextDayPeriodBoundary = (current: Date) => {
   return next;
 };
 
+const getDashboardRevealStyle = (
+  index: number,
+  extraStyles: CSSProperties = {},
+) => ({
+  ...extraStyles,
+  ["--mm-enter-delay" as const]: `${80 + index * 90}ms`,
+}) as CSSProperties;
+
 const SectionHeader = ({
   title,
   action,
@@ -330,8 +356,24 @@ const Index = () => {
   const [isMoodToastVisible, setIsMoodToastVisible] = useState(false);
   const [isMoodCardVisible, setIsMoodCardVisible] = useState(true);
   const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [visibleContentCardCount, setVisibleContentCardCount] = useState(() => getVisibleContentCardCount(window.innerWidth));
   const [contentCarouselIndex, setContentCarouselIndex] = useState(0);
   const [isContentCarouselAnimating, setIsContentCarouselAnimating] = useState(true);
+
+  const motivationalQuotes = [
+    { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", writer: "Nelson Mandela" },
+    { text: "The way to get started is to quit talking and begin doing.", writer: "Walt Disney" },
+    { text: "Your time is limited, so don't waste it living someone else's life.", writer: "Steve Jobs" },
+    { text: "If life were predictable it would cease to be life, and be without flavor.", writer: "Eleanor Roosevelt" },
+    { text: "Life is what happens when you're busy making other plans.", writer: "John Lennon" },
+    { text: "The only impossible journey is the one you never begin.", writer: "Tony Robbins" },
+    { text: "Life itself is the most wonderful fairy tale.", writer: "Hans Christian Andersen" },
+    { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", writer: "Winston S. Churchill" },
+    { text: "What you get by achieving your goals is not as important as what you become by achieving your goals.", writer: "Zig Ziglar" },
+    { text: "Believe you can and you're halfway there.", writer: "Theodore Roosevelt" }
+  ];
+
+  const [dailyQuote] = useState(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
 
   const now = currentTime;
   const currentDayIndex = (now.getDay() + 6) % 7;
@@ -366,8 +408,15 @@ const Index = () => {
         ? [...contentCards, ...contentCards.slice(0, visibleContentCardCount)]
         : contentCards
     ),
-    [],
+    [visibleContentCardCount],
   );
+  const isContentCarouselInteractive = contentCards.length > visibleContentCardCount;
+  const activeContentCardIndex = contentCards.length > 0 ? contentCarouselIndex % contentCards.length : 0;
+  const contentCarouselStyle = {
+    ["--content-card-width" as const]: getContentCardColumnWidth(visibleContentCardCount),
+    gridAutoColumns: "var(--content-card-width)",
+    transform: `translateX(calc(-${contentCarouselIndex} * (var(--content-card-width) + 1rem)))`,
+  } as CSSProperties;
 
   const weekMoodData = weekLabels.map((label, index) => ({
     label,
@@ -389,6 +438,26 @@ const Index = () => {
       window.clearTimeout(timer);
     };
   }, [currentTime]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const nextVisibleCount = getVisibleContentCardCount(window.innerWidth);
+      setVisibleContentCardCount((previousCount) => {
+        if (previousCount === nextVisibleCount) {
+          return previousCount;
+        }
+
+        setIsContentCarouselAnimating(false);
+        setContentCarouselIndex(0);
+        return nextVisibleCount;
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedMood) {
@@ -413,12 +482,17 @@ const Index = () => {
   }, [selectedMood]);
 
   const handleNextContentCards = () => {
-    if (contentCards.length <= visibleContentCardCount) {
+    if (!isContentCarouselInteractive) {
       return;
     }
 
     setIsContentCarouselAnimating(true);
     setContentCarouselIndex((previousIndex) => previousIndex + 1);
+  };
+
+  const handleSelectContentCard = (index: number) => {
+    setIsContentCarouselAnimating(true);
+    setContentCarouselIndex(index);
   };
 
   const handleContentCarouselTransitionEnd = () => {
@@ -431,16 +505,7 @@ const Index = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FFF8F0] px-6 text-[#1A1A1A]">
-        <div className="space-y-4 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-[0_16px_40px_rgba(59,130,246,0.16)]">
-            <Sparkles className="h-6 w-6 animate-pulse text-[#3B82F6]" />
-          </div>
-          <p className="text-sm font-medium text-[#6B7280]">Loading your calm corner...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!user) {
@@ -451,14 +516,14 @@ const Index = () => {
     <div className="min-h-screen bg-[#FFF8F0] text-[#1A1A1A]">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-36 pt-4 sm:px-6 lg:px-8">
         <section
-          className="relative min-h-[220px] overflow-hidden rounded-[32px] px-4 pb-6 pt-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:min-h-[280px] sm:px-6"
-          style={{
+          className="mm-dashboard-stagger relative min-h-[220px] overflow-hidden rounded-[32px] px-4 pb-6 pt-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:min-h-[280px] sm:px-6"
+          style={getDashboardRevealStyle(0, {
             backgroundImage:
               `linear-gradient(180deg, rgba(17,24,39,0.12) 0%, rgba(15,23,42,0.48) 100%), url('${heroBackgroundImage}')`,
             backgroundSize: "cover",
             backgroundPosition: heroBackgroundPosition,
             backgroundRepeat: "no-repeat",
-          }}
+          })}
         >
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(15,23,42,0.22))]" />
 
@@ -511,59 +576,64 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="rounded-[24px] border-l-4 border-[#818CF8] bg-[#E8EAFF] px-5 py-4 shadow-[0_16px_35px_rgba(129,140,248,0.12)]">
+        <section
+          className="mm-dashboard-stagger rounded-[24px] border-l-4 border-[#818CF8] bg-[#E8EAFF] px-5 py-4 shadow-[0_16px_35px_rgba(129,140,248,0.12)]"
+          style={getDashboardRevealStyle(1)}
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6366F1]">
             Daily affirmation 💫
           </p>
           <p className="mt-2 text-[15px] leading-6 text-[#312E81]">{affirmation}</p>
         </section>
 
-        <section
-          className={`${cardClass} overflow-hidden transition-all duration-700 ${isMoodCardVisible
-            ? "max-h-[260px] translate-y-0 opacity-100"
-            : "pointer-events-none max-h-0 -translate-y-2 p-0 opacity-0 shadow-none"
-            }`}
-          aria-hidden={!isMoodCardVisible}
-        >
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-[#6B7280]">
-            How are you feeling today?
-          </p>
+        <div className="mm-dashboard-stagger" style={getDashboardRevealStyle(2)}>
+          <section
+            className={`${cardClass} overflow-hidden transition-all duration-700 ${isMoodCardVisible
+              ? "max-h-[260px] translate-y-0 opacity-100"
+              : "pointer-events-none max-h-0 -translate-y-2 p-0 opacity-0 shadow-none"
+              }`}
+            aria-hidden={!isMoodCardVisible}
+          >
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-[#6B7280]">
+              How are you feeling today?
+            </p>
 
-          <div className="mt-4 min-h-[110px]">
-            {selectedMood ? (
-              <div
-                className={`flex h-full flex-col items-center justify-center rounded-[20px] bg-[#FFF8E8] px-4 py-6 text-center transition-all duration-700 ${isMoodToastVisible
-                  ? "translate-y-0 opacity-100"
-                  : "pointer-events-none -translate-y-1 opacity-0"
-                  }`}
-              >
-                <div className="text-4xl">{selectedMood.emoji}</div>
-                <p className="mt-3 text-base font-semibold text-[#1A1A1A]">Thanks for checking in! 💛</p>
-                <p className="mt-1 text-sm text-[#6B7280]">
-                  We&apos;ve saved that you&apos;re feeling {selectedMood.label.toLowerCase()} today.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-5 gap-2 sm:gap-3">
-                {moodOptions.map((mood) => (
-                  <button
-                    key={mood.label}
-                    type="button"
-                    onClick={() => setSelectedMood(mood)}
-                    className={`flex flex-col items-center rounded-[20px] px-2 py-3 text-center transition-transform duration-150 hover:scale-[1.04] ${mood.bg}`}
-                  >
-                    <span className={`rounded-full ring-2 ring-transparent transition-all duration-150 ${mood.ring} px-1 py-1 text-[2rem]`}>
-                      {mood.emoji}
-                    </span>
-                    <span className="mt-2 text-[11px] font-medium text-[#6B7280] sm:text-xs">{mood.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+            <div className="mt-4 min-h-[110px]">
+              {selectedMood ? (
+                <div
+                  className={`flex h-full flex-col items-center justify-center rounded-[20px] bg-[#FFF8E8] px-4 py-6 text-center transition-all duration-700 ${isMoodToastVisible
+                    ? "translate-y-0 opacity-100"
+                    : "pointer-events-none -translate-y-1 opacity-0"
+                    }`}
+                >
+                  <div className="text-4xl">{selectedMood.emoji}</div>
+                  <p className="mt-3 text-base font-semibold text-[#1A1A1A]">Thanks for checking in! 💛</p>
+                  <p className="mt-1 text-sm text-[#6B7280]">
+                    We&apos;ve saved that you&apos;re feeling {selectedMood.label.toLowerCase()} today.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-5 gap-2 sm:gap-3">
+                  {moodOptions.map((mood) => (
+                    <button
+                      key={mood.label}
+                      type="button"
+                      onClick={() => setSelectedMood(mood)}
+                      className={`flex flex-col items-center rounded-[20px] px-2 py-3 text-center transition-transform duration-150 hover:scale-[1.04] ${mood.bg}`}
+                    >
+                      <span className={`rounded-full ring-2 ring-transparent transition-all duration-150 ${mood.ring} px-1 py-1 text-[2rem]`}>
+                        {mood.emoji}
+                      </span>
+                      <span className="mt-2 text-[11px] font-medium text-[#6B7280] sm:text-xs">{mood.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
 
-        <section className="space-y-4">
+        <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(3)}>
           <SectionHeader title="Quick Actions" action="More >" />
           <div className={`${horizontalScrollClass} md:grid md:grid-cols-4 md:overflow-visible md:pb-0`}>
             {quickActions.map((action) => {
@@ -586,7 +656,7 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(4)}>
           <h2 className={sectionTitleClass}>Your past moods</h2>
           <div className={horizontalScrollClass}>
             {pastMoodTags.map((tag) => (
@@ -602,7 +672,10 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[28px] bg-[#E0E8FF] p-5 shadow-[0_18px_40px_rgba(59,130,246,0.08)]">
+        <section
+          className="mm-dashboard-stagger overflow-hidden rounded-[28px] bg-[#E0E8FF] p-5 shadow-[0_18px_40px_rgba(59,130,246,0.08)]"
+          style={getDashboardRevealStyle(5)}
+        >
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#4F46E5]">Habit Tracker</p>
@@ -618,7 +691,7 @@ const Index = () => {
           </div>
         </section>
 
-        <section>
+        <section className="mm-dashboard-stagger" style={getDashboardRevealStyle(6)}>
           <label className="flex items-center gap-3 rounded-[22px] border border-[#E5E7EB] bg-white px-4 py-4">
             <Search className="h-5 w-5 text-[#9CA3AF]" />
             <input
@@ -629,7 +702,7 @@ const Index = () => {
           </label>
         </section>
 
-        <section className="space-y-4">
+        <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(7)}>
           <SectionHeader title="Habits" action="See all >" />
           <div className="overflow-hidden rounded-[28px] bg-gradient-to-r from-[#F8B4B4] via-[#FDBA8C] to-[#FCD9B6] p-5 text-white shadow-[0_24px_50px_rgba(249,115,22,0.18)]">
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -657,86 +730,103 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-end justify-between gap-3">
+        <section
+          className="mm-dashboard-stagger space-y-4 rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5"
+          style={getDashboardRevealStyle(8)}
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-medium text-[#F97316]">What&apos;s fresh?</p>
               <h2 className="mt-1 text-[18px] font-semibold text-[#1A1A1A]">Latest content for you</h2>
             </div>
-            {contentCards.length > visibleContentCardCount ? (
-              <button
-                type="button"
-                onClick={handleNextContentCards}
-                aria-label="Show more content cards"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#1F2937] shadow-[0_12px_24px_rgba(15,23,42,0.08)] transition-all duration-150 hover:-translate-y-0.5 hover:text-[#2563EB]"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            ) : null}
+
+            <div className="flex items-center justify-between gap-3 sm:justify-end">
+              <div className="text-sm text-[#6B7280]">
+                {activeContentCardIndex + 1}/{contentCards.length}
+              </div>
+              {isContentCarouselInteractive ? (
+                <button
+                  type="button"
+                  onClick={handleNextContentCards}
+                  aria-label="Show next content cards"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#111827] text-white shadow-[0_12px_24px_rgba(15,23,42,0.14)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2563EB]"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="overflow-hidden">
             <div
-              className={`grid grid-flow-col gap-3 ${isContentCarouselAnimating ? "transition-transform duration-500 ease-out" : "transition-none"}`}
-              style={{
-                gridAutoColumns: "calc((100% - 1.5rem) / 3)",
-                transform: `translateX(calc(-${contentCarouselIndex} * ((100% - 1.5rem) / 3 + 0.75rem)))`,
-              }}
+              className={`grid grid-flow-col gap-4 ${isContentCarouselAnimating ? "transition-transform duration-500 ease-out" : "transition-none"}`}
+              style={contentCarouselStyle}
               onTransitionEnd={handleContentCarouselTransitionEnd}
             >
               {loopedContentCards.map((card, index) => (
-              <article
-                key={`${card.title}-${index}`}
-                role={card.href ? "button" : undefined}
-                tabIndex={card.href ? 0 : undefined}
-                onClick={card.href ? () => navigate(card.href) : undefined}
-                onKeyDown={card.href ? (event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    navigate(card.href);
-                  }
-                } : undefined}
-                className={`group relative overflow-hidden rounded-[24px] bg-white shadow-[0_16px_35px_rgba(15,23,42,0.08)] transition-all duration-150 ${card.href
-                  ? "cursor-pointer hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-2"
-                  : ""
-                  }`}
-              >
-                <div className="relative h-40 w-full overflow-hidden">
-                  <img
-                    src={card.image}
-                    alt={card.title}
-                    className={`h-full w-full object-cover transition-transform duration-300 ${card.href ? "group-hover:scale-[1.02]" : ""}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={(event) => event.stopPropagation()}
-                    onKeyDown={(event) => event.stopPropagation()}
-                    className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#111827] backdrop-blur-sm"
-                  >
-                    <Bookmark className="h-4 w-4" />
-                  </button>
+                <article
+                  key={`${card.title}-${index}`}
+                  role={card.href ? "button" : undefined}
+                  tabIndex={card.href ? 0 : undefined}
+                  onClick={card.href ? () => navigate(card.href) : undefined}
+                  onKeyDown={card.href ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      navigate(card.href);
+                    }
+                  } : undefined}
+                  className={`group relative overflow-hidden rounded-[24px] border border-white/70 bg-white/95 shadow-[0_14px_30px_rgba(15,23,42,0.08)] transition-all duration-200 ${card.href
+                    ? "cursor-pointer hover:-translate-y-1.5 hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-2"
+                    : ""
+                    }`}
+                >
+                  <div className="relative h-40 w-full overflow-hidden">
+                    <img
+                      src={card.image}
+                      alt={card.title}
+                      className={`h-full w-full object-cover transition-transform duration-300 ${card.href ? "group-hover:scale-[1.02]" : ""}`}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/30 via-transparent to-transparent" />
+                    <button
+                      type="button"
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      aria-label={`Save ${card.title}`}
+                      className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/92 text-[#111827] shadow-[0_10px_20px_rgba(15,23,42,0.12)] backdrop-blur-sm transition-colors duration-150 hover:text-[#2563EB]"
+                    >
+                      <Bookmark className="h-4 w-4" />
+                    </button>
 
-                  <div className="absolute bottom-3 left-3 z-10 rounded-full bg-[#111827]/78 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                    {card.type}
+                    <div className="absolute left-3 top-3 z-10 rounded-full bg-white/88 px-3 py-1 text-xs font-semibold text-[#111827] shadow-[0_10px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+                      {card.type}
+                    </div>
                   </div>
-                </div>
 
-                <div className="p-4">
-                  <h3 className={`text-sm font-semibold leading-6 transition-colors duration-150 ${card.href ? "text-[#1F2937] group-hover:text-[#2563EB]" : "text-[#1F2937]"}`}>
-                    {card.title}
-                  </h3>
-                </div>
-              </article>
+                  <div className="space-y-2 p-4">
+                    <h3 className={`text-sm font-semibold leading-6 transition-colors duration-150 ${card.href ? "text-[#1F2937] group-hover:text-[#2563EB]" : "text-[#1F2937]"}`}>
+                      {card.title}
+                    </h3>
+
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <p className="text-[#6B7280]">{getContentCardActionLabel(card.type)}</p>
+                      <span className="inline-flex items-center gap-1 font-semibold text-[#2563EB]">
+                        Open
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="space-y-4">
-          {featureCards.map((card) => (
+        <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(9)}>
+          {featureCards.map((card, index) => (
             <article
               key={card.title}
-              className={`overflow-hidden rounded-[28px] ${card.bg} p-5 shadow-[0_18px_35px_rgba(15,23,42,0.06)]`}
+              className={`mm-dashboard-stagger overflow-hidden rounded-[28px] ${card.bg} p-5 shadow-[0_18px_35px_rgba(15,23,42,0.06)]`}
+              style={getDashboardRevealStyle(10 + index)}
             >
               <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <div className="max-w-xl">
@@ -788,7 +878,10 @@ const Index = () => {
           ))}
         </section>
 
-        <section className="rounded-[24px] bg-[#F8FAFC] p-4 shadow-[0_16px_35px_rgba(148,163,184,0.08)] sm:p-5">
+        <section
+          className="mm-dashboard-stagger rounded-[24px] bg-[#F8FAFC] p-4 shadow-[0_16px_35px_rgba(148,163,184,0.08)] sm:p-5"
+          style={getDashboardRevealStyle(15)}
+        >
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className={sectionTitleClass}>This week&apos;s mood</h2>
@@ -824,6 +917,25 @@ const Index = () => {
               <div className="h-full rounded-full bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" style={{ width: `${moodCompletionPercent}%` }} />
             </div>
             <p className="mt-2 text-xs font-medium text-[#64748B]">{loggedMoodCount} of {weekMoodData.length} days logged</p>
+          </div>
+        </section>
+
+        <section
+          className="mm-dashboard-stagger rounded-[24px] bg-gradient-to-br border border-[#E2E8F0] from-[#F8FAFC] to-[#FFFFFF] p-5 shadow-[0_16px_35px_rgba(148,163,184,0.06)]"
+          style={getDashboardRevealStyle(16)}
+        >
+          <div className="flex flex-col gap-3 relative overflow-hidden">
+            <div className="absolute -right-6 -top-6 text-9xl text-[#CBD5E1] opacity-20 pointer-events-none">"</div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-[#64748B]">Daily Insight</h3>
+            <div className="flex flex-col items-end self-start">
+              <p className="text-[17px] leading-relaxed font-medium text-[#1E293B] italic text-left w-full">
+                "{dailyQuote.text}"
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-[2px] w-6 bg-[#3B82F6] rounded-full"></div>
+                <p className="text-[14px] font-semibold text-[#475569]">{dailyQuote.writer}</p>
+              </div>
+            </div>
           </div>
         </section>
       </main>

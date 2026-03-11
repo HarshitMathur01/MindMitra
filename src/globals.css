@@ -1,26 +1,37 @@
 /* ── Google Font for Devanagari ──────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap');
+
 .mm-devanagari,
 .mm-devanagari * {
     font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
 }
+
 :root {
     /* Warm cream — base page background & surfaces */
-    --background: 35 40% 97%;      /* warm off-white ivory */
-    --surface: 35 38% 95%;         /* card surface, a step richer */
-    --crushed-silk: 35 38% 93%;    /* warm parchment mid-tone */
+    --background: 35 40% 97%;
+    /* warm off-white ivory */
+    --surface: 35 38% 95%;
+    /* card surface, a step richer */
+    --crushed-silk: 35 38% 93%;
+    /* warm parchment mid-tone */
 
     /* Brand teal — calm, trustworthy, grounding */
-    --primary: 188 51% 38%;        /* warm teal for buttons & accents */
-    --secondary: 173 35% 42%;      /* teal-green complement */
-    --accent: 35 50% 90%;          /* warm cream highlight for soft bgs */
+    --primary: 188 51% 38%;
+    /* warm teal for buttons & accents */
+    --secondary: 173 35% 42%;
+    /* teal-green complement */
+    --accent: 35 50% 90%;
+    /* warm cream highlight for soft bgs */
 
     /* Typography */
-    --text-primary: 196 33% 15%;   /* dark teal-gray */
-    --text-secondary: 197 17% 43%; /* muted secondary */
+    --text-primary: 196 33% 15%;
+    /* dark teal-gray */
+    --text-secondary: 197 17% 43%;
+    /* muted secondary */
 
     /* Structural */
-    --border: 35 30% 87%;          /* warm light border */
+    --border: 35 30% 87%;
+    /* warm light border */
 
     /* Semantic */
     --danger: 353 66% 59%;
@@ -30,19 +41,29 @@
 }
 
 [data-theme="dark"] {
-    --background: 196 47% 9%;       /* deep teal-black */
-    --surface: 196 30% 17%;          /* cards — clear step above bg */
-    --crushed-silk: 196 24% 25%;     /* hover/input surfaces */
-    --primary: 188 55% 62%;          /* tonal-200 — pops on dark bg */
-    --secondary: 172 40% 60%;        /* vivid teal-green complement */
-    --accent: 196 22% 28%;           /* subtle accent surface */
-    --text-primary: 190 10% 95%;     /* near-white, minimal teal tint — crisp & bright */
-    --text-secondary: 188 16% 73%;   /* readable muted text — not muddy */
-    --border: 196 26% 27%;           /* visible borders, well above surface */
+    --background: 196 47% 9%;
+    /* deep teal-black */
+    --surface: 196 30% 17%;
+    /* cards — clear step above bg */
+    --crushed-silk: 196 24% 25%;
+    /* hover/input surfaces */
+    --primary: 188 55% 62%;
+    /* tonal-200 — pops on dark bg */
+    --secondary: 172 40% 60%;
+    /* vivid teal-green complement */
+    --accent: 196 22% 28%;
+    /* subtle accent surface */
+    --text-primary: 190 10% 95%;
+    /* near-white, minimal teal tint — crisp & bright */
+    --text-secondary: 188 16% 73%;
+    /* readable muted text — not muddy */
+    --border: 196 26% 27%;
+    /* visible borders, well above surface */
     --danger: 354 100% 71%;
     --success: 160 84% 49%;
     --warning: 43 96% 56%;
-    --shadow: hsla(196, 65%, 4%, 0.55); /* tinted deep teal shadow — not flat black */
+    --shadow: hsla(196, 65%, 4%, 0.55);
+    /* tinted deep teal shadow — not flat black */
 }
 
 *,
@@ -58,6 +79,34 @@ canvas,
 video,
 img {
     transition: none !important;
+}
+
+@keyframes mm-dashboard-rise {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+.mm-dashboard-stagger {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.985);
+    animation: mm-dashboard-rise 560ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: var(--mm-enter-delay, 0ms);
+    will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mm-dashboard-stagger {
+        opacity: 1;
+        transform: none;
+        animation: none;
+    }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -533,13 +582,17 @@ img {
    Dark mode refinements (already handled via CSS vars, but extras)
    ══════════════════════════════════════════════════════════════════ */
 [data-theme="dark"] .mm-bubble--ai {
-    background: hsl(188 22% 20%);               /* elevated above surface (17%) */
-    border-color: hsl(188 26% 30%);             /* visible against bg */
-    border-left-color: hsl(188 55% 62% / 0.50); /* matches new --primary */
+    background: hsl(188 22% 20%);
+    /* elevated above surface (17%) */
+    border-color: hsl(188 26% 30%);
+    /* visible against bg */
+    border-left-color: hsl(188 55% 62% / 0.50);
+    /* matches new --primary */
     box-shadow:
         0 1px 3px hsl(196 65% 3% / 0.22),
         0 4px 14px hsl(188 55% 7% / 0.28),
-        0 16px 32px hsl(188 50% 5% / 0.18);     /* tinted shadow — depth without muddiness */
+        0 16px 32px hsl(188 50% 5% / 0.18);
+    /* tinted shadow — depth without muddiness */
 }
 
 [data-theme="dark"] .mm-bubble--user {
@@ -549,9 +602,17 @@ img {
 
 /* Voice recording radial pulse ring */
 @keyframes voice-pulse-ring {
-    0% { box-shadow: 0 0 0 0 hsl(188 51% 38% / 0.45); }
-    70% { box-shadow: 0 0 0 14px hsl(188 51% 38% / 0); }
-    100% { box-shadow: 0 0 0 0 hsl(188 51% 38% / 0); }
+    0% {
+        box-shadow: 0 0 0 0 hsl(188 51% 38% / 0.45);
+    }
+
+    70% {
+        box-shadow: 0 0 0 14px hsl(188 51% 38% / 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 hsl(188 51% 38% / 0);
+    }
 }
 
 .voice-recording-active {

@@ -32,6 +32,7 @@ import NervousSystemResetArticle from "./pages/NervousSystemResetArticle";
 import BedtimeRoutineArticle from "./pages/BedtimeRoutineArticle";
 import MountainResetGuideArticle from "./pages/MountainResetGuideArticle";
 import NatureFocusVisualGroundingArticle from "./pages/NatureFocusVisualGroundingArticle";
+import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 
 const queryClient = new QueryClient();
 
@@ -49,11 +50,7 @@ function AppContent() {
   const [onboardingDone, setOnboardingDone] = useState(false);
 
   if (loading) {
-    return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center z-[9999]">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (isFirstTime && !onboardingDone) {

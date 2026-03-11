@@ -10,6 +10,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@radix-ui/react-avatar";
@@ -35,6 +36,13 @@ interface ChatSession {
   timestamp: Date;
 }
 
+type RecentChatPreview = {
+  id: string;
+  title: string;
+  created_at: string;
+  messageCount: number;
+};
+
 const suggestedPrompts = [
   "Help me understand my personality type",
   "I'm feeling anxious, what can I do?",
@@ -51,6 +59,12 @@ const quickCategories = [
   { label: "Relationships", icon: "💖", color: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300" },
   { label: "Self-Care", icon: "✨", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
   { label: "Therapy", icon: "💬", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" },
+];
+
+const loadingPhases = [
+  "Reading this with care",
+  "Thinking of what to say",
+  "Putting it into words",
 ];
 
 // Real-time transcription component — reveals text word by word
@@ -110,14 +124,113 @@ const TypewriterText = ({
   );
 };
 
+const RecentChatItem = ({
+  chat,
+  isActive,
+  loadingSession,
+  onSelect,
+}: {
+  chat: RecentChatPreview;
+  isActive: boolean;
+  loadingSession: boolean;
+  onSelect: (chatId: string) => void;
+}) => {
+  const [displayMessageCount, setDisplayMessageCount] = useState(chat.messageCount || 0);
+
+  useEffect(() => {
+    if (displayMessageCount === chat.messageCount) {
+      return undefined;
+    }
+
+    const startCount = displayMessageCount;
+    const endCount = chat.messageCount;
+    const startedAt = performance.now();
+    let frameId = 0;
+
+    const animateCount = (now: number) => {
+      const progress = Math.min((now - startedAt) / 320, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const nextValue = Math.round(startCount + (endCount - startCount) * easedProgress);
+
+      setDisplayMessageCount(nextValue);
+
+      if (progress < 1) {
+        frameId = window.requestAnimationFrame(animateCount);
+      }
+    };
+
+    frameId = window.requestAnimationFrame(animateCount);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [chat.messageCount, displayMessageCount]);
+
+  return (
+    <motion.div
+      layout="position"
+      initial={false}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+    >
+      <Button
+        variant="ghost"
+        disabled={loadingSession}
+        className={`w-full h-auto rounded-xl text-left px-3 py-2.5 transition-all duration-200 group relative border-l-2 ${isActive
+          ? 'bg-primary/10 border-l-primary text-text-primary'
+          : 'border-l-transparent text-text-secondary hover:text-text-primary hover:bg-background/50'
+          } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+        onClick={() => onSelect(chat.id)}
+      >
+        <div className="min-w-0 w-full">
+          <p className="truncate leading-tight text-sm font-medium">{chat.title}</p>
+          <p className="text-xs text-text-secondary/70 mt-0.5">{displayMessageCount} msgs</p>
+        </div>
+      </Button>
+    </motion.div>
+  );
+};
+
+const mergeRecentChats = (previousChats: RecentChatPreview[], nextChats: RecentChatPreview[]) => {
+  const previousChatsById = new Map(previousChats.map((chat) => [chat.id, chat]));
+
+  const mergedChats = nextChats.map((chat) => {
+    const previousChat = previousChatsById.get(chat.id);
+
+    if (!previousChat) {
+      return chat;
+    }
+
+    const stableTitle = previousChat.title || chat.title;
+
+    if (
+      previousChat.title === stableTitle &&
+      previousChat.created_at === chat.created_at &&
+      previousChat.messageCount === chat.messageCount
+    ) {
+      return previousChat;
+    }
+
+    return {
+      ...previousChat,
+      title: stableTitle,
+      created_at: chat.created_at,
+      messageCount: chat.messageCount,
+    };
+  });
+
+  const isSameList = previousChats.length === mergedChats.length && previousChats.every((chat, index) => chat === mergedChats[index]);
+  return isSameList ? previousChats : mergedChats;
+};
+
 const ChatGPTInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [recentChats, setRecentChats] = useState<Array<{ id: string, title: string, created_at: string, messageCount: number }>>([]);
+  const [recentChats, setRecentChats] = useState<RecentChatPreview[]>([]);
   const [transcribingMsgId, setTranscribingMsgId] = useState<string | null>(null);
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
@@ -174,6 +287,41 @@ const ChatGPTInterface = () => {
       return;
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingProgress(0);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setLoadingProgress((current) => {
+        if (current >= 92) {
+          return current;
+        }
+
+        if (current < 28) {
+          return current + 4;
+        }
+
+        if (current < 55) {
+          return current + 3;
+        }
+
+        if (current < 78) {
+          return current + 2;
+        }
+
+        return current + 1;
+      });
+    }, 180);
+
+    return () => window.clearInterval(interval);
+  }, [isLoading]);
+
+  const loadingPhase = loadingPhases[Math.min(Math.floor(loadingProgress / 33), loadingPhases.length - 1)] ?? loadingPhases[0];
+  const headerStatusText = isLoading ? loadingPhase : 'Online';
+  const bubbleStatusText = `${loadingPhase} ${loadingProgress}%`;
 
   // Signal to PersonalitySelector that a chat session is open (enables mid-session switch warning)
   useEffect(() => {
@@ -380,20 +528,23 @@ const ChatGPTInterface = () => {
           session.lastActivity = msg.created_at;
         }
 
-        // Set first user message as preview
-        if (msg.role === 'user' && !session.firstUserMessage) {
+        // We fetch messages in descending order, so overwriting user messages
+        // leaves us with the oldest user message as a stable session title.
+        if (msg.role === 'user') {
           session.firstUserMessage = msg.content;
         }
       });
+
+      const existingTitlesById = new Map(recentChats.map((chat) => [chat.id, chat.title]));
 
       // Convert to RecentChat array
       const chatList = Array.from(sessionMap.values())
         .filter(session => session.messageCount > 0) // Only show sessions with messages
         .map(session => ({
           id: session.id,
-          title: session.firstUserMessage ?
+          title: existingTitlesById.get(session.id) ?? (session.firstUserMessage ?
             (session.firstUserMessage.substring(0, 50) + (session.firstUserMessage.length > 50 ? '...' : '')) :
-            'New Chat',
+            'New Chat'),
           created_at: session.lastActivity,
           messageCount: session.messageCount
         }))
@@ -401,7 +552,7 @@ const ChatGPTInterface = () => {
         .slice(0, 20); // Show latest 20 chats
 
       console.log('✅ Processed chat sessions:', chatList.length);
-      setRecentChats(chatList);
+      setRecentChats((previousChats) => mergeRecentChats(previousChats, chatList));
 
     } catch (error) {
       console.error('❌ Failed to load recent chats:', error);
@@ -1024,17 +1175,20 @@ const ChatGPTInterface = () => {
                 <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider">
                   Recent Chats
                 </h3>
-                {(loadingChats || loadingSession) && (
-                  <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                )}
               </div>
               <div className="space-y-0.5 max-h-52 overflow-y-auto custom-scrollbar pr-1">
-                {recentChats.length === 0 ? (
+                {loadingChats ? (
+                  <div className="space-y-2 py-2 px-1">
+                    <Skeleton className="h-9 w-full bg-surface/50 rounded-xl" />
+                    <Skeleton className="h-9 w-[80%] bg-surface/50 rounded-xl" />
+                    <Skeleton className="h-9 w-full bg-surface/50 rounded-xl" />
+                  </div>
+                ) : recentChats.length === 0 ? (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-3 py-2 text-sm text-text-secondary italic">
                     No recent chats
                   </motion.div>
                 ) : (
-                  <AnimatePresence>
+                  <AnimatePresence initial={false} mode="popLayout">
                     {(["today", "yesterday", "earlier"] as const).map((group) => {
                       const chats = groupedChats[group];
                       if (!chats.length) return null;
@@ -1042,23 +1196,14 @@ const ChatGPTInterface = () => {
                       return (
                         <div key={group}>
                           <span className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/55 px-3 pt-2 pb-1">{label}</span>
-                          {chats.map((chat, index) => (
-                            <motion.div key={chat.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.04 }}>
-                              <Button
-                                variant="ghost"
-                                disabled={loadingSession}
-                                className={`w-full h-auto rounded-xl text-left px-3 py-2.5 transition-all duration-200 group relative border-l-2 ${currentSessionId === chat.id
-                                  ? 'bg-primary/10 border-l-primary text-text-primary'
-                                  : 'border-l-transparent text-text-secondary hover:text-text-primary hover:bg-background/50'
-                                  } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                onClick={() => selectRecentChat(chat.id)}
-                              >
-                                <div className="min-w-0 w-full">
-                                  <p className="truncate leading-tight text-sm font-medium">{chat.title}</p>
-                                  <p className="text-xs text-text-secondary/70 mt-0.5">{chat.messageCount || 0} msgs</p>
-                                </div>
-                              </Button>
-                            </motion.div>
+                          {chats.map((chat) => (
+                            <RecentChatItem
+                              key={chat.id}
+                              chat={chat}
+                              isActive={currentSessionId === chat.id}
+                              loadingSession={loadingSession}
+                              onSelect={selectRecentChat}
+                            />
                           ))}
                         </div>
                       );
@@ -1167,10 +1312,10 @@ const ChatGPTInterface = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className="w-9 h-9 bg-gradient-to-br from-primary to-[hsl(168,45%,34%)] rounded-full flex items-center justify-center shadow-sm"
+                  className="w-9 h-9 rounded-full bg-[#FAEBD7] flex items-center justify-center shadow-[0_8px_18px_rgba(15,23,42,0.18)] transition-colors duration-150 hover:bg-[#F3DFC6]"
                   aria-label="Go to home"
                 >
-                  <img src="/image.png" alt="MindMitra" className="h-4 w-4 object-cover" />
+                  <img src="/image.png" alt="MindMitra" className="h-5 w-5 object-contain" />
                 </button>
                 {/* Online indicator dot — pulse when loading, steady when idle */}
                 <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-background ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
@@ -1182,7 +1327,7 @@ const ChatGPTInterface = () => {
                 aria-label="Go to home"
               >
                 <h1 className="text-xl font-bold text-text-primary leading-tight">MindMitra</h1>
-                <p className="text-[11px] text-text-secondary leading-none">{isLoading ? 'Reflecting…' : 'Online'}</p>
+                <p className="text-[11px] text-text-secondary leading-none">{headerStatusText}</p>
               </button>
             </div>
           </div>
@@ -1385,107 +1530,130 @@ const ChatGPTInterface = () => {
               </AnimatePresence>
 
               {/* ── Message list ─────────────────────────────────────────── */}
-              <AnimatePresence>
-                {filteredMessages.map((message, index) => {
-                  const isNewDay = index === 0 ||
-                    new Date(message.timestamp).toDateString() !== new Date(filteredMessages[index - 1].timestamp).toDateString();
-                  const isLastAi = message.sender === "ai" && index === filteredMessages.length - 1;
-                  return (
-                    <div key={message.id}>
-                      {/* Date separator */}
-                      {isNewDay && (
-                        <div className="flex items-center gap-3 my-2">
-                          <div className="flex-1 h-px bg-border/60" />
-                          <span className="text-[11px] text-muted-foreground/70 font-medium px-2">
-                            {formatDateSeparator(message.timestamp)}
-                          </span>
-                          <div className="flex-1 h-px bg-border/60" />
-                        </div>
-                      )}
-                      <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.3 }}
-                        className="group"
-                      >
-                        {message.sender === "ai" ? (
-                          <div className="flex gap-3 items-start">
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ type: "spring", stiffness: 200 }}
-                              className="mm-avatar mm-avatar--ai flex-shrink-0"
-                            >
-                              <img src="/image6.png" alt="AI companion" className="h-4 w-4 object-cover" />
-                            </motion.div>
-                            <div className="flex-1 space-y-1.5">
-                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                                {isAvatarVisible && transcribingMsgId === message.id ? (
-                                  <div className="mm-bubble mm-bubble--ai min-h-[2.5rem]">
-                                    <TypewriterText text={message.content} speed={350} onComplete={() => setTranscribingMsgId(null)} className="text-text-primary" />
-                                  </div>
-                                ) : (
-                                  <div className="mm-bubble mm-bubble--ai">
-                                    <MessageRenderer content={message.content} />
-                                  </div>
-                                )}
-                              </motion.div>
-                              {/* Quick-reply chips under last AI message */}
-                              {isLastAi && (
-                                <QuickReplies
-                                  suggestions={getQuickReplies(message.content)}
-                                  onSelect={(text) => handleSendMessage(text)}
-                                  visible={!isLoading}
-                                />
-                              )}
-                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }} whileHover={{ opacity: 1 }} className="flex items-center gap-2 transition-opacity">
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all" onClick={() => copyMessage(message.content)}>
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all">
-                                  <ThumbsUp className="h-3 w-3" />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-danger/10 hover:text-danger hover:scale-110 transition-all">
-                                  <ThumbsDown className="h-3 w-3" />
-                                </Button>
-                                <span className="text-xs text-text-secondary ml-2">
-                                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                              </motion.div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex gap-3 justify-end items-start">
-                            <div className="flex-1 flex flex-col items-end">
-                              <motion.div initial={{ scale: 0.95, opacity: 0, x: 12 }} animate={{ scale: 1, opacity: 1, x: 0 }} className="mm-bubble mm-bubble--user">
-                                <span className="mm-user-text">{message.content}</span>
-                              </motion.div>
-                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }} whileHover={{ opacity: 1 }} className="flex items-center justify-end gap-2 mt-1 transition-opacity">
-                                <span className="text-xs text-text-secondary opacity-70">
-                                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all" onClick={() => copyMessage(message.content)}>
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </motion.div>
-                            </div>
-                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }} className="mm-avatar mm-avatar--user flex-shrink-0">
-                              {userAvatarUrl ? (
-                                <img src={userAvatarUrl} alt={userDisplayName} className="h-4 w-4 rounded-full object-cover" />
-                              ) : (
-                                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
-                                  {userInitial}
-                                </span>
-                              )}
-                            </motion.div>
+              {loadingSession && filteredMessages.length === 0 ? (
+                <div className="space-y-6 w-full py-4">
+                  <div className="flex gap-3 items-start w-full">
+                    <Skeleton className="w-8 h-8 rounded-full flex-shrink-0 bg-surface/80" />
+                    <div className="space-y-2 flex-1 max-w-[85%]">
+                      <Skeleton className="h-16 w-full sm:w-[80%] rounded-2xl rounded-tl-sm bg-surface/60" />
+                      <Skeleton className="h-4 w-24 bg-surface/40" />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start justify-end w-full">
+                    <div className="space-y-2 flex-1 max-w-[85%] flex flex-col items-end">
+                      <Skeleton className="h-12 w-full sm:w-[50%] rounded-2xl rounded-tr-sm bg-primary/20" />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start w-full">
+                    <Skeleton className="w-8 h-8 rounded-full flex-shrink-0 bg-surface/80" />
+                    <div className="space-y-2 flex-1 max-w-[85%]">
+                      <Skeleton className="h-24 w-full sm:w-[90%] rounded-2xl rounded-tl-sm bg-surface/60" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <AnimatePresence>
+                  {filteredMessages.map((message, index) => {
+                    const isNewDay = index === 0 ||
+                      new Date(message.timestamp).toDateString() !== new Date(filteredMessages[index - 1].timestamp).toDateString();
+                    const isLastAi = message.sender === "ai" && index === filteredMessages.length - 1;
+                    return (
+                      <div key={message.id}>
+                        {/* Date separator */}
+                        {isNewDay && (
+                          <div className="flex items-center gap-3 my-2">
+                            <div className="flex-1 h-px bg-border/60" />
+                            <span className="text-[11px] text-muted-foreground/70 font-medium px-2">
+                              {formatDateSeparator(message.timestamp)}
+                            </span>
+                            <div className="flex-1 h-px bg-border/60" />
                           </div>
                         )}
-                      </motion.div>
-                    </div>
-                  );
-                })}
-              </AnimatePresence>
+                        <motion.div
+                          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.3 }}
+                          className="group"
+                        >
+                          {message.sender === "ai" ? (
+                            <div className="flex gap-3 items-start">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 200 }}
+                                className="mm-avatar mm-avatar--ai flex-shrink-0"
+                              >
+                                <img src="/image6.png" alt="AI companion" className="h-4 w-4 object-cover" />
+                              </motion.div>
+                              <div className="flex-1 space-y-1.5">
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                                  {isAvatarVisible && transcribingMsgId === message.id ? (
+                                    <div className="mm-bubble mm-bubble--ai min-h-[2.5rem]">
+                                      <TypewriterText text={message.content} speed={350} onComplete={() => setTranscribingMsgId(null)} className="text-text-primary" />
+                                    </div>
+                                  ) : (
+                                    <div className="mm-bubble mm-bubble--ai">
+                                      <MessageRenderer content={message.content} />
+                                    </div>
+                                  )}
+                                </motion.div>
+                                {/* Quick-reply chips under last AI message */}
+                                {isLastAi && (
+                                  <QuickReplies
+                                    suggestions={getQuickReplies(message.content)}
+                                    onSelect={(text) => handleSendMessage(text)}
+                                    visible={!isLoading}
+                                  />
+                                )}
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }} whileHover={{ opacity: 1 }} className="flex items-center gap-2 transition-opacity">
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all" onClick={() => copyMessage(message.content)}>
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all">
+                                    <ThumbsUp className="h-3 w-3" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-danger/10 hover:text-danger hover:scale-110 transition-all">
+                                    <ThumbsDown className="h-3 w-3" />
+                                  </Button>
+                                  <span className="text-xs text-text-secondary ml-2">
+                                    {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </motion.div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex gap-3 justify-end items-start">
+                              <div className="flex-1 flex flex-col items-end">
+                                <motion.div initial={{ scale: 0.95, opacity: 0, x: 12 }} animate={{ scale: 1, opacity: 1, x: 0 }} className="mm-bubble mm-bubble--user">
+                                  <span className="mm-user-text">{message.content}</span>
+                                </motion.div>
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }} whileHover={{ opacity: 1 }} className="flex items-center justify-end gap-2 mt-1 transition-opacity">
+                                  <span className="text-xs text-text-secondary opacity-70">
+                                    {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all" onClick={() => copyMessage(message.content)}>
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </motion.div>
+                              </div>
+                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }} className="mm-avatar mm-avatar--user flex-shrink-0">
+                                {userAvatarUrl ? (
+                                  <img src={userAvatarUrl} alt={userDisplayName} className="h-4 w-4 rounded-full object-cover" />
+                                ) : (
+                                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
+                                    {userInitial}
+                                  </span>
+                                )}
+                              </motion.div>
+                            </div>
+                          )}
+                        </motion.div>
+                      </div>
+                    );
+                  })}
+                </AnimatePresence>
+              )}
 
               {/* Typing Indicator */}
               {isLoading && (
@@ -1498,12 +1666,43 @@ const ChatGPTInterface = () => {
                   <div className="mm-avatar mm-avatar--ai flex-shrink-0">
                     <img src="/image6.png" alt="AI companion" className="h-4 w-4 object-cover" />
                   </div>
-                  <div className="mm-bubble mm-bubble--ai py-3 px-5">
-                    <p className="text-[11px] text-text-secondary mb-1.5">MindMitra is reflecting…</p>
-                    <div className="flex gap-1.5">
-                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 0.55, repeat: Infinity, delay: 0 }} className="w-2 h-2 bg-primary rounded-full" />
-                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 0.55, repeat: Infinity, delay: 0.16 }} className="w-2 h-2 bg-primary rounded-full" />
-                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 0.55, repeat: Infinity, delay: 0.32 }} className="w-2 h-2 bg-primary rounded-full" />
+                  <div className="mm-bubble mm-bubble--ai min-w-[220px] py-3 px-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] text-text-secondary">{bubbleStatusText}</p>
+                      <span className="text-[10px] font-medium text-primary/80">breathing space</span>
+                    </div>
+                    <div className="mt-2.5 space-y-2">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-primary/10">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-primary/40 via-primary to-primary/50"
+                          animate={{
+                            width: `${Math.max(12, loadingProgress)}%`,
+                            opacity: [0.7, 1, 0.7],
+                          }}
+                          transition={{
+                            width: { duration: 0.35, ease: "easeOut" },
+                            opacity: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <motion.div
+                          className="h-2.5 w-2.5 rounded-full bg-primary/55"
+                          animate={{ scale: [1, 1.35, 1], opacity: [0.45, 0.85, 0.45] }}
+                          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0 }}
+                        />
+                        <motion.div
+                          className="h-2.5 w-2.5 rounded-full bg-primary/45"
+                          animate={{ scale: [1, 1.28, 1], opacity: [0.35, 0.72, 0.35] }}
+                          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.25 }}
+                        />
+                        <motion.div
+                          className="h-2.5 w-2.5 rounded-full bg-primary/35"
+                          animate={{ scale: [1, 1.2, 1], opacity: [0.28, 0.6, 0.28] }}
+                          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </motion.div>

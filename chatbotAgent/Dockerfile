@@ -31,11 +31,9 @@ RUN find /usr/local/lib/python3.11/site-packages -type d -name "tests" -exec rm 
 
 # Pre-download all-MiniLM-L6-v2 at build time (~90 MB).
 # Baking into the image avoids a cold-start HuggingFace download on Railway.
-RUN python -c "
-from sentence_transformers import SentenceTransformer
-SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-print('Model cached successfully')
-"
+RUN python -c "from sentence_transformers import SentenceTransformer; \
+    SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2'); \
+    print('Model cached successfully')"
 
 # ──────────────────────────────────────────────────────────────
 # Stage 2: Runtime - Lean production image

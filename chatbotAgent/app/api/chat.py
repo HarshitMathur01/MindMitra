@@ -119,11 +119,30 @@ def _maybe_trigger_memory(session_id: str, user_id: str) -> None:
 
 
 def _run_session_end_jobs(session_id: str, user_id: str) -> None:
-    """Background: save session summary + run PHQ-9/GAD-7 screening at session-end intervals."""
+    """Background: save session summary + run PHQ-9/GAD-7 screening + reflections at session-end intervals."""
     try:
         messages = fetch_last_n_messages(session_id, n=30)
         if messages and len(messages) >= 5:
             memory_manager.save_session_summary(user_id, session_id, messages)
+
+            # ── Procedural memory synthesis ──────────────────────────────
+            # Extract coping strategies / techniques from therapeutic conversations
+            try:
+                _trigger_procedural_synthesis(user_id, messages)
+            except Exception as proc_exc:
+                logger.error(f"❌ [PROCEDURAL] Synthesis failed: {proc_exc}")
+
+            # ── Reflection generation (every N sessions) ─────────────────
+            try:
+                if memory_manager.should_generate_reflections(user_id):
+                    threading.Thread(
+                        target=memory_manager.generate_reflections,
+                        args=(user_id,),
+                        daemon=True,
+                    ).start()
+                    logger.info("🔮 [REFLECTION] Triggered reflection generation")
+            except Exception as ref_exc:
+                logger.error(f"❌ [REFLECTION] Trigger failed: {ref_exc}")
 
         # PHQ-9/GAD-7 session-level screening with EMA
         if messages and len(messages) >= SCREENING_MIN_MESSAGES:
@@ -145,6 +164,36 @@ def _run_session_end_jobs(session_id: str, user_id: str) -> None:
                 logger.error(f"\u274c [SCREENING] Session assessment failed: {screen_exc}")
     except Exception as e:
         logger.error(f"❌ [SESSION-END] Summary job failed: {e}")
+
+
+def _trigger_procedural_synthesis(user_id: str, messages: list) -> None:
+    """
+    Analyze recent conversation for coping strategies / therapeutic techniques
+    and store as procedural memories. Runs only if substantive therapeutic
+    content is detected (keywords: breathe, exercise, journal, cope, strategy, etc.)
+    """
+    _PROCEDURAL_KEYWORDS = (
+        "breathing", "breathe", "exercise", "journal", "meditat",
+        "technique", "strategy", "cope", "coping", "grounding",
+        "mindful", "relax", "calm", "practice", "routine", "habit",
+        "sleep", "self-care", "selfcare", "walk", "yoga",
+    )
+
+    # Quick scan: only synthesize if therapeutic techniques were discussed
+    full_text = " ".join(m.get("content", "").lower() for m in messages[-15:])
+    if not any(kw in full_text for kw in _PROCEDURAL_KEYWORDS):
+        return
+
+    # Determine topic from message content
+    topic = "coping strategies"
+    for kw_pair in [("breathing", "breathing exercises"), ("journal", "journaling"),
+                    ("meditat", "meditation"), ("grounding", "grounding techniques"),
+                    ("sleep", "sleep hygiene"), ("exercise", "physical exercise")]:
+        if kw_pair[0] in full_text:
+            topic = kw_pair[1]
+            break
+
+    memory_manager.synthesize_procedural_memory(user_id, topic, messages[-15:])
 
 
 def _extract_game_insights_for_memory(activities: list, user_id: str) -> None:

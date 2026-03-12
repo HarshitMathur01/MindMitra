@@ -21,7 +21,7 @@ from ..agents.screening_agent import ScreeningAssessmentAgent
 from ..controllers.glm_controller import GLMController
 from ..core.config import config
 from ..pipeline.context import create_empty_user_context
-from ..utils.json_utils import compact_for_merge_prompt, parse_json_from_llm_output
+from ..utils.json_utils import parse_json_from_llm_output
 
 logger = logging.getLogger(__name__)
 
@@ -108,45 +108,6 @@ class MindMitraWorkflow:
             return deepcopy(b if b is not None else a)
         return _deep(old_ctx, new_ctx)
 
-    def _merge_contexts_with_llm(self, old_ctx: Dict, new_ctx: Dict) -> Dict:
-        merged_base = self._merge_contexts_simple(old_ctx, new_ctx)
-        refine_keys = ["nlp_analysis", "cultural_context", "psychological_analysis", "technique_selection", "screening_assessments"]
-        old_focus = compact_for_merge_prompt({k: old_ctx.get(k) for k in refine_keys})
-        new_focus = compact_for_merge_prompt({k: new_ctx.get(k) for k in refine_keys})
-
-        prompt = (
-            "Merge PREVIOUS and NEW therapeutic-analysis JSON blocks for the same user. "
-            "Return ONLY valid JSON containing exactly these top-level keys: "
-            "nlp_analysis, cultural_context, psychological_analysis, technique_selection, screening_assessments. "
-            "Rules: preserve useful past insights, prefer NEW values when conflicting, no markdown.\n\n"
-            f"PREVIOUS: {json.dumps(old_focus, ensure_ascii=True)}\n\n"
-            f"NEW: {json.dumps(new_focus, ensure_ascii=True)}\n\nOutput JSON only."
-        )
-
-        refined: Optional[Dict] = None
-        if self.groq_nlp and self.groq_nlp.client:
-            try:
-                resp = self.groq_nlp.client.chat.completions.create(
-                    model=self.groq_nlp.model, messages=[{"role": "user", "content": prompt}], temperature=0.1, max_tokens=600
-                )
-                refined = parse_json_from_llm_output(resp.choices[0].message.content if resp.choices else "")
-            except Exception as e:
-                logger.info(f"ℹ️ [MERGE] Groq refinement skipped: {e}")
-
-        if refined is None:
-            try:
-                glm_resp = self.glm.invoke([{"role": "user", "content": prompt}])
-                refined = parse_json_from_llm_output(glm_resp.content if glm_resp else "")
-            except Exception as e:
-                logger.info(f"ℹ️ [MERGE] GLM refinement skipped: {e}")
-
-        if isinstance(refined, dict):
-            for key in refine_keys:
-                val = refined.get(key)
-                if isinstance(val, dict):
-                    merged_base[key] = val
-        return merged_base
-
     # ── supabase helpers ───────────────────────────────────────────────────
     def _resolve_user_id_from_supabase(self, context: Dict) -> Optional[str]:
         if not self.supabase:
@@ -221,7 +182,7 @@ class MindMitraWorkflow:
             # (see chat.py _run_session_end_jobs) for better accuracy.
 
             merged_ctx = (
-                self._merge_contexts_with_llm(existing_ctx, user_context)
+                self._merge_contexts_simple(existing_ctx, user_context)
                 if existing_ctx is not None else user_context
             )
 
@@ -263,16 +224,60 @@ class MindMitraWorkflow:
         "nobody cares", "worthless", "hopeless", "disappear forever",
     )
 
-    # Hardcoded crisis resources (India-specific)
-    _CRISIS_RESPONSE = (
-        "Hey, I'm really glad you reached out, and I want you to know "
-        "you're not alone right now. What you're feeling is real, and it matters deeply. "
-        "Please talk to someone who can really be there for you:\n\n"
-        "📞 iCall India: 9152987821\n"
-        "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-        "You deserve real support. I'm here too — can you share a little more "
-        "about what's been happening?"
-    )
+    # Hardcoded crisis resources (India-specific) — template-dynamic
+    _CRISIS_RESPONSE_TEMPLATES: Dict[str, str] = {
+        "english": (
+            "Hey, I'm really glad you reached out, and I want you to know "
+            "you're not alone right now. What you're feeling is real, and it matters deeply. "
+            "{known_support}"
+            "Please talk to someone who can really be there for you — "
+            "a doctor, counselor, or someone you trust:\n\n"
+            "📞 iCall India: 9152987821\n"
+            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
+            "You deserve real support. I'm here too — can you share a little more "
+            "about what's been happening?"
+        ),
+        "hindi": (
+            "Hey, mujhe bahut khushi hai ki tumne mujhse baat ki. "
+            "Tum akele nahi ho, aur jo tum mehsoos kar rahe ho woh bilkul real hai. "
+            "{known_support}"
+            "Please kisi se baat karo jo tumhare saath ho sake — "
+            "doctor, counselor, ya koi apna:\n\n"
+            "📞 iCall India: 9152987821\n"
+            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
+            "Tum real support ke haqdaar ho. Main bhi yahan hoon — "
+            "kya thoda aur bata sakte ho ki kya ho raha hai?"
+        ),
+        "hinglish": (
+            "Hey, I'm really glad tumne mujhse baat ki. "
+            "You're not alone right now — jo tum feel kar rahe ho woh real hai aur it matters deeply. "
+            "{known_support}"
+            "Please kisi se baat karo who can really be there for you — "
+            "doctor, counselor, ya koi close person:\n\n"
+            "📞 iCall India: 9152987821\n"
+            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
+            "You deserve real support. Main bhi hoon — "
+            "can you share thoda aur about what's been happening?"
+        ),
+    }
+
+    def _build_crisis_response(self, ctx: Dict) -> str:
+        """
+        Build a personalised crisis response using language preference
+        and any known support context from procedural memories.
+        """
+        lang = ctx.get("personality_settings", {}).get("language", "english")
+        template = self._CRISIS_RESPONSE_TEMPLATES.get(
+            lang, self._CRISIS_RESPONSE_TEMPLATES["english"]
+        )
+
+        # Extract known support from memory context if available
+        known_support = ""
+        mem_ctx = ctx.get("memory_context", "")
+        if mem_ctx and ("coping" in mem_ctx.lower() or "helps" in mem_ctx.lower() or "support" in mem_ctx.lower()):
+            known_support = "I remember some things that have helped you before — and I want you to know that strength is still in you. "
+
+        return template.format(known_support=known_support)
 
     # Technique → 2-line system-prompt directive (pure Python, zero LLM)
     _TECHNIQUE_DIRECTIVES: Dict[str, str] = {
@@ -365,7 +370,7 @@ class MindMitraWorkflow:
             except Exception as e:
                 logger.error(f"❌ [CRISIS] Supabase log failed: {e}")
 
-        ctx["ai_response"] = self._CRISIS_RESPONSE
+        ctx["ai_response"] = self._build_crisis_response(ctx)
         ctx["response_generated"] = True
         ctx["intervention_directive"] = ""
 
@@ -459,6 +464,10 @@ class MindMitraWorkflow:
         act_block = self._activity_context_block(ctx)
         act_line = f"\n{act_block}\n" if act_block else ""
 
+        # Memory context for emotional analysis (fixes memory blind spot in Path B)
+        mem0_context = ctx.get("memory_context", "")
+        mem_line = f"User history from memory: {mem0_context[:300]}\n" if mem0_context else ""
+
         prompt = (
             "Analyse this message for a mental-health chatbot. "
             "Return ONLY valid JSON:\n"
@@ -471,6 +480,7 @@ class MindMitraWorkflow:
             '  "tone_match": "<playful|warm|gentle|calm|energetic>"\n'
             "}\n\n"
             f"{ctx_line}"
+            f"{mem_line}"
             f"{act_line}"
             f'Message: "{text[:600]}"\n\nJSON:'
         )
@@ -527,7 +537,7 @@ class MindMitraWorkflow:
 
         # mem0 retrieved memories (injected before routing)
         mem0_context = ctx.get("memory_context", "")
-        mem_block = mem0_context[:400] if mem0_context else "None"
+        mem_block = mem0_context[:800] if mem0_context else "None"
 
         conv = "\n".join(
             f"{'U' if m.get('role') == 'user' else 'A'}: {m.get('content', '')[:80]}"
@@ -541,7 +551,7 @@ class MindMitraWorkflow:
         prev = ctx.get("previous_session_summary", {})
         prev_line = ""
         if prev and prev.get("summary"):
-            prev_line = f"\nPrevious session: {prev['summary'][:200]}\n"
+            prev_line = f"\nPrevious session: {prev['summary'][:400]}\n"
 
         prompt = (
             "You are a clinical psychologist. Return ONLY valid JSON:\n"
@@ -821,8 +831,28 @@ class MindMitraWorkflow:
 
         # ── Intent classification ──────────────────────────────────────────
         activities = ctx.get("session_context", {}).get("user_activities", [])
+
+        # ── Screening-aware routing: inject PHQ-9/GAD-7 hint if elevated ──
+        screening_hint = None
+        try:
+            from ..services.supabase_service import fetch_latest_screening_scores
+            user_id = ctx.get("user_id", "anonymous")
+            if user_id != "anonymous" and self.supabase:
+                scores = fetch_latest_screening_scores(user_id)
+                if scores:
+                    phq9 = scores.get("phq9", {})
+                    gad7 = scores.get("gad7", {})
+                    phq9_sev = phq9.get("severity", "")
+                    gad7_sev = gad7.get("severity", "")
+                    # Only inject hint when scores indicate concern
+                    if phq9_sev in ("moderate", "moderately_severe", "severe") or gad7_sev in ("moderate", "severe"):
+                        screening_hint = f"PHQ-9={phq9_sev or 'unknown'} (score {phq9.get('score', '?')}), GAD-7={gad7_sev or 'unknown'} (score {gad7.get('score', '?')})"
+                        logger.info(f"📋 [ROUTER] Screening hint injected: {screening_hint}")
+        except Exception as screen_exc:
+            logger.debug(f"[ROUTER] Screening hint fetch skipped: {screen_exc}")
+
         if self.intent_router:
-            intent_result = self.intent_router.classify(text, recent, activities=activities)
+            intent_result = self.intent_router.classify(text, recent, activities=activities, screening_hint=screening_hint)
         else:
             intent_result = {"intent": "emotional", "confidence": 0.5}
             logger.warning("⚠️ [ROUTER] IntentRouter unavailable — defaulting to 'emotional'")
@@ -877,6 +907,16 @@ class MindMitraWorkflow:
                 logger.info(f"🧠 [MEMORY] Injected memory context ({len(mem_ctx)} chars)")
         except Exception as mem_exc:
             logger.error(f"❌ [MEMORY] retrieve_memories failed (non-blocking): {mem_exc}")
+
+        # ── Emotional trend (cross-session continuity) ────────────────────
+        try:
+            trend = memory_manager.get_emotional_trend(ctx.get("user_id", "anonymous"))
+            if trend:
+                existing = ctx.get("memory_context", "")
+                ctx["memory_context"] = existing + f"\n\n📈 EMOTIONAL TREND (recent sessions): {trend}"
+                logger.info(f"📈 [TREND] Injected emotional trend ({len(trend)} chars)")
+        except Exception as trend_exc:
+            logger.error(f"❌ [TREND] get_emotional_trend failed (non-blocking): {trend_exc}")
 
         # ── Dispatch ───────────────────────────────────────────────────────
         if intent == "crisis":

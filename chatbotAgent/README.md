@@ -1,54 +1,84 @@
 # MindMitra Backend — Multi-Agent Therapeutic Pipeline
 
-FastAPI backend for MindMitra. Intent-routed multi-agent pipeline with mem0 long-term memory, 3-tier TTS, lip-sync generation, and PHQ-9/GAD-7 clinical screening.
+> FastAPI backend for MindMitra. Intent-routed multi-agent pipeline with mem0 long-term memory, 3-tier TTS, lip-sync generation, PHQ-9/GAD-7 clinical screening, and Chain-of-Experts reasoning.
+>
+> **Python 3.12 · FastAPI 0.115 · uvicorn · ~6,000 lines across 24 files**
 
-## Architecture
+---
+
+## Architecture Overview
 
 ```
-POST /chat → auth.py (JWT) → workflow.py (orchestrator)
+POST /chat → auth.py (JWT verify) → chat.py (endpoint)
+                                        │
+                              workflow.py (MindMitraWorkflow.process_chat)
+                                        │
+                              ┌─────────┼──────────────┐
+                              │         │              │
+                        Build UserContext   Fetch memories   Fetch screening scores
+                        (context.py)       (memory_manager)  (supabase_service)
+                              │         │              │
+                              └─────────┼──────────────┘
+                                        │
+                               IntentRouter.classify() (Groq qwen3-32b)
+                               + screening_hint injection
+                               + activity awareness
+                                        │
+                    ┌──────────────┬─────┴──────┬─────────────┐
+                    ▼              ▼            ▼             ▼
+              Path A           Path B       Path C        Path D
+              casual           emotional    therapeutic   crisis
+              ─────            ────────     ──────────    ──────
+              1 GLM call       1 Groq      1-2 GLM       0 LLM
+              150 tokens       + 1 GLM     + opt. Groq   template response
+                               300 tok     500 tok       safety resources
+                    │              │            │             │
+                    └──────────────┴────────────┘             │
+                                   │                          │
+                    ┌──────────────┤                          │
+                    ▼              ▼                          │
+              TTS Service    Lipsync Service                  │
+              (3-tier)       (Rhubarb/text)                   │
+                    │              │                          │
+                    └──────────────┴──────────────────────────┘
                                    │
-                         ┌─────────┼─────────┐
-                         │         │         │
-                    Build UserContext   Fetch mem0 memories
-                         │         │         │
-                         └─────────┼─────────┘
-                                   │
-                          intent_router.py (Groq qwen3-32b)
-                                   │
-                  ┌────────┬───────┴───────┬────────┐
-                  ▼        ▼               ▼        ▼
-              Path A    Path B         Path C    Path D
-              casual    emotional      therapeutic crisis
-              GLM only  NLP+GLM       Psych+GLM  hardcoded
-              150 tok   300 tok        500 tok    safety
-                  │        │               │        │
-                  └────────┴───────┬───────┘        │
-                                   │                │
-                          tts_service.py             │
-                     (ElevenLabs→GCP→gTTS)          │
-                                   │                │
-                        lipsync_service.py           │
-                     (Rhubarb→text fallback)         │
-                                   │                │
-                                   └────────────────┘
-                                   │
-                          ← JSON response (text + audio + lipsync + emotion)
+                          ChatResponse JSON
+                    (text + audio + lipsync + emotion + insights)
+
+Background threads (daemon, non-blocking):
+  ├─ Memory extraction (every 12 messages, Groq + Qdrant)
+  ├─ Session summary (every 36 messages, Gemini)
+  ├─ PHQ-9/GAD-7 scoring (session-end, EMA-smoothed)
+  ├─ Procedural synthesis (coping keyword trigger)
+  ├─ Reflection generation (every 5 sessions)
+  └─ Game→mem0 bridge (activity therapeutic insights)
 ```
+
+---
 
 ## Module Reference
 
-| Module | File | LLM Provider | Purpose |
-|---|---|---|---|
-| NLP Agent | `app/agents/nlp_agent.py` | Groq qwen3-32b | Emotion/sentiment extraction |
-| Intent Router | `app/agents/intent_router.py` | Groq qwen3-32b | 4-way message classification |
-| Screening | `app/agents/screening_agent.py` | Groq llama-3.3-70b | PHQ-9/GAD-7 with EMA smoothing |
-| Response | `app/agents/response_agent.py` | ZhipuAI GLM-4-32b | Therapeutic response generation |
-| Memory | `app/agents/memory_manager.py` | Groq llama-3.3-70b + local embeddings | mem0 + Qdrant (384-dim all-MiniLM-L6-v2) |
-| GLM Controller | `app/controllers/glm_controller.py` | ZhipuAI (Groq fallback) | Thread-safe LLM wrapper |
-| Workflow | `app/pipeline/workflow.py` | — | Orchestrator (1053 lines) |
-| TTS | `app/services/tts_service.py` | — | ElevenLabs → Google Cloud TTS → gTTS |
-| Lipsync | `app/services/lipsync_service.py` | — | Rhubarb CLI → text-based phoneme fallback |
-| Supabase | `app/services/supabase_service.py` | — | All DB reads/writes |
+| Module | File | Lines | LLM Provider | Purpose |
+|---|---|---|---|---|
+| **Pipeline Orchestrator** | `app/pipeline/workflow.py` | 1,092 | — | The brain: routing, paths, crisis |
+| **UserContext Builder** | `app/pipeline/context.py` | 93 | — | JSON envelope for pipeline |
+| **Intent Router** | `app/agents/intent_router.py` | 141 | Groq qwen3-32b | 4-class message classification |
+| **Response Generator** | `app/agents/response_agent.py` | 442 | ZhipuAI GLM-4-32b | CoE reasoning + personality + response |
+| **Memory Manager** | `app/agents/memory_manager.py` | 1,321 | Groq llama-3.3 + local embeddings | Composite-scored retrieval, reflections |
+| **Screening Agent** | `app/agents/screening_agent.py` | 232 | Groq llama-3.3 | PHQ-9/GAD-7 with EMA |
+| **NLP Agent** | `app/agents/nlp_agent.py` | 48 | Groq qwen3-32b | Client factory only |
+| **GLM Controller** | `app/controllers/glm_controller.py` | 174 | ZhipuAI (Groq fallback) | Thread-safe LLM wrapper |
+| **Chat Endpoints** | `app/api/chat.py` | 487 | — | POST /chat, /chat/stream, GET /greeting |
+| **Supabase Service** | `app/services/supabase_service.py` | 233 | — | All DB operations |
+| **TTS Service** | `app/services/tts_service.py` | 207 | — | ElevenLabs → Google Cloud → gTTS |
+| **Lipsync Service** | `app/services/lipsync_service.py` | 154 | — | Rhubarb CLI → text phoneme fallback |
+| **Greeting Service** | `app/services/greeting_service.py` | 228 | — | Time/personality/continuity greetings |
+| **Config** | `app/core/config.py` | 226 | — | config.yaml + env-var loader |
+| **JSON Utils** | `app/utils/json_utils.py` | 136 | — | 4-tier LLM output parser |
+| **Constants** | `app/utils/constants.py` | 80 | — | All magic numbers (35+) |
+| **Boot/CORS** | `app/main.py` | 134 | — | FastAPI factory, health-first boot |
+
+---
 
 ## Quick Start
 
@@ -59,52 +89,102 @@ pip install -r requirements.txt
 
 # 2. Environment
 cp .env.example .env
-# Fill in: SUPABASE_URL, SUPABASE_KEY, GROQ_API_KEY, ZAI_API_KEY, GOOGLE_API_KEY
+# Required: SUPABASE_URL, SUPABASE_KEY, SUPABASE_JWT_SECRET,
+#           GROQ_API_KEY, ZAI_API_KEY, GOOGLE_API_KEY.
 
 # 3. Qdrant (local)
 docker run -d -p 6333:6333 qdrant/qdrant
 
-# 4. Run
+# 4. Run (http://localhost:8000)
 uvicorn app.main:app --reload --port 8000
 ```
 
-## Environment Variables
+---
 
-See `.env.example` for the complete list with descriptions.
+## Environment Variables
 
 **Required for core functionality:**
 ```
-SUPABASE_URL, SUPABASE_KEY, SUPABASE_JWT_SECRET
-GROQ_API_KEY, ZAI_API_KEY, GOOGLE_API_KEY
-QDRANT_HOST (localhost or qdrant.railway.internal)
+SUPABASE_URL            → Supabase project URL
+SUPABASE_KEY            → Supabase service role key
+SUPABASE_JWT_SECRET     → JWT verification secret
+GROQ_API_KEY            → NLP, routing, screening, mem0, importance, reflections, trend
+ZAI_API_KEY             → ZhipuAI GLM-4 response gen + psych analysis + procedural
+GOOGLE_API_KEY          → Gemini session summaries
+QDRANT_HOST             → localhost (local) or qdrant.railway.internal (Railway)
 ```
 
 **Optional (with fallbacks):**
 ```
-ELEVENLABS_API_KEY          → falls back to Google TTS → gTTS
-GOOGLE_CREDENTIALS_BASE64   → falls back to gTTS
-OPENAI_API_KEY              → only for /transcribe endpoint
+ELEVENLABS_API_KEY          → Primary TTS (falls back to Google Cloud → gTTS)
+GOOGLE_CREDENTIALS_BASE64   → Google Cloud TTS (falls back to gTTS)
+OPENAI_API_KEY              → Whisper STT (/transcribe endpoint only)
+ELEVENLABS_VOICE_ID         → Default: vT0wMbLG5dssaBsksrb6
+ELEVENLABS_MODEL_ID         → Default: eleven_v3
+QDRANT_PORT                 → Default: 6333
+QDRANT_COLLECTION           → Default: companion_memories
+LOG_LEVEL                   → Default: INFO
+SKIP_AUTH                   → Default: false (MUST be false in production)
+CORS_ALLOW_ORIGINS          → Extra allowed origins (comma-separated)
 ```
+
+---
 
 ## API Endpoints
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/chat` | JWT | Main chat (returns text + audio + lipsync) |
+| `POST` | `/chat` | JWT | Main chat (text + audio + lipsync + insights) |
 | `POST` | `/chat/stream` | JWT | SSE streaming variant |
-| `GET`  | `/chat/greeting` | JWT | Random session-start greeting |
-| `GET`  | `/health` | None | Railway health check |
-| `POST` | `/transcribe` | JWT | Whisper STT (requires OPENAI_API_KEY) |
-| `POST` | `/api/onboarding/generate` | JWT | Dynamic onboarding questions |
+| `GET`  | `/chat/greeting` | JWT | Personalized session-start greeting |
+| `GET`  | `/health` | None | Health check (registered before heavy imports) |
+| `POST` | `/transcribe` | JWT | Whisper STT (audio upload, requires `OPENAI_API_KEY`) |
+| `POST` | `/api/onboarding/generate` | JWT | Dynamic onboarding question generation |
+
+---
+
+## Key Constants (`utils/constants.py`)
+
+| Constant | Value | Purpose |
+|---|---|---|
+| `MEMORY_TRIGGER_INTERVAL` | 12 | Messages between memory extractions |
+| `SCREENING_MIN_MESSAGES` | 8 | Min messages before screening |
+| `SCREENING_EMA_ALPHA` | 0.6 | EMA weight (60% new + 40% historical) |
+| `SCORE_WEIGHT_RELEVANCE` | 0.50 | Memory composite: relevance weight |
+| `SCORE_WEIGHT_IMPORTANCE` | 0.35 | Memory composite: importance weight |
+| `SCORE_WEIGHT_RECENCY` | 0.15 | Memory composite: recency weight |
+| `MEMORY_LIMIT_CASUAL` | 3 | Max memories for casual intent |
+| `MEMORY_LIMIT_EMOTIONAL` | 5 | Max memories for emotional intent |
+| `MEMORY_LIMIT_THERAPEUTIC` | 7 | Max memories for therapeutic intent |
+| `MEMORY_LIMIT_CRISIS` | 4 | Max memories for crisis intent |
+| `EMBEDDING_DIMS` | 384 | all-MiniLM-L6-v2 vector dimensions |
+| `REFLECTION_INTERVAL_SESSIONS` | 5 | Generate reflections every N sessions |
+| `ELEVENLABS_TIMEOUT_S` | 35.0 | ElevenLabs API timeout |
+| `RHUBARB_TIMEOUT_S` | 10 | Rhubarb CLI timeout |
+
+---
 
 ## Background Jobs
 
-| Trigger | What | How |
-|---|---|---|
-| Every 12 messages | mem0 memory extraction | Background thread, Groq extraction + Qdrant storage |
-| Every 36 messages | PHQ-9/GAD-7 scoring | Background thread, EMA-smoothed, saved to Supabase |
-| Game activity detected | Game→mem0 bridge | Stores game insights in long-term memory |
-| Session start | Cross-session loading | Fetches previous session summary for continuity |
+| Trigger | Interval | Job | Agent |
+|---|---|---|---|
+| Message count | Every 12 msgs | Memory extraction (fetch last 12 msgs → mem0) | `memory_manager.add_memories()` |
+| Message count | Every 36 msgs | Session-end jobs (summary + synthesis + reflection + screening) | `_run_session_end_jobs()` |
+| Game detected | On activity | Game→mem0 bridge (store game insights as memories) | `_extract_game_insights_for_memory()` |
+| Coping keywords | Session-end | Procedural synthesis (extract coping strategies) | `memory_manager.synthesize_procedural_memory()` |
+| Session milestone | Every 5 sessions | Reflection generation (cross-session insights) | `memory_manager.generate_reflections()` |
+
+---
+
+## Configuration
+
+`config.yaml` (193 lines) defines model names, temperatures, max tokens, system prompts, and feature flags. Environment variables are substituted via `${VAR_NAME}` syntax.
+
+Key sections: `api_keys`, `nlp_module`, `glm_controller`, `screening_assessments`, `memory`, `response_generator`, `workflow`, `features` (8 flags), `performance`, `debug`.
+
+`Config` class (singleton): `config.get("nlp_module.model")` for dot-notation access, `config.get_api_key("groq")` for keys, `config.reload()` for hot-reload.
+
+---
 
 ## Docker Build
 
@@ -113,22 +193,36 @@ docker build -t mindmitra-backend .
 docker run -p 8080:8080 --env-file .env mindmitra-backend
 ```
 
-The Dockerfile:
+**Dockerfile**:
 - Multi-stage build (builder + runtime)
-- PyTorch CPU-only (200MB vs 2GB)
+- PyTorch CPU-only (~200MB vs ~2GB)
 - `all-MiniLM-L6-v2` pre-baked at build time (~90MB, zero cold-start download)
-- Runtime: `python:3.11-slim`
+- Runtime: `python:3.12-slim`
 
-## Config
-
-`config.yaml` defines model names, temperatures, max tokens, and the system prompt template. Environment variables are substituted via `${VAR_NAME}` syntax.
+---
 
 ## Deployment (Railway)
 
-1. Add **Qdrant** service (Docker image: `qdrant/qdrant`)
+1. Add **Qdrant** service (Docker: `qdrant/qdrant`)
 2. Add **Backend** service (root: `chatbotAgent`, auto-detects Dockerfile)
 3. Set environment variables
 4. Set `QDRANT_HOST=qdrant.railway.internal`
 5. Railway builds and deploys automatically
 
-`railway.toml` configures: health check path `/health`, 40s timeout, 60s start period, 1 replica.
+**`railway.toml`**: health check path `/health`, 40s timeout, 60s start period, 1 replica.
+**`Procfile`**: `web: uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+---
+
+## Deep References
+
+| Document | What's In It |
+|---|---|
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Complete backend architecture (1894 lines): every function signature, every LLM call, every prompt template, every constant, every database table, boot sequence, module dependency graph |
+| [`docs/MEMORY_ARCHITECTURE.md`](docs/MEMORY_ARCHITECTURE.md) | Memory system deep dive: composite scoring formula, retrieval pipeline, reflections, procedural synthesis, emotional trend, session summaries, game→mem0 bridge |
+
+---
+
+## License
+
+Private repository. All rights reserved.

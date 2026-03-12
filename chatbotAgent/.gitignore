@@ -10,6 +10,11 @@ credentials_base64.txt
 # Runtime-generated context files
 user_contexts/
 
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
 # Docker build artifacts (temporary)
 Dockerfile.prod
 docker-compose.override.yml

@@ -1,13 +1,16 @@
 """
-Greeting Service — time-aware, language-aware greeting pool.
+Greeting Service — time-aware, language-aware, memory-enhanced greeting pool.
 """
 import json
 import logging
 import os
 import random
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+from ..services.supabase_service import fetch_previous_session_summary
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +86,61 @@ _PERSONALITY_NAMES: Dict[str, str] = {
     "riya": "Riya", "zen": "Zen",
 }
 
+# ── Cross-session continuity references (theme → natural callback) ─────
+# Maps common session themes to low-latency personalized continuity lines
+# that get appended to greetings. No LLM call — pure Python lookup.
+_THEME_CONTINUITY_HINTS: Dict[str, str] = {
+    "exam": "Last time we talked about exams — how's that going?",
+    "academic": "You were dealing with some academic pressure before — any updates?",
+    "family": "I remember we talked about family stuff — how are things at home?",
+    "relationship": "Last time we chatted about relationships — how's that been?",
+    "anxiety": "You mentioned feeling anxious last time — how are you feeling now?",
+    "stress": "I remember you were stressed about some things — has anything shifted?",
+    "sleep": "You mentioned sleep troubles before — getting any better?",
+    "loneliness": "Last time you shared about feeling lonely — how's it been since?",
+    "career": "You were thinking about career stuff — anything new?",
+    "self-esteem": "I remember you were working through some self-esteem stuff — how are you feeling about yourself lately?",
+    "anger": "Last time there was some frustration — has that eased up?",
+    "sadness": "You were going through a tough time before — how are things now?",
+}
+
+
+def _get_continuity_reference(user_id: str, session_id: str) -> str:
+    """
+    Low-latency cross-session continuity: if the user has a previous session
+    with known themes, return a natural callback line. Zero LLM calls.
+    
+    Returns "" if no previous data or if fetch takes >200ms.
+    """
+    try:
+        _t = time.monotonic()
+        prev = fetch_previous_session_summary(user_id, session_id)
+        elapsed_ms = (time.monotonic() - _t) * 1000
+
+        if elapsed_ms > 200:
+            logger.info(f"⚠️ [GREETING] Session summary fetch too slow ({elapsed_ms:.0f}ms), skipping continuity")
+            return ""
+
+        if not prev or not prev.get("themes"):
+            return ""
+
+        themes = prev["themes"]
+        if not isinstance(themes, list) or not themes:
+            return ""
+
+        # Find best matching theme
+        for theme in themes:
+            theme_lower = str(theme).lower()
+            for key, hint in _THEME_CONTINUITY_HINTS.items():
+                if key in theme_lower:
+                    logger.info(f"✅ [GREETING] Continuity reference: theme='{theme}' → '{hint[:40]}…'")
+                    return f" {hint}"
+
+        return ""
+    except Exception as exc:
+        logger.debug(f"[GREETING] Continuity reference failed (non-blocking): {exc}")
+        return ""
+
 
 # ── public API ─────────────────────────────────────────────────────────────
 def generate_greeting(
@@ -116,9 +174,15 @@ def generate_greeting(
             name = (companion_name or "").strip() or _PERSONALITY_NAMES.get(personality, "Mitra")
             greeting_text = _PERSONALITY_GREETINGS[personality].format(name=name)
             language_style = _resolve_language_style(user_id)
+
+            # Cross-session continuity: append personalized callback if available
+            continuity = _get_continuity_reference(user_id, session_id)
+            if continuity:
+                greeting_text += continuity
+
             logger.info(
                 f"✅ [GREETING] personality={personality} name={name} "
-                f"time={time_slot} text={greeting_text[:40]}…"
+                f"time={time_slot} continuity={'yes' if continuity else 'no'} text={greeting_text[:40]}…"
             )
             result: Dict[str, Any] = {
                 "greeting":      greeting_text,

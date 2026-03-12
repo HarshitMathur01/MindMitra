@@ -42,9 +42,13 @@ class IntentRouter:
         user_message: str,
         recent_messages: Optional[List[Dict]] = None,
         activities: Optional[List[Dict]] = None,
+        screening_hint: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Classify `user_message` into one of four intent buckets.
+
+        Args:
+            screening_hint: Optional PHQ-9/GAD-7 severity hint (e.g. "PHQ-9=moderate, GAD-7=severe")
 
         Returns:
             {"intent": str, "confidence": float}
@@ -56,28 +60,52 @@ class IntentRouter:
 
         history = self._format_history(recent_messages)
         activity_hint = self._format_activity_hint(activities)
-        prompt = self._build_prompt(user_message, history, activity_hint)
+        prompt = self._build_prompt(user_message, history, activity_hint, screening_hint)
 
         try:
             resp = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
-                max_tokens=60,
+                max_tokens=200,
+                reasoning_effort="none",
             )
             raw = (resp.choices[0].message.content.strip()) if resp.choices else ""
-            parsed = parse_json_from_llm_output(raw)
+            logger.info(f"[INTENT RAW OUTPUT] {raw}")
 
-            if (
-                isinstance(parsed, dict)
-                and parsed.get("intent") in _VALID_INTENTS
-                and isinstance(parsed.get("confidence"), (int, float))
-            ):
+            parsed = parse_json_from_llm_output(raw)
+            logger.info(f"[INTENT PARSED] {parsed}")
+
+            # if (
+            #     isinstance(parsed, dict)
+            #     and parsed.get("intent") in _VALID_INTENTS
+            #     and isinstance(parsed.get("confidence"), (int, float))
+            # ):
+            #     result = {
+            #         "intent": str(parsed["intent"]),
+            #         "confidence": float(parsed["confidence"]),
+            #     }
+            #     logger.info(f"🎯 [INTENT-ROUTER] {result['intent']} ({result['confidence']:.2f})")
+            #     return result
+            if isinstance(parsed, dict):
+
+                intent = parsed.get("intent", "emotional")
+
+                try:
+                    confidence = float(parsed.get("confidence", 0.5))
+                except Exception:
+                    confidence = 0.5
+
+                if intent not in _VALID_INTENTS:
+                    intent = "emotional"
+
                 result = {
-                    "intent": str(parsed["intent"]),
-                    "confidence": float(parsed["confidence"]),
+                    "intent": intent,
+                    "confidence": confidence
                 }
-                logger.info(f"🎯 [INTENT-ROUTER] {result['intent']} ({result['confidence']:.2f})")
+
+                logger.info(f"🎯 [INTENT-ROUTER] {intent} ({confidence:.2f})")
+
                 return result
 
             logger.warning(f"⚠️ [INTENT-ROUTER] Unexpected response shape, using default")
@@ -116,20 +144,23 @@ class IntentRouter:
         return hint
 
     @staticmethod
-    def _build_prompt(user_message: str, history: str, activity_hint: str = "") -> str:
+    def _build_prompt(user_message: str, history: str, activity_hint: str = "", screening_hint: Optional[str] = None) -> str:
         ctx_line = f"Context: {history}\n" if history else ""
         act_line = f"Recent activity: {activity_hint}\n" if activity_hint else ""
+        screening_line = f"Clinical screening: {screening_hint}\n" if screening_hint else ""
         return (
-            'Classify the user message. Return ONLY JSON with keys "intent" and "confidence".\n'
+            'Classify the user message. Return ONLY in strict JSON with keys "intent" and "confidence".\n'
+            'There should be nothing else other than this strict json format , nno text before or after this json needed, do internal reasoning adn just output the json only.\n'
             '"intent" must be exactly one of: casual, emotional, therapeutic, crisis\n'
             "Definitions:\n"
             "  casual      — greetings, small talk, boredom, playful chat, simple curiosity\n"
             "  emotional   — sharing feelings, mild stress, venting, seeking validation\n"
             "  therapeutic — explicit distress, persistent low mood, trauma disclosure, mental health struggle\n"
-            "  crisis      — suicidal ideation, explicit self-harm statements, immediate safety risk\n"
+            "  crisis      — suicidal ideation, explicit self-harm statements, immediate safety risk. Mark it crisis carefully, you can go for therapeutic response once, even after that if matter esclates mark as crisis.Think Accordingly.You have recent conversation as well so you can detect that.\n"
             '"confidence": float 0.0-1.0\n\n'
             f"{ctx_line}"
             f"{act_line}"
-            f'Message: "{user_message[:400]}"\n\n'
+            f"{screening_line}"
+            f'Message: "{user_message[:600]}"\n\n'
             "JSON:"
         )

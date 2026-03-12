@@ -3,6 +3,7 @@ ResponseGenerator — GLM Agent 3: final therapeutic response generation.
 """
 import json
 import logging
+import re
 from typing import Any, Dict
 
 from ..core.config import config
@@ -53,6 +54,8 @@ ABSOLUTE RULES:
 {language_instruction}
 
 {intervention_directive}
+
+{coe_reasoning}
 
 {memory_context}""",
         )
@@ -113,8 +116,75 @@ ABSOLUTE RULES:
             "hinglish": "LANGUAGE: Respond in Hinglish — a natural mix of Hindi and English, like urban Indian youth speak. Example: 'Yaar, I totally get it. Ye pressure bohot zyada ho sakta hai.'",
         }
 
+        # ── Chain of Empathy (CoE) reasoning blocks ─────────────────
+        # Intervention-mapped therapeutic reasoning (Lee et al., arXiv:2311.04915).
+        # The model reasons internally through the therapeutic framework
+        # before generating the visible response. <think> tags are stripped
+        # from the final output by _clean().
+        self.COE_REASONING: Dict[str, str] = {
+            "validate": (
+                "INTERNAL REASONING (before responding, think step-by-step inside <think></think> tags — this will NOT be shown to the user):\n"
+                "<think>\n"
+                "1. What specific emotion is this person feeling right now?\n"
+                "2. What might be driving this emotion — what's the unspoken need?\n"
+                "3. How can I reflect their feeling back so they feel truly heard?\n"
+                "4. Person-Centered approach: unconditional positive regard — no advice, just presence.\n"
+                "</think>\n"
+                "After reasoning, write ONLY the natural response (no <think> tags in your response)."
+            ),
+            "reframe": (
+                "INTERNAL REASONING (before responding, think step-by-step inside <think></think> tags — this will NOT be shown to the user):\n"
+                "<think>\n"
+                "1. What cognitive distortion or unhelpful thinking pattern is present?\n"
+                "2. What is one alternative, balanced perspective the user hasn't considered?\n"
+                "3. How can I offer this reframe gently — as an invitation, not a correction?\n"
+                "4. CBT principle: thoughts are not facts — help them see this without saying it.\n"
+                "</think>\n"
+                "After reasoning, write ONLY the natural response (no <think> tags in your response)."
+            ),
+            "ground": (
+                "INTERNAL REASONING (before responding, think step-by-step inside <think></think> tags — this will NOT be shown to the user):\n"
+                "<think>\n"
+                "1. Is the user currently in distress, dissociating, or spiraling?\n"
+                "2. What sensory anchor would be most helpful — breath, body scan, 5-4-3-2-1?\n"
+                "3. How can I naturally weave grounding into conversation without clinical framing?\n"
+                "4. DBT distress tolerance: bring awareness to the present moment gently.\n"
+                "</think>\n"
+                "After reasoning, write ONLY the natural response (no <think> tags in your response)."
+            ),
+            "problem-solve": (
+                "INTERNAL REASONING (before responding, think step-by-step inside <think></think> tags — this will NOT be shown to the user):\n"
+                "<think>\n"
+                "1. What is the specific problem or stressor the user is facing?\n"
+                "2. What is ONE small, concrete, achievable step they could take right now?\n"
+                "3. How can I help them feel agency and capability, not overwhelmed?\n"
+                "4. Reality Therapy approach: focus on what they CAN control.\n"
+                "</think>\n"
+                "After reasoning, write ONLY the natural response (no <think> tags in your response)."
+            ),
+            "refer": (
+                "INTERNAL REASONING (before responding, think step-by-step inside <think></think> tags — this will NOT be shown to the user):\n"
+                "<think>\n"
+                "1. Why does this situation need more than what I as a companion can offer?\n"
+                "2. How do I acknowledge their courage in sharing while being honest about limits?\n"
+                "3. How can I frame professional help as a strength, not a weakness?\n"
+                "4. Warm handoff: maintain connection while encouraging real-world support.\n"
+                "</think>\n"
+                "After reasoning, write ONLY the natural response (no <think> tags in your response)."
+            ),
+            "psychoeducation": (
+                "INTERNAL REASONING (before responding, think step-by-step inside <think></think> tags — this will NOT be shown to the user):\n"
+                "<think>\n"
+                "1. What psychological concept is most relevant to what the user is experiencing?\n"
+                "2. How can I explain it using a simple, relatable analogy they can connect with?\n"
+                "3. How do I share insight without being preachy or clinical?\n"
+                "4. Normalize their experience — 'this is what your brain does, and that's okay.'\n"
+                "</think>\n"
+                "After reasoning, write ONLY the natural response (no <think> tags in your response)."
+            ),
+        }
+
         self.recent_messages_count = config.get("response_generator.recent_messages_count", 3)
-        self.max_memories_per_type = config.get("response_generator.max_memories_per_type", 3)
         logger.info("✅ [RESPONSE-GEN] Response generator ready")
 
     # ── build dynamic system prompt ────────────────────────────────────────
@@ -140,11 +210,19 @@ ABSOLUTE RULES:
 
         intervention_directive = user_context.get("intervention_directive", "")
         memory_context = user_context.get("memory_context", "")
+
+        # Chain of Empathy: select reasoning block based on therapeutic approach
+        therapeutic_approach = user_context.get("technique_selection", {}).get(
+            "therapeutic_approach", ""
+        )
+        coe_reasoning = self.COE_REASONING.get(therapeutic_approach, "")
+
         return self.BASE_SYSTEM_PROMPT.format_map(_SafeFormatDict(
             companion_name=companion_name,
             personality_instruction=personality_instruction,
             language_instruction=language_instruction,
             intervention_directive=intervention_directive,
+            coe_reasoning=coe_reasoning,
             memory_context=memory_context,
         ))
 
@@ -280,17 +358,9 @@ ABSOLUTE RULES:
 
         recent = session.get("recent_messages", [])[-self.recent_messages_count:]
         conv = "\n".join(
-            f"{'User' if m.get('role')=='user' else 'MindMitra'}: {m.get('content','')[:150]}"
+            f"{'User' if m.get('role')=='user' else 'MindMitra'}: {m.get('content','')[:200]}"
             for m in recent
         )
-
-        memories = session.get("session_memories", {})
-        mem_lines = []
-        for mtype in ("procedural", "semantic", "episodic"):
-            for m in memories.get(mtype, [])[:self.max_memories_per_type]:
-                c = m.get("memory_content", m.get("content", ""))
-                mem_lines.append(f"[{mtype}] {c[:100]}")
-        mem_block = "\n".join(mem_lines) if mem_lines else ""
 
         voice_block = ""
         if voice:
@@ -340,8 +410,6 @@ CULTURAL FLAGS: {cultural.get('cultural_sensitivity_flags',[])}
 {voice_block}
 {activity_block}
 
-{f'MEMORIES:{chr(10)}{mem_block}' if mem_block else ''}
-
 {prev_session_block}
 CONVERSATION:
 {conv if conv else '(New conversation)'}
@@ -352,6 +420,8 @@ Respond naturally as MindMitra:"""
 
     def _clean(self, text: str) -> str:
         text = text.strip()
+        # Strip Chain of Empathy internal reasoning (<think>...</think> tags)
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
         if text.startswith('"') and text.endswith('"'):
             text = text[1:-1]
         if text.startswith("{") or text.startswith("["):

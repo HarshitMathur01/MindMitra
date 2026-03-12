@@ -364,11 +364,81 @@ ABSOLUTE RULES:
 
         voice_block = ""
         if voice:
-            voice_block = f"""
-VOICE ANALYSIS:
-  Emotional tone: {voice.get('emotional_tone','N/A')}
-  Stress level: {voice.get('stress_level','N/A')}
-  Speech pace: {voice.get('speech_pace','N/A')}"""
+            # Raw voice metrics — objective measurements, not interpretations.
+            # The LLM contextualizes these with conversation history.
+            source = voice.get('source', 'unknown')
+            metrics_lines = [f"  Source: {source}"]
+            
+            # Speech rate
+            wpm = voice.get('speech_rate_wpm')
+            if wpm is not None:
+                cat = voice.get('speech_rate_category', '')
+                metrics_lines.append(f"  Speech rate: {wpm} WPM ({cat})")
+            
+            # Pause patterns
+            pause_pattern = voice.get('pause_pattern')
+            if pause_pattern:
+                avg_pause = voice.get('avg_pause_duration_ms', 0)
+                long_pauses = voice.get('long_pause_count', 0)
+                metrics_lines.append(f"  Pause pattern: {pause_pattern} (avg={avg_pause}ms, long_pauses={long_pauses})")
+            
+            # Speech-to-silence ratio
+            ratio = voice.get('speech_to_silence_ratio')
+            if ratio is not None:
+                total = voice.get('total_duration_sec', 0)
+                speech = voice.get('total_speech_duration_sec', 0)
+                metrics_lines.append(f"  Speech/silence ratio: {ratio} (speech={speech}s / total={total}s)")
+            
+            # Recognition confidence (clarity)
+            conf = voice.get('avg_confidence')
+            if conf is not None:
+                clarity = voice.get('speech_clarity', '')
+                metrics_lines.append(f"  Speech clarity: {clarity} (confidence={conf})")
+            
+            # Word count
+            word_count = voice.get('word_count', 0)
+            metrics_lines.append(f"  Word count: {word_count}")
+            
+            # Language context
+            if voice.get('hindi_english_mixing'):
+                hindi_words = voice.get('detected_hindi_words', [])
+                metrics_lines.append(f"  Hindi-English mixing: yes (words: {', '.join(hindi_words[:5])})")
+            
+            # Legacy field support (backward compatibility)
+            if not wpm and voice.get('emotional_tone'):
+                metrics_lines.append(f"  Emotional tone: {voice.get('emotional_tone', 'N/A')}")
+                metrics_lines.append(f"  Stress level: {voice.get('stress_level', 'N/A')}")
+                metrics_lines.append(f"  Speech pace: {voice.get('speech_pace', 'N/A')}")
+
+            # ── Prosodic features (from Praat / parselmouth) ──
+            prosody = voice.get('prosody', {})
+            if prosody:
+                pitch_mean = prosody.get('pitch_mean_hz', 0)
+                pitch_std = prosody.get('pitch_std_hz', 0)
+                if pitch_mean > 0:
+                    metrics_lines.append(
+                        f"  Pitch: {pitch_mean}Hz mean ± {pitch_std}Hz std "
+                        f"(range {prosody.get('pitch_min_hz', 0)}-{prosody.get('pitch_max_hz', 0)}Hz)"
+                    )
+                intensity_mean = prosody.get('intensity_mean_db', 0)
+                if intensity_mean > 0:
+                    metrics_lines.append(
+                        f"  Intensity: {intensity_mean}dB ± {prosody.get('intensity_std_db', 0)}dB"
+                    )
+                jitter = prosody.get('jitter_local_percent')
+                if jitter is not None:
+                    metrics_lines.append(f"  Jitter: {jitter}% (pitch perturbation)")
+                shimmer = prosody.get('shimmer_local_percent')
+                if shimmer is not None:
+                    metrics_lines.append(f"  Shimmer: {shimmer}% (amplitude perturbation)")
+                hnr = prosody.get('hnr_db')
+                if hnr is not None:
+                    metrics_lines.append(f"  HNR: {hnr}dB (voice clarity)")
+                voiced = prosody.get('voiced_fraction')
+                if voiced is not None:
+                    metrics_lines.append(f"  Voiced fraction: {voiced:.0%}")
+
+            voice_block = "\nVOICE ANALYSIS (raw metrics — interpret in context):\n" + "\n".join(metrics_lines)
 
         # Summarize recent game/QNA activities (last 24h)
         activities = session.get("user_activities", [])

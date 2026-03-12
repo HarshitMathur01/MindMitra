@@ -237,8 +237,10 @@ const ChatGPTInterface = () => {
   const { user } = useAuth();
   const { settings, saveSettings } = useSettings();
   const { toast } = useToast();
-  const { isRecording, isProcessing, toggleRecording, currentTranscript } = useVoiceRecording();
+  const { isRecording, isProcessing, toggleRecording, currentTranscript, lastVoiceAnalysis } = useVoiceRecording();
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
+  const pendingVoiceAnalysisRef = useRef<any>(null);
+  const pendingAudioDataRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -409,7 +411,12 @@ const ChatGPTInterface = () => {
       clearVoiceTempMessage();
 
       if (result?.transcript) {
+        // Store voice analysis + audio data for the next handleSendMessage call
+        pendingVoiceAnalysisRef.current = result.voiceAnalysis || null;
+        pendingAudioDataRef.current = result.audioData || null;
         await handleSendMessage(result.transcript);
+        pendingVoiceAnalysisRef.current = null;
+        pendingAudioDataRef.current = null;
       }
     } finally {
       isAutoStoppingRef.current = false;
@@ -690,7 +697,8 @@ const ChatGPTInterface = () => {
         body: JSON.stringify({
           user_message: textToSend,
           session_id: sessionIdToUse,
-          voice_analysis: null,  // Can be extended for voice features
+          voice_analysis: pendingVoiceAnalysisRef.current || null,
+          audio_data: pendingAudioDataRef.current || null,
           avatar_visible: isAvatarVisible,  // ⚡ P0: Skip TTS when avatar hidden
           personality: settings?.companion_personality || settings?.avatar_personality || 'mitra',
           companion_name: settings?.companion_name || 'Mitra',

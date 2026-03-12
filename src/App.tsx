@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { useFirstTimeUser } from "@/hooks/useFirstTimeUser";
@@ -48,6 +49,7 @@ const queryClient = new QueryClient();
 function AppContent() {
   const { isFirstTime, loading, onboardingStep } = useFirstTimeUser();
   const [onboardingDone, setOnboardingDone] = useState(false);
+  const location = useLocation();
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -63,48 +65,58 @@ function AppContent() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/chat" element={<Chat />} />
-      <Route path="/therapist-bridge" element={<TherapistBridge />} />
-      <Route path="/booking/:id" element={<Booking />} />
-      <Route path="/qa-tests" element={<QATests />} />
-      <Route path="/wellness-checkin" element={<WellnessCheckIn />} />
-      <Route path="/games" element={<Games />} />
-      <Route path="/memory-challenge" element={<MemoryChallenge />} />
-      <Route path="/emoji-match" element={<EmojiMatch />} />
-      <Route path="/emotion-match" element={<EmotionMatch />} />
-      <Route path="/mood-mountain" element={<MoodMountain />} />
-      <Route path="/thought-detective" element={<ThoughtDetective />} />
-      <Route path="/balloon-pop" element={<BalloonPositivityGame />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/peer-support" element={<PeerSupport />} />
-      <Route path="/psychological-content" element={<PsychologicalContent />} />
-      <Route
-        path="/articles/grounding-rituals-busy-mornings"
-        element={<GroundingRitualsArticle />}
-      />
-      <Route
-        path="/articles/reset-your-nervous-system"
-        element={<NervousSystemResetArticle />}
-      />
-      <Route
-        path="/articles/calming-bedtime-routine"
-        element={<BedtimeRoutineArticle />}
-      />
-      <Route
-        path="/articles/mountain-reset-calmer-mind"
-        element={<MountainResetGuideArticle />}
-      />
-      <Route
-        path="/articles/nature-focus-visual-grounding"
-        element={<NatureFocusVisualGroundingArticle />}
-      />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeInOut" }}
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/therapist-bridge" element={<TherapistBridge />} />
+          <Route path="/booking/:id" element={<Booking />} />
+          <Route path="/qa-tests" element={<QATests />} />
+          <Route path="/wellness-checkin" element={<WellnessCheckIn />} />
+          <Route path="/games" element={<Games />} />
+          <Route path="/memory-challenge" element={<MemoryChallenge />} />
+          <Route path="/emoji-match" element={<EmojiMatch />} />
+          <Route path="/emotion-match" element={<EmotionMatch />} />
+          <Route path="/mood-mountain" element={<MoodMountain />} />
+          <Route path="/thought-detective" element={<ThoughtDetective />} />
+          <Route path="/balloon-pop" element={<BalloonPositivityGame />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/peer-support" element={<PeerSupport />} />
+          <Route path="/psychological-content" element={<PsychologicalContent />} />
+          <Route
+            path="/articles/grounding-rituals-busy-mornings"
+            element={<GroundingRitualsArticle />}
+          />
+          <Route
+            path="/articles/reset-your-nervous-system"
+            element={<NervousSystemResetArticle />}
+          />
+          <Route
+            path="/articles/calming-bedtime-routine"
+            element={<BedtimeRoutineArticle />}
+          />
+          <Route
+            path="/articles/mountain-reset-calmer-mind"
+            element={<MountainResetGuideArticle />}
+          />
+          <Route
+            path="/articles/nature-focus-visual-grounding"
+            element={<NatureFocusVisualGroundingArticle />}
+          />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

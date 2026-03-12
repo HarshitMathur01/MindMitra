@@ -52,11 +52,11 @@ type FeatureCard = {
 };
 
 const moodOptions: MoodOption[] = [
-  { emoji: "😰", label: "Anxious", ring: "ring-[#93C5FD]", bg: "bg-[#EFF6FF]" },
-  { emoji: "😢", label: "Sad", ring: "ring-[#C4B5FD]", bg: "bg-[#F5F3FF]" },
-  { emoji: "😐", label: "Neutral", ring: "ring-[#FCD34D]", bg: "bg-[#FFFBEB]" },
-  { emoji: "😊", label: "Happy", ring: "ring-[#86EFAC]", bg: "bg-[#F0FDF4]" },
-  { emoji: "🤩", label: "Excited", ring: "ring-[#FDA4AF]", bg: "bg-[#FFF1F2]" },
+  { emoji: "😰", label: "Anxious", ring: "ring-blue-300", bg: "bg-blue-50 dark:bg-blue-500/10" },
+  { emoji: "😢", label: "Sad", ring: "ring-violet-300", bg: "bg-violet-50 dark:bg-violet-500/10" },
+  { emoji: "😐", label: "Neutral", ring: "ring-amber-300", bg: "bg-amber-50 dark:bg-amber-500/10" },
+  { emoji: "😊", label: "Happy", ring: "ring-green-300", bg: "bg-green-50 dark:bg-green-500/10" },
+  { emoji: "🤩", label: "Excited", ring: "ring-rose-300", bg: "bg-rose-50 dark:bg-rose-500/10" },
 ];
 
 const affirmationsByPeriod: Record<"morning" | "afternoon" | "evening", string[]> = {
@@ -94,29 +94,29 @@ const quickActions: QuickAction[] = [
     title: "Breathe",
     duration: "3 min",
     icon: Wind,
-    bg: "bg-[#E0F7FA]",
-    iconColor: "text-[#0F766E]",
+    bg: "bg-teal-50 dark:bg-teal-500/10",
+    iconColor: "text-teal-700 dark:text-teal-400",
   },
   {
     title: "Meditate",
     duration: "10 min",
     icon: Sparkles,
-    bg: "bg-[#FFF9C4]",
-    iconColor: "text-[#B45309]",
+    bg: "bg-amber-50 dark:bg-amber-500/10",
+    iconColor: "text-amber-700 dark:text-amber-400",
   },
   {
     title: "Journal",
     duration: "5 min",
     icon: BookOpen,
-    bg: "bg-[#FFF8E1]",
-    iconColor: "text-[#A16207]",
+    bg: "bg-yellow-50 dark:bg-yellow-500/10",
+    iconColor: "text-yellow-700 dark:text-yellow-400",
   },
   {
     title: "Gratitude",
     duration: "3 min",
     icon: Heart,
-    bg: "bg-[#FCE4EC]",
-    iconColor: "text-[#BE185D]",
+    bg: "bg-pink-50 dark:bg-pink-500/10",
+    iconColor: "text-pink-700 dark:text-pink-400",
   },
 ];
 
@@ -187,9 +187,9 @@ const featureCards: FeatureCard[] = [
     description:
       "Connect with your inner peace through our collection of mindfulness tracks.",
     buttonLabel: "Start Listening",
-    buttonClassName: "bg-[#3B82F6] text-white",
-    bg: "bg-[#F0FDFF]",
-    accent: "from-[#DBEAFE] to-[#F0FDFF]",
+    buttonClassName: "bg-blue-500 text-white",
+    bg: "bg-sky-50 dark:bg-sky-500/10",
+    accent: "from-blue-100 to-sky-50 dark:from-blue-900/20 dark:to-sky-900/10",
     illustration: "🎧",
   },
   {
@@ -197,9 +197,9 @@ const featureCards: FeatureCard[] = [
     description:
       "An evidence-based CBT program helps you learn how to deal with stress.",
     buttonLabel: "Explore more",
-    buttonClassName: "bg-[#F97316] text-white",
-    bg: "bg-[#FFFBEB]",
-    accent: "from-[#FED7AA] to-[#FFF7ED]",
+    buttonClassName: "bg-orange-500 text-white",
+    bg: "bg-amber-50 dark:bg-amber-500/10",
+    accent: "from-orange-200 to-orange-50 dark:from-orange-900/20 dark:to-orange-900/10",
     illustration: "🧘",
   },
   {
@@ -207,18 +207,18 @@ const featureCards: FeatureCard[] = [
     description:
       "Get personalized free health counselling and a diet plan.",
     buttonLabel: "Diet Counselling",
-    buttonClassName: "bg-[#16A34A] text-white",
-    bg: "bg-[#F0FFF4]",
-    accent: "from-[#BBF7D0] to-[#F0FFF4]",
+    buttonClassName: "bg-green-600 text-white",
+    bg: "bg-green-50 dark:bg-green-500/10",
+    accent: "from-green-200 to-green-50 dark:from-green-900/20 dark:to-green-900/10",
     illustration: "🥗",
   },
   {
     title: "Counselling support, anytime",
     description: "Get free & unlimited support from the experts.",
     buttonLabel: "Counselling Sessions",
-    buttonClassName: "bg-[#3B82F6] text-white",
-    bg: "bg-[#EFF6FF]",
-    accent: "from-[#BFDBFE] to-[#EFF6FF]",
+    buttonClassName: "bg-blue-500 text-white",
+    bg: "bg-blue-50 dark:bg-blue-500/10",
+    accent: "from-blue-200 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/10",
     illustration: "💬",
   },
   {
@@ -226,9 +226,9 @@ const featureCards: FeatureCard[] = [
     description:
       "Try expressing your thoughts, feelings and stories to boost your mental health daily.",
     buttonLabel: "Write about today",
-    buttonClassName: "bg-[#F97316] text-white",
-    bg: "bg-[#F0F0FF]",
-    accent: "from-[#DDD6FE] to-[#F5F3FF]",
+    buttonClassName: "bg-orange-500 text-white",
+    bg: "bg-violet-50 dark:bg-violet-500/10",
+    accent: "from-violet-200 to-violet-50 dark:from-violet-900/20 dark:to-violet-900/10",
     illustration: "✍️",
   },
 ];
@@ -237,8 +237,8 @@ const weekLabels = ["M", "T", "W", "T", "F", "S", "S"];
 const dummyWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "🤩", "😊", null];
 const loggedWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "🤩", "😊", null];
 
-const sectionTitleClass = "text-[18px] font-semibold text-[#1A1A1A]";
-const cardClass = "rounded-[24px] bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5";
+const sectionTitleClass = "text-[18px] font-semibold text-foreground";
+const cardClass = "rounded-[24px] bg-card p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5";
 const horizontalScrollClass =
   "flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 const getVisibleContentCardCount = (width: number) => {
@@ -342,7 +342,7 @@ const SectionHeader = ({
   <div className="flex items-center justify-between gap-3">
     <h2 className={sectionTitleClass}>{title}</h2>
     {action ? (
-      <button className="text-sm font-medium text-[#6B7280] transition-transform duration-150 hover:scale-[1.02] hover:text-[#3B82F6]">
+      <button className="text-sm font-medium text-muted-foreground transition-transform duration-150 hover:scale-[1.02] hover:text-primary">
         {action}
       </button>
     ) : null}
@@ -513,7 +513,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] text-[#1A1A1A]">
+    <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-36 pt-4 sm:px-6 lg:px-8">
         <section
           className="mm-dashboard-stagger relative min-h-[220px] overflow-hidden rounded-[32px] px-4 pb-6 pt-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:min-h-[280px] sm:px-6"
@@ -577,13 +577,13 @@ const Index = () => {
         </section>
 
         <section
-          className="mm-dashboard-stagger rounded-[24px] border-l-4 border-[#818CF8] bg-[#E8EAFF] px-5 py-4 shadow-[0_16px_35px_rgba(129,140,248,0.12)]"
+          className="mm-dashboard-stagger rounded-[24px] border-l-4 border-primary bg-primary/10 px-5 py-4 shadow-[0_16px_35px_rgba(129,140,248,0.12)]"
           style={getDashboardRevealStyle(1)}
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6366F1]">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             Daily affirmation 💫
           </p>
-          <p className="mt-2 text-[15px] leading-6 text-[#312E81]">{affirmation}</p>
+          <p className="mt-2 text-[15px] leading-6 text-foreground">{affirmation}</p>
         </section>
 
         <div className="mm-dashboard-stagger" style={getDashboardRevealStyle(2)}>
@@ -594,21 +594,21 @@ const Index = () => {
               }`}
             aria-hidden={!isMoodCardVisible}
           >
-            <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-[#6B7280]">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
               How are you feeling today?
             </p>
 
             <div className="mt-4 min-h-[110px]">
               {selectedMood ? (
                 <div
-                  className={`flex h-full flex-col items-center justify-center rounded-[20px] bg-[#FFF8E8] px-4 py-6 text-center transition-all duration-700 ${isMoodToastVisible
+                  className={`flex h-full flex-col items-center justify-center rounded-[20px] bg-amber-50 dark:bg-amber-500/10 px-4 py-6 text-center transition-all duration-700 ${isMoodToastVisible
                     ? "translate-y-0 opacity-100"
                     : "pointer-events-none -translate-y-1 opacity-0"
                     }`}
                 >
                   <div className="text-4xl">{selectedMood.emoji}</div>
-                  <p className="mt-3 text-base font-semibold text-[#1A1A1A]">Thanks for checking in! 💛</p>
-                  <p className="mt-1 text-sm text-[#6B7280]">
+                  <p className="mt-3 text-base font-semibold text-foreground">Thanks for checking in! 💛</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
                     We&apos;ve saved that you&apos;re feeling {selectedMood.label.toLowerCase()} today.
                   </p>
                 </div>
@@ -624,7 +624,7 @@ const Index = () => {
                       <span className={`rounded-full ring-2 ring-transparent transition-all duration-150 ${mood.ring} px-1 py-1 text-[2rem]`}>
                         {mood.emoji}
                       </span>
-                      <span className="mt-2 text-[11px] font-medium text-[#6B7280] sm:text-xs">{mood.label}</span>
+                      <span className="mt-2 text-[11px] font-medium text-muted-foreground sm:text-xs">{mood.label}</span>
                     </button>
                   ))}
                 </div>
@@ -645,11 +645,11 @@ const Index = () => {
                   type="button"
                   className={`min-w-[92px] flex-1 rounded-[22px] p-4 text-left transition-transform duration-150 hover:scale-[1.03] md:min-w-0 ${action.bg}`}
                 >
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-white/70 ${action.iconColor}`}>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-background/70 dark:bg-white/10 ${action.iconColor}`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  <p className="mt-4 text-sm font-semibold text-[#1A1A1A]">{action.title}</p>
-                  <p className="mt-1 text-xs text-[#6B7280]">{action.duration}</p>
+                  <p className="mt-4 text-sm font-semibold text-foreground">{action.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{action.duration}</p>
                 </button>
               );
             })}
@@ -663,41 +663,41 @@ const Index = () => {
               <button
                 key={tag}
                 type="button"
-                className="flex shrink-0 items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#4B5563] transition-transform duration-150 hover:scale-[1.02]"
+                className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm text-foreground transition-transform duration-150 hover:scale-[1.02]"
               >
                 <span>{tag}</span>
-                <ChevronRight className="h-4 w-4 text-[#9CA3AF]" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </button>
             ))}
           </div>
         </section>
 
         <section
-          className="mm-dashboard-stagger overflow-hidden rounded-[28px] bg-[#E0E8FF] p-5 shadow-[0_18px_40px_rgba(59,130,246,0.08)]"
+          className="mm-dashboard-stagger overflow-hidden rounded-[28px] bg-indigo-100 dark:bg-indigo-500/15 p-5 shadow-[0_18px_40px_rgba(59,130,246,0.08)]"
           style={getDashboardRevealStyle(5)}
         >
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#4F46E5]">Habit Tracker</p>
-              <h2 className="mt-2 text-xl font-semibold text-[#1E3A8A]">A gentle glance at your daily rhythm</h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-[#475569]">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Habit Tracker</p>
+              <h2 className="mt-2 text-xl font-semibold text-foreground">A gentle glance at your daily rhythm</h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                 Keep tabs on the tiny wins that help your mind feel grounded and cared for.
               </p>
             </div>
 
-            <div className="hidden h-24 w-24 shrink-0 items-center justify-center rounded-full bg-white/60 text-4xl md:flex">
+            <div className="hidden h-24 w-24 shrink-0 items-center justify-center rounded-full bg-background/60 dark:bg-white/10 text-4xl md:flex">
               📈
             </div>
           </div>
         </section>
 
         <section className="mm-dashboard-stagger" style={getDashboardRevealStyle(6)}>
-          <label className="flex items-center gap-3 rounded-[22px] border border-[#E5E7EB] bg-white px-4 py-4">
-            <Search className="h-5 w-5 text-[#9CA3AF]" />
+          <label className="flex items-center gap-3 rounded-[22px] border border-border bg-card px-4 py-4">
+            <Search className="h-5 w-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search content, topics, exercises..."
-              className="w-full bg-transparent text-sm text-[#1A1A1A] outline-none placeholder:text-[#9CA3AF]"
+              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
         </section>
@@ -731,17 +731,17 @@ const Index = () => {
         </section>
 
         <section
-          className="mm-dashboard-stagger space-y-4 rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5"
+          className="mm-dashboard-stagger space-y-4 rounded-[28px] border border-border bg-card/90 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5"
           style={getDashboardRevealStyle(8)}
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm font-medium text-[#F97316]">What&apos;s fresh?</p>
-              <h2 className="mt-1 text-[18px] font-semibold text-[#1A1A1A]">Latest content for you</h2>
+              <p className="text-sm font-medium text-orange-500">What&apos;s fresh?</p>
+              <h2 className="mt-1 text-[18px] font-semibold text-foreground">Latest content for you</h2>
             </div>
 
             <div className="flex items-center justify-between gap-3 sm:justify-end">
-              <div className="text-sm text-[#6B7280]">
+              <div className="text-sm text-muted-foreground">
                 {activeContentCardIndex + 1}/{contentCards.length}
               </div>
               {isContentCarouselInteractive ? (
@@ -775,8 +775,8 @@ const Index = () => {
                       navigate(card.href);
                     }
                   } : undefined}
-                  className={`group relative overflow-hidden rounded-[24px] border border-white/70 bg-white/95 shadow-[0_14px_30px_rgba(15,23,42,0.08)] transition-all duration-200 ${card.href
-                    ? "cursor-pointer hover:-translate-y-1.5 hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-2"
+                  className={`group relative overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_14px_30px_rgba(15,23,42,0.08)] transition-all duration-200 ${card.href
+                    ? "cursor-pointer hover:-translate-y-1.5 hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     : ""
                     }`}
                 >
@@ -792,24 +792,24 @@ const Index = () => {
                       onClick={(event) => event.stopPropagation()}
                       onKeyDown={(event) => event.stopPropagation()}
                       aria-label={`Save ${card.title}`}
-                      className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/92 text-[#111827] shadow-[0_10px_20px_rgba(15,23,42,0.12)] backdrop-blur-sm transition-colors duration-150 hover:text-[#2563EB]"
+                      className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-card/90 text-foreground shadow-[0_10px_20px_rgba(15,23,42,0.12)] backdrop-blur-sm transition-colors duration-150 hover:text-primary"
                     >
                       <Bookmark className="h-4 w-4" />
                     </button>
 
-                    <div className="absolute left-3 top-3 z-10 rounded-full bg-white/88 px-3 py-1 text-xs font-semibold text-[#111827] shadow-[0_10px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+                    <div className="absolute left-3 top-3 z-10 rounded-full bg-card/90 px-3 py-1 text-xs font-semibold text-foreground shadow-[0_10px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm">
                       {card.type}
                     </div>
                   </div>
 
                   <div className="space-y-2 p-4">
-                    <h3 className={`text-sm font-semibold leading-6 transition-colors duration-150 ${card.href ? "text-[#1F2937] group-hover:text-[#2563EB]" : "text-[#1F2937]"}`}>
+                    <h3 className={`text-sm font-semibold leading-6 transition-colors duration-150 ${card.href ? "text-foreground group-hover:text-primary" : "text-foreground"}`}>
                       {card.title}
                     </h3>
 
                     <div className="flex items-center justify-between gap-3 text-sm">
-                      <p className="text-[#6B7280]">{getContentCardActionLabel(card.type)}</p>
-                      <span className="inline-flex items-center gap-1 font-semibold text-[#2563EB]">
+                      <p className="text-muted-foreground">{getContentCardActionLabel(card.type)}</p>
+                      <span className="inline-flex items-center gap-1 font-semibold text-primary">
                         Open
                         <ArrowRight className="h-4 w-4" />
                       </span>
@@ -830,8 +830,8 @@ const Index = () => {
             >
               <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <div className="max-w-xl">
-                  <h3 className="text-xl font-semibold text-[#111827]">{card.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#4B5563]">{card.description}</p>
+                  <h3 className="text-xl font-semibold text-foreground">{card.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.description}</p>
                   <button className={`mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-transform duration-150 hover:scale-[1.03] ${card.buttonClassName}`}>
                     {card.buttonLabel}
                     <ArrowRight className="h-4 w-4" />
@@ -879,15 +879,15 @@ const Index = () => {
         </section>
 
         <section
-          className="mm-dashboard-stagger rounded-[24px] bg-[#F8FAFC] p-4 shadow-[0_16px_35px_rgba(148,163,184,0.08)] sm:p-5"
+          className="mm-dashboard-stagger rounded-[24px] bg-card p-4 shadow-[0_16px_35px_rgba(148,163,184,0.08)] sm:p-5"
           style={getDashboardRevealStyle(15)}
         >
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className={sectionTitleClass}>This week&apos;s mood</h2>
-              <p className="mt-1 text-xs font-medium text-[#64748B]">Track your emotional pattern, one day at a time</p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground">Track your emotional pattern, one day at a time</p>
             </div>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#2563EB] shadow-[0_8px_20px_rgba(59,130,246,0.15)]">
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-[0_8px_20px_rgba(59,130,246,0.15)]">
               {moodCompletionPercent}% logged
             </span>
           </div>
@@ -895,15 +895,15 @@ const Index = () => {
           <div className="mt-4 grid grid-cols-7 gap-2 sm:gap-3">
             {weekMoodData.map((day, index) => (
               <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-2">
-                <span className={`text-xs font-semibold ${day.isToday ? "text-[#3B82F6]" : "text-[#6B7280]"}`}>
+                <span className={`text-xs font-semibold ${day.isToday ? "text-primary" : "text-muted-foreground"}`}>
                   {day.label}
                 </span>
                 <div
                   className={`flex h-11 w-11 items-center justify-center rounded-full border text-lg transition-all duration-200 ${day.isToday
-                    ? "border-[#93C5FD] bg-[#EFF6FF] text-[#3B82F6] ring-2 ring-[#BFDBFE]"
+                    ? "border-blue-300 bg-blue-50 dark:bg-blue-500/10 text-primary ring-2 ring-blue-200"
                     : day.mood
-                      ? "border-white bg-white text-[#1F2937] shadow-[0_6px_14px_rgba(15,23,42,0.08)]"
-                      : "border-dashed border-[#CBD5E1] bg-transparent text-[#94A3B8]"
+                      ? "border-border bg-card text-foreground shadow-[0_6px_14px_rgba(15,23,42,0.08)]"
+                      : "border-dashed border-border bg-transparent text-muted-foreground"
                     }`}
                 >
                   {day.mood ?? "·"}
@@ -913,27 +913,27 @@ const Index = () => {
           </div>
 
           <div className="mt-4">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-white">
-              <div className="h-full rounded-full bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" style={{ width: `${moodCompletionPercent}%` }} />
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-gradient-to-r from-blue-400 to-primary" style={{ width: `${moodCompletionPercent}%` }} />
             </div>
-            <p className="mt-2 text-xs font-medium text-[#64748B]">{loggedMoodCount} of {weekMoodData.length} days logged</p>
+            <p className="mt-2 text-xs font-medium text-muted-foreground">{loggedMoodCount} of {weekMoodData.length} days logged</p>
           </div>
         </section>
 
         <section
-          className="mm-dashboard-stagger rounded-[24px] bg-gradient-to-br border border-[#E2E8F0] from-[#F8FAFC] to-[#FFFFFF] p-5 shadow-[0_16px_35px_rgba(148,163,184,0.06)]"
+          className="mm-dashboard-stagger rounded-[24px] bg-card border border-border p-5 shadow-[0_16px_35px_rgba(148,163,184,0.06)]"
           style={getDashboardRevealStyle(16)}
         >
           <div className="flex flex-col gap-3 relative overflow-hidden">
-            <div className="absolute -right-6 -top-6 text-9xl text-[#CBD5E1] opacity-20 pointer-events-none">"</div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-[#64748B]">Daily Insight</h3>
+            <div className="absolute -right-6 -top-6 text-9xl text-muted-foreground/20 pointer-events-none">"</div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Daily Insight</h3>
             <div className="flex flex-col items-end self-start">
-              <p className="text-[17px] leading-relaxed font-medium text-[#1E293B] italic text-left w-full">
+              <p className="text-[17px] leading-relaxed font-medium text-foreground italic text-left w-full">
                 "{dailyQuote.text}"
               </p>
               <div className="mt-2 flex items-center gap-2">
-                <div className="h-[2px] w-6 bg-[#3B82F6] rounded-full"></div>
-                <p className="text-[14px] font-semibold text-[#475569]">{dailyQuote.writer}</p>
+                <div className="h-[2px] w-6 bg-primary rounded-full"></div>
+                <p className="text-[14px] font-semibold text-muted-foreground">{dailyQuote.writer}</p>
               </div>
             </div>
           </div>
@@ -941,7 +941,7 @@ const Index = () => {
       </main>
 
       <div className="fixed bottom-24 right-4 z-30 flex items-center gap-2 sm:right-6">
-        <p className="breathing-hero rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-[#1F2937] shadow-[0_12px_28px_rgba(15,23,42,0.14)]">
+        <p className="breathing-hero rounded-full bg-card/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-[0_12px_28px_rgba(15,23,42,0.14)]">
           {greeting} Chat with me 👋
         </p>
         <button
@@ -954,18 +954,18 @@ const Index = () => {
         </button>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-[#F3E8DA] bg-white/96 px-6 py-3 backdrop-blur-md">
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/96 px-6 py-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center justify-around">
-          <button className="flex flex-col items-center gap-1 text-[#3B82F6]">
+          <button className="flex flex-col items-center gap-1 text-primary">
             <Home className="h-5 w-5" />
             <span className="text-xs font-medium">Home</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-[#3B82F6]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
           </button>
 
           <button
             type="button"
             onClick={() => navigate("/psychological-content")}
-            className="flex flex-col items-center gap-1 text-[#9CA3AF] transition-colors duration-150 hover:text-[#6B7280]"
+            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors duration-150 hover:text-foreground"
           >
             <Compass className="h-5 w-5" />
             <span className="text-xs font-medium">Discover</span>
@@ -975,7 +975,7 @@ const Index = () => {
           <button
             type="button"
             onClick={() => navigate("/profile")}
-            className="flex flex-col items-center gap-1 text-[#9CA3AF] transition-colors duration-150 hover:text-[#6B7280]"
+            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors duration-150 hover:text-foreground"
           >
             <User className="h-5 w-5" />
             <span className="text-xs font-medium">Profile</span>

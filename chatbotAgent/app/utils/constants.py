@@ -26,15 +26,6 @@ ELEVENLABS_TIMEOUT_S: float = 35.0
 GOOGLE_TTS_SAMPLE_RATE_HZ: int = 16_000    # 16 kHz PCM for Rhubarb compatibility
 GTTS_DEFAULT_LANG: str = "en"
 
-# ── STT / Whisper ──────────────────────────────────────────────
-WHISPER_TIMEOUT_S: float = 30.0
-WHISPER_MAX_FILE_BYTES: int = 25 * 1024 * 1024  # 25 MB
-WHISPER_MODEL: str = "whisper-1"
-STT_VALID_MIME_TYPES: tuple = (
-    "audio/webm", "audio/wav", "audio/mp3", "audio/mp4",
-    "audio/mpeg", "audio/mpga", "audio/m4a", "audio/ogg",
-)
-
 # ── Lipsync ────────────────────────────────────────────────────
 RHUBARB_TIMEOUT_S: int = 10
 PHONEME_DURATION_S: float = 0.15          # seconds per phoneme (text-based fallback)

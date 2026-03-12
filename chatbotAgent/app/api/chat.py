@@ -1,13 +1,17 @@
 """
-Chat routes — POST /chat, POST /chat/stream, GET /chat/greeting.
+Chat routes — POST /chat, POST /chat/stream, GET /chat/greeting, POST /transcribe.
 """
 import json
 import logging
+import os
+import tempfile
 import threading
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import StreamingResponse
+from groq import Groq
+from pydantic import BaseModel
 
 from ..core.auth import validate_user_token
 from ..models.request_models import ChatRequest
@@ -15,6 +19,7 @@ from ..models.response_models import ChatResponse
 from ..pipeline.workflow import get_workflow_instance, process_user_chat
 from ..agents.memory_manager import memory_manager
 from ..services.greeting_service import generate_greeting
+from ..services.voice_prosody import analyze_prosody, decode_audio_data
 from ..services.supabase_service import (
     fetch_last_n_messages,
     fetch_latest_screening_scores,
@@ -29,6 +34,83 @@ from ..utils.constants import MEMORY_TRIGGER_INTERVAL, SCREENING_EMA_ALPHA, SCRE
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+# ── Pydantic models ────────────────────────────────────────────────────────
+class TranscribeRequest(BaseModel):
+    """Request body for the /transcribe endpoint."""
+    audio_data: str  # Base64-encoded WAV audio
+
+
+# ── /transcribe — Groq Whisper STT fallback ────────────────────────────────
+@router.post("/transcribe")
+async def transcribe_audio(
+    request: TranscribeRequest,
+    authorization: str = Header(None),
+):
+    """
+    Fallback speech-to-text via Groq Whisper (whisper-large-v3-turbo).
+
+    Called by the frontend when Azure Speech SDK returns an empty transcript
+    despite audio being captured (typically caused by heavy background noise).
+
+    Accepts a base64-encoded WAV payload, writes it to a temporary file, and
+    calls the Groq audio-transcriptions API.  Returns the transcript text.
+    """
+    try:
+        await validate_user_token(authorization, supabase_client)
+
+        wav_bytes = decode_audio_data(request.audio_data)
+        if not wav_bytes:
+            logger.warning("⚠️ [TRANSCRIBE] Empty audio data received")
+            raise HTTPException(status_code=400, detail="audio_data is empty or invalid")
+
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if not groq_api_key:
+            logger.error("❌ [TRANSCRIBE] GROQ_API_KEY not configured")
+            raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
+
+        groq_client = Groq(api_key=groq_api_key)
+
+        # Write to a temp file — Groq SDK requires a real file object
+        tmp_path: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                tmp.write(wav_bytes)
+                tmp_path = tmp.name
+
+            logger.info(f"🔄 [TRANSCRIBE] Sending {len(wav_bytes)//1024}KB WAV to Groq Whisper")
+
+            with open(tmp_path, "rb") as f:
+                result = groq_client.audio.transcriptions.create(
+                    model="whisper-large-v3-turbo",
+                    file=f,
+                    response_format="text",
+                    language="en",
+                )
+
+            transcript = result if isinstance(result, str) else getattr(result, "text", "")
+            transcript = (transcript or "").strip()
+
+            if transcript:
+                logger.info(f"✅ [TRANSCRIBE] Whisper transcript ({len(transcript)} chars): \"{transcript[:80]}\"")
+            else:
+                logger.warning("⚠️ [TRANSCRIBE] Groq Whisper returned empty transcript")
+
+            return {"transcript": transcript, "model": "groq-whisper-large-v3-turbo"}
+
+        finally:
+            if tmp_path:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ [TRANSCRIBE] {e}")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
@@ -348,13 +430,26 @@ async def process_chat(
         except Exception as prev_exc:
             logger.warning(f"\u26a0\ufe0f [CHAT] Previous session summary load failed: {prev_exc}")
 
+        # ── Prosodic analysis: enrich voice_analysis with Praat features ──
+        voice_analysis = dict(request.voice_analysis or {})
+        if request.audio_data:
+            try:
+                wav_bytes = decode_audio_data(request.audio_data)
+                if wav_bytes:
+                    prosody = analyze_prosody(wav_bytes)
+                    if prosody:
+                        voice_analysis["prosody"] = prosody
+                        logger.info(f"✅ [CHAT] Prosodic analysis added to voice_analysis")
+            except Exception as prosody_exc:
+                logger.warning(f"⚠️ [CHAT] Prosody analysis failed: {prosody_exc}")
+
         result = process_user_chat(
             user_message=request.user_message,
             recent_messages=context["recent_messages"],
             conversation_summary=conv_summary,
             user_activities=context["user_activities"],
             user_patterns={},
-            voice_analysis=request.voice_analysis or {},
+            voice_analysis=voice_analysis,
             user_id=user_id,
             session_id=request.session_id,
             personality=request.personality,
@@ -425,13 +520,25 @@ async def process_chat_stream(
                 except Exception:
                     pass
 
+                # ── Prosodic analysis: enrich voice_analysis with Praat features ──
+                voice_analysis = dict(request.voice_analysis or {})
+                if request.audio_data:
+                    try:
+                        wav_bytes = decode_audio_data(request.audio_data)
+                        if wav_bytes:
+                            prosody = analyze_prosody(wav_bytes)
+                            if prosody:
+                                voice_analysis["prosody"] = prosody
+                    except Exception as prosody_exc:
+                        logger.warning(f"⚠️ [STREAM] Prosody analysis failed: {prosody_exc}")
+
                 result = process_user_chat(
                     user_message=request.user_message,
                     recent_messages=context["recent_messages"],
                     conversation_summary=context["conversation_summary"],
                     user_activities=context["user_activities"],
                     user_patterns={},
-                    voice_analysis=request.voice_analysis or {},
+                    voice_analysis=voice_analysis,
                     user_id=user_id,
                     session_id=request.session_id,
                     personality=request.personality,

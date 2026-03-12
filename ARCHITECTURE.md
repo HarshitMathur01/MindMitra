@@ -23,7 +23,6 @@ A comprehensive architecture overview for developers and GitHub visitors. For se
                                        │ • Groq API     │
                                        │ • ZhipuAI API  │
                                        │ • Gemini API   │
-                                       │ • OpenAI API   │
                                        └────────────────┘
 ```
 
@@ -285,8 +284,8 @@ Main request thread ──► Returns response immediately
 │  Groq (llama-3.3-70b)       Google (Gemini 2.5 flash)     │
 │  ├── PHQ-9/GAD-7 scoring     └── Session summarization     │
 │  ├── mem0 fact extraction                                  │
-│  ├── Memory importance        OpenAI (Whisper-1)           │
-│  ├── Cross-session reflections└── Speech-to-text           │
+│  ├── Memory importance        Groq (Whisper fallback)      │
+│  ├── Cross-session reflections└── Speech-to-text fallback  │
 │  └── Emotional trend analysis                              │
 │                                                            │
 │  Groq (llama-4-scout-17b)   HuggingFace (all-MiniLM-L6)  │
@@ -320,7 +319,7 @@ Main request thread ──► Returns response immediately
 │                                                         │
 │  Activities:                                            │
 │  ├── user_activities    (game type, score, insights)   │
-│  ├── voice_analytics    (speech metrics)               │
+│  ├── voice_analysis_events (speech metrics)            │
 │  └── onboarding_analytics (funnel data)                │
 └─────────────────────────────────────────────────────────┘
 ```

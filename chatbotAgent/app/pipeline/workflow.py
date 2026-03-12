@@ -261,6 +261,82 @@ class MindMitraWorkflow:
         ),
     }
 
+    @staticmethod
+    def _build_voice_hint(voice: Dict) -> Optional[str]:
+        """
+        Build a concise voice prosody summary for intent routing.
+        Returns None if no meaningful voice data available.
+        """
+        if not voice:
+            return None
+
+        parts = []
+
+        # Azure metrics
+        wpm = voice.get("speech_rate_wpm")
+        if wpm:
+            parts.append(f"{wpm} WPM ({voice.get('speech_rate_category', 'normal')})")
+
+        pause = voice.get("pause_pattern")
+        if pause and pause != "minimal":
+            parts.append(f"pauses: {pause}")
+
+        # Prosodic features (from parselmouth)
+        prosody = voice.get("prosody", {})
+        if prosody:
+            jitter = prosody.get("jitter_local_percent")
+            if jitter is not None and jitter > 2.0:
+                parts.append(f"voice shakiness: {jitter:.1f}%")
+
+            pitch_std = prosody.get("pitch_std_hz", 0)
+            pitch_mean = prosody.get("pitch_mean_hz", 0)
+            if pitch_mean > 0 and pitch_std < 15:
+                parts.append("monotone voice")
+            elif pitch_std > 60:
+                parts.append("highly variable pitch")
+
+            hnr = prosody.get("hnr_db")
+            if hnr is not None and hnr < 8:
+                parts.append("breathy/unclear voice")
+
+        return ", ".join(parts) if parts else None
+
+    def _build_voice_context_block(self, ctx: Dict) -> str:
+        """
+        Build a voice context block for LLM analysis prompts (Paths B, C).
+        Raw metrics only — no emotional labels.
+        """
+        voice = ctx.get("voice_analysis", {})
+        if not voice:
+            return ""
+
+        from ..services.voice_prosody import format_prosody_for_prompt
+
+        lines = []
+
+        # Azure speech metrics
+        wpm = voice.get("speech_rate_wpm")
+        if wpm is not None:
+            lines.append(f"Speech rate: {wpm} WPM ({voice.get('speech_rate_category', '')})")
+        pause = voice.get("pause_pattern")
+        if pause:
+            lines.append(f"Pause pattern: {pause} (long pauses: {voice.get('long_pause_count', 0)})")
+        ratio = voice.get("speech_to_silence_ratio")
+        if ratio is not None:
+            lines.append(f"Speech-to-silence ratio: {ratio}")
+
+        # Prosodic features (from parselmouth)
+        prosody = voice.get("prosody", {})
+        if prosody:
+            prosody_text = format_prosody_for_prompt(prosody)
+            if prosody_text:
+                lines.append(prosody_text)
+
+        if not lines:
+            return ""
+
+        return "Voice tone indicators (raw metrics, no interpretation):\n" + "\n".join(lines) + "\n"
+
     def _build_crisis_response(self, ctx: Dict) -> str:
         """
         Build a personalised crisis response using language preference
@@ -362,11 +438,29 @@ class MindMitraWorkflow:
         # Log to crisis_events table (non-blocking)
         if self.supabase:
             try:
-                self.supabase.table("crisis_events").insert({
+                # Include voice stress indicators in crisis log for clinical review
+                voice = ctx.get("voice_analysis", {})
+                prosody = voice.get("prosody", {})
+                voice_indicators = {}
+                if voice.get("speech_rate_wpm"):
+                    voice_indicators["speech_rate_wpm"] = voice["speech_rate_wpm"]
+                if prosody.get("jitter_local_percent"):
+                    voice_indicators["jitter_percent"] = prosody["jitter_local_percent"]
+                if prosody.get("pitch_mean_hz"):
+                    voice_indicators["pitch_mean_hz"] = prosody["pitch_mean_hz"]
+                    voice_indicators["pitch_std_hz"] = prosody.get("pitch_std_hz", 0)
+                if prosody.get("hnr_db"):
+                    voice_indicators["hnr_db"] = prosody["hnr_db"]
+
+                crisis_data = {
                     "user_id": ctx.get("user_id", "anonymous"),
                     "level": "high",
                     "source": "intent_router_crisis_path",
-                }).execute()
+                }
+                if voice_indicators:
+                    crisis_data["voice_indicators"] = voice_indicators  # type: ignore
+
+                self.supabase.table("crisis_events").insert(crisis_data).execute()
             except Exception as e:
                 logger.error(f"❌ [CRISIS] Supabase log failed: {e}")
 
@@ -468,6 +562,10 @@ class MindMitraWorkflow:
         mem0_context = ctx.get("memory_context", "")
         mem_line = f"User history from memory: {mem0_context[:300]}\n" if mem0_context else ""
 
+        # Voice prosody context (raw tone metrics)
+        voice_block = self._build_voice_context_block(ctx)
+        voice_line = f"\n{voice_block}" if voice_block else ""
+
         prompt = (
             "Analyse this message for a mental-health chatbot. "
             "Return ONLY valid JSON:\n"
@@ -482,6 +580,7 @@ class MindMitraWorkflow:
             f"{ctx_line}"
             f"{mem_line}"
             f"{act_line}"
+            f"{voice_line}"
             f'Message: "{text[:600]}"\n\nJSON:'
         )
         try:
@@ -553,6 +652,10 @@ class MindMitraWorkflow:
         if prev and prev.get("summary"):
             prev_line = f"\nPrevious session: {prev['summary'][:400]}\n"
 
+        # Voice prosody context (raw tone metrics)
+        voice_block = self._build_voice_context_block(ctx)
+        voice_line = f"\n{voice_block}" if voice_block else ""
+
         prompt = (
             "You are a clinical psychologist. Return ONLY valid JSON:\n"
             "{\n"
@@ -568,6 +671,7 @@ class MindMitraWorkflow:
             f"User memories:\n{mem_block}\n"
             f"{act_line}"
             f"{prev_line}"
+            f"{voice_line}"
             f"Recent:\n{conv}\n\nJSON:"
         )
         try:
@@ -852,7 +956,12 @@ class MindMitraWorkflow:
             logger.debug(f"[ROUTER] Screening hint fetch skipped: {screen_exc}")
 
         if self.intent_router:
-            intent_result = self.intent_router.classify(text, recent, activities=activities, screening_hint=screening_hint)
+            # Build voice hint for routing (concise prosody summary)
+            voice_hint = self._build_voice_hint(ctx.get("voice_analysis", {}))
+            intent_result = self.intent_router.classify(
+                text, recent, activities=activities,
+                screening_hint=screening_hint, voice_hint=voice_hint,
+            )
         else:
             intent_result = {"intent": "emotional", "confidence": 0.5}
             logger.warning("⚠️ [ROUTER] IntentRouter unavailable — defaulting to 'emotional'")

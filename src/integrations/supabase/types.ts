@@ -350,58 +350,97 @@ export type Database = {
         }
         Relationships: []
       }
-      voice_analytics: {
+      voice_analysis_events: {
         Row: {
-          analysis_model: string | null
-          confidence_score: number | null
+          avg_confidence: number | null
+          avg_pause_duration_ms: number | null
           created_at: string | null
-          cultural_context: Json | null
-          emotional_tone: string | null
+          confidence_variance: number | null
+          detected_hindi_words: string[]
+          hindi_english_mixing: boolean
           id: string
+          language: string
+          long_pause_count: number | null
+          max_pause_duration_ms: number | null
           message_id: string | null
+          min_confidence: number | null
+          pause_count: number | null
+          pause_pattern: string | null
           processing_duration_ms: number | null
-          psychological_markers: Json | null
+          prosody: Json | null
           session_id: string
-          speech_pace: string | null
-          stress_level: string | null
+          source: string
+          speech_clarity: string | null
+          speech_rate_category: string | null
+          speech_rate_wpm: number | null
+          speech_to_silence_ratio: number | null
+          total_duration_sec: number | null
+          total_speech_duration_sec: number | null
           transcript: string
-          user_id: string | null
+          user_id: string
+          word_count: number
         }
         Insert: {
-          analysis_model?: string | null
-          confidence_score?: number | null
+          avg_confidence?: number | null
+          avg_pause_duration_ms?: number | null
           created_at?: string | null
-          cultural_context?: Json | null
-          emotional_tone?: string | null
+          confidence_variance?: number | null
+          detected_hindi_words?: string[]
+          hindi_english_mixing?: boolean
           id?: string
+          language?: string
+          long_pause_count?: number | null
+          max_pause_duration_ms?: number | null
           message_id?: string | null
+          min_confidence?: number | null
+          pause_count?: number | null
+          pause_pattern?: string | null
           processing_duration_ms?: number | null
-          psychological_markers?: Json | null
+          prosody?: Json | null
           session_id: string
-          speech_pace?: string | null
-          stress_level?: string | null
+          source: string
+          speech_clarity?: string | null
+          speech_rate_category?: string | null
+          speech_rate_wpm?: number | null
+          speech_to_silence_ratio?: number | null
+          total_duration_sec?: number | null
+          total_speech_duration_sec?: number | null
           transcript: string
-          user_id?: string | null
+          user_id: string
+          word_count?: number
         }
         Update: {
-          analysis_model?: string | null
-          confidence_score?: number | null
+          avg_confidence?: number | null
+          avg_pause_duration_ms?: number | null
           created_at?: string | null
-          cultural_context?: Json | null
-          emotional_tone?: string | null
+          confidence_variance?: number | null
+          detected_hindi_words?: string[]
+          hindi_english_mixing?: boolean
           id?: string
+          language?: string
+          long_pause_count?: number | null
+          max_pause_duration_ms?: number | null
           message_id?: string | null
+          min_confidence?: number | null
+          pause_count?: number | null
+          pause_pattern?: string | null
           processing_duration_ms?: number | null
-          psychological_markers?: Json | null
+          prosody?: Json | null
           session_id?: string
-          speech_pace?: string | null
-          stress_level?: string | null
+          source?: string
+          speech_clarity?: string | null
+          speech_rate_category?: string | null
+          speech_rate_wpm?: number | null
+          speech_to_silence_ratio?: number | null
+          total_duration_sec?: number | null
+          total_speech_duration_sec?: number | null
           transcript?: string
-          user_id?: string | null
+          user_id?: string
+          word_count?: number
         }
         Relationships: [
           {
-            foreignKeyName: "voice_analytics_message_id_fkey"
+            foreignKeyName: "voice_analysis_events_message_id_fkey"
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "chat_messages"

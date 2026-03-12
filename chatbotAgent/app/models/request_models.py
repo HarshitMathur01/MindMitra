@@ -7,6 +7,7 @@ class ChatRequest(BaseModel):
     user_message: str
     session_id: Optional[str] = None
     voice_analysis: Optional[Dict[str, Any]] = None  # Voice analysis is optional
+    audio_data: Optional[str] = None  # Base64-encoded WAV audio for prosodic analysis
     avatar_visible: bool = True  # Whether avatar is visible (controls TTS generation)
     # Personality settings from user preferences
     personality: Optional[str] = None  # 'mitra' | 'arjun' | 'diya' | 'riya' | 'zen' (legacy: 'calm' | 'energetic' | 'analytical')

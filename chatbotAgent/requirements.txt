@@ -63,3 +63,8 @@ typing-extensions>=4.10
 annotated-types>=0.6
 numpy>=1.26,<2.0
 regex>=2024.7
+
+# ──────────────────────────────────────────────────────────────
+# Voice Prosody Analysis (Praat)
+# ──────────────────────────────────────────────────────────────
+parselmouth>=0.4.4,<1.0     # Praat bindings — pitch, jitter, shimmer, HNR

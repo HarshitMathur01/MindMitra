@@ -1,9 +1,31 @@
 {
     "user_id": "a0778b19-548f-47df-8413-296307566d0f",
-    "session_id": "eeb1ecd9-05e7-4cf3-86af-9bc95e028002",
-    "timestamp": "2026-03-12T12:15:48.035410+00:00",
-    "user_message": "its going good, just hectic due to my work",
-    "voice_analysis": {},
+    "session_id": "11e03cbb-3c1d-4207-91c5-1b167565f5b2",
+    "timestamp": "2026-03-12T20:56:03.842996+00:00",
+    "user_message": "Hello, what are you doing? I am not feeling well right now like. I. I don't have many people to talk. I'm feeling alone.",
+    "voice_analysis": {
+        "source": "azure_speech_sdk",
+        "language": "en-IN",
+        "speech_rate_wpm": null,
+        "speech_rate_category": null,
+        "avg_pause_duration_ms": null,
+        "max_pause_duration_ms": null,
+        "long_pause_count": null,
+        "pause_count": null,
+        "pause_pattern": null,
+        "speech_to_silence_ratio": null,
+        "total_duration_sec": null,
+        "total_speech_duration_sec": null,
+        "avg_confidence": null,
+        "min_confidence": null,
+        "confidence_variance": null,
+        "speech_clarity": null,
+        "word_count": 24,
+        "hindi_english_mixing": false,
+        "detected_hindi_words": [
+            "yaar"
+        ]
+    },
     "session_context": {
         "recent_messages": [
             {
@@ -61,6 +83,26 @@
             {
                 "role": "user",
                 "content": "its going good, just hectic due to my work"
+            },
+            {
+                "role": "user",
+                "content": "hey what's up what are you doing I am fine I am little bit stressed also I am not feeling very good today I don't know what to do I have no task  I have no one to  call  or  talk to anyone"
+            },
+            {
+                "role": "user",
+                "content": "Hi, Yaar. I am not feeling well today. I am little bit scared as well. I am not feeling good. I don't know what to do. I have not asked. I have no one to call or talk to anyone."
+            },
+            {
+                "role": "user",
+                "content": "How are you?"
+            },
+            {
+                "role": "user",
+                "content": "Hey, what's up? What are you doing? I am fine here. I have too much pressure. Lots of tasks. I don't have enough time. "
+            },
+            {
+                "role": "user",
+                "content": "Hello, what are you doing? I am not feeling well right now like. I. I don't have many people to talk. I'm feeling alone."
             }
         ],
         "conversation_summary": {},
@@ -1361,8 +1403,8 @@
         "user_patterns": {}
     },
     "nlp_analysis": {
-        "primary_emotion": "",
-        "intensity": 0.0,
+        "primary_emotion": "neutral",
+        "intensity": 0.5,
         "emotions": {},
         "sentiment": {
             "score": 0.0,
@@ -1373,23 +1415,23 @@
         "urgency_flag": false
     },
     "cultural_context": {
-        "language_style": "casual",
+        "language_style": "english",
         "hindi_english_ratio": 0.0,
         "code_switching_detected": false,
         "cultural_sensitivity_flags": [],
-        "communication_pattern": "",
+        "communication_pattern": "warm",
         "regional_context": "",
         "formality_level": "medium"
     },
     "psychological_analysis": {
-        "emotional_state": "casual",
+        "emotional_state": "neutral",
         "stress_categories": [
             "General",
             "Crisis"
         ],
         "risk_assessment": "low",
         "coping_assessment": "",
-        "intervention_priority": "long-term",
+        "intervention_priority": "supportive",
         "psychological_insights": [
             "User expressed crisis-level distress"
         ],
@@ -1414,20 +1456,20 @@
         }
     },
     "technique_selection": {
-        "primary_technique": "Companion",
-        "therapeutic_approach": "casual",
+        "primary_technique": "Validation",
+        "therapeutic_approach": "validation",
         "activity_recommendations": [],
-        "rationale": "light conversation"
+        "rationale": "emotional support \u2014 standard path"
     },
-    "memory_context": "",
-    "ai_response": "Namaste! That sounds like a busy day. What kind of work keeps you so occupied?",
+    "memory_context": "\ud83e\udde0 WHAT YOU KNOW ABOUT THIS USER:\n\u2022 Experiencing self-harm thoughts (score: 0.44)\n\u2022 Feeling the need to punish themselves (score: 0.42)",
+    "ai_response": "Hey there. I'm just here, taking it easy. It sounds like you're really not feeling well right now, and that's tough. Feeling alone when you're already down makes it even harder. It\u2019s okay to feel this way, and I\u2019m here to listen if you want to share anything. No pressure at all.",
     "response_generated": true,
     "personality_settings": {
         "personality": "mitra",
         "companion_name": "Mitra",
         "language": "english"
     },
-    "_pipeline_path": "A-casual",
-    "intervention_directive": "This is casual conversation. Be a warm, friendly companion. Keep your response to 1-3 sentences. Ask one curious question at most. No clinical framing whatsoever.",
-    "_response_max_tokens": 150
+    "_pipeline_path": "B-emotional",
+    "intervention_directive": "Focus entirely on making this person feel deeply understood. Do not offer advice or reframes.",
+    "_response_max_tokens": 300
 }

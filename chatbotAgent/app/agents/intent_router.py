@@ -43,12 +43,14 @@ class IntentRouter:
         recent_messages: Optional[List[Dict]] = None,
         activities: Optional[List[Dict]] = None,
         screening_hint: Optional[str] = None,
+        voice_hint: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Classify `user_message` into one of four intent buckets.
 
         Args:
             screening_hint: Optional PHQ-9/GAD-7 severity hint (e.g. "PHQ-9=moderate, GAD-7=severe")
+            voice_hint: Optional voice prosody summary (e.g. "fast speech, high jitter, low pitch")
 
         Returns:
             {"intent": str, "confidence": float}
@@ -60,7 +62,7 @@ class IntentRouter:
 
         history = self._format_history(recent_messages)
         activity_hint = self._format_activity_hint(activities)
-        prompt = self._build_prompt(user_message, history, activity_hint, screening_hint)
+        prompt = self._build_prompt(user_message, history, activity_hint, screening_hint, voice_hint)
 
         try:
             resp = self.client.chat.completions.create(
@@ -144,10 +146,11 @@ class IntentRouter:
         return hint
 
     @staticmethod
-    def _build_prompt(user_message: str, history: str, activity_hint: str = "", screening_hint: Optional[str] = None) -> str:
+    def _build_prompt(user_message: str, history: str, activity_hint: str = "", screening_hint: Optional[str] = None, voice_hint: Optional[str] = None) -> str:
         ctx_line = f"Context: {history}\n" if history else ""
         act_line = f"Recent activity: {activity_hint}\n" if activity_hint else ""
         screening_line = f"Clinical screening: {screening_hint}\n" if screening_hint else ""
+        voice_line = f"Voice tone indicators: {voice_hint}\n" if voice_hint else ""
         return (
             'Classify the user message. Return ONLY in strict JSON with keys "intent" and "confidence".\n'
             'There should be nothing else other than this strict json format , nno text before or after this json needed, do internal reasoning adn just output the json only.\n'
@@ -161,6 +164,7 @@ class IntentRouter:
             f"{ctx_line}"
             f"{act_line}"
             f"{screening_line}"
+            f"{voice_line}"
             f'Message: "{user_message[:600]}"\n\n'
             "JSON:"
         )

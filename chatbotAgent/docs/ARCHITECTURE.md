@@ -104,7 +104,7 @@ MindMitra is a culturally-aware AI mental health companion for Indian youth (16�
 | **Groq** | `llama-3.3-70b-versatile` | Screening, mem0 extraction, importance scoring, reflections, emotional trend, procedural synthesis | Best open-source reasoning |
 | **ZhipuAI** | `glm-4-32b-0414-128k` | Response generation, psych analysis | 128k context, strong Chinese/multilingual |
 | **Google** | `gemini-2.5-flash-lite` | Session summaries | Cheap, fast summarization |
-| **OpenAI** | `whisper-1` | Speech-to-text (POST /transcribe) | Industry-standard STT |
+| **Groq** | `whisper-large-v3-turbo` | Speech-to-text fallback (POST /transcribe) | Robust noisy-audio fallback |
 | **HuggingFace** | `all-MiniLM-L6-v2` | Memory embeddings (LOCAL, no API) | 384-dim, CPU, zero cost |
 
 ---
@@ -1413,11 +1413,11 @@ Railway health check. Returns `{"status": "ok"}` with model availability and pip
 
 ### `POST /transcribe`
 
-OpenAI Whisper STT. Accepts audio file upload, returns transcript text.
-- Requires `OPENAI_API_KEY`
-- Max file: 25MB
-- Model: `whisper-1`
-- Valid MIME: audio/webm, wav, mp3, mp4, mpeg, mpga, m4a, ogg
+Groq Whisper fallback STT. Accepts base64-encoded WAV in JSON and returns transcript text.
+- Requires `GROQ_API_KEY`
+- Triggered only when Azure Speech SDK returns an empty transcript
+- Model: `whisper-large-v3-turbo`
+- Request body: `{ "audio_data": "<base64 wav>" }`
 
 ### `POST /api/onboarding/generate`
 
@@ -1529,8 +1529,10 @@ Groq-based dynamic onboarding question generation. Saves initial user data.
 | `session_count` | integer | |
 | `updated_at` | timestamptz | |
 
-### `voice_analytics`
-Speech analysis metrics per session.
+### `voice_analysis_events`
+Raw speech timing + clarity metrics per recording. Stores transcript source,
+speech rate, pause structure, confidence, language-mixing flags, and optional
+prosody JSON for future backend persistence.
 
 ### `onboarding_analytics`
 Onboarding funnel tracking data.
@@ -1559,7 +1561,7 @@ Complete list of every LLM call in the codebase:
 | 14 | `get_emotional_trend()` | llama-3.3-70b | Groq | Emotional trajectory | 0.2 | 100 | Every message (cached 1hr) |
 | 15 | `GLMController` Groq fallback | llama-4-scout-17b | Groq | GLM failure fallback | varies | varies | GLM errors |
 | 16 | Onboarding generation | qwen/qwen3-32b | Groq | Dynamic onboarding Qs | varies | varies | Onboarding |
-| 17 | Whisper STT | whisper-1 | OpenAI | Speech-to-text | — | — | /transcribe |
+| 17 | Whisper fallback STT | whisper-large-v3-turbo | Groq | Speech-to-text fallback | — | — | /transcribe |
 
 **Per-request cost** (typical emotional message):
 - Intent: 1 × Groq (fast, free tier)
@@ -1589,9 +1591,6 @@ All magic numbers are centralized here:
 | `SCREENING_EMA_ALPHA` | 0.6 | EMA weight (60% new, 40% old) |
 | `ELEVENLABS_TIMEOUT_S` | 35.0 | ElevenLabs API timeout |
 | `GOOGLE_TTS_SAMPLE_RATE_HZ` | 16,000 | 16 kHz for Rhubarb |
-| `WHISPER_TIMEOUT_S` | 30.0 | Whisper STT timeout |
-| `WHISPER_MAX_FILE_BYTES` | 25 MB | Max upload size |
-| `WHISPER_MODEL` | "whisper-1" | OpenAI model |
 | `RHUBARB_TIMEOUT_S` | 10 | Rhubarb CLI timeout |
 | `PHONEME_DURATION_S` | 0.15 | Text fallback phoneme length |
 | `WORD_PAUSE_S` | 0.10 | Text fallback word gap |
@@ -1630,7 +1629,6 @@ All magic numbers are centralized here:
 | `QDRANT_HOST` | **Yes** | `localhost` | `qdrant.railway.internal` on Railway |
 | `QDRANT_PORT` | No | `6333` | Qdrant port |
 | `QDRANT_COLLECTION` | No | `companion_memories` | Qdrant collection name |
-| `OPENAI_API_KEY` | No | — | Only for /transcribe (Whisper STT) |
 | `ELEVENLABS_API_KEY` | No | — | Primary TTS (falls back to GCP → gTTS) |
 | `ELEVENLABS_VOICE_ID` | No | `vT0wMbLG5dssaBsksrb6` | ElevenLabs voice |
 | `ELEVENLABS_MODEL_ID` | No | `eleven_v3` | ElevenLabs model |
@@ -1684,8 +1682,8 @@ chatbotAgent/                           # Python backend root
 │   ├── api/
 │   │   ├── chat.py                     (487 lines)  POST /chat, /chat/stream, GET /chat/greeting
 │   │   ├── health.py                                GET /health, GET /debug/memory
-│   │   ├── onboarding.py                            POST /api/onboarding/*
-│   │   └── transcribe.py                            POST /transcribe (Whisper STT)
+│   │   └── onboarding.py                            POST /api/onboarding/*
+│   │                                                /transcribe lives in chat.py
 │   ├── controllers/
 │   │   └── glm_controller.py           (174 lines)  Thread-safe ZhipuAI + Groq fallback
 │   ├── core/
@@ -1751,7 +1749,6 @@ app/main.py
   │     ├── app/services/lipsync_service.py
   │     ├── app/services/supabase_service.py
   │     └── app/utils/constants.py
-  ├── app/api/transcribe.py
   └── app/api/onboarding.py
 ```
 

@@ -29,8 +29,8 @@ QDRANT_PORT=6333
 QDRANT_COLLECTION=companion_memories
 ```
 
-> **Note:** `OPENAI_API_KEY` is already configured (used by the speech-to-text
-> transcription service). mem0 reuses this same key for fact extraction and embeddings.
+> **Note:** mem0 in this repo uses local `all-MiniLM-L6-v2` embeddings and does
+> not depend on `OPENAI_API_KEY`. The `/transcribe` fallback uses `GROQ_API_KEY`.
 
 ### 4. Collection auto-creation
 The `MemoryManager` class auto-creates the `companion_memories` collection on
@@ -58,8 +58,8 @@ QDRANT_COLLECTION=companion_memories
 | Field | Value |
 |---|---|
 | Collection name | `companion_memories` |
-| Embedding model | `text-embedding-3-small` (OpenAI) |
-| Dimensions | 1536 |
+| Embedding model | `all-MiniLM-L6-v2` (local SentenceTransformers) |
+| Dimensions | 384 |
 | Distance metric | cosine (mem0 default) |
 
 ## Payload Index (Optional Performance Optimisation)
@@ -77,6 +77,6 @@ curl -X PUT "http://<QDRANT_HOST>:<QDRANT_PORT>/collections/companion_memories/i
 
 | Symptom | Fix |
 |---|---|
-| `MemoryManager` logs `⚠️ mem0 init failed` | Check `QDRANT_HOST`, `QDRANT_PORT`, and `OPENAI_API_KEY` env vars |
+| `MemoryManager` logs `⚠️ mem0 init failed` | Check `QDRANT_HOST`, `QDRANT_PORT`, and local model download/connectivity |
 | Slow first request | Cold-start: Qdrant needs ~5s to load collection on Railway free tier |
 | "Connection refused" locally | Ensure Docker container is running on port 6333 |

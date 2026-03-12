@@ -152,11 +152,7 @@ export const ChatProvider = ({ children }) => {
     // No-op: chat is handled directly by ChatGPTInterface → FastAPI /chat.
   };
 
-  // chatWithAudio — unimplemented placeholder
-  const chatWithAudio = async (_audioBlob: Blob) => {
-    // TODO: forward audio to /chat/stream speech-to-text endpoint
-  };
-  
+
 
   // ✅ Called when avatar finishes playing a message
   const onMessagePlayed = () => {
@@ -209,7 +205,6 @@ export const ChatProvider = ({ children }) => {
     <ChatContext.Provider
       value={{
         chat,
-        chatWithAudio,
         message,
         onMessagePlayed,
         loading,

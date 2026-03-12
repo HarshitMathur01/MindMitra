@@ -44,7 +44,6 @@ async def lifespan(app: FastAPI):
     logger.info(f"   GROQ_API_KEY:             {'✅' if os.getenv('GROQ_API_KEY') else '❌ Missing'}")
     logger.info(f"   GOOGLE_API_KEY:           {'✅' if os.getenv('GOOGLE_API_KEY') else '❌ Missing'}")
     logger.info(f"   ZAI_API_KEY:              {'✅' if os.getenv('ZAI_API_KEY') or os.getenv('ZHIPUAI_API_KEY') else '❌ Missing'}")
-    logger.info(f"   OPENAI_API_KEY:           {'✅' if os.getenv('OPENAI_API_KEY') else '⚠️  Not set (Whisper STT disabled)'}")
     logger.info(f"   SUPABASE_URL:             {'✅' if os.getenv('SUPABASE_URL') else '❌ Missing'}")
     logger.info(f"   SUPABASE_KEY:             {'✅' if os.getenv('SUPABASE_KEY') or os.getenv('SUPABASE_SERVICE_ROLE_KEY') else '❌ Missing'}")
     logger.info(f"   QDRANT_HOST:              {os.getenv('QDRANT_HOST', '⚠️  Not set → localhost')}")
@@ -115,11 +114,9 @@ app.add_middleware(
 
 # ── Include routers (after /health) ────────────────────────────────────────
 from app.api.chat import router as chat_router
-from app.api.transcribe import router as transcribe_router
 from app.api.onboarding import router as onboarding_router
 
 app.include_router(chat_router)
-app.include_router(transcribe_router)
 app.include_router(onboarding_router)
 
 

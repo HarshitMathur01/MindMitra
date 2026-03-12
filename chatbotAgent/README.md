@@ -117,7 +117,6 @@ QDRANT_HOST             → localhost (local) or qdrant.railway.internal (Railwa
 
 **Optional (with fallbacks):**
 ```
-OPENAI_API_KEY              → Whisper STT (/transcribe endpoint only)
 QDRANT_PORT                 → Default: 6333
 QDRANT_COLLECTION           → Default: companion_memories
 LOG_LEVEL                   → Default: INFO
@@ -135,7 +134,7 @@ CORS_ALLOW_ORIGINS          → Extra allowed origins (comma-separated)
 | `POST` | `/chat/stream` | JWT | SSE streaming (text_chunk, avatar_ready, complete) |
 | `GET`  | `/chat/greeting` | JWT | Personalized session-start greeting |
 | `GET`  | `/health` | None | Health check (registered before heavy imports) |
-| `POST` | `/transcribe` | JWT | Whisper STT (audio upload, requires `OPENAI_API_KEY`) |
+| `POST` | `/transcribe` | JWT | Groq Whisper fallback STT (base64 WAV, requires `GROQ_API_KEY`) |
 | `POST` | `/api/onboarding/generate` | JWT | Dynamic onboarding question generation |
 
 ---

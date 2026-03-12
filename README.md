@@ -108,7 +108,7 @@ An AI-powered therapeutic companion combining a multi-agent LLM pipeline with a 
 | **LLM (NLP/routing)** | Groq qwen/qwen3-32b | Emotion analysis, intent classification, crisis check |
 | **LLM (screening)** | Groq llama-3.3-70b-versatile | PHQ-9/GAD-7 clinical scoring, mem0 extraction |
 | **LLM (summaries)** | Google Gemini 2.5 flash lite | End-of-session summaries |
-| **STT** | OpenAI Whisper-1 | Speech-to-text transcription |
+| **STT** | Azure Speech SDK + Groq Whisper fallback | Browser-first STT with noisy-audio fallback |
 | **Memory** | mem0 OSS + Qdrant | Semantic long-term user memory |
 | **Embeddings** | all-MiniLM-L6-v2 (local HuggingFace) | 384-dim sentence vectors, CPU, zero API cost |
 | **Database** | Supabase (PostgreSQL + Auth + RLS) | 12 tables — chat, profiles, crisis, screening, memory |
@@ -123,10 +123,9 @@ An AI-powered therapeutic companion combining a multi-agent LLM pipeline with a 
 ```
 MindMitra/
 ├── src/                              # ─── React Frontend ───
-│   ├── App.tsx                       # Router (20+ routes), QueryClient, Toaster providers
+│   ├── App.tsx                       # Router (20+ routes) w/ AnimatePresence page transitions
 │   ├── main.tsx                      # ReactDOM.createRoot, App mount point
 │   ├── index.css                     # Tailwind base + custom variables
-│   ├── App.css                       # SPA layout styles
 │   │
 │   ├── components/
 │   │   ├── chat/
@@ -151,7 +150,7 @@ MindMitra/
 │   ├── hooks/
 │   │   ├── useAuth.tsx               # Supabase auth context
 │   │   ├── useChat.tsx               # Avatar message queue, emotion state
-│   │   ├── useVoiceRecording.tsx     # MediaRecorder → POST /transcribe
+│   │   ├── useVoiceRecording.tsx     # Azure STT + Whisper fallback + voice metric capture
 │   │   ├── use-mobile.tsx            # Responsive breakpoint hook
 │   │   ├── use-toast.ts             # Toast notifications
 │   │   └── useScrollAnimations.tsx   # Intersection observer for scroll FX
@@ -185,8 +184,8 @@ MindMitra/
 │   │   │   ├── chat.py               # POST /chat, /chat/stream, GET /greeting
 │   │   │   │                         #   _detect_emotion() → 11 therapeutic emotions
 │   │   │   ├── health.py             # GET /health
-│   │   │   ├── transcribe.py         # POST /transcribe (Whisper STT)
 │   │   │   └── onboarding.py         # POST /api/onboarding/*
+│   │   │                             #   /transcribe lives in chat.py
 │   │   ├── agents/
 │   │   │   ├── memory_manager.py     # (1321 lines) mem0 + Qdrant
 │   │   │   ├── response_agent.py     # (442 lines) GLM + CoE reasoning
@@ -394,7 +393,7 @@ SSE streaming variant. Events: `text_chunk`, `avatar_ready`, `complete`, `error`
 |---|---|---|
 | `GET` | `/chat/greeting` | Personalized session-start greeting |
 | `GET` | `/health` | Railway health check |
-| `POST` | `/transcribe` | Whisper STT (audio upload) |
+| `POST` | `/transcribe` | Groq Whisper fallback STT (base64 WAV) |
 | `POST` | `/api/onboarding/generate` | Dynamic onboarding questions |
 
 ---
@@ -412,7 +411,6 @@ SSE streaming variant. Events: `text_chunk`, `avatar_ready`, `complete`, `error`
 | `ZAI_API_KEY` | **Yes** | — | ZhipuAI GLM-4 response gen |
 | `GOOGLE_API_KEY` | **Yes** | — | Gemini session summaries |
 | `QDRANT_HOST` | **Yes** | `localhost` | Qdrant host |
-| `OPENAI_API_KEY` | No | — | Whisper STT only |
 | `LOG_LEVEL` | No | `INFO` | Logging level |
 | `SKIP_AUTH` | No | `false` | **Must be false in production** |
 
@@ -445,7 +443,7 @@ SSE streaming variant. Events: `text_chunk`, `avatar_ready`, `complete`, `error`
 | `session_summaries` | AI-generated session summaries |
 | `memory_metadata` | mem0 memory tracking |
 | `user_memory_stats` | Per-user memory statistics |
-| `voice_analytics` | Speech analysis metrics |
+| `voice_analysis_events` | Raw speech timing + clarity metrics per recording |
 | `onboarding_analytics` | Onboarding funnel tracking |
 
 ---

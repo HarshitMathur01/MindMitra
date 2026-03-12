@@ -141,7 +141,7 @@ ALTER TABLE chat_messages
 --   session_summaries
 --   memory_metadata
 --   user_memory_stats
---   voice_analytics
+--   voice_analysis_events
 --   onboarding_analytics
 -- + any auth.* / storage.* system tables
 

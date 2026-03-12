@@ -30,7 +30,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         const saved = localStorage.getItem(STORAGE_KEY) as ThemePreference | null
         const initialPreference: ThemePreference = saved === 'light' || saved === 'dark' || saved === 'system'
             ? saved
-            : 'system'
+            : 'light'
         const initialTheme = resolveTheme(initialPreference)
 
         setThemePreferenceState(initialPreference)

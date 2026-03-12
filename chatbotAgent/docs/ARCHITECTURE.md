@@ -6,7 +6,7 @@
 > **Total backend**: ~6,000 lines across 24 Python files
 > **Last updated**: March 2026
 
-This document is the founder-level technical reference for the MindMitra chatbot backend. Every function, every LLM call, every constant, every database table is documented here. If you need memory-system specifics, see [`docs/MEMORY_ARCHITECTURE.md`](docs/MEMORY_ARCHITECTURE.md).
+This document is the technical reference for the MindMitra chatbot backend. Every function, every LLM call, every constant, every database table is documented here. If you need memory-system specifics, see [`docs/MEMORY_ARCHITECTURE.md`](docs/MEMORY_ARCHITECTURE.md).
 
 ---
 

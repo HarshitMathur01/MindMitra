@@ -67,4 +67,4 @@ regex>=2024.7
 # ──────────────────────────────────────────────────────────────
 # Voice Prosody Analysis (Praat)
 # ──────────────────────────────────────────────────────────────
-parselmouth>=0.4.4,<1.0     # Praat bindings — pitch, jitter, shimmer, HNR
+praat-parselmouth==0.4.7    # Praat bindings — pitch, jitter, shimmer, HNR

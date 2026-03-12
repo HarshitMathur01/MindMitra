@@ -729,12 +729,10 @@ const ChatGPTInterface = () => {
       console.log('🎭 [Chat] Queueing AI response for avatar (will play when opened)');
       console.log('🎭 [Chat] Backend data contains:', {
         hasMessage: !!data.message,
-        hasAudio: !!data.audio,
-        hasLipsync: !!data.lipsync,
         animation: data.animation,
         facialExpression: data.facial_expression
       });
-      addAvatarMessage(data); // Pass full backend response with audio/lipsync
+      addAvatarMessage(data);
 
       // Only add AI response if we're still on the same session
       const currentSession = localStorage.getItem('currentChatSession');

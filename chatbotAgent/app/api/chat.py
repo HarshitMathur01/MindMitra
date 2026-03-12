@@ -15,7 +15,6 @@ from ..models.response_models import ChatResponse
 from ..pipeline.workflow import get_workflow_instance, process_user_chat
 from ..agents.memory_manager import memory_manager
 from ..services.greeting_service import generate_greeting
-from ..services.lipsync_service import generate_lipsync_from_audio, generate_lipsync_from_text
 from ..services.supabase_service import (
     fetch_last_n_messages,
     fetch_latest_screening_scores,
@@ -26,7 +25,6 @@ from ..services.supabase_service import (
     session_message_counters,
     supabase_client,
 )
-from ..services.tts_service import generate_tts_audio_v2
 from ..utils.constants import MEMORY_TRIGGER_INTERVAL, SCREENING_EMA_ALPHA, SCREENING_MIN_MESSAGES
 
 router = APIRouter()
@@ -35,15 +33,63 @@ logger = logging.getLogger(__name__)
 
 # ── helpers ────────────────────────────────────────────────────────────────
 def _detect_emotion(text: str) -> Dict[str, str]:
-    text_lower = text.lower()
-    if any(w in text_lower for w in ["happy", "great", "wonderful", "amazing", "excited", "proud", "joy"]):
-        return {"emotion": "happy", "facial_expression": "smile"}
-    if any(w in text_lower for w in ["sad", "sorry", "difficult", "hard", "anxious", "worried"]):
-        return {"emotion": "sad", "facial_expression": "sad"}
-    if any(w in text_lower for w in ["angry", "frustrated", "annoyed"]):
-        return {"emotion": "angry", "facial_expression": "angry"}
-    if any(w in text_lower for w in ["wow", "really", "surprised", "incredible"]):
-        return {"emotion": "surprised", "facial_expression": "surprised"}
+    """Detect therapeutic emotion from AI response text.
+
+    Returns facial_expression aligned with MindMitraBridge mood names:
+    empathy, concern, encouragement, acknowledgment, calm, listening, or default.
+    """
+    t = text.lower()
+
+    # ── Therapeutic emotions (multi-word phrases → more specific, check first) ──
+    if any(p in t for p in [
+        "i understand", "i hear you", "that must be", "i'm sorry you",
+        "your feelings", "it makes sense", "you're not alone",
+        "i can see how", "must have been", "that sounds really",
+    ]):
+        return {"emotion": "empathy", "facial_expression": "empathy"}
+
+    if any(p in t for p in [
+        "i'm concerned", "worried about", "that sounds serious",
+        "be careful", "important to note", "want to make sure",
+        "pay attention to",
+    ]):
+        return {"emotion": "concern", "facial_expression": "concern"}
+
+    if any(p in t for p in [
+        "great job", "well done", "proud of", "wonderful progress",
+        "that's wonderful", "that's amazing", "congratulations",
+        "you did it", "keep it up", "brilliant",
+    ]):
+        return {"emotion": "encouragement", "facial_expression": "encouragement"}
+
+    if any(p in t for p in [
+        "tell me more", "go on", "can you share", "what happened",
+        "how did that", "i'd like to hear", "continue",
+    ]):
+        return {"emotion": "acknowledgment", "facial_expression": "acknowledgment"}
+
+    if any(p in t for p in [
+        "take a deep breath", "let's breathe", "let's slow down",
+        "grounding exercise", "at your own pace", "gentle reminder",
+    ]):
+        return {"emotion": "calm", "facial_expression": "calm"}
+
+    if any(p in t for p in [
+        "can you describe", "what was that like", "tell me about",
+        "how does that feel", "what comes to mind",
+    ]):
+        return {"emotion": "listening", "facial_expression": "listening"}
+
+    # ── Standard emotions → map to closest therapeutic expression ──
+    if any(w in t for w in ["happy", "great", "wonderful", "amazing", "excited", "proud", "joy"]):
+        return {"emotion": "happy", "facial_expression": "encouragement"}
+    if any(w in t for w in ["sad", "sorry", "difficult", "hard", "anxious", "worried"]):
+        return {"emotion": "sad", "facial_expression": "empathy"}
+    if any(w in t for w in ["angry", "frustrated", "annoyed"]):
+        return {"emotion": "angry", "facial_expression": "concern"}
+    if any(w in t for w in ["wow", "really", "surprised", "incredible"]):
+        return {"emotion": "surprised", "facial_expression": "acknowledgment"}
+
     return {"emotion": "neutral", "facial_expression": "default"}
 
 
@@ -53,49 +99,16 @@ def _build_avatar_package(
     avatar_visible: bool,
     personality_id: str | None = None,
 ) -> Dict[str, Any]:
-    """Generate TTS + lipsync and return avatar fields."""
-    audio_base64 = None
-    lipsync_data = None
-    animation = "Idle"
-    facial_expression = "default"
-
+    """Return avatar animation + emotion fields. TTS/lipsync handled by TalkingHead internally."""
     if not avatar_visible:
-        logger.info("⚡ [AVATAR] Avatar hidden — skipping TTS (latency optimization)")
-        return {
-            "audio": None, "lipsync": None,
-            "animation": "Idle", "facial_expression": "default",
-        }
+        logger.info("⚡ [AVATAR] Avatar hidden — skipping emotion detection")
+        return {"animation": "Idle", "facial_expression": "default"}
 
     if ai_text:
         mood = _detect_emotion(ai_text)
-        emotion = mood["emotion"]
-        facial_expression = mood["facial_expression"]
+        return {"animation": "Talking_0", "facial_expression": mood["facial_expression"]}
 
-        lang_style = (
-            result.get("session_insights", {})
-            .get("cultural_context", {})
-            .get("language_style", "english")
-        )
-
-        audio_base64 = generate_tts_audio_v2(ai_text, emotion, lang_style, personality_id)
-        animation = "Talking_0"
-
-        if audio_base64:
-            lipsync_data = generate_lipsync_from_audio(audio_base64, ai_text)
-        else:
-            logger.warning("⚠️ [AVATAR] TTS failed — using text-based lipsync")
-            lipsync_data = generate_lipsync_from_text(ai_text)
-
-        if not lipsync_data or not lipsync_data.get("mouthCues"):
-            lipsync_data = None
-            animation = "Idle"
-
-    return {
-        "audio": audio_base64,
-        "lipsync": lipsync_data,
-        "animation": animation,
-        "facial_expression": facial_expression,
-    }
+    return {"animation": "Idle", "facial_expression": "default"}
 
 
 def _maybe_trigger_memory(session_id: str, user_id: str) -> None:
@@ -374,8 +387,6 @@ async def process_chat(
 
         return ChatResponse(
             message=ai_text,
-            audio=avatar["audio"],
-            lipsync=avatar["lipsync"],
             animation=avatar["animation"],
             facial_expression=avatar["facial_expression"],
             modality=result.get("modality", "therapy"),
@@ -438,15 +449,9 @@ async def process_chat_stream(
 
                 if request.avatar_visible and ai_text:
                     mood = _detect_emotion(ai_text)
-                    audio_b64 = generate_tts_audio_v2(ai_text, mood["emotion"], personality_id=request.personality)
-
-                    if audio_b64:
-                        yield (
-                            f"event: audio_ready\ndata: {json.dumps({'audio': audio_b64, 'animation': 'Talking_0', 'facial_expression': mood['facial_expression']})}\n\n"
-                        )
-                        lipsync = generate_lipsync_from_audio(audio_b64, ai_text)
-                        if lipsync:
-                            yield f"event: lipsync_ready\ndata: {json.dumps({'lipsync': lipsync})}\n\n"
+                    yield (
+                        f"event: avatar_ready\ndata: {json.dumps({'animation': 'Talking_0', 'facial_expression': mood['facial_expression']})}\n\n"
+                    )
 
                 # Memory trigger (uses constant — no stream/non-stream discrepancy)
                 if request.session_id:

@@ -2,19 +2,28 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useChat } from "../../hooks/useChat";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Map the app's facialExpression values → TalkingHead mood names
-const EXPRESSION_TO_MOOD: Record<string, string> = {
-    smile: "happy",
-    happy: "happy",
-    sad: "sad",
-    angry: "angry",
-    surprised: "surprised",
-    gentle: "neutral",
-    compassionate: "neutral",
-    concerned: "neutral",
-    thoughtful: "neutral",
-    hopeful: "neutral",
-    listening: "neutral",
+// Map facial expressions from backend/detectSentiment → bridge emotion names.
+// The iframe’s MindMitraBridge has 6 injected therapeutic moods (empathy, concern,
+// encouragement, acknowledgment, calm, listening) plus TalkingHead built-ins.
+const EXPRESSION_TO_EMOTION: Record<string, string> = {
+    // Therapeutic emotions (from expanded backend _detect_emotion)
+    empathy: "empathy",
+    concern: "concern",
+    encouragement: "encouragement",
+    acknowledgment: "acknowledgment",
+    calm: "calm",
+    listening: "listening",
+    // Standard / legacy expressions → closest therapeutic mood
+    smile: "encouragement",
+    happy: "encouragement",
+    sad: "empathy",
+    angry: "concern",
+    surprised: "acknowledgment",
+    gentle: "calm",
+    compassionate: "empathy",
+    concerned: "concern",
+    thoughtful: "acknowledgment",
+    hopeful: "encouragement",
     default: "neutral",
 };
 
@@ -45,7 +54,7 @@ const TalkingHeadAvatar = ({
     googleKey,
     ttsVoice = "en-IN-Neural2-A",
     ttsLang = "en-IN",
-    avatarUrl = "/talkinghead/avatars/Brunette.glb",
+    avatarUrl = "/talkinghead/avatars/brunette.glb",
 }: Props) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isReady, setIsReady] = useState(false);
@@ -58,12 +67,18 @@ const TalkingHeadAvatar = ({
     const resolvedGoogleKey: string =
         googleKey || import.meta.env.VITE_GOOGLE_TTS_KEY || "";
 
+    // Resolve Azure TTS credentials from env vars (fallback when no Google key)
+    const resolvedAzureKey: string = import.meta.env.VITE_AZURE_TTS_KEY || "";
+    const resolvedAzureRegion: string = import.meta.env.VITE_AZURE_TTS_REGION || "eastasia";
+
     const { message: avatarCurrentMessage, onMessagePlayed } = useChat();
 
-    // Build iframe src — pass Google TTS config as URL search params
+    // Build iframe src — pass TTS config as URL search params
     const iframeSrc = (() => {
         const params = new URLSearchParams();
         if (resolvedGoogleKey) params.set("googleKey", resolvedGoogleKey);
+        if (resolvedAzureKey) params.set("azureKey", resolvedAzureKey);
+        params.set("azureRegion", resolvedAzureRegion);
         params.set("ttsVoice", ttsVoice);
         params.set("ttsLang", ttsLang);
         params.set("avatarUrl", avatarUrl);
@@ -119,10 +134,10 @@ const TalkingHeadAvatar = ({
         if (!text || text === lastMessageTextRef.current) return;
         lastMessageTextRef.current = text;
 
-        // Optionally set mood before speaking
+        // Set therapeutic emotion before speaking (upper-face only — does NOT affect lip sync)
         const expression = avatarCurrentMessage.facialExpression || "default";
-        const mood = EXPRESSION_TO_MOOD[expression] ?? "neutral";
-        postToIframe({ type: "setMood", mood });
+        const emotion = EXPRESSION_TO_EMOTION[expression] ?? "neutral";
+        postToIframe({ type: "setEmotion", emotion });
 
         // Speak the text
         postToIframe({ type: "speakText", text });

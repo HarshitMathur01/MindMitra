@@ -1,6 +1,6 @@
 # MindMitra Backend — Multi-Agent Therapeutic Pipeline
 
-> FastAPI backend for MindMitra. Intent-routed multi-agent pipeline with mem0 long-term memory, 3-tier TTS, lip-sync generation, PHQ-9/GAD-7 clinical screening, and Chain-of-Experts reasoning.
+> FastAPI backend for MindMitra. Intent-routed multi-agent pipeline with mem0 long-term memory, 11 therapeutic emotion detection, PHQ-9/GAD-7 clinical screening, and Chain-of-Experts reasoning.
 >
 > **Python 3.12 · FastAPI 0.115 · uvicorn · ~6,000 lines across 24 files**
 
@@ -37,13 +37,16 @@ POST /chat → auth.py (JWT verify) → chat.py (endpoint)
                                    │                          │
                     ┌──────────────┤                          │
                     ▼              ▼                          │
-              TTS Service    Lipsync Service                  │
-              (3-tier)       (Rhubarb/text)                   │
+              Detect emotion  Build response                  │
+              (11 types)      (text only)                     │
                     │              │                          │
                     └──────────────┴──────────────────────────┘
                                    │
                           ChatResponse JSON
-                    (text + audio + lipsync + emotion + insights)
+                    (message + emotion + animation + insights)
+
+Note: TTS and lip-sync run entirely in the browser (frontend iframe).
+The backend sends only text + emotion metadata — no audio generation.
 
 Background threads (daemon, non-blocking):
   ├─ Memory extraction (every 12 messages, Groq + Qdrant)
@@ -68,10 +71,8 @@ Background threads (daemon, non-blocking):
 | **Screening Agent** | `app/agents/screening_agent.py` | 232 | Groq llama-3.3 | PHQ-9/GAD-7 with EMA |
 | **NLP Agent** | `app/agents/nlp_agent.py` | 48 | Groq qwen3-32b | Client factory only |
 | **GLM Controller** | `app/controllers/glm_controller.py` | 174 | ZhipuAI (Groq fallback) | Thread-safe LLM wrapper |
-| **Chat Endpoints** | `app/api/chat.py` | 487 | — | POST /chat, /chat/stream, GET /greeting |
+| **Chat Endpoints** | `app/api/chat.py` | 493 | — | POST /chat, /chat/stream, GET /greeting, _detect_emotion() |
 | **Supabase Service** | `app/services/supabase_service.py` | 233 | — | All DB operations |
-| **TTS Service** | `app/services/tts_service.py` | 207 | — | ElevenLabs → Google Cloud → gTTS |
-| **Lipsync Service** | `app/services/lipsync_service.py` | 154 | — | Rhubarb CLI → text phoneme fallback |
 | **Greeting Service** | `app/services/greeting_service.py` | 228 | — | Time/personality/continuity greetings |
 | **Config** | `app/core/config.py` | 226 | — | config.yaml + env-var loader |
 | **JSON Utils** | `app/utils/json_utils.py` | 136 | — | 4-tier LLM output parser |
@@ -116,11 +117,7 @@ QDRANT_HOST             → localhost (local) or qdrant.railway.internal (Railwa
 
 **Optional (with fallbacks):**
 ```
-ELEVENLABS_API_KEY          → Primary TTS (falls back to Google Cloud → gTTS)
-GOOGLE_CREDENTIALS_BASE64   → Google Cloud TTS (falls back to gTTS)
 OPENAI_API_KEY              → Whisper STT (/transcribe endpoint only)
-ELEVENLABS_VOICE_ID         → Default: vT0wMbLG5dssaBsksrb6
-ELEVENLABS_MODEL_ID         → Default: eleven_v3
 QDRANT_PORT                 → Default: 6333
 QDRANT_COLLECTION           → Default: companion_memories
 LOG_LEVEL                   → Default: INFO
@@ -134,8 +131,8 @@ CORS_ALLOW_ORIGINS          → Extra allowed origins (comma-separated)
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/chat` | JWT | Main chat (text + audio + lipsync + insights) |
-| `POST` | `/chat/stream` | JWT | SSE streaming variant |
+| `POST` | `/chat` | JWT | Main chat (text + emotion + insights) |
+| `POST` | `/chat/stream` | JWT | SSE streaming (text_chunk, avatar_ready, complete) |
 | `GET`  | `/chat/greeting` | JWT | Personalized session-start greeting |
 | `GET`  | `/health` | None | Health check (registered before heavy imports) |
 | `POST` | `/transcribe` | JWT | Whisper STT (audio upload, requires `OPENAI_API_KEY`) |
@@ -159,8 +156,6 @@ CORS_ALLOW_ORIGINS          → Extra allowed origins (comma-separated)
 | `MEMORY_LIMIT_CRISIS` | 4 | Max memories for crisis intent |
 | `EMBEDDING_DIMS` | 384 | all-MiniLM-L6-v2 vector dimensions |
 | `REFLECTION_INTERVAL_SESSIONS` | 5 | Generate reflections every N sessions |
-| `ELEVENLABS_TIMEOUT_S` | 35.0 | ElevenLabs API timeout |
-| `RHUBARB_TIMEOUT_S` | 10 | Rhubarb CLI timeout |
 
 ---
 

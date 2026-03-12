@@ -51,20 +51,24 @@
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
-      "talkinghead": "/talkinghead/modules/talkinghead.mjs"
+      "talkinghead": "/talkinghead/modules/talkinghead.mjs",
+      "mindmitra-bridge": "/talkinghead/modules/mindmitra-bridge.mjs"
     }
   }
   </script>
 
     <script type="module">
         import { TalkingHead } from "talkinghead";
+        import { MindMitraBridge } from "mindmitra-bridge";
 
         // -- Config from URL params --------------------------------------------------------
         const params = new URLSearchParams(window.location.search);
-        const googleKey  = params.get("googleKey")  || "";
+        const googleKey   = params.get("googleKey")   || "";
+        const azureKey   = params.get("azureKey")   || "";
+        const azureRegion= params.get("azureRegion")|| "eastasia";
         const ttsVoice   = params.get("ttsVoice")   || "en-IN-Neural2-A";  // Indian English female, Neural2
         const ttsLang    = params.get("ttsLang")    || "en-IN";
-        const avatarUrl  = params.get("avatarUrl")  || "/talkinghead/avatars/Brunette.glb";
+        const avatarUrl  = params.get("avatarUrl")  || "/talkinghead/avatars/brunette.glb";
 
         // ── TTS endpoint selection ────────────────────────────────────────────────────────
         //
@@ -79,12 +83,16 @@
 
         const ttsEndpoint = googleKey ? GOOGLE_TTS_ENDPOINT : SENTINEL_ENDPOINT;
         const ttsApikey   = googleKey ? googleKey           : "";
-        const TTS_MODE    = googleKey ? "google-cloud-tts"  : "webspeech-fallback";
+        const TTS_MODE    = googleKey ? "google-cloud-tts"
+                          : azureKey ? "azure-tts"
+                          :            "webspeech-fallback";
 
         console.info(
             `%c[MindMitra Avatar] Startup%c\n` +
             `  TTS mode    : ${TTS_MODE}\n` +
-            `  Google key  : ${googleKey ? googleKey.slice(0,8) + "…(" + googleKey.length + " chars)" : "NOT SET — using Web Speech fallback"}\n` +
+            `  Google key  : ${googleKey ? googleKey.slice(0,8) + "…(" + googleKey.length + " chars)" : "NOT SET"}\n` +
+            `  Azure key   : ${azureKey ? azureKey.slice(0,8) + "…(" + azureKey.length + " chars)" : "NOT SET"}\n` +
+            `  Azure region: ${azureRegion}\n` +
             `  Voice       : ${ttsVoice}\n` +
             `  Avatar URL  : ${avatarUrl}`,
             "background:#0d1117;color:#58c4dc;font-weight:bold",
@@ -217,8 +225,7 @@
         }
 
         // ── TalkingHead init ─────────────────────────────────────────────────────────────
-        let head = null;
-        const statusEl = document.getElementById("status");
+        let head = null;        let bridge = null;        const statusEl = document.getElementById("status");
 
         function setStatus(msg) {
             statusEl.textContent = msg || "";
@@ -264,8 +271,22 @@
                     }
                 );
                 setStatus(null);
-                console.info("[MindMitra Avatar] ✅ Avatar ready — TTS mode: " + TTS_MODE);
+
+                // Initialize MindMitra Bridge — injects 6 therapeutic moods + per-frame hook.
+                // This does NOT alter TalkingHead’s lip-sync pipeline. It only adds:
+                //   • Upper-face expression control (brows, eyes, cheeks) via custom moods
+                //   • Therapeutic gesture support (nods, lean-forward, tilt)
+                //   • Amplitude-based jaw boost (dormant until audio data is passed)
+                // Lip sync continues to be driven entirely by TalkingHead’s viseme engine.
+                bridge = new MindMitraBridge(head);
+                bridge.init();
+
+                console.info("[MindMitra Avatar] ✅ Avatar ready — TTS mode: " + TTS_MODE + ", Bridge: active");
                 postToParent({ type: "ready" });
+
+                // Log TTS fallback status
+                if (!googleKey && azureKey) console.info("[MindMitra Avatar] Azure TTS fallback ready");
+                else if (!googleKey) console.info("[MindMitra Avatar] Web Speech API fallback (no TTS keys)");
             } catch (err) {
                 console.error("[MindMitra Avatar] ❌ Avatar load error:", err);
                 setStatus("Failed to load avatar");
@@ -303,6 +324,49 @@
         document.addEventListener("click",       ensureAudioCtx);
         document.addEventListener("pointerdown", ensureAudioCtx);
 
+        // ── Azure TTS — neural voice fallback (when Google key absent but Azure key present) ─
+        // Uses Azure Cognitive Services REST API with a female Indian English neural voice.
+        // Returns audio as ArrayBuffer; word timings are estimated from total audio duration
+        // (Azure REST API does not expose word boundary events — those require the JS SDK).
+        // Still far superior to Web Speech API: neural voice quality + TalkingHead lipsync engine.
+        async function fetchAzureTTS(words) {
+            const text = words.join(" ");
+            // Build SSML — Azure requires <voice> element with exact voice name
+            const azureVoice = ttsLang.startsWith("en-IN")
+                ? "en-IN-NeerjaNeural"   // Indian English female neural
+                : ttsLang.startsWith("hi")
+                ? "hi-IN-SwaraNeural"     // Hindi female neural
+                : "en-US-JennyNeural";   // US English fallback
+            const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${ttsLang}">` +
+                         `<voice name="${azureVoice}">` +
+                         `<prosody rate="-10%" pitch="+5%">${escapeXml(text)}</prosody>` +
+                         `</voice></speak>`;
+
+            try {
+                const resp = await fetch(
+                    `https://${azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Ocp-Apim-Subscription-Key": azureKey,
+                            "Content-Type": "application/ssml+xml",
+                            "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-opus",
+                        },
+                        body: ssml,
+                    }
+                );
+                if (!resp.ok) {
+                    console.error("[MindMitra Avatar] Azure TTS HTTP " + resp.status);
+                    return null;
+                }
+                const arrayBuffer = await resp.arrayBuffer();
+                return { audioBuffer: arrayBuffer, words };
+            } catch (err) {
+                console.error("[MindMitra Avatar] Azure TTS fetch error:", err);
+                return null;
+            }
+        }
+
         // ── Speech-end detection poll ────────────────────────────────────────────────────
         let speakEndPoll = null;
 
@@ -317,6 +381,7 @@
                 ticks++;
                 if (ticks > 3 && !head.isSpeaking && head.speechQueue.length === 0) {
                     clearSpeakEndPoll();
+                    if (bridge) bridge.onAvatarFinishedSpeaking();
                     postToParent({ type: "speakingEnd" });
                 }
             }, 250);
@@ -360,16 +425,42 @@
                                 postToParent({ type: "speakingStart" });
                                 startSpeakEndPoll();
                             }
+                        } else if (azureKey) {
+                            // ── Azure TTS fallback: neural voice with estimated word timings ──
+                            const plainWords = cleanText.split(/\s+/).filter(w => w.length > 0);
+                            const result = await fetchAzureTTS(plainWords);
+                            if (result) {
+                                try {
+                                    const audioBuffer = await head.audioCtx.decodeAudioData(result.audioBuffer);
+                                    const durationMs = audioBuffer.duration * 1000;
+                                    // Estimate word timings evenly across the audio duration
+                                    const wtimes = plainWords.map((_, i) => Math.round((i / plainWords.length) * durationMs));
+                                    const wdurations = plainWords.map((_, i) => {
+                                        const next = i + 1 < plainWords.length ? wtimes[i + 1] : durationMs;
+                                        return Math.max(50, next - wtimes[i]);
+                                    });
+                                    console.log("[MindMitra Avatar] Azure speakAudio → " + plainWords.length + " words, " + audioBuffer.duration.toFixed(2) + "s");
+                                    head.speakAudio({ audio: audioBuffer, words: plainWords, wtimes, wdurations });
+                                } catch (decodeErr) {
+                                    console.warn("[MindMitra Avatar] Azure audio decode failed, falling back:", decodeErr.message || decodeErr);
+                                    head.speakText(cleanText);
+                                    speakWithWebSpeech(cleanText);
+                                }
+                            } else {
+                                // Azure failed → Web Speech final fallback
+                                head.speakText(cleanText);
+                                speakWithWebSpeech(cleanText);
+                            }
                         } else {
-                            // ── No-key fallback: lipsync queue + Web Speech audio ─────────
-                            head.speakText(cleanText); // queues lipsync animations (no audio from TH)
-                            postToParent({ type: "speakingStart" });
+                            // ── Web Speech API fallback (no TTS keys available) ──
+                            head.speakText(cleanText);
                             const fireWebSpeech = () => speakWithWebSpeech(cleanText);
                             if (window.speechSynthesis.getVoices().length === 0) {
                                 window.speechSynthesis.addEventListener("voiceschanged", fireWebSpeech, { once: true });
                             } else {
                                 fireWebSpeech();
                             }
+                            postToParent({ type: "speakingStart" });
                             startSpeakEndPoll();
                         }
                     } catch (err) {
@@ -381,15 +472,43 @@
                     console.log("[MindMitra Avatar] stopSpeaking");
                     clearSpeakEndPoll();
                     if (!googleKey && window.speechSynthesis) window.speechSynthesis.cancel();
-                    try { head.stopSpeaking(); postToParent({ type: "speakingEnd" }); } catch { /* noop */ }
+                    try { head.stopSpeaking(); } catch { /* noop */ }
+                    if (bridge) bridge.onAvatarFinishedSpeaking();
+                    postToParent({ type: "speakingEnd" });
                     break;
 
                 case "setMood":
                     if (mood) {
                         console.log("[MindMitra Avatar] setMood → " + mood);
-                        try { head.setMood(mood); } catch { /* noop */ }
+                        // Prefer bridge for intensity scaling if available
+                        if (bridge) {
+                            bridge.setEmotion(mood, null);
+                        } else {
+                            try { head.setMood(mood); } catch { /* noop */ }
+                        }
                     }
                     break;
+
+                case "setEmotion": {
+                    const emo = event.data.emotion || "neutral";
+                    const inten = event.data.intensity || null;
+                    if (bridge) {
+                        console.log("[MindMitra Avatar] setEmotion → " + emo + (inten ? " ×" + inten : ""));
+                        bridge.setEmotion(emo, inten);
+                    } else {
+                        try { head.setMood(emo); } catch { head.setMood("neutral"); }
+                    }
+                    break;
+                }
+
+                case "triggerGesture": {
+                    const g = event.data.gesture;
+                    if (bridge && g) {
+                        console.log("[MindMitra Avatar] triggerGesture → " + g);
+                        bridge.triggerGesture(g);
+                    }
+                    break;
+                }
 
                 case "pause":
                     try { head.stop(); } catch { /* noop */ }

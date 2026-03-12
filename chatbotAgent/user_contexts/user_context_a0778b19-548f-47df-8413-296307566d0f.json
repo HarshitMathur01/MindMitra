@@ -1,8 +1,8 @@
 {
     "user_id": "a0778b19-548f-47df-8413-296307566d0f",
-    "session_id": "fc9a9ac2-762a-4a00-8471-ac161527e515",
-    "timestamp": "2026-03-12T08:36:58.715929+00:00",
-    "user_message": "Now wha to do yrr, you remember my previous fights?",
+    "session_id": "eeb1ecd9-05e7-4cf3-86af-9bc95e028002",
+    "timestamp": "2026-03-12T12:15:48.035410+00:00",
+    "user_message": "its going good, just hectic due to my work",
     "voice_analysis": {},
     "session_context": {
         "recent_messages": [
@@ -49,6 +49,18 @@
             {
                 "role": "user",
                 "content": "Now wha to do yrr, you remember my previous fights?"
+            },
+            {
+                "role": "user",
+                "content": "Namaste , i am fine, how about you?"
+            },
+            {
+                "role": "assistant",
+                "content": "Namaste! I\u2019m doing well, thank you for asking. How\u2019s your day going so far?"
+            },
+            {
+                "role": "user",
+                "content": "its going good, just hectic due to my work"
             }
         ],
         "conversation_summary": {},
@@ -1349,8 +1361,8 @@
         "user_patterns": {}
     },
     "nlp_analysis": {
-        "primary_emotion": "neutral",
-        "intensity": 0.5,
+        "primary_emotion": "",
+        "intensity": 0.0,
         "emotions": {},
         "sentiment": {
             "score": 0.0,
@@ -1361,23 +1373,23 @@
         "urgency_flag": false
     },
     "cultural_context": {
-        "language_style": "english",
+        "language_style": "casual",
         "hindi_english_ratio": 0.0,
         "code_switching_detected": false,
         "cultural_sensitivity_flags": [],
-        "communication_pattern": "warm",
+        "communication_pattern": "",
         "regional_context": "",
         "formality_level": "medium"
     },
     "psychological_analysis": {
-        "emotional_state": "neutral",
+        "emotional_state": "casual",
         "stress_categories": [
             "General",
             "Crisis"
         ],
         "risk_assessment": "low",
         "coping_assessment": "",
-        "intervention_priority": "supportive",
+        "intervention_priority": "long-term",
         "psychological_insights": [
             "User expressed crisis-level distress"
         ],
@@ -1402,20 +1414,20 @@
         }
     },
     "technique_selection": {
-        "primary_technique": "Validation",
-        "therapeutic_approach": "validation",
+        "primary_technique": "Companion",
+        "therapeutic_approach": "casual",
         "activity_recommendations": [],
-        "rationale": "emotional support \u2014 standard path"
+        "rationale": "light conversation"
     },
-    "memory_context": "\ud83e\udde0 WHAT YOU KNOW ABOUT THIS USER:\n\u2022 Feeling the need to punish themselves (score: 0.41)\n\u2022 Experiencing self-harm thoughts (score: 0.36)",
-    "ai_response": "Oh, I remember those moments you shared before. It\u2019s completely understandable to feel lost about what to do now, especially after something unexpected like this. Take your time\u2014no pressure at all.",
+    "memory_context": "",
+    "ai_response": "Namaste! That sounds like a busy day. What kind of work keeps you so occupied?",
     "response_generated": true,
     "personality_settings": {
         "personality": "mitra",
         "companion_name": "Mitra",
         "language": "english"
     },
-    "_pipeline_path": "B-emotional",
-    "intervention_directive": "Focus entirely on making this person feel deeply understood. Do not offer advice or reframes.",
-    "_response_max_tokens": 300
+    "_pipeline_path": "A-casual",
+    "intervention_directive": "This is casual conversation. Be a warm, friendly companion. Keep your response to 1-3 sentences. Ask one curious question at most. No clinical framing whatsoever.",
+    "_response_max_tokens": 150
 }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -119,10 +119,6 @@ All colors MUST be HSL.
 }
 
 @layer components {
-
-  .font-genz {
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
-  }
 
   /* Gentle breathing animation for wellness elements */
   .breathing-circle {

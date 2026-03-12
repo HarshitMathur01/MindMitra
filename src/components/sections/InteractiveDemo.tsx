@@ -151,7 +151,7 @@ const InteractiveDemo = () => {
                         <Play className="h-4 w-4" />
                         Guided Demo
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-bold text-gradient mb-4">
+                    <h2 className="text-4xl md:text-5xl font-bold text-gradient-vibrant mb-4">
                         See MindMitra in Action
                     </h2>
                     <p className="text-lg text-muted-foreground max-w-2xl mx-auto">

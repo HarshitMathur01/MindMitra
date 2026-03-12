@@ -3,20 +3,114 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ═══════════════════════════════════════
+         Favicon & App Icons
+    ═══════════════════════════════════════ -->
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <title>MindMitra</title>
-    <meta name="description" content="Technotron's Professionals" />
-    <meta name="author" content="Technotron" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
 
-    <meta property="og:title" content="MindMitra" />
-    <meta property="og:description" content="Technotron Generated Project" />
+    <!-- ═══════════════════════════════════════
+         Primary Meta
+    ═══════════════════════════════════════ -->
+    <title>MindMitra — Your AI Mental Health Companion</title>
+    <meta name="description" content="MindMitra is an AI-powered mental health companion offering 24/7 personalised emotional support through a conversational chatbot and 3D avatar. A bridge between you and professional care — anytime, stigma-free." />
+    <meta name="keywords" content="mental health, AI companion, emotional support, therapy, chatbot, student mental health, anxiety, depression support, MindMitra, 3D avatar, Avatar" />
+    <meta name="author" content="MindMitra" />
+    <meta name="theme-color" content="#FAF9F6" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://mindmitra.co.in/" />
+
+    <!-- ═══════════════════════════════════════
+         Open Graph (WhatsApp, Facebook, LinkedIn)
+    ═══════════════════════════════════════ -->
+    <meta property="og:title" content="MindMitra — Your AI Mental Health Companion" />
+    <meta property="og:description" content="Personalised, memory-driven emotional support through AI — a bridge to professional care, not a replacement. Available 24/7 for students and young adults." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content= "https://freepngimg.com/thumb/health/67606-green-healthcare-medicine-health-care-icon.png"/>
+    <meta property="og:url" content="https://mindmitra.co.in/" />
+    <meta property="og:image" content="https://mindmitra.co.in/favicon.png" />
+    <meta property="og:image:alt" content="MindMitra — AI Mental Health Companion" />
+    <meta property="og:site_name" content="MindMitra" />
+    <meta property="og:locale" content="en_IN" />
 
+    <!-- ═══════════════════════════════════════
+         Fonts — Inter (clean, modern, readable)
+    ═══════════════════════════════════════ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,300&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- ═══════════════════════════════════════
+         AOS — Animate on Scroll (lightweight)
+    ═══════════════════════════════════════ -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+
+    <!-- ═══════════════════════════════════════
+         Base Styles — smooth scroll + font
+    ═══════════════════════════════════════ -->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background-color: #FAF9F6;
+        color: #1a1a1a;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      /* Page load fade-in */
+      #root {
+        animation: pageLoad 0.5s ease-in-out;
+      }
+      @keyframes pageLoad {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0);   }
+      }
+    </style>
+
+    <!-- ═══════════════════════════════════════
+         Structured Data (Google Rich Results)
+    ═══════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "MindMitra",
+      "url": "https://mindmitra.co.in",
+      "description": "AI-powered mental health companion providing personalised emotional support through conversational AI and 3D avatar for students and young adults.",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "MindMitra",
+        "url": "https://mindmitra.co.in"
+      }
+    }
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
+
+    <!-- AOS Init -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+      AOS.init({
+        duration: 750,
+        easing: 'ease-in-out',
+        once: true,
+        offset: 80
+      });
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

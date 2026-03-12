@@ -10,14 +10,17 @@ import {
   Flame,
   Heart,
   Home,
+  Moon,
   Search,
   Sparkles,
+  Sun,
   User,
   Wind,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import PublicLanding from "./PublicLanding";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
+import { useTheme } from "@/context/ThemeContext";
 
 type MoodOption = {
   emoji: string;
@@ -351,6 +354,7 @@ const SectionHeader = ({
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [isMoodToastVisible, setIsMoodToastVisible] = useState(false);
@@ -543,6 +547,19 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/18 backdrop-blur-md text-white transition-transform duration-150 hover:scale-105"
+                aria-label="Toggle color theme"
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+                <span className="sr-only">Toggle dark or light mode</span>
+              </button>
               <button
                 type="button"
                 className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/18 backdrop-blur-md transition-transform duration-150 hover:scale-105"

@@ -62,7 +62,7 @@ const CrisisSafetyDemo = () => {
                         <Shield className="h-4 w-4" />
                         Safety First
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-bold text-gradient mb-4">
+                    <h2 className="text-4xl md:text-5xl font-bold text-gradient-vibrant mb-4">
                         Crisis Safety Protocols
                     </h2>
                     <p className="text-lg text-muted-foreground max-w-2xl mx-auto">

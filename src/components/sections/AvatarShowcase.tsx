@@ -141,7 +141,7 @@ const AvatarShowcase = () => {
                         <Video className="h-4 w-4" />
                         Face-to-Face AI Therapy
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-bold text-gradient mb-4">
+                    <h2 className="text-4xl md:text-5xl font-bold text-gradient-vibrant mb-4">
                         Talk to a 3D Avatar — Like a Real Conversation
                     </h2>
                     <p className="text-lg text-muted-foreground max-w-3xl mx-auto">

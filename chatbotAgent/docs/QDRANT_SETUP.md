@@ -17,16 +17,25 @@ After provisioning, go to the Qdrant service **Variables** tab:
 
 | Variable | Example value |
 |---|---|
-| `QDRANT_HOST` | `qdrant-production-XXXX.up.railway.app` |
+| `RAILWAY_PRIVATE_DOMAIN` | `qdrant.railway.internal` |
+| `RAILWAY_PUBLIC_DOMAIN` | `qdrant-production-XXXX.up.railway.app` |
 | `QDRANT_PORT` | `6333` (default HTTP) |
 
 ### 3. Set environment variables on the backend service
 Add the following to your **chatbotAgent** Railway service:
 
 ```
-QDRANT_HOST=<hostname from step 2>
-QDRANT_PORT=6333
+QDRANT_URL=http://<RAILWAY_PRIVATE_DOMAIN>:6333
+# Optional fallback if private DNS fails in your environment
+QDRANT_FALLBACK_URL=https://<RAILWAY_PUBLIC_DOMAIN>
 QDRANT_COLLECTION=companion_memories
+```
+
+Legacy host/port variables are still supported:
+
+```
+QDRANT_HOST=<RAILWAY_PRIVATE_DOMAIN or RAILWAY_PUBLIC_DOMAIN>
+QDRANT_PORT=6333
 ```
 
 > **Note:** mem0 in this repo uses local `all-MiniLM-L6-v2` embeddings and does
@@ -48,8 +57,7 @@ docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
 Then set in your `.env`:
 
 ```
-QDRANT_HOST=localhost
-QDRANT_PORT=6333
+QDRANT_URL=http://localhost:6333
 QDRANT_COLLECTION=companion_memories
 ```
 
@@ -77,6 +85,7 @@ curl -X PUT "http://<QDRANT_HOST>:<QDRANT_PORT>/collections/companion_memories/i
 
 | Symptom | Fix |
 |---|---|
-| `MemoryManager` logs `⚠️ mem0 init failed` | Check `QDRANT_HOST`, `QDRANT_PORT`, and local model download/connectivity |
+| `MemoryManager` logs `⚠️ mem0 init failed` | Prefer `QDRANT_URL`; confirm host resolves from the same Railway environment/project |
+| `Name or service not known` / `ENOTFOUND` | Verify `qdrant.railway.internal` is reachable from backend service; set `QDRANT_FALLBACK_URL` to public URL |
 | Slow first request | Cold-start: Qdrant needs ~5s to load collection on Railway free tier |
 | "Connection refused" locally | Ensure Docker container is running on port 6333 |

@@ -16,7 +16,8 @@ python-multipart>=0.0.9
 # AI / LLM SDKs
 # ──────────────────────────────────────────────────────────────
 groq>=0.11,<1.0
-zhipuai>=2.1.5
+# zhipuai>=2.1.5
+zai-sdk
 # zai-sdk REMOVED → unstable + conflicts with zhipuai
 
 google-generativeai>=0.8,<1.0

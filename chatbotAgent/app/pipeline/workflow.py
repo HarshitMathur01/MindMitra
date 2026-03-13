@@ -186,11 +186,11 @@ class MindMitraWorkflow:
                 if existing_ctx is not None else user_context
             )
 
-            with open(file_path, "w") as fh:
-                json.dump(merged_ctx, fh, indent=4)
+            # with open(file_path, "w") as fh:
+            #     json.dump(merged_ctx, fh, indent=4)
 
             self._save_user_context_to_supabase(merged_ctx)
-            logger.info(f"✅ [FILE] UserContext saved to {file_path}")
+            # logger.info(f"✅ [FILE] UserContext saved to {file_path}")
         except Exception as e:
             logger.error(f"❌ [FILE] Failed to save user context: {e}")
 

@@ -8,7 +8,9 @@ import threading
 import logging
 from typing import Any, List, Optional
 
-from zhipuai import ZhipuAI
+# from zhipuai import ZhipuAI
+from zai import ZhipuAiClient
+
 
 from ..core.config import config
 
@@ -52,7 +54,7 @@ class GLMController:
 
         self._client = None
         try:
-            self._client = ZhipuAI(api_key=self.api_key)
+            self._client = ZhipuAiClient(api_key=self.api_key)
             logger.info(f"✅ [GLM] Controller ready – model={self.model_name}")
         except Exception as e:
             logger.error(f"❌ [GLM] Could not initialise ZhipuAI client: {e}")

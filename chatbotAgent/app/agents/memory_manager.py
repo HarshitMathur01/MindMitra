@@ -22,6 +22,7 @@ import math
 import os
 import threading
 import time
+from tenacity import retry, stop_after_attempt, wait_random_exponential, before_sleep_log
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -99,7 +100,18 @@ class MemoryManager:
         threading.Thread(target=self._deferred_init, daemon=True, name="mem0-init").start()
 
     # ── deferred (background) initialisation ─────────────────────────────
-
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_random_exponential(multiplier=1, max=30),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
+    def _init_mem0_with_retry(self, config):
+        """
+        Initialize mem0 with exponential backoff retry.
+        Handles cases where Qdrant is still starting (common in Railway deployments).
+        """
+        from mem0 import Memory
+        return Memory.from_config(config)
     def _deferred_init(self) -> None:
         """
         Runs in a daemon thread.  Loads the local HuggingFace embedding model,
@@ -113,33 +125,12 @@ class MemoryManager:
 
                 qdrant_host = os.getenv("QDRANT_HOST", "localhost")
                 qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
-                qdrant_url = (os.getenv("QDRANT_URL", "") or "").strip()
-                qdrant_fallback_url = (os.getenv("QDRANT_FALLBACK_URL", "") or "").strip()
                 collection = os.getenv("QDRANT_COLLECTION", "companion_memories")
                 groq_key = os.getenv("GROQ_API_KEY", "")
 
                 if not groq_key:
                     logger.warning("⚠️ [MEMORY] GROQ_API_KEY not set — mem0 disabled")
                 else:
-                    vector_store_config = {
-                        "collection_name": collection,
-                        # Must be set explicitly — mem0 only auto-propagates
-                        # embedding_dims → embedding_model_dims when graph_store
-                        # is in config AND vector_store is absent. Since we
-                        # always provide vector_store, we set it manually.
-                        "embedding_model_dims": 384,
-                    }
-
-                    # Prefer explicit URL when provided (works for both private/public endpoints).
-                    # Falls back to host/port for backward compatibility.
-                    if qdrant_url:
-                        vector_store_config["url"] = qdrant_url
-                        qdrant_target_for_log = qdrant_url
-                    else:
-                        vector_store_config["host"] = qdrant_host
-                        vector_store_config["port"] = qdrant_port
-                        qdrant_target_for_log = f"{qdrant_host}:{qdrant_port}"
-
                     mem0_config = {
                         "version": "v1.1",
                         "llm": {
@@ -163,46 +154,27 @@ class MemoryManager:
                         },
                         "vector_store": {
                             "provider": "qdrant",
-                            "config": vector_store_config,
+                            "config": {
+                                "host": qdrant_host,
+                                "port": qdrant_port,
+                                "collection_name": collection,
+                                # Must be set explicitly — mem0 only auto-propagates
+                                # embedding_dims → embedding_model_dims when graph_store
+                                # is in config AND vector_store is absent. Since we
+                                # always provide vector_store, we set it manually.
+                                "embedding_model_dims": 384,
+                            },
                         },
                     }
 
                     logger.debug(
                         f"[MEMORY] Calling Memory.from_config() — loading "
-                        f"all-MiniLM-L6-v2 + connecting Qdrant @ {qdrant_target_for_log}"
+                        f"all-MiniLM-L6-v2 + connecting Qdrant @ {qdrant_host}:{qdrant_port}"
                     )
-                    try:
-                        self._mem0 = Memory.from_config(mem0_config)
-                    except Exception as first_exc:
-                        # Railway private DNS may fail in some environment/service topologies.
-                        # If a fallback URL is provided, retry once before disabling memory.
-                        first_exc_text = str(first_exc)
-                        dns_error = "Name or service not known" in first_exc_text or "ENOTFOUND" in first_exc_text
-                        if dns_error and qdrant_fallback_url:
-                            logger.warning(
-                                "⚠️ [MEMORY] Primary Qdrant target failed with DNS resolution error; "
-                                f"retrying via QDRANT_FALLBACK_URL={qdrant_fallback_url}"
-                            )
-                            vector_store_config_retry = {
-                                "collection_name": collection,
-                                "embedding_model_dims": 384,
-                                "url": qdrant_fallback_url,
-                            }
-                            mem0_config_retry = {
-                                **mem0_config,
-                                "vector_store": {
-                                    "provider": "qdrant",
-                                    "config": vector_store_config_retry,
-                                },
-                            }
-                            self._mem0 = Memory.from_config(mem0_config_retry)
-                            qdrant_target_for_log = qdrant_fallback_url
-                        else:
-                            raise
-
+                    self._mem0 = self._init_mem0_with_retry(mem0_config)
                     self._ready = True
                     logger.info(
-                        f"✅ [MEMORY] MemoryManager ready — Qdrant @ {qdrant_target_for_log}, "
+                        f"✅ [MEMORY] MemoryManager ready — Qdrant @ {qdrant_host}:{qdrant_port}, "
                         f"collection={collection}"
                     )
 

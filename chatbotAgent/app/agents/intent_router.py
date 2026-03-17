@@ -67,14 +67,31 @@ class IntentRouter:
         try:
             resp = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a strict intent classifier for a mental health assistant.\n\n"
+                            "Classify the user message into EXACTLY one of:\n"
+                            "- casual\n- emotional\n- therapeutic\n- crisis\n\n"
+                            "Definitions:\n"
+                            "- casual → general conversation, greetings, small talk\n"
+                            "- emotional → expressing feelings\n"
+                            "- therapeutic → seeking advice, coping strategies, help\n"
+                            "- crisis → self-harm, suicide, danger, urgent distress\n\n"
+                            "Output ONLY valid JSON. No markdown, no explanation.\n"
+                            'Format: {"intent": "<intent>", "confidence": <float>}'
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
                 temperature=0.0,
-                max_tokens=200,
-                reasoning_effort="none",
+                max_tokens=50,        # safe again now that thinking is disabled
+                reasoning_effort="none",    # disables thinking mode entirely for qwen3
+                reasoning_format="hidden",  # safety net: strips any think tokens from output
             )
-            raw = (resp.choices[0].message.content.strip()) if resp.choices else ""
+            raw = (resp.choices[0].message.content or "").strip()
             logger.info(f"[INTENT RAW OUTPUT] {raw}")
-
             parsed = parse_json_from_llm_output(raw)
             logger.info(f"[INTENT PARSED] {parsed}")
 

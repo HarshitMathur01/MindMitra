@@ -19,3 +19,5 @@ __pycache__/
 Dockerfile.prod
 docker-compose.override.yml
 *.tar
+chatbotAgent/.venv_depcheck
+.venv_depcheck

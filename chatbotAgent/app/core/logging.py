@@ -53,22 +53,32 @@ _NOISY_LOGGERS = [
 ]
 
 
+# Use a flag instead of checking handlers — handlers check is unreliable
+_LOGGING_CONFIGURED = False
+
 def configure_logging() -> None:
-    """
-    Configure root logger.
-    Level priority: config.yaml logging.level → LOG_LEVEL env var → INFO default.
-    """
-    # Try reading level from config.yaml first (avoids circular import by doing
-    # a lazy import here rather than at module level)
+    global _LOGGING_CONFIGURED
+    if _LOGGING_CONFIGURED:
+        return                    # ← hard exit, no duplicate runs ever
+    _LOGGING_CONFIGURED = True
+
+    # 1. Try config.yaml
     level_name = None
     try:
-        from app.core.config import config as _cfg  # noqa: PLC0415
+        from app.core.config import config as _cfg
         level_name = _cfg.get("logging.level", None)
     except Exception:
         pass
 
+    # 2. Env var overrides
+    env_level = os.getenv("LOG_LEVEL")
+    if env_level:
+        level_name = env_level.strip().strip('"').strip("'")  # strip quotes if any
+
+    # 3. Fallback
     if not level_name:
-        level_name = os.getenv("LOG_LEVEL", "INFO")
+        level_name = "INFO"
+
     level_name = str(level_name).upper()
     level = getattr(logging, level_name, logging.INFO)
 
@@ -76,16 +86,16 @@ def configure_logging() -> None:
         level=level,
         format="%(asctime)s %(levelname).1s %(message)s",
         datefmt="%H:%M:%S",
+        force=True,
     )
 
-    # Suppress noisy third-party loggers
     for name in _NOISY_LOGGERS:
         logging.getLogger(name).setLevel(logging.WARNING)
 
-    logging.getLogger(__name__).info(f"✅ [LOGGING] Level={level_name} | Third-party loggers suppressed")
+    logging.getLogger(__name__).info(
+        f"✅ [LOGGING] Level={level_name} | Third-party loggers suppressed"
+    )
 
 
-# Auto-configure on import only if root logger has no handlers yet (prevents double-init)
-import logging as _logging_check  # noqa: E402
-if not _logging_check.root.handlers:
-    configure_logging()
+# Auto-configure on import
+configure_logging()

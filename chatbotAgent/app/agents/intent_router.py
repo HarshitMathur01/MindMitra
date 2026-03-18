@@ -4,7 +4,7 @@ IntentRouter — lightweight Groq-based message classifier.
 Makes ONE fast Groq call to classify every user message into:
   casual | emotional | therapeutic | crisis
 
-Reuses the already-configured Groq client from GroqNLPModule.
+Reuses the already-configured Groq client from AnalysisAgent.
 Designed to be instantiated once and called per request.
 
 Guarantee: never raises — always returns a valid dict.

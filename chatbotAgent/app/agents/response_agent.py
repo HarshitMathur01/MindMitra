@@ -236,6 +236,8 @@ ABSOLUTE RULES:
 
             # Per-path max_tokens override (Path A=150, B=300, C=500)
             invoke_kwargs: Dict[str, Any] = {}
+            if "chunk_callback" in user_context:
+                invoke_kwargs["chunk_callback"] = user_context["chunk_callback"]
             path_max_tokens = user_context.get("_response_max_tokens")
             if path_max_tokens:
                 invoke_kwargs["max_tokens"] = int(path_max_tokens)

@@ -8,9 +8,7 @@ import threading
 import logging
 from typing import Any, List, Optional
 
-# from zhipuai import ZhipuAI
 from zai import ZhipuAiClient
-
 
 from ..core.config import config
 
@@ -27,7 +25,7 @@ class GLMResponse:
         return bool(self.content)
 
 
-class GLMController:
+class LLMController:
     def __init__(
         self,
         model: str = None,
@@ -37,19 +35,19 @@ class GLMController:
     ):
         self.api_key = config.get_api_key("zai") or os.getenv("ZHIPUAI_API_KEY", "")
         if not self.api_key:
-            logger.warning("⚠️ [GLM] ZAI_API_KEY / ZHIPUAI_API_KEY not set – GLM controller may fail")
+            logger.warning("⚠️ [GLM] ZAI_API_KEY / ZHIPUAI_API_KEY not set - GLM controller may fail")
             self.api_key = "dummy_key_for_init"
 
         self.model_name = model or config.get_model("glm")
         # Read generation params from config (FIX: was hardcoded 1000/0.3/0.8)
-        self.max_tokens: int = int(config.get("glm_controller.max_tokens", 1000))
+        self.max_tokens: int = int(config.get("llm_controller.max_tokens", 1000))
         self.temperature: float = float(config.get_temperature("glm"))
-        self.top_p: float = float(config.get("glm_controller.top_p", 0.8))
+        self.top_p: float = float(config.get("llm_controller.top_p", 0.8))
 
-        max_concurrent = max_concurrent or config.get("glm_controller.max_concurrent", 1)
+        max_concurrent = max_concurrent or config.get("llm_controller.max_concurrent", 1)
         self._semaphore = threading.Semaphore(max_concurrent)
-        self._max_retries: int = max_retries or config.get("glm_controller.max_retries", 2)
-        self._base_backoff: float = base_backoff or config.get("glm_controller.base_backoff", 2.0)
+        self._max_retries: int = max_retries or config.get("llm_controller.max_retries", 2)
+        self._base_backoff: float = base_backoff or config.get("llm_controller.base_backoff", 2.0)
         self._groq_fallback = None
 
         self._client = None
@@ -63,7 +61,7 @@ class GLMController:
         """Attach a Groq client for fallback if GLM fails."""
         self._groq_fallback = groq_client
 
-    def invoke(self, messages: List[dict], **kwargs) -> GLMResponse:
+    def invoke(self, messages: List[dict], chunk_callback=None, **kwargs) -> GLMResponse:
         """Thread-safe invoke with semaphore gating and exponential back-off."""
         # Allow per-call overrides for generation params
         _max_tokens = kwargs.pop('max_tokens', self.max_tokens)
@@ -92,20 +90,36 @@ class GLMController:
                         for m in messages
                     ]
 
-                response = self._client.chat.completions.create(
-                    model=self.model_name,
-                    messages=chat_messages,
-                    max_tokens=_max_tokens,
-                    temperature=_temperature,
-                    top_p=_top_p,
-                    **kwargs,
-                )
-
-                content = (
-                    response.choices[0].message.content
-                    if response and response.choices
-                    else ""
-                )
+                if chunk_callback:
+                    response = self._client.chat.completions.create(
+                        model=self.model_name,
+                        messages=chat_messages,
+                        max_tokens=_max_tokens,
+                        temperature=_temperature,
+                        top_p=_top_p,
+                        stream=True,
+                        **kwargs,
+                    )
+                    content = ""
+                    for chunk in response:
+                        if hasattr(chunk, 'choices') and chunk.choices and hasattr(chunk.choices[0], 'delta') and chunk.choices[0].delta.content:
+                            piece = chunk.choices[0].delta.content
+                            content += piece
+                            chunk_callback(piece)
+                else:
+                    response = self._client.chat.completions.create(
+                        model=self.model_name,
+                        messages=chat_messages,
+                        max_tokens=_max_tokens,
+                        temperature=_temperature,
+                        top_p=_top_p,
+                        **kwargs,
+                    )
+                    content = (
+                        response.choices[0].message.content
+                        if response and hasattr(response, 'choices') and response.choices
+                        else ""
+                    )
                 if not content:
                     logger.warning(
                         f"⚠️ [GLM] Empty response (attempt {attempt + 1}/{self._max_retries})"

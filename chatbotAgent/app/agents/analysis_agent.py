@@ -15,7 +15,7 @@ from ..core.config import config
 logger = logging.getLogger(__name__)
 
 
-class GroqNLPModule:
+class AnalysisAgent:
     """
     Lightweight Groq client wrapper.
 

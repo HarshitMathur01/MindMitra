@@ -37,7 +37,7 @@ def create_empty_user_context(
             "user_patterns": {},
         },
 
-        # ── NLP analysis (written by GroqNLPModule) ──
+        # ── NLP analysis (written by AnalysisAgent) ──
         "nlp_analysis": {
             "emotions": {},
             "primary_emotion": "",

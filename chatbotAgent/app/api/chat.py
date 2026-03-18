@@ -532,23 +532,58 @@ async def process_chat_stream(
                     except Exception as prosody_exc:
                         logger.warning(f"⚠️ [STREAM] Prosody analysis failed: {prosody_exc}")
 
-                result = process_user_chat(
-                    user_message=request.user_message,
-                    recent_messages=context["recent_messages"],
-                    conversation_summary=context["conversation_summary"],
-                    user_activities=context["user_activities"],
-                    user_patterns={},
-                    voice_analysis=voice_analysis,
-                    user_id=user_id,
-                    session_id=request.session_id,
-                    personality=request.personality,
-                    companion_name=request.companion_name,
-                    language=request.language,
-                    previous_session_summary=prev_session_summary,
-                )
+                import queue
+                import threading
+                import asyncio
+                
+                q = queue.Queue()
+                
+                def bg_process():
+                    try:
+                        def on_chunk(chunk):
+                            q.put(("chunk", chunk))
+                        res = process_user_chat(
+                            user_message=request.user_message,
+                            recent_messages=context["recent_messages"],
+                            conversation_summary=context["conversation_summary"],
+                            user_activities=context["user_activities"],
+                            user_patterns={},
+                            voice_analysis=voice_analysis,
+                            user_id=user_id,
+                            session_id=request.session_id,
+                            personality=request.personality,
+                            companion_name=request.companion_name,
+                            language=request.language,
+                            previous_session_summary=prev_session_summary,
+                            chunk_callback=on_chunk
+                        )
+                        q.put(("done", res))
+                    except Exception as e:
+                        q.put(("error", str(e)))
+
+                thread = threading.Thread(target=bg_process)
+                thread.start()
+
+                result = {}
+                while True:
+                    try:
+                        item = q.get_nowait()
+                    except queue.Empty:
+                        await asyncio.sleep(0.01)
+                        continue
+
+                    kind, data = item
+                    if kind == "chunk":
+                        # We yield each chunk of text back dynamically for low TTFT
+                        yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': data})}\n\n"
+                    elif kind == "error":
+                        raise Exception(data)
+                    elif kind == "done":
+                        result = data
+                        break
 
                 ai_text = result.get("message", "")
-                logger.info(f"✅ [STREAM] Text ready ({len(ai_text)} chars)")
+                logger.info(f"✅ [STREAM] Full text ready ({len(ai_text)} chars)")
 
                 yield (
                     f"event: text_chunk\ndata: {json.dumps({'message': ai_text, 'modality': result.get('modality'), 'confidence': result.get('confidence', 0.8)})}\n\n"

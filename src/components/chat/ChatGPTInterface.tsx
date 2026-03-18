@@ -688,7 +688,8 @@ const ChatGPTInterface = () => {
       console.log('📡 Calling backend directly:', `${backendUrl}/chat`);
       console.log('🎭 Avatar visibility state:', isAvatarVisible);
 
-      const response = await fetch(`${backendUrl}/chat`, {
+      // Stream natively via SSE hook
+      const response = await fetch(`${backendUrl}/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -712,19 +713,75 @@ const ChatGPTInterface = () => {
         throw new Error(`Backend returned ${response.status}: ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('📡 Backend response:', data);
-
-      if (!data || !data.message) {
-        throw new Error('Invalid response from backend');
-      }
-
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullMessage = "";
+      let finalData: any = {};
+      
+      const tempId = (Date.now() + 1).toString();
       const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: data.message || "I apologize, but I'm having trouble responding right now. Please try again.",
+        id: tempId,
+        content: "",
         sender: "ai",
         timestamp: new Date(),
       };
+      
+      let isFirstChunk = true;
+
+      if (reader) {
+        while (true) {
+          const { value, done: readerDone } = await reader.read();
+          if (readerDone) break;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const sseData = JSON.parse(line.substring(6));
+                  
+                  if (isFirstChunk && (sseData.chunk || sseData.message)) {
+                    isFirstChunk = false;
+                    setIsLoading(false); // Instantly drop the "breathing space" loading bubble
+                    const currentSessionCheck = localStorage.getItem('currentChatSession');
+                    if (currentSessionCheck === sessionIdToUse) {
+                      setMessages(prev => [...prev, aiResponse]);
+                    }
+                  }
+
+                  if (sseData.chunk) {
+                    fullMessage += sseData.chunk;
+                    setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: fullMessage } : msg));
+                  } else if (sseData.message) {
+                    if (isFirstChunk) { // Fallback if no chunks received
+                        isFirstChunk = false;
+                        setIsLoading(false);
+                        const currentSessionCheck = localStorage.getItem('currentChatSession');
+                        if (currentSessionCheck === sessionIdToUse) {
+                          setMessages(prev => [...prev, aiResponse]);
+                        }
+                    }
+                    finalData = sseData;
+                    fullMessage = sseData.message; // Ensure exact final match
+                    setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: fullMessage } : msg));
+                  } else if (sseData.error) {
+                    console.error('SSE Error:', sseData.error);
+                  }
+                } catch (e) {}
+              }
+            }
+          }
+        }
+      }
+
+      console.log('📡 Stream complete. Final data:', finalData);
+      const data = finalData;
+      
+      if (!data || !data.message) {
+         // Fallback if missing payload
+         data.message = fullMessage || "I apologize, but I'm having trouble responding right now.";
+      }
+      aiResponse.content = data.message;
 
       console.log(`AI Response: ${aiResponse.content}`);
 
@@ -741,12 +798,6 @@ const ChatGPTInterface = () => {
         facialExpression: data.facial_expression
       });
       addAvatarMessage(data);
-
-      // Only add AI response if we're still on the same session
-      const currentSession = localStorage.getItem('currentChatSession');
-      if (currentSession === sessionIdToUse) {
-        setMessages(prev => [...prev, aiResponse]);
-      }
 
       // Save AI response to database (non-blocking - ⚡ P0 optimization)
       saveMessage(aiResponse, sessionIdToUse).catch(err =>

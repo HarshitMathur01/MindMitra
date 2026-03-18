@@ -90,7 +90,7 @@ class Config:
                 "temperature": 0.1,
                 "max_tokens": 400,
             },
-            "glm_controller": {
+            "llm_controller": {
                 "model": "glm-4-32b",
                 "max_concurrent": 1,
                 "max_retries": 2,
@@ -189,7 +189,7 @@ class Config:
     def get_temperature(self, module: str) -> float:
         temp_paths = {
             "nlp": "nlp_module.temperature",
-            "glm": "glm_controller.temperature",
+            "glm": "llm_controller.temperature",
             "screening": "screening_assessments.temperature",
         }
         path = temp_paths.get(module)

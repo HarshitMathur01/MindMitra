@@ -70,19 +70,19 @@ const moodOptions: MoodOption[] = [
 
 const affirmationsByPeriod: Record<"morning" | "afternoon" | "evening", string[]> = {
   morning: [
-    "You are stronger than you think, and braver than you feel. 🏋️",
-    "A steady start is still powerful progress. 🌤️",
-    "Today begins with your courage, one breath at a time. 🌱",
+    "Bhagavad Gita, Chapter 2, Verse 47\nकर्मण्येवाधिकारस्ते मा फलेषु कदाचन।\nYou have a right to action alone, never to its fruits.",
+    "Bhagavad Gita, Chapter 6, Verse 5\nउद्धरेदात्मनात्मानं नात्मानमवसादयेत्।\nLet a person lift oneself by oneself; do not let oneself fall.",
+    "Bhagavad Gita, Chapter 18, Verse 66\nसर्वधर्मान्परित्यज्य मामेकं शरणं व्रज।\nAbandon all duties and take refuge in Me alone.",
   ],
   afternoon: [
-    "You are doing enough for this moment, and that matters. 💛",
-    "Pause, reset, and continue with self-trust. 🌿",
-    "Your effort today carries quiet strength. ✨",
+    "Bhagavad Gita, Chapter 2, Verse 14\nमात्रास्पर्शास्तु कौन्तेय शीतोष्णसुखदुःखदाः।\nThe contact of the senses with matter gives rise to cold and heat, pleasure and pain.",
+    "Bhagavad Gita, Chapter 2, Verse 48\nयोगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय।\nEstablished in yoga, perform your actions and abandon attachment.",
+    "Bhagavad Gita, Chapter 6, Verse 26\nयतो यतो निश्चरति मनश्चञ्चलमस्थिरम्।\nWhenever the restless and unsteady mind wanders, bring it back.",
   ],
   evening: [
-    "You made it through today with heart—rest is deserved. 🌙",
-    "You can release today gently and keep your peace. 🕊️",
-    "Your worth is not measured by productivity; you are enough. 🌸",
+    "Bhagavad Gita, Chapter 6, Verse 6\nबन्धुरात्मात्मनस्तस्य येनात्मैवात्मना जितः।\nFor one who has conquered the mind, the mind is the best friend.",
+    "Bhagavad Gita, Chapter 12, Verse 13\nअद्वेष्टा सर्वभूतानां मैत्रः करुण एव च।\nOne who is non-hateful, friendly, and compassionate to all beings.",
+    "Bhagavad Gita, Chapter 18, Verse 62\nतमेव शरणं गच्छ सर्वभावेन भारत।\nTake refuge in Him with all your heart.",
   ],
 };
 
@@ -336,13 +336,12 @@ const getDynamicAffirmation = (date: Date, period: "morning" | "afternoon" | "ev
   const dayIndex = getDayOfYear(date);
   const hourIndex = date.getHours();
   const pool = affirmationsByPeriod[period];
-  const baseAffirmation = pool[(dayIndex + hourIndex) % pool.length];
+  return pool[(dayIndex + hourIndex) % pool.length];
+};
 
-  const region = getRegionCode();
-  const culturalPrefixes = culturalPrefixByRegion[region] ?? ["You are valued", "You are supported"];
-  const prefix = culturalPrefixes[(dayIndex + hourIndex) % culturalPrefixes.length];
-
-  return `${prefix} — ${baseAffirmation}`;
+const getRandomAffirmation = (period: "morning" | "afternoon" | "evening") => {
+  const pool = affirmationsByPeriod[period];
+  return pool[Math.floor(Math.random() * pool.length)];
 };
 
 const getNextDayPeriodBoundary = (current: Date) => {
@@ -454,7 +453,7 @@ const Index = () => {
   }, [user]);
 
   const avatarInitial = displayName.charAt(0).toUpperCase() || "F";
-  const affirmation = getDynamicAffirmation(now, dayPeriod);
+  const [affirmation] = useState(() => getRandomAffirmation(dayPeriod));
   const resolvedWeekMoods = loggedWeekMoods.length > 0 ? loggedWeekMoods : dummyWeekMoods;
   const loopedContentCards = useMemo(
     () => (
@@ -809,13 +808,15 @@ const Index = () => {
         </section>
 
         <section
-          className="mm-dashboard-stagger rounded-[24px] border-l-4 border-primary bg-primary/10 px-5 py-4 shadow-[0_16px_35px_rgba(129,140,248,0.12)]"
+          className="mm-dashboard-stagger rounded-[24px] border border-primary/20 border-l-4 border-l-primary bg-primary/10 px-5 py-4 shadow-[0_16px_35px_rgba(129,140,248,0.12)] dark:border-slate-700 dark:bg-slate-900/70 dark:shadow-[0_16px_35px_rgba(15,23,42,0.35)]"
           style={getDashboardRevealStyle(1)}
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary dark:text-sky-300">
             Daily affirmation 💫
           </p>
-          <p className="mt-2 text-[15px] leading-6 text-foreground">{affirmation}</p>
+          <p className="mt-2 max-w-3xl whitespace-pre-line text-[15px] leading-7 text-foreground dark:text-slate-100">
+            {affirmation}
+          </p>
         </section>
 
         <div className="mm-dashboard-stagger" style={getDashboardRevealStyle(2)}>
@@ -949,21 +950,21 @@ const Index = () => {
 
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(7)}>
           <SectionHeader title="Habits" action="See all >" />
-          <div className="rounded-[28px] bg-gradient-to-r from-[#F8B4B4] via-[#FDBA8C] to-[#FCD9B6] p-5 text-white shadow-[0_24px_50px_rgba(249,115,22,0.18)]">
+          <button
+            type="button"
+            onClick={() => navigate("/healthy-habits")}
+            className="w-full rounded-[28px] bg-gradient-to-r from-[#F8B4B4] via-[#FDBA8C] to-[#FCD9B6] p-5 text-left text-white shadow-[0_24px_50px_rgba(249,115,22,0.18)] transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+          >
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="max-w-lg">
                 <h2 className="text-2xl font-bold">Build Healthy Habits!</h2>
                 <p className="mt-2 text-sm leading-6 text-white/90">
                   A new way to nurture your mind, one step at a time.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => navigate("/healthy-habits")}
-                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.20)] transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]"
-                >
+                <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.20)] transition-all duration-200 group-hover:scale-[1.04] active:scale-[0.98]">
                   Get Started
                   <ArrowRight className="h-4 w-4" />
-                </button>
+                </span>
               </div>
               <img
                 src="/image7.png"
@@ -971,7 +972,7 @@ const Index = () => {
                 className="h-28 w-full max-w-[160px] shrink-0 rounded-[20px] object-cover shadow-[0_12px_28px_rgba(0,0,0,0.12)]"
               />
             </div>
-          </div>
+          </button>
         </section>
 
         <section
@@ -1189,10 +1190,12 @@ const Index = () => {
           style={getDashboardRevealStyle(16)}
         >
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Daily Insight</p>
-          <p className="mt-2 text-[15px] font-medium italic leading-relaxed text-foreground">
-            &ldquo;{dailyQuote.text}&rdquo;
-          </p>
-          <p className="mt-2 text-sm font-semibold text-muted-foreground">— {dailyQuote.writer}</p>
+          <div className="mt-2 inline-flex flex-col items-start">
+            <p className="text-[15px] font-medium italic leading-relaxed text-foreground">
+              &ldquo;{dailyQuote.text}&rdquo;
+            </p>
+            <p className="mt-2 self-end text-sm font-semibold text-muted-foreground">— {dailyQuote.writer}</p>
+          </div>
         </section>
       </main>
 

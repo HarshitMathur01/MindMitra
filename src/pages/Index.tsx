@@ -103,8 +103,8 @@ const quickActions: QuickAction[] = [
     title: "Breathe",
     duration: "3 min",
     icon: Wind,
-    bg: "bg-teal-50 dark:bg-teal-500/10",
-    iconColor: "text-teal-700 dark:text-teal-400",
+    bg: "bg-primary/10 dark:bg-primary/15",
+    iconColor: "text-primary dark:text-primary",
     route: "/breathe",
     weeklyDone: 4,
   },
@@ -112,8 +112,8 @@ const quickActions: QuickAction[] = [
     title: "Meditate",
     duration: "10 min",
     icon: Sparkles,
-    bg: "bg-amber-50 dark:bg-amber-500/10",
-    iconColor: "text-amber-700 dark:text-amber-400",
+    bg: "bg-primary/10 dark:bg-primary/15",
+    iconColor: "text-primary dark:text-primary",
     route: "/meditate",
     weeklyDone: 5,
   },
@@ -121,8 +121,8 @@ const quickActions: QuickAction[] = [
     title: "Journal",
     duration: "5 min",
     icon: BookOpen,
-    bg: "bg-yellow-50 dark:bg-yellow-500/10",
-    iconColor: "text-yellow-700 dark:text-yellow-400",
+    bg: "bg-primary/10 dark:bg-primary/15",
+    iconColor: "text-primary dark:text-primary",
     route: "/journal",
     weeklyDone: 3,
   },
@@ -130,8 +130,8 @@ const quickActions: QuickAction[] = [
     title: "Gratitude",
     duration: "3 min",
     icon: Heart,
-    bg: "bg-pink-50 dark:bg-pink-500/10",
-    iconColor: "text-pink-700 dark:text-pink-400",
+    bg: "bg-primary/10 dark:bg-primary/15",
+    iconColor: "text-primary dark:text-primary",
     route: "/gratitude",
     weeklyDone: 2,
   },
@@ -878,26 +878,28 @@ const Index = () => {
                   key={action.title}
                   type="button"
                   onClick={() => navigate(action.route)}
-                  className={`relative min-w-[100px] flex-1 rounded-3xl p-4 text-left transition-transform duration-150 hover:scale-[1.03] active:scale-[0.97] md:min-w-0 ${action.bg}`}
+                  className={`group relative min-w-[100px] flex-1 overflow-hidden rounded-[28px] border border-white/50 p-4 text-left shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_22px_50px_rgba(15,23,42,0.14)] active:scale-[0.98] md:min-w-0 dark:border-white/10 dark:shadow-[0_16px_36px_rgba(2,6,23,0.35)] ${action.bg}`}
                 >
+                  <span className="absolute inset-0 bg-gradient-to-br from-white/35 via-transparent to-black/5 opacity-70 transition-opacity duration-200 group-hover:opacity-100 dark:from-white/10 dark:to-black/10" />
+                  <span className="absolute -right-5 -top-5 h-20 w-20 rounded-full bg-white/20 blur-2xl transition-transform duration-300 group-hover:scale-110" />
                   {/* Completion dot */}
                   {action.weeklyDone >= 7 && (
                     <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-green-400 shadow-sm" />
                   )}
                   {/* Icon with gradient ring */}
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-background/70 dark:bg-white/10 ring-2 ring-white/60 dark:ring-white/10 ${action.iconColor}`}>
-                    <Icon className="h-5 w-5" />
+                  <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-[0_8px_18px_rgba(255,255,255,0.35)] ring-2 ring-white/70 backdrop-blur-sm transition-transform duration-200 group-hover:scale-105 dark:bg-white/10 dark:ring-white/10 ${action.iconColor}`}>
+                    <Icon className="h-5 w-5 drop-shadow-sm" />
                   </div>
-                  <p className="mt-4 text-sm font-semibold text-foreground">{action.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{action.duration}</p>
+                  <p className="relative mt-4 text-sm font-semibold text-foreground">{action.title}</p>
+                  <p className="relative mt-0.5 text-xs font-medium text-muted-foreground">{action.duration}</p>
                   {/* Weekly progress bar */}
-                  <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+                  <div className="relative mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
                     <div
-                      className="h-full rounded-full bg-current opacity-50"
+                      className="h-full rounded-full bg-current opacity-60 transition-all duration-300 group-hover:opacity-80"
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>
-                  <p className="mt-1 text-[10px] text-muted-foreground">{action.weeklyDone}/7 this week</p>
+                  <p className="relative mt-1 text-[10px] font-medium text-muted-foreground">{action.weeklyDone}/7 this week</p>
                 </button>
               );
             })}

@@ -142,7 +142,7 @@ const THERAPEUTIC_MOODS = {
             browOuterUpLeft: 0.05, browOuterUpRight: 0.05,
             eyeSquintLeft: 0.22, eyeSquintRight: 0.22,
             eyeWideLeft: 0.05, eyeWideRight: 0.05,
-            eyeLookDownLeft: 0.10, eyeLookDownRight: 0.10,
+            eyeLookDownLeft: 0.04, eyeLookDownRight: 0.04,
             mouthFrownLeft: 0.20, mouthFrownRight: 0.20,
             mouthPressLeft: 0.12, mouthPressRight: 0.12,   // suppressed emotion
             mouthRollLower: 0.08,                           // bitten lower lip
@@ -165,7 +165,7 @@ const THERAPEUTIC_MOODS = {
             browOuterUpLeft: 0.30, browOuterUpRight: 0.30,
             eyeWideLeft: 0.30, eyeWideRight: 0.30,
             eyeSquintLeft: 0.04, eyeSquintRight: 0.04,
-            eyeLookDownLeft: 0.06, eyeLookDownRight: 0.06,
+            eyeLookDownLeft: 0.03, eyeLookDownRight: 0.03,
             mouthFrownLeft: 0.20, mouthFrownRight: 0.20,
             mouthStretchLeft: 0.10, mouthStretchRight: 0.10, // tense corners
             mouthPressLeft: 0.06, mouthPressRight: 0.06,
@@ -187,7 +187,7 @@ const THERAPEUTIC_MOODS = {
             browOuterUpLeft: 0.18, browOuterUpRight: 0.18,
             eyeSquintLeft: 0.38, eyeSquintRight: 0.38,   // Duchenne — essential
             eyeWideLeft: 0.04, eyeWideRight: 0.04,
-            eyeLookDownLeft: 0.04, eyeLookDownRight: 0.04,
+            eyeLookDownLeft: 0.02, eyeLookDownRight: 0.02,
             mouthSmileLeft: 0.44, mouthSmileRight: 0.44,
             mouthDimpleLeft: 0.14, mouthDimpleRight: 0.14,
             mouthShrugUpper: 0.06,                       // slight upper lip lift
@@ -208,7 +208,7 @@ const THERAPEUTIC_MOODS = {
             browDownLeft: 0.00, browDownRight: 0.00,
             eyeWideLeft: 0.22, eyeWideRight: 0.22,
             eyeSquintLeft: 0.06, eyeSquintRight: 0.06,
-            eyeLookDownLeft: 0.06, eyeLookDownRight: 0.06,
+            eyeLookDownLeft: 0.03, eyeLookDownRight: 0.03,
             mouthSmileLeft: 0.12, mouthSmileRight: 0.12,
             mouthStretchLeft: 0.06, mouthStretchRight: 0.06, // slight part
             mouthDimpleLeft: 0.04, mouthDimpleRight: 0.04,
@@ -227,7 +227,7 @@ const THERAPEUTIC_MOODS = {
             browDownLeft: 0.02, browDownRight: 0.02,
             eyeSquintLeft: 0.18, eyeSquintRight: 0.18,  // soft-lidded
             eyeWideLeft: 0.00, eyeWideRight: 0.00,
-            eyeLookDownLeft: 0.20, eyeLookDownRight: 0.20, // soft downward gaze
+            eyeLookDownLeft: 0.08, eyeLookDownRight: 0.08, // soft downward gaze
             mouthSmileLeft: 0.09, mouthSmileRight: 0.09,
             mouthPucker: 0.04,                            // very slight collect
             mouthRollLower: 0.05,                         // lower lip gently inward
@@ -246,7 +246,7 @@ const THERAPEUTIC_MOODS = {
             browDownLeft: 0.00, browDownRight: 0.00,
             eyeWideLeft: 0.07, eyeWideRight: 0.07,
             eyeSquintLeft: 0.07, eyeSquintRight: 0.07,
-            eyeLookDownLeft: 0.07, eyeLookDownRight: 0.07,
+            eyeLookDownLeft: 0.03, eyeLookDownRight: 0.03,
             mouthSmileLeft: 0.07, mouthSmileRight: 0.07,
             mouthDimpleLeft: 0.03, mouthDimpleRight: 0.03,
             cheekSquintLeft: 0.04, cheekSquintRight: 0.04,

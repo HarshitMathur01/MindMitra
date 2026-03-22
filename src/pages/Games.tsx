@@ -255,6 +255,14 @@ const Games = () => {
                   whileTap={{ scale: 0.98 }}
                   style={{ willChange: 'transform' }}
                   className="group perspective-1000 cursor-pointer"
+                  onClick={() => {
+                    if (game.id === 'memory') navigate('/memory-challenge');
+                    if (game.id === 'emoji-match') navigate('/emoji-match');
+                    if (game.id === 'emotion-match') navigate('/emotion-match');
+                    if (game.id === 'mood-mountain') navigate('/mood-mountain');
+                    if (game.id === 'thought-detective') navigate('/thought-detective');
+                    if (game.id === 'balloon') navigate('/balloon-pop');
+                  }}
                 >
                   <Card className={`
                     relative p-6 h-full overflow-hidden
@@ -325,17 +333,9 @@ const Games = () => {
                             hover:shadow-xl transition-all duration-300
                             group/btn
                           `}
-                          onClick={() => {
-                            if (game.id === 'memory') navigate('/memory-challenge');
-                            if (game.id === 'emoji-match') navigate('/emoji-match');
-                            if (game.id === 'emotion-match') navigate('/emotion-match');
-                            if (game.id === 'mood-mountain') navigate('/mood-mountain');
-                            if (game.id === 'thought-detective') navigate('/thought-detective');
-                            if (game.id === 'balloon') navigate('/balloon-pop');
-                          }}
                         >
                           <span>Play Now</span>
-                          <span className="inline-block ml-2">→</span>
+                          <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
                         </Button>
                       </motion.div>
                     </div>

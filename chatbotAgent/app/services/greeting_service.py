@@ -33,11 +33,11 @@ def _load_greeting_pool() -> Dict[str, Any]:
             logger.error(f"❌ [GREETING] Pool load failed: {exc} — using minimal fallback")
             _greeting_pool = {
                 "english": {
-                    "morning":    ["Good morning! How are you feeling today?"],
-                    "day":        ["Hey! What's on your mind?"],
-                    "evening":    ["Hey! How was your day?"],
-                    "night":      ["Hi there! How are you doing tonight?"],
-                    "late_night": ["Hey! Still up? How are you feeling?"],
+                    "morning":    ["Good morning. Hope last night treated you well. ☀️"],
+                    "day":        ["Hey. Glad you're here."],
+                    "evening":    ["Hey. The day's winding down. You made it through."],
+                    "night":      ["Hey. Good time to check in with yourself."],
+                    "late_night": ["Still up? No judgment. Sometimes the brain doesn't have an off switch."],
                 }
             }
     return _greeting_pool
@@ -74,11 +74,20 @@ def _resolve_language_style(user_id: str) -> str:
 # ── personality greetings ──────────────────────────────────────────────────
 # Maps companion personality id → greeting template. {name} is replaced at runtime.
 _PERSONALITY_GREETINGS: Dict[str, str] = {
-    "mitra": "Namaste. I'm {name}, and I'm really glad you're here. This is your safe space — no rush, no pressure. How are you feeling today?",
-    "arjun": "Hey! I'm {name}. Let's figure out what's weighing on you and tackle it together — one step at a time. What's the biggest thing on your mind right now?",
-    "diya":  "Hi, I'm {name}! I love exploring the 'why' behind our feelings — because understanding them is the first step to changing them. What's been on your mind lately?",
-    "riya":  "Hey hey hey! I'm {name} and I'm SO glad you're here! Seriously, just showing up today? That takes courage. Now tell me — what's going on with you?",
-    "zen":   "Welcome... I'm {name}. Before anything else, let's just take one slow breath together. In... and out. There's nowhere else you need to be right now. What would you like to explore today?",
+    "mitra": "Hey. I'm {name}, and I'm really glad you're here. This is your space — no rush, no pressure. 🫶",
+    "arjun": "Hey, I'm {name}. Whatever brought you here — let's figure it out together.",
+    "diya":  "Hi! I'm {name}. Something tells me you and I are going to have some interesting conversations.",
+    "riya":  "Hiii! I'm {name} and honestly? Just the fact that you showed up today? Already iconic. 💛",
+    "zen":   "Welcome. I'm {name}. Take a breath. There's nowhere else you need to be right now.",
+}
+
+# Returning user greetings — memory-powered, no trailing questions
+_RETURNING_GREETINGS: Dict[str, str] = {
+    "mitra": "Hey, welcome back. I've been thinking about what you shared last time.",
+    "arjun": "Good to see you. Last time we were working on something — I remember.",
+    "diya":  "Oh hey! I had a thought about something you said before...",
+    "riya":  "You're BACK! Okay I actually remembered something from our last chat. 😄",
+    "zen":   "Welcome back. Something from last time stayed with me.",
 }
 
 _PERSONALITY_NAMES: Dict[str, str] = {
@@ -90,18 +99,18 @@ _PERSONALITY_NAMES: Dict[str, str] = {
 # Maps common session themes to low-latency personalized continuity lines
 # that get appended to greetings. No LLM call — pure Python lookup.
 _THEME_CONTINUITY_HINTS: Dict[str, str] = {
-    "exam": "Last time we talked about exams — how's that going?",
-    "academic": "You were dealing with some academic pressure before — any updates?",
-    "family": "I remember we talked about family stuff — how are things at home?",
-    "relationship": "Last time we chatted about relationships — how's that been?",
-    "anxiety": "You mentioned feeling anxious last time — how are you feeling now?",
-    "stress": "I remember you were stressed about some things — has anything shifted?",
-    "sleep": "You mentioned sleep troubles before — getting any better?",
-    "loneliness": "Last time you shared about feeling lonely — how's it been since?",
-    "career": "You were thinking about career stuff — anything new?",
-    "self-esteem": "I remember you were working through some self-esteem stuff — how are you feeling about yourself lately?",
-    "anger": "Last time there was some frustration — has that eased up?",
-    "sadness": "You were going through a tough time before — how are things now?",
+    "exam": "I've been thinking about what you said about exams.",
+    "academic": "I remember the academic pressure you were dealing with.",
+    "family": "I remember we talked about family stuff — that stayed with me.",
+    "relationship": "I kept thinking about what you shared about relationships.",
+    "anxiety": "I remember the anxiety you mentioned last time.",
+    "stress": "I've been thinking about what was stressing you out.",
+    "sleep": "I remember you mentioned sleep troubles — that's been on my mind.",
+    "loneliness": "What you shared about feeling lonely last time stayed with me.",
+    "career": "I've been thinking about the career stuff you mentioned.",
+    "self-esteem": "I remember what you were working through with self-esteem.",
+    "anger": "I remember the frustration from last time.",
+    "sadness": "I've been thinking about what you were going through.",
 }
 
 
@@ -172,13 +181,16 @@ def generate_greeting(
         # If a companion personality is set, use its dedicated greeting
         if personality and personality in _PERSONALITY_GREETINGS:
             name = (companion_name or "").strip() or _PERSONALITY_NAMES.get(personality, "Mitra")
-            greeting_text = _PERSONALITY_GREETINGS[personality].format(name=name)
             language_style = _resolve_language_style(user_id)
 
-            # Cross-session continuity: append personalized callback if available
+            # Cross-session continuity: use returning greeting + continuity hint
             continuity = _get_continuity_reference(user_id, session_id)
-            if continuity:
+            if continuity and personality in _RETURNING_GREETINGS:
+                # Returning user — use memory-powered greeting
+                greeting_text = _RETURNING_GREETINGS[personality].format(name=name)
                 greeting_text += continuity
+            else:
+                greeting_text = _PERSONALITY_GREETINGS[personality].format(name=name)
 
             logger.info(
                 f"✅ [GREETING] personality={personality} name={name} "
@@ -221,7 +233,7 @@ def generate_greeting(
     except Exception as exc:
         logger.error(f"❌ [GREETING] Generation failed: {exc}")
         return {
-            "greeting":      "Hey! What's on your mind?",
+            "greeting":      "Hey. Glad you're here.",
             "show_greeting": True,
             "language_used": "english",
             "time_slot":     "day",

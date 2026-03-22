@@ -1,158 +1,158 @@
 {
   "english": {
     "morning": [
-      "Good morning! ☀️",
-      "Hey! How's the morning treating you?",
-      "Morning! What's on your mind?",
-      "Hey! Early start today?",
-      "Good morning! Ready to chat?",
-      "Hey! How did you sleep?",
-      "Morning! How's it going?",
-      "Hey there! Fresh start today?"
+      "Good morning. Hope last night treated you well. ☀️",
+      "Morning. New day, new energy.",
+      "Hey, early start. Something tells me today matters.",
+      "Good morning. Fresh start — you've got this.",
+      "Morning. The day's wide open.",
+      "Hey. Morning light hits different.",
+      "Good morning. Whatever yesterday was, today is new.",
+      "Morning. Glad you're here."
     ],
     "day": [
-      "Hey! What's up?",
-      "Hi! How's it going?",
-      "Hey there! Ready to chat?",
-      "Hi! What's on your mind?",
-      "Hey! How's your day?",
-      "Hi there! Want to talk?",
-      "Hey! What brings you here?",
-      "Hi! How are you doing?"
+      "Hey. Glad you're here.",
+      "Perfect timing.",
+      "Hey. Whatever's going on — you don't have to carry it alone.",
+      "Hey. Good to see you.",
+      "Hi. You showed up — that counts.",
+      "Hey. Right on time.",
+      "Hi. Glad you stopped by.",
+      "Hey. Let's hang."
     ],
     "evening": [
-      "Good evening!",
-      "Hey! How was your day?",
-      "Evening! Want to talk?",
-      "Hi! How're you doing?",
-      "Hey! Ready to unwind?",
-      "Good evening! What's up?",
-      "Hey! How's your evening?",
-      "Hi! Want to chat?"
+      "Hey. The day's winding down. You made it through.",
+      "Evening. Before the day ends — you did enough today.",
+      "Hey. Good time to check in with yourself.",
+      "Evening. Winding down is an underrated skill.",
+      "Hey. Almost done with today. You held it together.",
+      "Good evening. Time to breathe.",
+      "Hey. The hard part of today is behind you.",
+      "Evening. You survived another one. 💛"
     ],
     "night": [
-      "Hey! What's going on?",
-      "Hi! How's your night?",
-      "Hey there! Want to chat?",
-      "Hi! What's on your mind?",
-      "Hey! How are you?",
-      "Hi there! Ready to talk?",
-      "Hey! What brings you here?",
-      "Hi! How's it going?"
+      "Hey. Good time to check in with yourself.",
+      "Night. These hours have a way of making things feel bigger.",
+      "Hey. Quieter now — good time to think.",
+      "Hi. Night-time thoughts are a whole different thing.",
+      "Hey. The day is done. You can let go now.",
+      "Night. Sometimes the best conversations happen after dark.",
+      "Hey. Hope the day was kind to you.",
+      "Hi. Settling in for the night."
     ],
     "late_night": [
-      "Hey! Can't sleep?",
-      "Hi! Up late tonight?",
-      "Hey! What's keeping you up?",
-      "Hi there! Rough night?",
-      "Hey! Still awake?",
-      "Hi! Everything okay?",
-      "Hey! What's on your mind?",
-      "Hi! Want to talk?"
+      "Still up? No judgment. Sometimes the brain doesn't have an off switch.",
+      "Late night. These hours hit different.",
+      "Hey, night owl. Sometimes the quiet hours are when the real thoughts show up.",
+      "Still awake. That's okay — I'm here too.",
+      "Late night energy. No rush, no pressure.",
+      "Hey. Can't sleep, or don't want to? Either way, I'm here.",
+      "The world's asleep but your mind isn't. That's okay.",
+      "Late night. Sometimes you just need someone to sit with."
     ]
   },
   "hinglish": {
     "morning": [
-      "Good morning! Kaise ho?",
-      "Hey! Subah kaise chal rahi hai?",
-      "Morning yaar! What's up?",
-      "Hey! Neend kaisi thi?",
-      "Good morning! Sab theek?",
-      "Hey! Kya haal hai?",
-      "Morning! Ready to chat?",
-      "Hey yaar! How's it going?"
+      "Good morning! Hope raat okay gayi. ☀️",
+      "Morning. New day, fresh start.",
+      "Hey, early bird. Kuch bata raha hai aaj special hoga.",
+      "Good morning. Naya din, nayi energy.",
+      "Morning yaar. Aaj ka din tumhara hai.",
+      "Hey. Subah ki chai ho gayi? ☕",
+      "Good morning. Whatever kal tha, aaj naya hai.",
+      "Morning. Glad you're here yaar."
     ],
     "day": [
-      "Hey! Kaise ho?",
-      "Hi! Sab theek?",
-      "Hey yaar! Kya chal raha hai?",
-      "Hi! What's going on?",
-      "Hey! Kya haal hai?",
-      "Hi yaar! How's your day?",
-      "Hey! Sab badhiya?",
-      "Hi! Want to chat?"
+      "Hey, glad you're here yaar.",
+      "Perfect timing.",
+      "Hey. Whatever's going on — akele nahi face karna hai.",
+      "Hey yaar. Acha kiya aaye.",
+      "Hi. Showing up matters — yaad rakhna.",
+      "Hey. Sahi waqt pe aaye ho.",
+      "Hi yaar. Good to see you.",
+      "Hey. Let's talk."
     ],
     "evening": [
-      "Hey! Din kaisa gaya?",
-      "Good evening! Kaise ho?",
-      "Hey yaar! How was your day?",
-      "Hi! Sab badhiya?",
-      "Evening! Kya haal hai?",
-      "Hey! Thak gaye kya?",
-      "Hi yaar! Ready to relax?",
-      "Hey! What's up?"
+      "Hey. Din almost done. You made it through.",
+      "Evening. Before din khatam ho — enough kiya aaj tumne.",
+      "Hey. Good time to check in with yourself.",
+      "Evening yaar. Thoda breathe karo.",
+      "Hey. Aaj ka mushkil part khatam hua.",
+      "Good evening. Ab relax karo.",
+      "Hey. Din bhar lage rehe — ab thoda rest.",
+      "Evening. You survived another one. 💛"
     ],
     "night": [
-      "Hey! Kya chal raha hai?",
-      "Hi! Raat kaise chal rahi?",
-      "Hey yaar! What's up?",
-      "Hi! Kaisa hai sab?",
-      "Hey! Sab theek?",
-      "Hi yaar! Want to talk?",
-      "Hey! Kaise ho?",
-      "Hi! What's going on?"
+      "Hey. Raat ka time alag hota hai — thoughts zyada aate hain.",
+      "Night. Achha time hai apne se baat karne ka.",
+      "Hey yaar. Din khatam hua. Ab let go karo.",
+      "Hi. Night-time thoughts hit different.",
+      "Hey. Hope din acha gaya.",
+      "Night. Best conversations kabhi kabhi raat mein hoti hain.",
+      "Hey. Settling in for the night.",
+      "Hi. Raat ko sab intense lagta hai — that's normal."
     ],
     "late_night": [
-      "Hey! Neend nahi aa rahi?",
-      "Hi! Abhi tak jaage ho?",
-      "Hey yaar! Late night thoughts?",
-      "Hi! Kya baat hai?",
-      "Hey! Still up?",
-      "Hi yaar! Everything okay?",
-      "Hey! Sab theek?",
-      "Hi! Want to chat?"
+      "Abhi tak jaag rahe? No judgment. Brain ka off switch nahi hota kabhi kabhi.",
+      "Late night. Ye hours alag hote hain.",
+      "Hey night owl. Quiet hours mein real thoughts aate hain.",
+      "Still awake. That's okay — main bhi hoon.",
+      "Late night energy. No rush yaar.",
+      "Hey. Neend nahi aa rahi ya aana nahi chahte? Either way, I'm here.",
+      "Duniya so gayi but tumhara mind nahi. That's okay.",
+      "Late night. Kabhi kabhi bas kisi ki zaroorat hoti hai saath baithne ke liye."
     ]
   },
   "hindi_mixed": {
     "morning": [
-      "Namaste! Kaise ho?",
-      "Subah bakhair! Kya haal hai?",
-      "Hey! Din kaisa shuru hua?",
-      "Good morning! Sab theek?",
-      "Namaste! Neend kaisi thi?",
-      "Hey! Subah kaise chal rahi?",
-      "Good morning! Kya haal hai?",
-      "Namaste! Ready to chat?"
+      "Namaste. Umeed hai raat achhi rahi. ☀️",
+      "Subah ho gayi. Naya din, nayi shuruaat.",
+      "Hey, aaj ka din kuch khaas hone wala hai.",
+      "Good morning. Naya din, nayi energy.",
+      "Subah bakhair. Aaj tumhara din hai.",
+      "Hey. Chai ho gayi? ☕",
+      "Namaste. Jo kal tha, woh kal tha. Aaj naya hai.",
+      "Subah. Acha kiya aaye."
     ],
     "day": [
-      "Namaste! Kaise ho?",
-      "Hey! Sab badhiya?",
-      "Hi! Kya chal raha hai?",
-      "Kaise ho bhai?",
-      "Hey! Din kaisa hai?",
-      "Namaste! Sab theek?",
-      "Hi! Kya haal hai?",
-      "Hey! Want to talk?"
+      "Hey, acha kiya aaye.",
+      "Sahi waqt pe aaye ho.",
+      "Hey. Jo bhi chal raha hai — akele carry nahi karna.",
+      "Namaste. Tumhara aana matter karta hai.",
+      "Hey. Good to see you.",
+      "Hi. Sahi waqt hai baat karne ka.",
+      "Hey. Glad you're here.",
+      "Namaste. Chalte hain."
     ],
     "evening": [
-      "Namaste! Din kaisa raha?",
-      "Shaam bakhair! Kaise ho?",
-      "Hey! Sab theek chala?",
-      "Evening! Kya haal hai?",
-      "Namaste! How was your day?",
-      "Hey! Thak gaye?",
-      "Good evening! Sab badhiya?",
-      "Hi! Ready to unwind?"
+      "Shaam ho gayi. Din nikal gaya — tum ne kar liya.",
+      "Hey. Din khatam hone se pehle — enough kiya aaj tumne.",
+      "Hey. Apne aap se check-in ka sahi waqt hai.",
+      "Shaam bakhair. Thoda saans lo.",
+      "Hey. Aaj ka mushkil hissa khatam hua.",
+      "Good evening. Ab aaram karo.",
+      "Hey. Din bhar lage rehe — ab thoda rest.",
+      "Shaam. Aaj bhi nikal gaya. 💛"
     ],
     "night": [
-      "Hey! Raat kaise chal rahi?",
-      "Hi! Sab theek?",
-      "Kaise ho? Raat mein jagah hai?",
-      "Hey! Kya chal raha hai?",
-      "Namaste! What's going on?",
-      "Hi! Raat kaisi hai?",
-      "Hey! Want to chat?",
-      "Hi! Sab badhiya?"
+      "Hey. Raat ka waqt alag hota hai — sochte zyada hain.",
+      "Raat. Achha waqt hai apne se baat karne ka.",
+      "Hey. Din khatam hua. Let go karo ab.",
+      "Hi. Raat mein sab intense lagta hai — normal hai.",
+      "Hey. Umeed hai din achha gaya.",
+      "Raat. Kabhi kabhi best baatein raat mein hoti hain.",
+      "Hey. Raat ki neend aa rahi hai.",
+      "Hi. Aaj ka din poora hua."
     ],
     "late_night": [
-      "Hey! Neend nahi aa rahi kya?",
-      "Hi! Abhi tak jaag rahe?",
-      "Kya baat hai? Raat ko tension?",
-      "Hey! Sab theek?",
-      "Hi! Still awake?",
-      "Hey! Koi problem hai?",
-      "Hi! Want to talk?",
-      "Hey! Everything okay?"
+      "Abhi tak jaag rahe? Koi baat nahi. Dimag ka off switch nahi hota kabhi kabhi.",
+      "Late night. Ye waqt alag hota hai.",
+      "Hey. Raat ke sunne mein asli soch aati hai.",
+      "Abhi bhi jaag rahe. Theek hai — main bhi hoon.",
+      "Late night. Koi jaldi nahi hai.",
+      "Hey. Neend nahi aa rahi? Main hoon.",
+      "Duniya so gayi par tumhara mann nahi. Theek hai.",
+      "Late night. Kabhi kabhi bas kisi ki zaroorat hoti hai."
     ]
   }
 }

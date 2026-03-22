@@ -59,7 +59,7 @@ const ACTIVITY_TEMPLATES = {
 export async function saveGameResult(gameResult: GameResult, sessionId?: string): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       console.warn('No authenticated user, skipping game data save');
       toast({
@@ -76,7 +76,7 @@ export async function saveGameResult(gameResult: GameResult, sessionId?: string)
     // Use SessionManager for consistent session ID across the app
     // This fixes the critical session fragmentation bug
     let validSessionId: string | null = null;
-    
+
     if (sessionId) {
       // If sessionId is provided, validate and use it
       try {
@@ -176,7 +176,7 @@ function generateInsights(gameResult: GameResult, template: any): any {
         const incorrectEmotions = gameResult.userResponseData.classifications
           .filter((c: any) => !c.correct)
           .map((c: any) => c.user_choice);
-        
+
         if (incorrectEmotions.includes('sadness') || incorrectEmotions.includes('fear')) {
           insights.key_patterns.push("difficulty_with_negative_emotions");
         }
@@ -185,7 +185,7 @@ function generateInsights(gameResult: GameResult, template: any): any {
         }
       }
       break;
-      
+
     case 'memory_challenge':
       if (gameResult.gameDuration && gameResult.score) {
         const efficiency = gameResult.score / (gameResult.gameDuration / 60);
@@ -196,7 +196,7 @@ function generateInsights(gameResult: GameResult, template: any): any {
         }
       }
       break;
-      
+
     case 'thought_detective':
       if (gameResult.userResponseData?.identified_distortions) {
         insights.key_patterns.push("cognitive_awareness_developing");
@@ -210,17 +210,17 @@ function generateInsights(gameResult: GameResult, template: any): any {
 export function useGameDataSaver() {
   return {
     saveMemoryChallenge: async (
-      score: number, 
-      mistakes: number, 
-      duration: number, 
+      score: number,
+      mistakes: number,
+      duration: number,
       sequenceLength: number,
       sessionId?: string
     ) => {
       const accuracy = ((sequenceLength - mistakes) / sequenceLength * 100);
-      
+
       return saveGameResult({
         activityType: 'memory_challenge',
-        activityData: { 
+        activityData: {
           final_score: score,
           total_mistakes: mistakes,
           final_sequence_length: sequenceLength,
@@ -242,15 +242,15 @@ export function useGameDataSaver() {
     },
 
     saveEmotionMatch: async (
-      score: number, 
-      correctClassifications: number, 
-      totalImages: number, 
-      duration: number, 
+      score: number,
+      correctClassifications: number,
+      totalImages: number,
+      duration: number,
       classifications: any[],
       sessionId?: string
     ) => {
       const accuracy = (correctClassifications / totalImages * 100);
-      
+
       return saveGameResult({
         activityType: 'emotion_match',
         activityData: {
@@ -276,15 +276,47 @@ export function useGameDataSaver() {
       }, sessionId);
     },
 
+    saveEmojiMatch: async (
+      score: number,
+      correctClassifications: number,
+      totalImages: number,
+      duration: number,
+      classifications: any[],
+      sessionId?: string
+    ) => {
+      const accuracy = (correctClassifications / totalImages * 100);
+
+      return saveGameResult({
+        activityType: 'emoji_match',
+        activityData: {
+          score,
+          correct_classifications: correctClassifications,
+          total_images: totalImages,
+          classification_details: classifications
+        },
+        score,
+        gameDuration: duration,
+        userResponseData: {
+          classifications: classifications,
+          time_per_image: duration / totalImages
+        },
+        evaluationData: {
+          pattern_recognition: accuracy > 80 ? "high" : "developing",
+          processing_speed: duration / totalImages < 5 ? "fast" : "average"
+        },
+        accuracyPercentage: accuracy
+      }, sessionId);
+    },
+
     saveMoodMountain: async (
-      level: number, 
-      emotionsIdentified: string[], 
-      duration: number, 
+      level: number,
+      emotionsIdentified: string[],
+      duration: number,
       exercisesCompleted: string[],
       sessionId?: string
     ) => {
       const completion = (level / 10 * 100);
-      
+
       return saveGameResult({
         activityType: 'mood_mountain',
         activityData: {
@@ -309,9 +341,9 @@ export function useGameDataSaver() {
     },
 
     saveThoughtDetective: async (
-      casesCompleted: number, 
-      accuracy: number, 
-      duration: number, 
+      casesCompleted: number,
+      accuracy: number,
+      duration: number,
       identifiedDistortions: string[],
       sessionId?: string
     ) => {
@@ -347,7 +379,7 @@ export function useGameDataSaver() {
       sessionId?: string
     ) => {
       const accuracy = (score / totalQuestions * 100);
-      
+
       return saveGameResult({
         activityType: `qa_test_${testType}`,
         activityData: {
@@ -445,7 +477,7 @@ export function useGameDataSaver() {
 // Helper functions for QA and Wellness analysis
 function generateQAInsights(testType: string, score: number, total: number): any {
   const percentage = (score / total) * 100;
-  
+
   const insights: any = {
     severity_level: "normal",
     recommendations: [],
@@ -463,7 +495,7 @@ function generateQAInsights(testType: string, score: number, total: number): any
         insights.recommendations = ["mindfulness_practice", "coping_strategies"];
       }
       break;
-      
+
     case 'depression':
       if (percentage > 60) {
         insights.severity_level = "concerning";
@@ -478,7 +510,7 @@ function generateQAInsights(testType: string, score: number, total: number): any
 
 function getAssessmentLevel(testType: string, score: number, total: number): string {
   const percentage = (score / total) * 100;
-  
+
   if (percentage < 30) return "low";
   if (percentage < 60) return "moderate";
   return "high";
@@ -486,43 +518,43 @@ function getAssessmentLevel(testType: string, score: number, total: number): str
 
 function getTherapeuticIndicators(testType: string, answers: any[]): string[] {
   const indicators: string[] = [];
-  
+
   // Simple analysis based on answer patterns
   const highScoreAnswers = answers.filter(a => (a.value || a.score || 0) > 3);
-  
+
   if (highScoreAnswers.length > answers.length * 0.6) {
     indicators.push("therapeutic_intervention_beneficial");
   }
-  
+
   if (testType.includes('anxiety')) {
     indicators.push("anxiety_focused_approach");
   }
-  
+
   return indicators;
 }
 
 function analyzeWellnessPatterns(responses: any): string[] {
   const patterns: string[] = [];
-  
+
   // Simple pattern recognition
   const values = Object.values(responses).filter(v => typeof v === 'number') as number[];
   const average = values.reduce((a, b) => a + b, 0) / values.length;
-  
+
   if (average > 7) patterns.push("positive_wellness_trend");
   if (average < 4) patterns.push("wellness_attention_needed");
-  
+
   return patterns;
 }
 
 function identifyFocusAreas(responses: any, categories: string[]): string[] {
   const focusAreas: string[] = [];
-  
+
   // Identify low-scoring categories
   categories.forEach(category => {
     if (responses[category] && responses[category] < 5) {
       focusAreas.push(category);
     }
   });
-  
+
   return focusAreas;
 }

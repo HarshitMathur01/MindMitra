@@ -19,6 +19,7 @@ import MemoryChallenge from "./pages/MemoryChallenge";
 import EmojiMatch from "./pages/EmojiMatch";
 import EmotionMatch from "./pages/EmotionMatch";
 import MoodMountain from "./pages/MoodMountain";
+import HealthyHabits from "./pages/HealthyHabits";
 import ThoughtDetective from "./pages/ThoughtDetective";
 import NotFound from "./pages/NotFound";
 import BalloonPositivityGame from "./pages/BalloonPositivityGame";
@@ -34,6 +35,12 @@ import BedtimeRoutineArticle from "./pages/BedtimeRoutineArticle";
 import MountainResetGuideArticle from "./pages/MountainResetGuideArticle";
 import NatureFocusVisualGroundingArticle from "./pages/NatureFocusVisualGroundingArticle";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
+import Breathe from "./pages/Breathe";
+import Meditate from "./pages/Meditate";
+import Journal from "./pages/Journal";
+import Gratitude from "./pages/Gratitude";
+import StressControl from "./pages/StressControl";
+import Nutrition from "./pages/Nutrition";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +93,7 @@ function AppContent() {
           <Route path="/emoji-match" element={<EmojiMatch />} />
           <Route path="/emotion-match" element={<EmotionMatch />} />
           <Route path="/mood-mountain" element={<MoodMountain />} />
+          <Route path="/healthy-habits" element={<HealthyHabits />} />
           <Route path="/thought-detective" element={<ThoughtDetective />} />
           <Route path="/balloon-pop" element={<BalloonPositivityGame />} />
           <Route path="/profile" element={<Profile />} />
@@ -112,6 +120,12 @@ function AppContent() {
             path="/articles/nature-focus-visual-grounding"
             element={<NatureFocusVisualGroundingArticle />}
           />
+          <Route path="/breathe" element={<Breathe />} />
+          <Route path="/meditate" element={<Meditate />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/gratitude" element={<Gratitude />} />
+          <Route path="/stress-control" element={<StressControl />} />
+          <Route path="/nutrition" element={<Nutrition />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

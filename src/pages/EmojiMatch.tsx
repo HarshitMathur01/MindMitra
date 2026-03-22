@@ -22,9 +22,15 @@ interface Card {
 }
 
 const playSound = (file: string) => {
-  const audio = new Audio(file);
-  audio.play();
+  try {
+    const audio = new Audio(file);
+    audio.play().catch(() => { });
+  } catch (e) {
+    // Ignore audio errors silently
+  }
 };
+
+const EMOJIS = ["😁", "🥰", "😅", "😆", "😉", "🤩", "😋", "😎"];
 
 const EmojiMatch = () => {
   const navigate = useNavigate();
@@ -37,10 +43,8 @@ const EmojiMatch = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameWon, setGameWon] = useState(false);
 
-  const emojis = ["😁", "🥰", "😅", "😆", "😉", "🤩", "😋", "😎"];
-
   const initializeGame = useCallback(() => {
-    const shuffledEmojis = [...emojis, ...emojis]
+    const shuffledEmojis = [...EMOJIS, ...EMOJIS]
       .sort(() => Math.random() - 0.5)
       .map((emoji, index) => ({
         id: index,
@@ -73,22 +77,25 @@ const EmojiMatch = () => {
   }, [gameStarted, gameWon]);
 
   useEffect(() => {
-    if (matches === emojis.length) {
+    if (matches > 0 && matches === EMOJIS.length) {
       setGameWon(true);
       setGameStarted(false);
       playSound("/sounds/win.mp3");
 
       // Save game result — all pairs matched
-      const efficiencyScore = Math.max(0, 100 - (moves - emojis.length) * 5);
-      saveEmojiMatch(
-        efficiencyScore,     // score based on move efficiency
-        matches,             // correctClassifications = matched pairs
-        emojis.length,       // totalImages = total pairs
-        time,                // duration in seconds
-        [],                  // no classification data for card matching
-      ).catch((err) => console.error('Failed to save EmojiMatch result:', err));
+      const efficiencyScore = Math.max(0, 100 - (moves - EMOJIS.length) * 5);
+
+      if (saveEmojiMatch) {
+        saveEmojiMatch(
+          efficiencyScore,     // score based on move efficiency
+          matches,             // correctClassifications = matched pairs
+          EMOJIS.length,       // totalImages = total pairs
+          time,                // duration in seconds
+          [],                  // no classification data for card matching
+        ).catch((err) => console.error('Failed to save EmojiMatch result:', err));
+      }
     }
-  }, [matches]);
+  }, [matches, moves, time, saveEmojiMatch]);
 
   const handleCardClick = (cardId: number) => {
     if (!gameStarted) setGameStarted(true);
@@ -150,48 +157,52 @@ const EmojiMatch = () => {
   };
 
   return (
-    <div className="min-h-screen relative bg-background text-text-primary transition-colors duration-300">
+    <div className="h-[100dvh] overflow-hidden flex flex-col relative bg-background text-text-primary transition-colors duration-300">
       <Header />
       {gameWon && <Confetti recycle={false} numberOfPieces={400} />}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/games")}
-            className="gap-2 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Games
-          </Button>
+      <main className="flex-1 container mx-auto px-4 py-2 flex flex-col items-center justify-center overflow-hidden">
+        <div className="w-full max-w-2xl mx-auto flex flex-col items-center h-full justify-center">
+          <div className="w-full flex justify-start mb-2">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/games")}
+              className="gap-2"
+              size="sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-pink-500 via-yellow-500 to-indigo-500 bg-clip-text text-transparent drop-shadow-lg">
+          <div className="text-center w-full mb-4 flex-shrink-0">
+            <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 bg-gradient-to-r from-pink-500 via-yellow-500 to-indigo-500 bg-clip-text text-transparent drop-shadow-lg">
               Emoji Match
             </h1>
-            <p className="text-lg text-muted-foreground mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground mb-4 hidden sm:block">
               Flip the cards and find all the matching emoji pairs!
             </p>
 
-            <div className="flex justify-center gap-8 mb-6">
+            <div className="flex justify-center gap-4 sm:gap-8 mb-4">
               <div className="text-center">
-                <div className="text-3xl font-extrabold text-pink-600 dark:text-pink-400">{moves}</div>
-                <div className="text-sm text-muted-foreground">Moves</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-pink-600 dark:text-pink-400">{moves}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">Moves</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-extrabold text-yellow-600 dark:text-yellow-400">{formatTime(time)}</div>
-                <div className="text-sm text-muted-foreground">Time</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-yellow-600 dark:text-yellow-400">{formatTime(time)}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">Time</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{matches}/{emojis.length}</div>
-                <div className="text-sm text-muted-foreground">Matches</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{matches}/{EMOJIS.length}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">Matches</div>
               </div>
             </div>
 
             <Button
               onClick={initializeGame}
+              size="sm"
               className="gap-2 bg-pink-500 hover:bg-pink-600 text-white shadow-lg"
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4" />
               New Game
             </Button>
           </div>
@@ -199,10 +210,10 @@ const EmojiMatch = () => {
           <Dialog open={gameWon} onOpenChange={setGameWon}>
             <DialogContent className="sm:max-w-md rounded-2xl shadow-2xl border-2 border-pink-400 dark:border-primary/50 bg-gradient-to-r from-pink-100 via-yellow-100 via-green-100 to-indigo-200 dark:from-surface dark:via-surface dark:to-surface">
               <DialogHeader>
-                  <DialogTitle className="text-3xl font-extrabold text-text-primary text-center drop-shadow-md">
+                <DialogTitle className="text-3xl font-extrabold text-text-primary text-center drop-shadow-md">
                   Congratulations!
                 </DialogTitle>
-                  <DialogDescription className="text-center text-lg text-text-secondary font-semibold mt-2">
+                <DialogDescription className="text-center text-lg text-text-secondary font-semibold mt-2">
                   You completed the game!
                 </DialogDescription>
               </DialogHeader>
@@ -227,28 +238,47 @@ const EmojiMatch = () => {
             </DialogContent>
           </Dialog>
 
-          <div className="grid grid-cols-4 gap-4 max-w-md mx-auto">
-            {cards.map((card) => (
-              <Card
+          <div className="w-full grid grid-cols-4 gap-2 sm:gap-3 max-w-[260px] sm:max-w-xs md:max-w-[320px] mx-auto perspective-1000 mb-2">
+            {cards.map((card, index) => (
+              <div
                 key={card.id}
-                className={`
-                  aspect-square flex items-center justify-center text-3xl cursor-pointer
-                  transition-all duration-500 hover:scale-110 hover:rotate-3
-                  border-4 rounded-2xl shadow-lg
-                  ${card.isFlipped || card.isMatched
-                    ? "bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 border-pink-400 dark:from-surface dark:via-primary/10 dark:to-surface dark:border-primary/40"
-                    : "bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 border-indigo-300 hover:border-pink-400 dark:from-surface dark:via-background dark:to-surface dark:border-border"
-                  }
-                  ${card.isMatched ? "opacity-75 scale-105" : ""}
-                `}
+                className={`relative aspect-square cursor-pointer group origin-center ${gameWon ? 'animate-bounce' : ''}`}
+                style={{
+                  perspective: "1000px",
+                  animationDelay: gameWon ? `${index * 50}ms` : '0ms'
+                }}
                 onClick={() => handleCardClick(card.id)}
               >
-                {card.isFlipped || card.isMatched ? (
-                  <span className="text-3xl">{card.emoji}</span>
-                ) : (
-                  <span className="text-indigo-600 dark:text-text-secondary text-2xl">?</span>
-                )}
-              </Card>
+                <div
+                  className="w-full h-full transition-transform duration-500 ease-out"
+                  style={{
+                    transformStyle: "preserve-3d",
+                    transform: card.isFlipped || card.isMatched ? "rotateY(180deg)" : "rotateY(0deg)"
+                  }}
+                >
+                  {/* Front Face (Hidden when Flipped) */}
+                  <Card
+                    className={`absolute inset-0 flex items-center justify-center border-4 rounded-2xl shadow-lg
+                      bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 border-indigo-300 dark:from-surface dark:via-background dark:to-surface dark:border-border
+                      group-hover:scale-105 group-hover:-translate-y-1 transition-transform duration-300
+                    `}
+                    style={{ backfaceVisibility: "hidden" }}
+                  >
+                    <span className="text-indigo-600 dark:text-text-secondary text-2xl sm:text-3xl font-bold font-sans">?</span>
+                  </Card>
+
+                  {/* Back Face (Emoji) */}
+                  <Card
+                    className={`absolute inset-0 flex items-center justify-center border-4 rounded-2xl shadow-lg
+                      bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 border-pink-400 dark:from-surface dark:via-primary/10 dark:to-surface dark:border-primary/40
+                      ${card.isMatched ? "ring-4 ring-green-400/50 scale-95 opacity-80" : ""}
+                    `}
+                    style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                  >
+                    <span className="text-3xl sm:text-4xl drop-shadow-md transform transition-transform animate-in zoom-in spin-in-12 duration-300">{card.emoji}</span>
+                  </Card>
+                </div>
+              </div>
             ))}
           </div>
         </div>

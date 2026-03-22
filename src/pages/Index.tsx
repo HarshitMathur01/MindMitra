@@ -1,13 +1,13 @@
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Bell,
   BookOpen,
   Bookmark,
+  ChevronLeft,
   ChevronRight,
   Compass,
-  Flame,
   Heart,
   Home,
   Moon,
@@ -35,6 +35,8 @@ type QuickAction = {
   icon: typeof Wind;
   bg: string;
   iconColor: string;
+  route: string;
+  weeklyDone: number;
 };
 
 type ContentCard = {
@@ -52,6 +54,10 @@ type FeatureCard = {
   bg: string;
   accent: string;
   illustration: string;
+  category: string;
+  imageSrc: string;
+  categoryClassName: string;
+  route: string;
 };
 
 const moodOptions: MoodOption[] = [
@@ -99,6 +105,8 @@ const quickActions: QuickAction[] = [
     icon: Wind,
     bg: "bg-teal-50 dark:bg-teal-500/10",
     iconColor: "text-teal-700 dark:text-teal-400",
+    route: "/breathe",
+    weeklyDone: 4,
   },
   {
     title: "Meditate",
@@ -106,6 +114,8 @@ const quickActions: QuickAction[] = [
     icon: Sparkles,
     bg: "bg-amber-50 dark:bg-amber-500/10",
     iconColor: "text-amber-700 dark:text-amber-400",
+    route: "/meditate",
+    weeklyDone: 5,
   },
   {
     title: "Journal",
@@ -113,6 +123,8 @@ const quickActions: QuickAction[] = [
     icon: BookOpen,
     bg: "bg-yellow-50 dark:bg-yellow-500/10",
     iconColor: "text-yellow-700 dark:text-yellow-400",
+    route: "/journal",
+    weeklyDone: 3,
   },
   {
     title: "Gratitude",
@@ -120,6 +132,8 @@ const quickActions: QuickAction[] = [
     icon: Heart,
     bg: "bg-pink-50 dark:bg-pink-500/10",
     iconColor: "text-pink-700 dark:text-pink-400",
+    route: "/gratitude",
+    weeklyDone: 2,
   },
 ];
 
@@ -190,20 +204,28 @@ const featureCards: FeatureCard[] = [
     description:
       "Connect with your inner peace through our collection of mindfulness tracks.",
     buttonLabel: "Start Listening",
-    buttonClassName: "bg-blue-500 text-white",
+    buttonClassName: "bg-sky-500 text-white",
     bg: "bg-sky-50 dark:bg-sky-500/10",
     accent: "from-blue-100 to-sky-50 dark:from-blue-900/20 dark:to-sky-900/10",
     illustration: "🎧",
+    category: "Mindfulness",
+    imageSrc: "/image1.png",
+    categoryClassName: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+    route: "/meditate",
   },
   {
     title: "Stress Control Online",
     description:
       "An evidence-based CBT program helps you learn how to deal with stress.",
     buttonLabel: "Explore more",
-    buttonClassName: "bg-orange-500 text-white",
+    buttonClassName: "bg-amber-500 text-white",
     bg: "bg-amber-50 dark:bg-amber-500/10",
     accent: "from-orange-200 to-orange-50 dark:from-orange-900/20 dark:to-orange-900/10",
     illustration: "🧘",
+    category: "CBT Program",
+    imageSrc: "/image2.png",
+    categoryClassName: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    route: "/stress-control",
   },
   {
     title: "Diet and Nutrition Counselling",
@@ -214,6 +236,10 @@ const featureCards: FeatureCard[] = [
     bg: "bg-green-50 dark:bg-green-500/10",
     accent: "from-green-200 to-green-50 dark:from-green-900/20 dark:to-green-900/10",
     illustration: "🥗",
+    category: "Nutrition",
+    imageSrc: "/image3.png",
+    categoryClassName: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+    route: "/nutrition",
   },
   {
     title: "Counselling support, anytime",
@@ -223,16 +249,24 @@ const featureCards: FeatureCard[] = [
     bg: "bg-blue-50 dark:bg-blue-500/10",
     accent: "from-blue-200 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/10",
     illustration: "💬",
+    category: "Expert Support",
+    imageSrc: "/image4.png",
+    categoryClassName: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    route: "/therapist-bridge",
   },
   {
     title: "This is your safe space",
     description:
       "Try expressing your thoughts, feelings and stories to boost your mental health daily.",
     buttonLabel: "Write about today",
-    buttonClassName: "bg-orange-500 text-white",
+    buttonClassName: "bg-violet-500 text-white",
     bg: "bg-violet-50 dark:bg-violet-500/10",
     accent: "from-violet-200 to-violet-50 dark:from-violet-900/20 dark:to-violet-900/10",
     illustration: "✍️",
+    category: "Journaling",
+    imageSrc: "/safe_space.png",
+    categoryClassName: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+    route: "/journal",
   },
 ];
 
@@ -250,9 +284,12 @@ const getVisibleContentCardCount = (width: number) => {
   return 3;
 };
 
-const getContentCardColumnWidth = (visibleCount: number) => {
-  if (visibleCount <= 1) return "100%";
-  return `calc((100% - ${(visibleCount - 1)}rem) / ${visibleCount})`;
+const getContentCardColumnWidth = (visibleCount: number, peekPx: number, gapRem = 1) => {
+  if (visibleCount <= 1) {
+    return `calc(100% - ${peekPx}px)`;
+  }
+
+  return `calc((100% - ${(visibleCount - 1) * gapRem}rem - ${peekPx}px) / ${visibleCount})`;
 };
 
 const getContentCardActionLabel = (type: string) => {
@@ -338,14 +375,16 @@ const getDashboardRevealStyle = (
 const SectionHeader = ({
   title,
   action,
+  onAction,
 }: {
   title: string;
   action?: string;
+  onAction?: () => void;
 }) => (
   <div className="flex items-center justify-between gap-3">
     <h2 className={sectionTitleClass}>{title}</h2>
     {action ? (
-      <button className="text-sm font-medium text-muted-foreground transition-transform duration-150 hover:scale-[1.02] hover:text-primary">
+      <button onClick={onAction} className="text-sm font-medium text-muted-foreground transition-transform duration-150 hover:scale-[1.02] hover:text-primary">
         {action}
       </button>
     ) : null}
@@ -360,9 +399,20 @@ const Index = () => {
   const [isMoodToastVisible, setIsMoodToastVisible] = useState(false);
   const [isMoodCardVisible, setIsMoodCardVisible] = useState(true);
   const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [visibleContentCardCount, setVisibleContentCardCount] = useState(() => getVisibleContentCardCount(window.innerWidth));
   const [contentCarouselIndex, setContentCarouselIndex] = useState(0);
   const [isContentCarouselAnimating, setIsContentCarouselAnimating] = useState(true);
+  const [isContentCarouselDragging, setIsContentCarouselDragging] = useState(false);
+  const [contentDragOffset, setContentDragOffset] = useState(0);
+  const [isScrollingDown, setIsScrollingDown] = useState(false);
+  const [isTypingFocus, setIsTypingFocus] = useState(false);
+  const carouselPointerStartX = useRef<number | null>(null);
+  const hasDraggedContentCarousel = useRef(false);
+  const suppressCardClick = useRef(false);
+  const suppressCardClickTimer = useRef<number | null>(null);
+  const previousScrollY = useRef(0);
+  const scrollingDownResetTimer = useRef<number | null>(null);
 
   const motivationalQuotes = [
     { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", writer: "Nelson Mandela" },
@@ -416,11 +466,14 @@ const Index = () => {
   );
   const isContentCarouselInteractive = contentCards.length > visibleContentCardCount;
   const activeContentCardIndex = contentCards.length > 0 ? contentCarouselIndex % contentCards.length : 0;
+  const contentCarouselPeekPx = viewportWidth < 1024 ? 36 : 0;
   const contentCarouselStyle = {
-    ["--content-card-width" as const]: getContentCardColumnWidth(visibleContentCardCount),
+    ["--content-card-gap" as const]: "1rem",
+    ["--content-card-width" as const]: getContentCardColumnWidth(visibleContentCardCount, contentCarouselPeekPx),
     gridAutoColumns: "var(--content-card-width)",
-    transform: `translateX(calc(-${contentCarouselIndex} * (var(--content-card-width) + 1rem)))`,
+    transform: `translateX(calc(-${contentCarouselIndex} * (var(--content-card-width) + var(--content-card-gap)) + ${contentDragOffset}px))`,
   } as CSSProperties;
+  const showFloatingChatBubble = !isScrollingDown && !isTypingFocus;
 
   const weekMoodData = weekLabels.map((label, index) => ({
     label,
@@ -445,7 +498,9 @@ const Index = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      const nextVisibleCount = getVisibleContentCardCount(window.innerWidth);
+      const nextWidth = window.innerWidth;
+      const nextVisibleCount = getVisibleContentCardCount(nextWidth);
+      setViewportWidth(nextWidth);
       setVisibleContentCardCount((previousCount) => {
         if (previousCount === nextVisibleCount) {
           return previousCount;
@@ -485,6 +540,84 @@ const Index = () => {
     };
   }, [selectedMood]);
 
+  useEffect(() => {
+    const isTypingElement = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) {
+        return false;
+      }
+
+      const tagName = target.tagName;
+      return (
+        target.isContentEditable ||
+        tagName === "INPUT" ||
+        tagName === "TEXTAREA" ||
+        tagName === "SELECT"
+      );
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (isTypingElement(event.target)) {
+        setIsTypingFocus(true);
+      }
+    };
+
+    const handleFocusOut = () => {
+      window.setTimeout(() => {
+        setIsTypingFocus(isTypingElement(document.activeElement));
+      }, 0);
+    };
+
+    window.addEventListener("focusin", handleFocusIn);
+    window.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      window.removeEventListener("focusin", handleFocusIn);
+      window.removeEventListener("focusout", handleFocusOut);
+    };
+  }, []);
+
+  useEffect(() => {
+    previousScrollY.current = window.scrollY;
+
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const scrollDelta = currentY - previousScrollY.current;
+
+      if (scrollDelta > 8 && currentY > 120) {
+        setIsScrollingDown(true);
+      } else if (scrollDelta < -8) {
+        setIsScrollingDown(false);
+      }
+
+      if (scrollingDownResetTimer.current) {
+        window.clearTimeout(scrollingDownResetTimer.current);
+      }
+
+      scrollingDownResetTimer.current = window.setTimeout(() => {
+        setIsScrollingDown(false);
+      }, 800);
+
+      previousScrollY.current = currentY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollingDownResetTimer.current) {
+        window.clearTimeout(scrollingDownResetTimer.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (suppressCardClickTimer.current) {
+        window.clearTimeout(suppressCardClickTimer.current);
+      }
+    };
+  }, []);
+
   const handleNextContentCards = () => {
     if (!isContentCarouselInteractive) {
       return;
@@ -494,9 +627,88 @@ const Index = () => {
     setContentCarouselIndex((previousIndex) => previousIndex + 1);
   };
 
+  const handlePreviousContentCards = () => {
+    if (!isContentCarouselInteractive) {
+      return;
+    }
+
+    setIsContentCarouselAnimating(true);
+    setContentCarouselIndex((previousIndex) => {
+      if (previousIndex <= 0) {
+        return Math.max(contentCards.length - 1, 0);
+      }
+
+      return previousIndex - 1;
+    });
+  };
+
   const handleSelectContentCard = (index: number) => {
     setIsContentCarouselAnimating(true);
     setContentCarouselIndex(index);
+  };
+
+  const handleContentCarouselPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isContentCarouselInteractive) {
+      return;
+    }
+
+    carouselPointerStartX.current = event.clientX;
+    hasDraggedContentCarousel.current = false;
+    setIsContentCarouselDragging(true);
+    setIsContentCarouselAnimating(false);
+    setContentDragOffset(0);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleContentCarouselPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isContentCarouselInteractive || !isContentCarouselDragging || carouselPointerStartX.current === null) {
+      return;
+    }
+
+    const delta = event.clientX - carouselPointerStartX.current;
+    if (Math.abs(delta) > 8) {
+      hasDraggedContentCarousel.current = true;
+    }
+    setContentDragOffset(delta);
+  };
+
+  const handleContentCarouselPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isContentCarouselInteractive) {
+      return;
+    }
+
+    if (carouselPointerStartX.current === null) {
+      setIsContentCarouselDragging(false);
+      setContentDragOffset(0);
+      return;
+    }
+
+    const delta = event.clientX - carouselPointerStartX.current;
+    const swipeThreshold = 56;
+
+    carouselPointerStartX.current = null;
+    setIsContentCarouselDragging(false);
+    setContentDragOffset(0);
+    setIsContentCarouselAnimating(true);
+
+    if (Math.abs(delta) > 8) {
+      suppressCardClick.current = true;
+      if (suppressCardClickTimer.current) {
+        window.clearTimeout(suppressCardClickTimer.current);
+      }
+      suppressCardClickTimer.current = window.setTimeout(() => {
+        suppressCardClick.current = false;
+      }, 220);
+    }
+
+    if (delta <= -swipeThreshold) {
+      handleNextContentCards();
+      return;
+    }
+
+    if (delta >= swipeThreshold) {
+      handlePreviousContentCards();
+    }
   };
 
   const handleContentCarouselTransitionEnd = () => {
@@ -517,8 +729,11 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-36 pt-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#FFF8F0] text-[#1A1A1A]">
+      <main
+        className="flex w-full max-w-none flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-8"
+        style={{ paddingBottom: "calc(10rem + env(safe-area-inset-bottom))" }}
+      >
         <section
           className="mm-dashboard-stagger relative min-h-[220px] overflow-hidden rounded-[32px] px-4 pb-6 pt-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:min-h-[280px] sm:px-6"
           style={getDashboardRevealStyle(0, {
@@ -651,22 +866,37 @@ const Index = () => {
         </div>
 
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(3)}>
-          <SectionHeader title="Quick Actions" action="More >" />
+          <SectionHeader title="Quick Actions" action="More >" onAction={() => navigate("/healthy-habits")} />
           <div className={`${horizontalScrollClass} md:grid md:grid-cols-4 md:overflow-visible md:pb-0`}>
             {quickActions.map((action) => {
               const Icon = action.icon;
+              const progressPct = Math.round((action.weeklyDone / 7) * 100);
 
               return (
                 <button
                   key={action.title}
                   type="button"
-                  className={`min-w-[92px] flex-1 rounded-[22px] p-4 text-left transition-transform duration-150 hover:scale-[1.03] md:min-w-0 ${action.bg}`}
+                  onClick={() => navigate(action.route)}
+                  className={`relative min-w-[100px] flex-1 rounded-3xl p-4 text-left transition-transform duration-150 hover:scale-[1.03] active:scale-[0.97] md:min-w-0 ${action.bg}`}
                 >
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-background/70 dark:bg-white/10 ${action.iconColor}`}>
+                  {/* Completion dot */}
+                  {action.weeklyDone >= 7 && (
+                    <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-green-400 shadow-sm" />
+                  )}
+                  {/* Icon with gradient ring */}
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-background/70 dark:bg-white/10 ring-2 ring-white/60 dark:ring-white/10 ${action.iconColor}`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <p className="mt-4 text-sm font-semibold text-foreground">{action.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{action.duration}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{action.duration}</p>
+                  {/* Weekly progress bar */}
+                  <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-current opacity-50"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground">{action.weeklyDone}/7 this week</p>
                 </button>
               );
             })}
@@ -690,19 +920,17 @@ const Index = () => {
         </section>
 
         <section
-          className="mm-dashboard-stagger overflow-hidden rounded-[28px] bg-indigo-100 dark:bg-indigo-500/15 p-5 shadow-[0_18px_40px_rgba(59,130,246,0.08)]"
+          className="mm-dashboard-stagger rounded-[28px] bg-gradient-to-br from-[#E0E8FF] via-[#EDE9FE] to-[#DBEAFE] p-5 shadow-[0_18px_40px_rgba(59,130,246,0.08)]"
           style={getDashboardRevealStyle(5)}
         >
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Habit Tracker</p>
-              <h2 className="mt-2 text-xl font-semibold text-foreground">A gentle glance at your daily rhythm</h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+              <h2 className="text-xl font-semibold text-[#1E3A8A]">A gentle glance at your daily rhythm</h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-[#475569]">
                 Keep tabs on the tiny wins that help your mind feel grounded and cared for.
               </p>
             </div>
-
-            <div className="hidden h-24 w-24 shrink-0 items-center justify-center rounded-full bg-background/60 dark:bg-white/10 text-4xl md:flex">
+            <div className="hidden h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white/60 text-3xl md:flex">
               📈
             </div>
           </div>
@@ -721,27 +949,26 @@ const Index = () => {
 
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(7)}>
           <SectionHeader title="Habits" action="See all >" />
-          <div className="overflow-hidden rounded-[28px] bg-gradient-to-r from-[#F8B4B4] via-[#FDBA8C] to-[#FCD9B6] p-5 text-white shadow-[0_24px_50px_rgba(249,115,22,0.18)]">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="rounded-[28px] bg-gradient-to-r from-[#F8B4B4] via-[#FDBA8C] to-[#FCD9B6] p-5 text-white shadow-[0_24px_50px_rgba(249,115,22,0.18)]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="max-w-lg">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/95">
-                  <Flame className="h-4 w-4" />
-                  Start a new habit
-                </div>
-                <h2 className="mt-4 text-2xl font-bold">Build Healthy Habits!</h2>
+                <h2 className="text-2xl font-bold">Build Healthy Habits!</h2>
                 <p className="mt-2 text-sm leading-6 text-white/90">
                   A new way to nurture your mind, one step at a time.
                 </p>
-                <button className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#111827] px-5 py-3 text-sm font-semibold text-white transition-transform duration-150 hover:scale-[1.03]">
+                <button
+                  type="button"
+                  onClick={() => navigate("/healthy-habits")}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.20)] transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]"
+                >
                   Get Started
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
-
               <img
                 src="/image7.png"
                 alt="Healthy habits illustration"
-                className="h-28 w-full max-w-[180px] rounded-[24px] object-cover"
+                className="h-28 w-full max-w-[160px] shrink-0 rounded-[20px] object-cover shadow-[0_12px_28px_rgba(0,0,0,0.12)]"
               />
             </div>
           </div>
@@ -762,21 +989,37 @@ const Index = () => {
                 {activeContentCardIndex + 1}/{contentCards.length}
               </div>
               {isContentCarouselInteractive ? (
-                <button
-                  type="button"
-                  onClick={handleNextContentCards}
-                  aria-label="Show next content cards"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#111827] text-white shadow-[0_12px_24px_rgba(15,23,42,0.14)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2563EB]"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handlePreviousContentCards}
+                    aria-label="Show previous content cards"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#111827] text-white shadow-[0_12px_24px_rgba(15,23,42,0.14)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2563EB]"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextContentCards}
+                    aria-label="Show next content cards"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#111827] text-white shadow-[0_12px_24px_rgba(15,23,42,0.14)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2563EB]"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
               ) : null}
             </div>
           </div>
 
-          <div className="overflow-hidden">
+          <div
+            className="overflow-hidden pr-5 sm:pr-3 lg:pr-0"
+            onPointerDown={handleContentCarouselPointerDown}
+            onPointerMove={handleContentCarouselPointerMove}
+            onPointerUp={handleContentCarouselPointerEnd}
+            onPointerCancel={handleContentCarouselPointerEnd}
+          >
             <div
-              className={`grid grid-flow-col gap-4 ${isContentCarouselAnimating ? "transition-transform duration-500 ease-out" : "transition-none"}`}
+              className={`grid grid-flow-col gap-4 touch-pan-y ${isContentCarouselAnimating && !isContentCarouselDragging ? "transition-transform duration-500 ease-out" : "transition-none"}`}
               style={contentCarouselStyle}
               onTransitionEnd={handleContentCarouselTransitionEnd}
             >
@@ -785,7 +1028,12 @@ const Index = () => {
                   key={`${card.title}-${index}`}
                   role={card.href ? "button" : undefined}
                   tabIndex={card.href ? 0 : undefined}
-                  onClick={card.href ? () => navigate(card.href) : undefined}
+                  onClick={card.href ? () => {
+                    if (suppressCardClick.current) {
+                      return;
+                    }
+                    navigate(card.href);
+                  } : undefined}
                   onKeyDown={card.href ? (event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
@@ -836,91 +1084,90 @@ const Index = () => {
               ))}
             </div>
           </div>
+
+          {isContentCarouselInteractive ? (
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <p className="text-xs text-muted-foreground">Swipe cards to explore more</p>
+              <div className="flex items-center gap-1.5" role="tablist" aria-label="Content carousel pagination">
+                {contentCards.map((card, index) => {
+                  const isActive = index === activeContentCardIndex;
+
+                  return (
+                    <button
+                      key={card.title}
+                      type="button"
+                      onClick={() => handleSelectContentCard(index)}
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-label={`Go to card ${index + 1}: ${card.title}`}
+                      className={`h-2.5 rounded-full transition-all duration-200 ${isActive
+                        ? "w-6 bg-primary"
+                        : "w-2.5 bg-muted-foreground/35 hover:bg-muted-foreground/55"
+                        }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(9)}>
-          {featureCards.map((card, index) => (
-            <article
-              key={card.title}
-              className={`mm-dashboard-stagger overflow-hidden rounded-[28px] ${card.bg} p-5 shadow-[0_18px_35px_rgba(15,23,42,0.06)]`}
-              style={getDashboardRevealStyle(10 + index)}
-            >
-              <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                <div className="max-w-xl">
-                  <h3 className="text-xl font-semibold text-foreground">{card.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.description}</p>
-                  <button className={`mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-transform duration-150 hover:scale-[1.03] ${card.buttonClassName}`}>
-                    {card.buttonLabel}
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
+          <SectionHeader title="Your Wellness Toolkit" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {featureCards.map((card, index) => (
+              <article
+                key={card.title}
+                className={`mm-dashboard-stagger flex flex-col rounded-[24px] ${card.bg} p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]`}
+                style={getDashboardRevealStyle(10 + index)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${card.categoryClassName}`}>
+                    {card.category}
+                  </span>
+                  <img
+                    src={card.imageSrc}
+                    alt={card.title}
+                    className="h-24 w-24 shrink-0 rounded-xl object-cover"
+                  />
                 </div>
-
-                {card.illustration === "🎧" ? (
-                  <img
-                    src="/image1.png"
-                    alt="Calming illustration"
-                    className="h-28 w-full max-w-[160px] rounded-[24px] object-cover"
-                  />
-                ) : card.illustration === "🧘" ? (
-                  <img
-                    src="/image2.png"
-                    alt="Meditation illustration"
-                    className="h-28 w-full max-w-[160px] rounded-[24px] object-cover"
-                  />
-                ) : card.illustration === "🥗" ? (
-                  <img
-                    src="/image3.png"
-                    alt="Nutrition illustration"
-                    className="h-28 w-full max-w-[160px] rounded-[24px] object-cover"
-                  />
-                ) : card.illustration === "💬" ? (
-                  <img
-                    src="/image4.png"
-                    alt="Conversation illustration"
-                    className="h-28 w-full max-w-[160px] rounded-[24px] object-cover"
-                  />
-                ) : card.illustration === "✍️" ? (
-                  <img
-                    src="/safe_space.png"
-                    alt="Safe space illustration"
-                    className="h-28 w-full max-w-[160px] rounded-[24px] object-cover"
-                  />
-                ) : (
-                  <div className={`flex h-28 w-full max-w-[160px] items-center justify-center rounded-[24px] bg-gradient-to-br ${card.accent} text-5xl`}>
-                    {card.illustration}
-                  </div>
-                )}
-              </div>
-            </article>
-          ))}
+                <h3 className="mt-3 text-base font-semibold text-foreground">{card.title}</h3>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">{card.description}</p>
+                <button
+                  className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] ${card.buttonClassName}`}
+                  onClick={() => navigate(card.route)}
+                >
+                  {card.buttonLabel}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </article>
+            ))}
+          </div>
         </section>
 
         <section
-          className="mm-dashboard-stagger rounded-[24px] bg-card p-4 shadow-[0_16px_35px_rgba(148,163,184,0.08)] sm:p-5"
+          className="mm-dashboard-stagger rounded-[24px] bg-card p-4 shadow-[0_14px_30px_rgba(148,163,184,0.08)]"
           style={getDashboardRevealStyle(15)}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className={sectionTitleClass}>This week&apos;s mood</h2>
-              <p className="mt-1 text-xs font-medium text-muted-foreground">Track your emotional pattern, one day at a time</p>
-            </div>
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-[0_8px_20px_rgba(59,130,246,0.15)]">
+          <div className="flex items-center justify-between">
+            <h2 className={sectionTitleClass}>This week&apos;s mood</h2>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               {moodCompletionPercent}% logged
             </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-7 gap-2 sm:gap-3">
+          <div className="mt-4 grid grid-cols-7 gap-2">
             {weekMoodData.map((day, index) => (
-              <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-2">
-                <span className={`text-xs font-semibold ${day.isToday ? "text-primary" : "text-muted-foreground"}`}>
+              <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-1.5">
+                <span className={`text-[11px] font-medium ${day.isToday ? "text-primary" : "text-muted-foreground"}`}>
                   {day.label}
                 </span>
                 <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-full border text-lg transition-all duration-200 ${day.isToday
-                    ? "border-blue-300 bg-blue-50 dark:bg-blue-500/10 text-primary ring-2 ring-blue-200"
+                  className={`flex h-10 w-10 items-center justify-center rounded-full text-lg ${day.isToday
+                    ? "border-2 border-blue-300 bg-blue-50 text-primary"
                     : day.mood
-                      ? "border-border bg-card text-foreground shadow-[0_6px_14px_rgba(15,23,42,0.08)]"
-                      : "border-dashed border-border bg-transparent text-muted-foreground"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "border border-dashed border-border text-muted-foreground"
                     }`}
                 >
                   {day.mood ?? "·"}
@@ -929,74 +1176,75 @@ const Index = () => {
             ))}
           </div>
 
-          <div className="mt-4">
+          <div className="mt-3">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-gradient-to-r from-blue-400 to-primary" style={{ width: `${moodCompletionPercent}%` }} />
             </div>
-            <p className="mt-2 text-xs font-medium text-muted-foreground">{loggedMoodCount} of {weekMoodData.length} days logged</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">{loggedMoodCount} of {weekMoodData.length} days logged</p>
           </div>
         </section>
 
         <section
-          className="mm-dashboard-stagger rounded-[24px] bg-card border border-border p-5 shadow-[0_16px_35px_rgba(148,163,184,0.06)]"
+          className="mm-dashboard-stagger rounded-[20px] bg-card p-4 shadow-[0_12px_24px_rgba(148,163,184,0.06)]"
           style={getDashboardRevealStyle(16)}
         >
-          <div className="flex flex-col gap-3 relative overflow-hidden">
-            <div className="absolute -right-6 -top-6 text-9xl text-muted-foreground/20 pointer-events-none">"</div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Daily Insight</h3>
-            <div className="flex flex-col items-end self-start">
-              <p className="text-[17px] leading-relaxed font-medium text-foreground italic text-left w-full">
-                "{dailyQuote.text}"
-              </p>
-              <div className="mt-2 flex items-center gap-2">
-                <div className="h-[2px] w-6 bg-primary rounded-full"></div>
-                <p className="text-[14px] font-semibold text-muted-foreground">{dailyQuote.writer}</p>
-              </div>
-            </div>
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Daily Insight</p>
+          <p className="mt-2 text-[15px] font-medium italic leading-relaxed text-foreground">
+            &ldquo;{dailyQuote.text}&rdquo;
+          </p>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">— {dailyQuote.writer}</p>
         </section>
       </main>
 
-      <div className="fixed bottom-24 right-4 z-30 flex items-center gap-2 sm:right-6">
-        <p className="breathing-hero rounded-full bg-card/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-[0_12px_28px_rgba(15,23,42,0.14)]">
+      <div
+        className={`fixed right-4 z-30 flex items-center gap-2.5 transition-all duration-300 sm:right-6 ${showFloatingChatBubble ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"}`}
+        style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+      >
+        <p className="breathing-hero rounded-2xl border border-white/60 bg-white/95 px-4 py-2 text-xs font-semibold text-[#1F2937] shadow-[0_12px_32px_rgba(15,23,42,0.12)] backdrop-blur-md">
           {greeting} Chat with me 👋
         </p>
         <button
           type="button"
           onClick={() => navigate("/chat")}
-          className="h-14 w-14 overflow-hidden rounded-full shadow-[0_18px_40px_rgba(17,24,39,0.28)] transition-transform duration-150 hover:scale-105"
+          className="mm-fab-glow relative h-14 w-14 overflow-hidden rounded-full shadow-[0_18px_40px_rgba(99,102,241,0.30)] ring-2 ring-white/40 transition-all duration-200 hover:scale-110 hover:shadow-[0_22px_48px_rgba(99,102,241,0.40)] active:scale-95"
           aria-label="Open AI companion"
         >
           <img src="/image5.png" alt="AI companion" className="h-full w-full object-cover" />
         </button>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/96 px-6 py-3 backdrop-blur-md">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-[#E8E0F0]/40 bg-white/80 px-6 pt-3 shadow-[0_-8px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+      >
         <div className="mx-auto flex max-w-md items-center justify-around">
-          <button className="flex flex-col items-center gap-1 text-primary">
-            <Home className="h-5 w-5" />
-            <span className="text-xs font-medium">Home</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <button className="group flex flex-col items-center gap-1 text-[#3B82F6] transition-transform duration-150 hover:scale-105">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EFF6FF] transition-colors duration-200">
+              <Home className="h-5 w-5" />
+            </div>
+            <span className="text-[11px] font-semibold">Home</span>
           </button>
 
           <button
             type="button"
             onClick={() => navigate("/psychological-content")}
-            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors duration-150 hover:text-foreground"
+            className="group flex flex-col items-center gap-1 text-[#9CA3AF] transition-all duration-150 hover:scale-105 hover:text-[#6B7280]"
           >
-            <Compass className="h-5 w-5" />
-            <span className="text-xs font-medium">Discover</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-transparent" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-[#F5F3FF]">
+              <Compass className="h-5 w-5" />
+            </div>
+            <span className="text-[11px] font-medium">Discover</span>
           </button>
 
           <button
             type="button"
             onClick={() => navigate("/profile")}
-            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors duration-150 hover:text-foreground"
+            className="group flex flex-col items-center gap-1 text-[#9CA3AF] transition-all duration-150 hover:scale-105 hover:text-[#6B7280]"
           >
-            <User className="h-5 w-5" />
-            <span className="text-xs font-medium">Profile</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-transparent" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-[#FFF7ED]">
+              <User className="h-5 w-5" />
+            </div>
+            <span className="text-[11px] font-medium">Profile</span>
           </button>
         </div>
       </nav>

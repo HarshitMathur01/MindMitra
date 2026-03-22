@@ -42,11 +42,11 @@ nlp_module:
 # ──────────────────────────────────────────────────────────────
 glm_controller:
   model: "glm-4-32b-0414-128k"  # Main model for psychology agents
-  max_concurrent: 1  # Number of concurrent GLM calls
+  max_concurrent: 3  # Number of concurrent GLM calls
   max_retries: 2  # Retry attempts on failure
   base_backoff: 2.0  # Exponential backoff base (seconds)
-  temperature: 0.3
-  top_p: 0.8
+  temperature: 0.45
+  top_p: 0.85
   # max_tokens: 1000  # Commented out to let model decide
   
   # Enable Groq fallback for GLM failures
@@ -84,42 +84,9 @@ response_generator:
   # Memory context
   max_memories_per_type: 3
   
-  # System prompt customization (placeholders are filled at runtime)
-  system_prompt: |
-    CORE IDENTITY:
-    You are {companion_name} — not a chatbot, not a therapist label, but a real companion.
-    You're that one friend who truly listens, never judges, and somehow always knows what to say.
-    You understand psychology deeply but wear it lightly — like a friend who happens to be wise.
-
-    RELATIONSHIP PHILOSOPHY:
-    • You HEAR before you help. Listening is your superpower.
-    • You never judge. Ever. No matter what they share.
-    • Therapy happens naturally through conversation — the user should never feel "in a session."
-    • You are culturally rooted — you get Indian family dynamics, academic pressure, social expectations.
-    • You earn trust through consistency, warmth, and showing you remember.
-
-    HOW TO RESPOND:
-    • Mirror their language style naturally — if they speak Hinglish, you speak Hinglish
-    • Be concise for light moments, go deeper when emotions run deep
-    • Apply therapeutic techniques invisibly — never name them, never label them
-    • Ask questions that show genuine curiosity, not clinical probing
-    • When they share something heavy, sit with it before offering perspective
-    • Reference things they've told you before — it shows you care enough to remember
-
-    ABSOLUTE RULES:
-    • NEVER use technique labels like "(CBT)", "(validation)", or parenthetical annotations
-    • NEVER sound clinical, robotic, or textbook
-    • NEVER dismiss cultural values even while gently challenging harmful patterns
-    • Generate ONLY the natural conversation — no meta-commentary, no structured formats
-    • If unsure, lean toward warmth and validation over advice
-
-    {personality_instruction}
-
-    {language_instruction}
-
-    {intervention_directive}
-
-    {memory_context}
+  # System prompt is defined in response_agent.py (the config default below is a fallback)
+  # The actual prompt includes Magnetic Companion Rules, question budget, stage directives, etc.
+  # See response_agent.py BASE_SYSTEM_PROMPT for the authoritative version.
 
 # ──────────────────────────────────────────────────────────────
 # 11. WORKFLOW ORCHESTRATION

@@ -535,9 +535,25 @@ async def process_chat_stream(
                 import queue
                 import threading
                 import asyncio
-                
+                from ..utils.constants import (
+                    STAGE_TRUST_WINDOW_MAX, STAGE_DEEPENING_MAX, STAGE_INSIGHT_MAX,
+                    QUESTION_CAP_TRUST, QUESTION_CAP_DEEPENING,
+                    QUESTION_CAP_INSIGHT, QUESTION_CAP_COMPANION,
+                )
+
+                # Determine question cap for stream-time filtering
+                _stream_msg_count = get_hybrid_message_count(request.session_id) if request.session_id else 0
+                if _stream_msg_count <= STAGE_TRUST_WINDOW_MAX:
+                    _stream_q_cap = QUESTION_CAP_TRUST
+                elif _stream_msg_count <= STAGE_DEEPENING_MAX:
+                    _stream_q_cap = QUESTION_CAP_DEEPENING
+                elif _stream_msg_count <= STAGE_INSIGHT_MAX:
+                    _stream_q_cap = QUESTION_CAP_INSIGHT
+                else:
+                    _stream_q_cap = QUESTION_CAP_COMPANION
+
                 q = queue.Queue()
-                
+
                 def bg_process():
                     try:
                         def on_chunk(chunk):
@@ -565,6 +581,7 @@ async def process_chat_stream(
                 thread.start()
 
                 result = {}
+                _chunk_buffer = ""  # Buffer for sentence-boundary streaming
                 while True:
                     try:
                         item = q.get_nowait()
@@ -574,11 +591,31 @@ async def process_chat_stream(
 
                     kind, data = item
                     if kind == "chunk":
-                        # We yield each chunk of text back dynamically for low TTFT
-                        yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': data})}\n\n"
+                        _chunk_buffer += data
+                        # Emit only complete sentences (up to the last sentence boundary)
+                        import re as _re
+                        _last_boundary = -1
+                        for _m in _re.finditer(r'[.!?]\s', _chunk_buffer):
+                            _last_boundary = _m.end() - 1  # position of the space after punctuation
+                        if _last_boundary > 0:
+                            _emit_text = _chunk_buffer[:_last_boundary + 1]
+                            _chunk_buffer = _chunk_buffer[_last_boundary + 1:]
+                            # Quick question scrub for zero-question stages
+                            if _stream_q_cap == 0 and "?" in _emit_text:
+                                _emit_text = _emit_text.replace("?", ".")
+                                _emit_text = _re.sub(r"\.{2,}", ".", _emit_text)
+                            yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': _emit_text})}\n\n"
                     elif kind == "error":
                         raise Exception(data)
                     elif kind == "done":
+                        # Flush remaining buffer
+                        if _chunk_buffer.strip():
+                            _flush = _chunk_buffer
+                            if _stream_q_cap == 0 and "?" in _flush:
+                                _flush = _flush.replace("?", ".")
+                                import re as _re
+                                _flush = _re.sub(r"\.{2,}", ".", _flush)
+                            yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': _flush})}\n\n"
                         result = data
                         break
 

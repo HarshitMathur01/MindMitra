@@ -47,7 +47,6 @@ _NOISY_LOGGERS = [
     "asyncio",
     "multipart",
     "multipart.multipart",
-    "uvicorn.access",            # HTTP access log — too verbose at INFO
     "watchfiles",
     "watchfiles.main",
 ]
@@ -89,11 +88,21 @@ def configure_logging() -> None:
         force=True,
     )
 
+    # Keep request access logs off by default, but allow opt-in for debugging.
+    show_access_logs = os.getenv("SHOW_ACCESS_LOGS", "true").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
     for name in _NOISY_LOGGERS:
         logging.getLogger(name).setLevel(logging.WARNING)
 
+    if show_access_logs:
+        logging.getLogger("uvicorn.access").setLevel(level)
+    else:
+        logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
     logging.getLogger(__name__).info(
-        f"✅ [LOGGING] Level={level_name} | Third-party loggers suppressed"
+        f"✅ [LOGGING] Level={level_name} | Third-party loggers suppressed | access_logs={'on' if show_access_logs else 'off'}"
     )
 
 

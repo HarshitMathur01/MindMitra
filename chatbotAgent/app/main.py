@@ -14,12 +14,17 @@ import logging
 import os
 import tempfile
 import warnings
+from pathlib import Path
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 from dotenv import load_dotenv
 
-load_dotenv()
+_DOTENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+if _DOTENV_PATH.exists():
+    load_dotenv(dotenv_path=_DOTENV_PATH, override=False)
+else:
+    load_dotenv()
 
 # ── logging must be first ──────────────────────────────────────────────────
 from app.core.logging import configure_logging  # noqa: E402 (must be early)
@@ -106,7 +111,7 @@ cors_origins = list(dict.fromkeys(default_cors_origins + extra_cors_origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origin_regex=r"https?://((localhost|127\.0\.0\.1)(:\d+)?|[a-z0-9-]+\.(ngrok-free\.app|ngrok\.app))$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

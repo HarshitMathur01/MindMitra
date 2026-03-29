@@ -260,28 +260,27 @@ class MemoryRetriever:
         Format memories into structured sections for the system prompt.
 
         Produces:
-            🧠 WHAT YOU KNOW ABOUT THIS USER:
-            • Fact (importance: high)
+            THINGS YOU REMEMBER ABOUT THEM (reference naturally, like a friend who remembers):
+            • Fact
 
-            💡 COPING STRATEGIES THAT WORK FOR THEM:
+            WHAT HAS HELPED THEM BEFORE (weave in naturally if relevant):
             • Strategy
 
-            🔮 YOUR UNDERSTANDING OF THIS USER:
+            PATTERNS YOU'VE NOTICED (share as gentle observations, not diagnoses):
             • Deep insight
         """
         sections = []
 
         if semantic:
-            lines = ["🧠 WHAT YOU KNOW ABOUT THIS USER:"]
+            lines = ["THINGS YOU REMEMBER ABOUT THEM (reference naturally, like a friend who remembers):"]
             for m in semantic:
                 text = m.get("memory", "")
-                score = m.get("composite_score", 0)
                 if text:
-                    lines.append(f"• {text} (score: {score:.2f})")
+                    lines.append(f"• {text}")
             sections.append("\n".join(lines))
 
         if procedural:
-            lines = ["💡 COPING STRATEGIES THAT WORK FOR THEM:"]
+            lines = ["WHAT HAS HELPED THEM BEFORE (weave in naturally if relevant):"]
             for m in procedural:
                 text = m.get("memory", "")
                 if text:
@@ -289,7 +288,7 @@ class MemoryRetriever:
             sections.append("\n".join(lines))
 
         if reflections:
-            lines = ["🔮 YOUR UNDERSTANDING OF THIS USER:"]
+            lines = ["PATTERNS YOU'VE NOTICED (share as gentle observations, not diagnoses):"]
             for m in reflections:
                 text = m.get("memory", "")
                 if text:

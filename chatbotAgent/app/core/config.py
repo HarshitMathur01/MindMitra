@@ -165,6 +165,7 @@ class Config:
             "nlp": "nlp_module.model",
             "groq_nlp": "nlp_module.model",
             "glm": "glm_controller.model",
+            "azure": "azure_controller.model",
             "screening": "screening_assessments.groq_model",
         }
         path = model_paths.get(module)
@@ -190,6 +191,7 @@ class Config:
         temp_paths = {
             "nlp": "nlp_module.temperature",
             "glm": "llm_controller.temperature",
+            "azure": "azure_controller.temperature",
             "screening": "screening_assessments.temperature",
         }
         path = temp_paths.get(module)

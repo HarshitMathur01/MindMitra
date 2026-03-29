@@ -22,6 +22,7 @@ from ..agents.response_agent import ResponseGenerator
 from ..agents.memory_manager import memory_manager
 from ..agents.screening_agent import ScreeningAssessmentAgent
 from ..controllers.llm_controller import LLMController
+from ..controllers.azure_controller import AzureController
 from ..core.config import config
 from ..pipeline.context import create_empty_user_context
 from ..utils.json_utils import parse_json_from_llm_output
@@ -66,7 +67,12 @@ class MindMitraWorkflow:
 
         # ── Agents & controllers ──────────────────────────────
         self.groq_nlp: Optional[AnalysisAgent] = AnalysisAgent() if self.feature_flags.get("nlp_analysis", True) else None
-        self.glm = LLMController()
+        _llm_provider = config.get("response_generator.llm_provider", "glm")
+        if _llm_provider == "azure":
+            self.glm = AzureController()
+            logger.info("🔀 [WORKFLOW] Using Azure OpenAI for response generation")
+        else:
+            self.glm = LLMController()
         self.screening_agent: Optional[ScreeningAssessmentAgent] = (
             ScreeningAssessmentAgent(self.groq_nlp, self.glm) if self.feature_flags.get("screening_assessments", True) else None
         )
@@ -274,6 +280,7 @@ class MindMitraWorkflow:
             "confidence": 0.9,
             "processing_time": processing_time,
             "session_insights": {
+                "conversation_stage": ctx.get("_conversation_stage", "unknown"),
                 "emotional_state": psych.get("emotional_state", ""),
                 "stress_categories": psych.get("stress_categories", []),
                 "therapeutic_approach": technique.get("primary_technique", ""),

@@ -14,6 +14,7 @@ api_keys:
   google_api_key: ${GOOGLE_API_KEY}
   supabase_url: ${SUPABASE_URL}
   supabase_key: ${SUPABASE_KEY}
+  azure_api_key: ${AZURE_API_KEY}
 
 # ──────────────────────────────────────────────────────────────
 # 2. LOGGING CONFIGURATION
@@ -45,12 +46,30 @@ glm_controller:
   max_concurrent: 3  # Number of concurrent GLM calls
   max_retries: 2  # Retry attempts on failure
   base_backoff: 2.0  # Exponential backoff base (seconds)
-  temperature: 0.45
+  temperature: 0.55        # Default / Path C (therapeutic) — warm but coherent
   top_p: 0.85
   # max_tokens: 1000  # Commented out to let model decide
-  
+  temperature_path_a: 0.75  # Path A casual — more creative, personality-forward
+  temperature_path_b: 0.62  # Path B emotional — warmer and natural, not clinical
+  # Path C/D use default temperature: 0.55
+
   # Enable Groq fallback for GLM failures
   groq_fallback_enabled: false
+
+# ──────────────────────────────────────────────────────────────
+# 5. AZURE OPENAI CONTROLLER CONFIGURATION
+# ──────────────────────────────────────────────────────────────
+azure_controller:
+  model: "gpt-5-mini"
+  base_url: "https://claudee.openai.azure.com/openai/v1"
+  max_concurrent: 3
+  max_retries: 2
+  base_backoff: 2.0
+  max_tokens: 3000          # gpt-5-mini is a reasoning model — needs 1500+ tokens for reasoning before output
+  temperature: 0.55        # Default / Path C (therapeutic) — warm but coherent
+  top_p: 0.85
+  temperature_path_a: 0.75  # Path A casual — more creative, personality-forward
+  temperature_path_b: 0.62  # Path B emotional — warmer and natural, not clinical
 
 # ──────────────────────────────────────────────────────────────
 # 6. SCREENING ASSESSMENTS (PHQ-9 / GAD-7)
@@ -78,9 +97,11 @@ memory:
 # 10. RESPONSE GENERATOR CONFIGURATION
 # ──────────────────────────────────────────────────────────────
 response_generator:
+  llm_provider: "azure"  # Options: "glm" | "azure"
+
   # Recent conversation context
   recent_messages_count: 3
-  
+
   # Memory context
   max_memories_per_type: 3
   

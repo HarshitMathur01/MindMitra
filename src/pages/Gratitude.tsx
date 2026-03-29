@@ -19,16 +19,12 @@ const PLACEHOLDERS: [string, string, string] = [
 ];
 
 const CARD_COLORS = [
-  "bg-pink-50 dark:bg-pink-500/10 border-pink-100 dark:border-pink-500/20",
-  "bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20",
-  "bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20",
+  "bg-[hsl(355,38%,96%)] dark:bg-[hsl(355,22%,17%)] border-[hsl(355,32%,88%)] dark:border-[hsl(355,22%,27%)]",
+  "bg-[hsl(42,52%,95%)] dark:bg-[hsl(42,25%,17%)] border-[hsl(42,42%,87%)] dark:border-[hsl(42,25%,27%)]",
+  "bg-[hsl(22,52%,95%)] dark:bg-[hsl(22,28%,17%)] border-[hsl(22,42%,87%)] dark:border-[hsl(22,28%,27%)]",
 ];
 
-const BADGE_COLORS = [
-  "bg-pink-500 text-white",
-  "bg-rose-500 text-white",
-  "bg-amber-500 text-white",
-];
+const CARD_ICONS = ["🌸", "🌿", "🍊"];
 
 const AFFIRMATIONS_AFTER_SAVE = [
   "Gratitude rewires the brain for joy. ✨",
@@ -84,7 +80,7 @@ function groupByWeek(entries: GratitudeEntry[]): { label: string; entries: Grati
 
 // Confetti particle
 function ConfettiParticle({ delay }: { delay: number }) {
-  const colors = ["#f472b6", "#fb7185", "#fbbf24", "#34d399", "#60a5fa"];
+  const colors = ["#4ab8b8", "#a78bfa", "#fdba74", "#6ee7b7", "#fcd34d", "#67e8f9", "#c084fc"];
   const color = colors[Math.floor(Math.random() * colors.length)];
   const x = Math.random() * 300 - 150;
   return (
@@ -137,12 +133,33 @@ export default function Gratitude() {
   const weekGroups = useMemo(() => groupByWeek(entries), [entries]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 via-rose-50 to-background dark:from-[#1a0a10] dark:via-[#1a0810] dark:to-background">
+    <div className="relative isolate min-h-screen overflow-x-hidden bg-gradient-to-b from-[hsl(42,60%,97%)] via-[hsl(22,50%,96%)] to-[hsl(355,35%,96%)] dark:from-[#1c1208] dark:via-[#180e0a] dark:to-[#170b10]">
+
+      {/* Decorative background blobs */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 -right-20 h-80 w-80 rounded-full bg-[hsl(42,80%,78%)] opacity-35 blur-3xl dark:bg-[hsl(42,45%,18%)] dark:opacity-25"
+        animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.50, 0.35] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute top-[40%] -left-28 h-72 w-72 rounded-full bg-[hsl(15,65%,82%)] opacity-30 blur-3xl dark:bg-[hsl(15,40%,18%)] dark:opacity-20"
+        animate={{ scale: [1, 1.12, 1], opacity: [0.25, 0.40, 0.25] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+      />
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-20 -right-16 h-64 w-64 rounded-full bg-[hsl(355,55%,84%)] opacity-30 blur-3xl dark:bg-[hsl(355,35%,17%)] dark:opacity-20"
+        animate={{ scale: [1, 1.06, 1], opacity: [0.30, 0.45, 0.30] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-safe pt-5 pb-4">
         <button
           onClick={() => navigate(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 dark:bg-white/10 shadow-sm transition-transform hover:scale-105 active:scale-95"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/60 backdrop-blur-sm dark:bg-white/8 shadow-sm transition-transform hover:scale-105 active:scale-95"
           aria-label="Go back"
         >
           <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -151,29 +168,42 @@ export default function Gratitude() {
           <h1 className="text-[17px] font-semibold text-foreground">Gratitude</h1>
           <p className="text-xs text-muted-foreground">{today}</p>
         </div>
-        <div className="flex h-10 items-center gap-1 rounded-full bg-white/80 dark:bg-white/10 px-3 shadow-sm">
+        <div className="flex h-10 items-center gap-1 rounded-full bg-white/60 backdrop-blur-sm dark:bg-white/8 px-3 shadow-sm">
           <span className="text-sm">🔥</span>
           <span className="text-sm font-semibold text-foreground">{streak}</span>
         </div>
       </div>
 
       <div className="px-5 pb-20 space-y-5">
-        {/* Intro */}
-        <div className="text-center pt-2 pb-1">
-          <Heart className="mx-auto h-8 w-8 text-pink-400 mb-2" />
+        {/* Hero */}
+        <motion.div
+          className="text-center pt-2 pb-1"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <div className="serene-float mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/50 backdrop-blur-sm shadow-sm dark:bg-white/10">
+            <Heart className="h-7 w-7 text-[hsl(188,51%,38%)] dark:text-[hsl(188,55%,62%)]" />
+          </div>
           <h2 className="text-xl font-bold text-foreground">What are you grateful for?</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Three small things. Big shifts.</p>
-        </div>
+          <p className="mt-1.5 text-sm text-muted-foreground italic leading-relaxed">
+            Notice three small things. Watch the world shift.
+          </p>
+        </motion.div>
 
         {/* 3 input cards */}
         {items.map((item, i) => (
-          <div
+          <motion.div
             key={i}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 + i * 0.12, ease: "easeOut" }}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
             className={`relative rounded-[22px] border p-5 ${CARD_COLORS[i]}`}
           >
             <div className="flex items-start gap-3">
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${BADGE_COLORS[i]}`}>
-                {i + 1}
+              <span className="shrink-0 text-xl leading-none select-none" aria-hidden>
+                {CARD_ICONS[i]}
               </span>
               <textarea
                 value={item}
@@ -187,13 +217,13 @@ export default function Gratitude() {
                 className="flex-1 resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60"
               />
             </div>
-          </div>
+          </motion.div>
         ))}
 
         {/* Confetti overlay */}
         <AnimatePresence>
           {showConfetti && (
-            <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
+            <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/10 dark:bg-black/10">
               {Array.from({ length: 18 }).map((_, i) => (
                 <ConfettiParticle key={i} delay={i * 0.04} />
               ))}
@@ -201,7 +231,7 @@ export default function Gratitude() {
                 initial={{ opacity: 0, scale: 0.7 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="rounded-[28px] bg-white dark:bg-zinc-900 px-8 py-6 shadow-2xl text-center"
+                className="rounded-[28px] bg-white/90 dark:bg-[hsl(196,30%,17%)]/90 backdrop-blur-md px-8 py-6 shadow-2xl text-center ring-1 ring-white/30 dark:ring-white/10"
               >
                 <span className="text-4xl">💖</span>
                 <p className="mt-3 text-sm font-semibold text-foreground max-w-[220px]">
@@ -217,7 +247,7 @@ export default function Gratitude() {
           onClick={handleSave}
           disabled={!canSave}
           whileTap={{ scale: 0.97 }}
-          className="flex w-full items-center justify-center gap-2 rounded-[22px] bg-pink-500 py-4 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(236,72,153,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
+          className="gradient-primary breathing-pulse flex w-full items-center justify-center gap-2 rounded-[22px] py-4 text-sm font-semibold text-white shadow-[0_8px_24px_hsl(188_51%_38%/0.28)] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Heart className="h-4 w-4" />
           Save & Reflect
@@ -226,9 +256,9 @@ export default function Gratitude() {
         {/* Past entries */}
         {weekGroups.length > 0 && (
           <section className="space-y-3 pt-2">
-            <h2 className="text-[15px] font-semibold text-foreground">Past Entries</h2>
+            <h2 className="text-[15px] font-semibold text-gradient">Past Entries</h2>
             {weekGroups.map((group) => (
-              <div key={group.label} className="rounded-[22px] border border-border bg-card shadow-sm overflow-hidden">
+              <div key={group.label} className="rounded-[22px] border border-border/60 bg-white/60 dark:bg-white/5 backdrop-blur-sm shadow-sm overflow-hidden">
                 <button
                   onClick={() => setExpandedWeek(expandedWeek === group.label ? null : group.label)}
                   className="flex w-full items-center justify-between px-5 py-4 text-left"
@@ -257,9 +287,10 @@ export default function Gratitude() {
                             <p className="text-[11px] text-muted-foreground font-medium">{formatDate(entry.date)}</p>
                             {entry.items.map((item, j) => (
                               <div key={j} className="flex items-start gap-2.5">
-                                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${BADGE_COLORS[j]}`}>
-                                  {j + 1}
-                                </span>
+                                <span
+                                  aria-hidden
+                                  className="mt-2 shrink-0 h-1.5 w-1.5 rounded-full bg-primary/50 dark:bg-primary/60"
+                                />
                                 <p className="text-sm text-foreground leading-relaxed">{item}</p>
                               </div>
                             ))}

@@ -19,6 +19,7 @@ from ..agents.intent_router import IntentRouter
 from ..agents.response_agent import ResponseGenerator
 from ..controllers.llm_controller import LLMController
 from ..agents.analysis_agent import AnalysisAgent
+from ..core.config import config
 from supabase import Client
 
 logger = logging.getLogger(__name__)
@@ -33,26 +34,40 @@ class PipelineOrchestrator:
     _TECHNIQUE_DIRECTIVES: Dict[str, str] = {
         "validate": (
             "Focus entirely on making this person feel deeply understood. "
-            "Do not offer advice or reframes."
+            "Do not offer advice or reframes — just be present with what they shared. "
+            "Name the specific feeling, not the category: 'That kind of exhaustion that doesn't go away with sleep' "
+            "hits harder than 'you seem tired'. Reflect back the weight of what they said, not just the content."
         ),
         "reframe": (
             "Gently offer one alternative way to look at this situation. "
-            "Don't push — just open a door."
+            "Don't push — plant it like a seed: 'I wonder if there's another way to read that...' "
+            "Frame it as a possibility, not a correction. "
+            "Example tone: 'What if the fact that this hurts so much means you actually care deeply about getting it right.'"
         ),
         "ground": (
             "Naturally bring their attention to the present moment — "
-            "their body, breath, or surroundings."
+            "their body, breath, or what they can see and feel right now. "
+            "Weave it into the conversation: 'Take a breath with me for a second' or "
+            "'Notice your feet on the floor right now — that's real, that's steady.' "
+            "Make grounding feel like a shared moment, not an exercise."
         ),
         "problem-solve": (
-            "Help identify one small, concrete next step they can actually take right now."
+            "Help identify one small, concrete next step they can actually take right now. "
+            "Make it feel achievable, not overwhelming: 'What if you just did the first five minutes of that.' "
+            "Acknowledge the size of the problem before suggesting the small step. "
+            "The goal is agency, not a plan."
         ),
         "refer": (
             "Warmly acknowledge this is bigger than a chat can hold. "
-            "Gently and compassionately mention professional support."
+            "Honor their courage in sharing. Frame professional support as strength: "
+            "'Talking to someone trained in this isn't giving up — it's taking yourself seriously.' "
+            "Maintain connection: you're not handing them off, you're walking alongside them toward more support."
         ),
         "psychoeducation": (
-            "Share one simple, relatable insight about what they're experiencing. "
-            "Keep it accessible, not clinical."
+            "Share one simple, relatable insight about what they're experiencing — "
+            "something that normalizes it. Use analogy: 'Your brain is basically running a fire drill right now — "
+            "that anxious feeling is your alarm system doing its job, just a bit too enthusiastically.' "
+            "Keep it conversational. The insight should feel like a gift, not a lecture."
         ),
     }
 
@@ -109,6 +124,21 @@ class PipelineOrchestrator:
 
         return ", ".join(parts) if parts else None
 
+    _QUESTION_CONSTRAINTS: Dict[str, str] = {
+        "trust_window": " Ask at most ONE warm, specific question. Prefer reflective statements like 'I wonder...' or 'It sounds like...'.",
+        "deepening": " Ask at most ONE question. Prefer 'I wonder...' and observational statements over direct questions.",
+        "insight": " Ask at most one gentle question in your entire response. Prefer 'I wonder...' statements.",
+        "companion": " Ask at most one question in your entire response. Lead with statements.",
+    }
+
+    @staticmethod
+    def _get_question_constraint(ctx: Dict) -> str:
+        """Return a question constraint string based on conversation stage."""
+        stage = ctx.get("_conversation_stage", "companion")
+        return PipelineOrchestrator._QUESTION_CONSTRAINTS.get(
+            stage, PipelineOrchestrator._QUESTION_CONSTRAINTS["companion"]
+        )
+
     def _technique_directive(self, intervention: str) -> str:
         """Pure Python dict lookup. Zero LLM calls."""
         return self._TECHNIQUE_DIRECTIVES.get(intervention.lower(), self._TECHNIQUE_DIRECTIVES["validate"])
@@ -122,7 +152,8 @@ class PipelineOrchestrator:
         logger.info("💬 [PATH-A] ▶  EXECUTING: casual/light path (1 GLM call)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = 150
+        ctx["_response_max_tokens"] = 2500
+        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_a", 0.75))
         ctx["psychological_analysis"] = {
             "emotional_state": "casual",
             "stress_categories": [],
@@ -139,9 +170,14 @@ class PipelineOrchestrator:
             "rationale": "light conversation",
         }
         ctx["intervention_directive"] = (
-            "This is casual conversation. Be a warm, friendly companion. "
-            "Keep your response to 1-3 sentences. Ask one curious question at most. "
-            "No clinical framing whatsoever."
+            "CASUAL MODE — let your personality lead. "
+            "Say something that lands: specific, warm, a little unexpected. "
+            "Show you actually heard what they said — not the category of thing, but the exact thing. "
+            "1-3 sentences. Dense, real, no filler. "
+            "BANNED openers: 'Great!', 'Got it!', 'No worries!', 'Of course!', 'That's nice!', 'I understand that'. "
+            "BANNED closers: 'Feel free to share', 'Take care'. "
+            "Every sentence should earn its place. Zero clinical framing. Sound like a real person who is genuinely interested."
+            + self._get_question_constraint(ctx)
         )
         logger.info(f"  📞 [PATH-A] Calling GLM response-gen (model={getattr(self.glm, 'model_name', '?')})...")
         _t = time.monotonic()
@@ -160,7 +196,8 @@ class PipelineOrchestrator:
         logger.info("❤️  [PATH-B] ▶  EXECUTING: emotional/standard path (1 Groq + 1 GLM)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = 300
+        ctx["_response_max_tokens"] = 2500
+        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_b", 0.62))
 
         logger.info(f"  📞 [PATH-B] Calling Groq combined-analysis (model={getattr(getattr(self, 'groq_nlp', None), 'model', '?')})...")
         _t_combined = time.monotonic()
@@ -216,8 +253,9 @@ class PipelineOrchestrator:
             "information": "psychoeducation",
             "company": "validate",
         }
-        ctx["intervention_directive"] = self._technique_directive(
-            needs_to_intervention.get(user_needs, "validate")
+        ctx["intervention_directive"] = (
+            self._technique_directive(needs_to_intervention.get(user_needs, "validate"))
+            + self._get_question_constraint(ctx)
         )
         logger.info(
             f"  🧩 [PATH-B] Analysis complete: "
@@ -245,7 +283,7 @@ class PipelineOrchestrator:
         logger.info("🧠 [PATH-C] ▶  EXECUTING: therapeutic/rich path (1 GLM psych + 1 GLM response)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = 500
+        ctx["_response_max_tokens"] = 3000
 
         # Fast keyword check first (0 ms)
         crisis_level = self.crisis_manager.check_crisis_keywords(ctx["user_message"])
@@ -307,7 +345,10 @@ class PipelineOrchestrator:
             "rationale": psych_result.get("insight", ""),
         }
 
-        ctx["intervention_directive"] = self._technique_directive(intervention)
+        ctx["intervention_directive"] = (
+            self._technique_directive(intervention)
+            + self._get_question_constraint(ctx)
+        )
         logger.info(
             f"  🧩 [PATH-C] Psych complete: "
             f"state='{psych_result.get('emotional_state','?')}' "
@@ -423,6 +464,20 @@ class PipelineOrchestrator:
                 logger.info(f"📈 [TREND] Injected emotional trend ({len(trend)} chars)")
         except Exception as trend_exc:
             logger.error(f"❌ [TREND] get_emotional_trend failed: {trend_exc}")
+
+        # ── Conversation stage (for question budget) ─────────────────────
+        from ..services.supabase_service import get_hybrid_message_count
+        from ..utils.constants import STAGE_TRUST_WINDOW_MAX, STAGE_DEEPENING_MAX, STAGE_INSIGHT_MAX
+        session_msg_count = get_hybrid_message_count(session_id) if session_id else len(recent)
+        if session_msg_count <= STAGE_TRUST_WINDOW_MAX:
+            ctx["_conversation_stage"] = "trust_window"
+        elif session_msg_count <= STAGE_DEEPENING_MAX:
+            ctx["_conversation_stage"] = "deepening"
+        elif session_msg_count <= STAGE_INSIGHT_MAX:
+            ctx["_conversation_stage"] = "insight"
+        else:
+            ctx["_conversation_stage"] = "companion"
+        logger.info(f"📊 [STAGE] Conversation stage: {ctx['_conversation_stage']} (msg_count={session_msg_count})")
 
         # ── Dispatch ───────────────────────────────────────────────────────
         if intent == "crisis":

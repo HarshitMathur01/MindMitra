@@ -40,7 +40,7 @@ An AI-powered therapeutic companion combining a multi-agent LLM pipeline with a 
                               │ HTTPS (POST /chat, GET /chat/greeting, etc.)
                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  BACKEND  (FastAPI / Python 3.12)                        Deployed: Railway │
+│  BACKEND  (FastAPI / Python 3.11)                        Deployed: Railway │
 │                                                                             │
 │  ┌─────────────────────────── Pipeline (workflow.py) ──────────────────────┐│
 │  │                                                                         ││
@@ -52,8 +52,8 @@ An AI-powered therapeutic companion combining a multi-agent LLM pipeline with a 
 │  │       Path A           Path B      Path C           Path D             ││
 │  │       casual           emotional   therapeutic      crisis             ││
 │  │       1 GLM call       1 Groq      1-2 GLM          0 LLM             ││
-│  │       150 tokens       + 1 GLM     + opt. Groq      template           ││
-│  │                        300 tok     500 tok          safety resp.        ││
+│  │       2500 tokens       + 1 GLM     + opt. Groq      template           ││
+│  │                        2500 tok     3000 tok          safety resp.        ││
 │  │           │                │           │                │               ││
 │  │           └────────────────┴─────┬─────┘                │               ││
 │  │                                  │                      │               ││
@@ -103,7 +103,7 @@ An AI-powered therapeutic companion combining a multi-agent LLM pipeline with a 
 | **3D Avatar** | TalkingHead v1.7 (iframe) + MindMitraBridge | Lip-synced animated companion with therapeutic expressions |
 | **TTS** | Google Cloud TTS → Azure Cognitive Services → Web Speech API | 3-tier in-browser speech synthesis (frontend-only) |
 | **State** | React Context, TanStack Query | Auth, chat session, data fetching |
-| **Backend** | FastAPI, Python 3.12, uvicorn | Async API server |
+| **Backend** | FastAPI, Python 3.11, uvicorn | Async API server |
 | **LLM (response)** | ZhipuAI GLM-4-32b-0414-128k | Therapeutic response generation |
 | **LLM (NLP/routing)** | Groq qwen/qwen3-32b | Emotion analysis, intent classification, crisis check |
 | **LLM (screening)** | Groq llama-3.3-70b-versatile | PHQ-9/GAD-7 clinical scoring, mem0 extraction |
@@ -191,9 +191,9 @@ MindMitra/
 │   │   │   ├── response_agent.py     # (442 lines) GLM + CoE reasoning
 │   │   │   ├── intent_router.py      # 4-class Groq classifier
 │   │   │   ├── screening_agent.py    # PHQ-9/GAD-7 with EMA
-│   │   │   └── nlp_agent.py          # Groq client factory
+│   │   │   └── analysis_agent.py          # Groq client factory
 │   │   ├── controllers/
-│   │   │   └── glm_controller.py     # Thread-safe ZhipuAI + Groq fallback
+│   │   │   └── llm_controller.py     # Thread-safe ZhipuAI + Groq fallback
 │   │   ├── pipeline/
 │   │   │   ├── workflow.py           # (1092 lines) THE BRAIN — orchestrator
 │   │   │   └── context.py            # UserContext JSON builder
@@ -394,7 +394,6 @@ SSE streaming variant. Events: `text_chunk`, `avatar_ready`, `complete`, `error`
 | `GET` | `/chat/greeting` | Personalized session-start greeting |
 | `GET` | `/health` | Railway health check |
 | `POST` | `/transcribe` | Groq Whisper fallback STT (base64 WAV) |
-| `POST` | `/api/onboarding/generate` | Dynamic onboarding questions |
 
 ---
 

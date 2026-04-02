@@ -74,10 +74,10 @@ MindMitra/
 │   │   │   ├── response_agent.py   # GLM response generation + system prompt
 │   │   │   ├── memory_manager.py   # mem0 + Qdrant memory (singleton)
 │   │   │   ├── intent_router.py    # Groq intent classification
-│   │   │   ├── nlp_agent.py        # Groq NLP analysis
+│   │   │   ├── analysis_agent.py        # Groq NLP analysis
 │   │   │   └── screening_agent.py  # PHQ-9 / GAD-7 scoring
 │   │   ├── controllers/
-│   │   │   └── glm_controller.py   # Thread-safe ZhipuAI wrapper + streaming
+│   │   │   └── llm_controller.py   # Thread-safe ZhipuAI wrapper + streaming
 │   │   ├── pipeline/
 │   │   │   ├── workflow.py         # Intent-routed orchestrator (Path A/B/C/D)
 │   │   │   └── context.py         # UserContext data structures
@@ -259,7 +259,7 @@ User message → mem0.search() (Qdrant vector similarity)
 ### Memory Operations
 - **Retrieval**: Parallel with intent routing (~200ms)
 - **Extraction**: Background thread after response (fire-and-forget)
-- **Importance scoring**: Gemini LLM rates 1-10
+- **Importance scoring**: Groq LLM rates 1-10
 - **Synthesis**: Periodic procedural memory + reflection generation
 - **Emotional trend**: Cross-session emotional tracking
 

@@ -10,8 +10,8 @@ A comprehensive architecture overview for developers and GitHub visitors. For se
     ┌──────────────┐       HTTPS        ┌──────────────┐
     │   Browser    │ ◄────────────────► │   Backend    │
     │              │   POST /chat       │   (Railway)  │
-    │  React SPA   │   GET /greeting    │   FastAPI    │
-    │  (Vercel)    │   POST /transcribe │   Python 3.12│
+    │  React SPA   │   GET  chat/greeting│   FastAPI   │
+    │  (Vercel)    │   POST /transcribe │   Python 3.11│
     └──────┬───────┘                    └──────┬───────┘
            │                                    │
      ┌─────┴──────┐                    ┌───────┴────────┐

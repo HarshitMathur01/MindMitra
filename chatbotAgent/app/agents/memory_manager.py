@@ -17,8 +17,12 @@ class MemoryManager:
     def is_ready(self) -> bool:
         return self.store.is_ready
 
-    def add_memories(self, *args, **kwargs):
-        return self.store.add_memories(*args, **kwargs)
+    def add_memories(self, messages, user_id, *args, **kwargs):
+        result = self.store.add_memories(messages, user_id, *args, **kwargs)
+        # Invalidate the has-memories cache so the next retrieve_memories
+        # call re-checks and finds the newly added memories.
+        self.retriever.invalidate_has_memories_cache(user_id)
+        return result
 
     def retrieve_memories(self, *args, **kwargs):
         return self.retriever.retrieve_memories(*args, **kwargs)

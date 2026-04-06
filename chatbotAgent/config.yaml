@@ -28,12 +28,14 @@ logging:
 # ──────────────────────────────────────────────────────────────
 nlp_module:
   enabled: true
-  model: "qwen/qwen3-32b"  # Options: qwen/qwen3-32b, meta-llama/llama-4-scout-17b-16e-instruct
+  model: "llama-3.1-8b-instant"  # Fast 8B model for intent routing & NLP — ~3-5x lower latency than qwen3-32b
   temperature: 0.1
   max_tokens: 400
   
   # Model token limits (for automatic truncation)
   model_token_limits:
+    "llama-3.1-8b-instant": 8192
+    "llama-3.3-70b-versatile": 8192
     "qwen/qwen3-32b": 4096
     "moonshotai/kimi-k2-instruct-0905": 4096
     "meta-llama/llama-4-scout-17b-16e-instruct": 8192
@@ -65,18 +67,22 @@ azure_controller:
   max_concurrent: 3
   max_retries: 2
   base_backoff: 2.0
-  max_tokens: 3000          # gpt-5-mini is a reasoning model — needs 1500+ tokens for reasoning before output
-  temperature: 0.55        # Default / Path C (therapeutic) — warm but coherent
+  max_tokens: 3000
+  max_tokens_path_a: 200
+  max_tokens_path_b: 800
+  max_tokens_path_c: 1200
+  temperature: 0.55
+  temperature_path_a: 0.8
+  temperature_path_b: 0.6
+  temperature_path_c: 0.5
   top_p: 0.85
-  temperature_path_a: 0.75  # Path A casual — more creative, personality-forward
-  temperature_path_b: 0.62  # Path B emotional — warmer and natural, not clinical
 
 # ──────────────────────────────────────────────────────────────
 # 6. SCREENING ASSESSMENTS (PHQ-9 / GAD-7)
 # ──────────────────────────────────────────────────────────────
 screening_assessments:
   enabled: true
-  groq_model: "llama-3.3-70b-versatile"
+  groq_model: "llama-3.1-8b-instant"  # Schema-filling task — 8b is sufficient, 88% cheaper
   temperature: 0.0
   max_tokens: 280
 
@@ -97,7 +103,7 @@ memory:
 # 10. RESPONSE GENERATOR CONFIGURATION
 # ──────────────────────────────────────────────────────────────
 response_generator:
-  llm_provider: "azure"  # Options: "glm" | "azure"
+  llm_provider: "glm"  # Options: "glm" | "azure"
 
   # Recent conversation context
   recent_messages_count: 3

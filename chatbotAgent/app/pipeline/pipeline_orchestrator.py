@@ -152,8 +152,8 @@ class PipelineOrchestrator:
         logger.info("💬 [PATH-A] ▶  EXECUTING: casual/light path (1 GLM call)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = 2500
-        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_a", 0.75))
+        ctx["_response_max_tokens"] = int(config.get("azure_controller.max_tokens_path_a", 200))
+        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_a", 0.8))
         ctx["psychological_analysis"] = {
             "emotional_state": "casual",
             "stress_categories": [],
@@ -196,14 +196,12 @@ class PipelineOrchestrator:
         logger.info("❤️  [PATH-B] ▶  EXECUTING: emotional/standard path (1 Groq + 1 GLM)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = 2500
-        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_b", 0.62))
+        ctx["_response_max_tokens"] = int(config.get("azure_controller.max_tokens_path_b", 800))
+        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_b", 0.6))
 
         logger.info(f"  📞 [PATH-B] Calling Groq combined-analysis (model={getattr(getattr(self, 'groq_nlp', None), 'model', '?')})...")
         _t_combined = time.monotonic()
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            fut_combined = executor.submit(AnalysisEngine.combined_emotion_cultural_analyse, self.groq_nlp, ctx)
-            combined = fut_combined.result()
+        combined = AnalysisEngine.combined_emotion_cultural_analyse(self.groq_nlp, ctx)
         logger.info(f"  ✅ [PATH-B] Groq combined-analysis done in {(time.monotonic()-_t_combined)*1000:.0f}ms")
 
         ctx["nlp_analysis"] = {
@@ -283,7 +281,8 @@ class PipelineOrchestrator:
         logger.info("🧠 [PATH-C] ▶  EXECUTING: therapeutic/rich path (1 GLM psych + 1 GLM response)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = 3000
+        ctx["_response_max_tokens"] = int(config.get("azure_controller.max_tokens_path_c", 1200))
+        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_c", 0.5))
 
         # Fast keyword check first (0 ms)
         crisis_level = self.crisis_manager.check_crisis_keywords(ctx["user_message"])
@@ -363,12 +362,16 @@ class PipelineOrchestrator:
             f"response={len(ctx.get('ai_response',''))} chars"
         )
 
-    def route_and_execute(self, ctx: Dict, session_id: Optional[str]) -> None:
+    def route_and_execute(self, ctx: Dict, session_id: Optional[str], message_count: int = 0) -> None:
         """
         Single entry point for the routed pipeline.
         1. Classify intent via IntentRouter.
         2. Safety gate: keyword crisis check overrides any non-crisis classification.
         3. Dispatch to A / B / C / D.
+
+        Args:
+            message_count: Pre-fetched session message count (avoids a duplicate DB query).
+                           Pass 0 to let the orchestrator fetch it itself.
         """
         text = ctx["user_message"]
         recent = ctx["session_context"].get("recent_messages", [])
@@ -377,23 +380,34 @@ class PipelineOrchestrator:
 
         activities = ctx.get("session_context", {}).get("user_activities", [])
 
-        # ── Screening-aware routing: inject PHQ-9/GAD-7 hint if elevated ──
+        # ── Conversation stage (compute once — used for question budget + screening gate) ──
+        from ..services.supabase_service import get_hybrid_message_count
+        from ..utils.constants import STAGE_TRUST_WINDOW_MAX, STAGE_DEEPENING_MAX, STAGE_INSIGHT_MAX, SCREENING_MIN_MESSAGES
+        # Use the pre-fetched count when available — avoids a duplicate Supabase COUNT(*) call
+        session_msg_count = message_count if message_count > 0 else (
+            get_hybrid_message_count(session_id) if session_id else len(recent)
+        )
+
+        # ── Screening-aware routing: inject PHQ-9/GAD-7 hint only when relevant ──
+        # Gate behind SCREENING_MIN_MESSAGES to skip the DB lookup for new sessions.
+        # fetch_latest_screening_scores is cached (5-min TTL) so re-calls are cheap.
         screening_hint = None
-        try:
-            from ..services.supabase_service import fetch_latest_screening_scores
-            user_id = ctx.get("user_id", "anonymous")
-            if user_id != "anonymous" and self.supabase:
-                scores = fetch_latest_screening_scores(user_id)
-                if scores:
-                    phq9 = scores.get("phq9", {})
-                    gad7 = scores.get("gad7", {})
-                    phq9_sev = phq9.get("severity", "")
-                    gad7_sev = gad7.get("severity", "")
-                    if phq9_sev in ("moderate", "moderately_severe", "severe") or gad7_sev in ("moderate", "severe"):
-                        screening_hint = f"PHQ-9={phq9_sev or 'unknown'} (score {phq9.get('score', '?')}), GAD-7={gad7_sev or 'unknown'} (score {gad7.get('score', '?')})"
-                        logger.info(f"📋 [ROUTER] Screening hint injected: {screening_hint}")
-        except Exception as screen_exc:
-            logger.debug(f"[ROUTER] Screening hint fetch skipped: {screen_exc}")
+        if session_msg_count >= SCREENING_MIN_MESSAGES:
+            try:
+                from ..services.supabase_service import fetch_latest_screening_scores
+                user_id = ctx.get("user_id", "anonymous")
+                if user_id != "anonymous" and self.supabase:
+                    scores = fetch_latest_screening_scores(user_id)
+                    if scores:
+                        phq9 = scores.get("phq9", {})
+                        gad7 = scores.get("gad7", {})
+                        phq9_sev = phq9.get("severity", "")
+                        gad7_sev = gad7.get("severity", "")
+                        if phq9_sev in ("moderate", "moderately_severe", "severe") or gad7_sev in ("moderate", "severe"):
+                            screening_hint = f"PHQ-9={phq9_sev or 'unknown'} (score {phq9.get('score', '?')}), GAD-7={gad7_sev or 'unknown'} (score {gad7.get('score', '?')})"
+                            logger.info(f"📋 [ROUTER] Screening hint injected: {screening_hint}")
+            except Exception as screen_exc:
+                logger.debug(f"[ROUTER] Screening hint fetch skipped: {screen_exc}")
 
         if self.intent_router:
             voice_hint = self._build_voice_hint(ctx.get("voice_analysis", {}))
@@ -442,33 +456,51 @@ class PipelineOrchestrator:
             f"[router_time={(time.monotonic()-_t_router)*1000:.0f}ms]"
         )
 
-        # ── Memory retrieval (mem0 — sync, fast) ─────────────────────────
-        try:
-            mem_ctx = memory_manager.retrieve_memories(
-                query=text,
-                user_id=ctx.get("user_id", "anonymous"),
-                intent=intent,
-            )
-            if mem_ctx:
-                ctx["memory_context"] = mem_ctx
-                logger.info(f"🧠 [MEMORY] Injected memory context ({len(mem_ctx)} chars)")
-        except Exception as mem_exc:
-            logger.error(f"❌ [MEMORY] retrieve_memories failed: {mem_exc}")
+        # ── Memory retrieval + emotional trend (parallel) ────────────────
+        # Both calls are independent — run concurrently.
+        # A 2.5 s timeout guards against slow Qdrant / embedding cold-starts;
+        # on timeout we continue without memory context rather than block the
+        # entire response.
+        _user_id = ctx.get("user_id", "anonymous")
+        _MEMORY_TIMEOUT = 7.0  # seconds
 
-        # ── Emotional trend (cross-session continuity) ────────────────────
-        try:
-            trend = memory_manager.get_emotional_trend(ctx.get("user_id", "anonymous"))
-            if trend:
-                existing = ctx.get("memory_context", "")
-                ctx["memory_context"] = existing + f"\n\n📈 EMOTIONAL TREND (recent sessions): {trend}"
-                logger.info(f"📈 [TREND] Injected emotional trend ({len(trend)} chars)")
-        except Exception as trend_exc:
-            logger.error(f"❌ [TREND] get_emotional_trend failed: {trend_exc}")
+        with ThreadPoolExecutor(max_workers=2) as _mem_ex:
+            fut_mem   = _mem_ex.submit(
+                memory_manager.retrieve_memories,
+                text, _user_id, intent,
+            )
+            fut_trend = _mem_ex.submit(
+                memory_manager.get_emotional_trend,
+                _user_id,
+            )
+
+            # Collect memory context with timeout
+            try:
+                mem_ctx = fut_mem.result(timeout=_MEMORY_TIMEOUT)
+                if mem_ctx:
+                    ctx["memory_context"] = mem_ctx
+                    logger.info(f"🧠 [MEMORY] Injected memory context ({len(mem_ctx)} chars)")
+            except TimeoutError:
+                logger.warning(f"⏱️ [MEMORY] retrieve_memories timed out ({_MEMORY_TIMEOUT}s) — skipping")
+                mem_ctx = ""
+            except Exception as mem_exc:
+                logger.error(f"❌ [MEMORY] retrieve_memories failed: {mem_exc}")
+                mem_ctx = ""
+
+            # Collect emotional trend — typically fast (cached by prewarm thread)
+            try:
+                trend = fut_trend.result(timeout=_MEMORY_TIMEOUT)
+                if trend:
+                    existing = ctx.get("memory_context", "")
+                    ctx["memory_context"] = existing + f"\n\n📈 EMOTIONAL TREND (recent sessions): {trend}"
+                    logger.info(f"📈 [TREND] Injected emotional trend ({len(trend)} chars)")
+            except TimeoutError:
+                logger.warning(f"⏱️ [TREND] get_emotional_trend timed out ({_MEMORY_TIMEOUT}s) — skipping")
+            except Exception as trend_exc:
+                logger.error(f"❌ [TREND] get_emotional_trend failed: {trend_exc}")
 
         # ── Conversation stage (for question budget) ─────────────────────
-        from ..services.supabase_service import get_hybrid_message_count
-        from ..utils.constants import STAGE_TRUST_WINDOW_MAX, STAGE_DEEPENING_MAX, STAGE_INSIGHT_MAX
-        session_msg_count = get_hybrid_message_count(session_id) if session_id else len(recent)
+        # session_msg_count already computed above (pre-fetched from outer scope or DB)
         if session_msg_count <= STAGE_TRUST_WINDOW_MAX:
             ctx["_conversation_stage"] = "trust_window"
         elif session_msg_count <= STAGE_DEEPENING_MAX:

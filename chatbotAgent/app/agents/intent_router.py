@@ -86,9 +86,7 @@ class IntentRouter:
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.0,
-                max_tokens=50,        # safe again now that thinking is disabled
-                reasoning_effort="none",    # disables thinking mode entirely for qwen3
-                reasoning_format="hidden",  # safety net: strips any think tokens from output
+                max_tokens=50,
             )
             raw = (resp.choices[0].message.content or "").strip()
             logger.info(f"[INTENT RAW OUTPUT] {raw}")

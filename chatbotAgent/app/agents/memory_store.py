@@ -70,10 +70,10 @@ class MemoryStore:
                     mem0_config = {
                         "version": "v1.1",
                         "llm": {
-                            # Groq: fast + zero-cost for fact extraction
+                            # Groq 8b: entity/fact extraction — no deep reasoning needed, 88% cheaper
                             "provider": "groq",
                             "config": {
-                                "model": "llama-3.3-70b-versatile",
+                                "model": "llama-3.1-8b-instant",
                                 "temperature": 0.1,
                                 "max_tokens": 2000,
                             },
@@ -255,7 +255,7 @@ class MemoryStore:
             )
 
             response = self._groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama-3.1-8b-instant",  # 1-10 integer scoring — 8b is sufficient, 88% cheaper
                 messages=[
                     {"role": "system", "content": "You are a memory importance scorer. Return only a JSON array of integers."},
                     {"role": "user", "content": prompt},

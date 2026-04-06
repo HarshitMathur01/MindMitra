@@ -211,17 +211,56 @@
         function buildWordTimingsFromTimepoints(words, timepoints, audioDurationMs) {
             const wtimes = [];
             const wdurations = [];
-            for (let i = 0; i < words.length; i++) {
-                const tMs = i === 0
-                    ? 0
-                    : ((timepoints[i - 1]?.timeSeconds ?? (wtimes[i - 1] / 1000)) * 1000);
-                wtimes.push(Math.round(tMs));
+            if (!timepoints || timepoints.length === 0) {
+                // No real timestamps from TTS → distribute words evenly across the full
+                // audio duration. This prevents all visemes collapsing to time 0,
+                // which manifests as "no lipsync" (mouth moves only at the very start).
+                const n = Math.max(words.length, 1);
+                for (let i = 0; i < words.length; i++) {
+                    wtimes.push(Math.round((i / n) * audioDurationMs));
+                }
+            } else {
+                // Use SSML mark-based onset times returned by Google TTS.
+                // Mark i fires at the acoustic onset of word i+1, so:
+                //   wtimes[0] = 0, wtimes[i] = timepoints[i-1].timeSeconds * 1000
+                for (let i = 0; i < words.length; i++) {
+                    const tMs = i === 0 ? 0 : (timepoints[i - 1]?.timeSeconds || 0) * 1000;
+                    wtimes.push(Math.round(tMs));
+                }
             }
             for (let i = 0; i < words.length; i++) {
                 const next = i + 1 < words.length ? wtimes[i + 1] : audioDurationMs;
                 wdurations.push(Math.max(50, next - wtimes[i]));
             }
             return { words, wtimes, wdurations };
+        }
+
+        /**
+         * Concatenate multiple Web Audio API AudioBuffers into a single seamless buffer.
+         * All buffers must share the same sample rate (guaranteed when decoded by the
+         * same AudioContext).  Channel mismatch is resolved by mapping to channel 0.
+         *
+         * Using ONE combined AudioBuffer + ONE speakAudio() call eliminates the mandatory
+         * 500 ms break that TalkingHead inserts after every speakAudio() call,
+         * giving the avatar continuous speech with unbroken lip-sync animation.
+         */
+        function concatAudioBuffers(audioCtx, buffers) {
+            if (buffers.length === 1) return buffers[0];
+            const nChannels = Math.max(...buffers.map(b => b.numberOfChannels));
+            const sampleRate = buffers[0].sampleRate;
+            const totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
+            const result = audioCtx.createBuffer(nChannels, totalLength, sampleRate);
+            for (let ch = 0; ch < nChannels; ch++) {
+                const out = result.getChannelData(ch);
+                let offset = 0;
+                for (const buf of buffers) {
+                    // If buf has fewer channels use channel 0 for all
+                    const chIdx = Math.min(ch, buf.numberOfChannels - 1);
+                    out.set(buf.getChannelData(chIdx), offset);
+                    offset += buf.length;
+                }
+            }
+            return result;
         }
 
         // ── TalkingHead init ─────────────────────────────────────────────────────────────
@@ -326,11 +365,96 @@
         document.addEventListener("click",       ensureAudioCtx);
         document.addEventListener("pointerdown", ensureAudioCtx);
 
-        // ── Azure TTS — neural voice fallback (when Google key absent but Azure key present) ─
-        // Uses Azure Cognitive Services REST API with a female Indian English neural voice.
+        // ── Azure Speech SDK — lazy loader ───────────────────────────────────────────────
+        // The SDK bundle (~2 MB) is loaded on-demand the first time TTS is needed.
+        // Subsequent calls reuse the same cached promise so the SDK is fetched only once.
+        let _sdkPromise = null;
+        function loadAzureSDK() {
+            if (!_sdkPromise) {
+                _sdkPromise = new Promise((resolve, reject) => {
+                    if (window.SpeechSDK) { resolve(window.SpeechSDK); return; }
+                    const s = document.createElement('script');
+                    s.src = 'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.42.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js';
+                    s.onload  = () => window.SpeechSDK
+                        ? resolve(window.SpeechSDK)
+                        : reject(new Error('SpeechSDK global not found after load'));
+                    s.onerror = () => reject(new Error('Failed to load Azure Speech SDK from CDN'));
+                    document.head.appendChild(s);
+                });
+            }
+            return _sdkPromise;
+        }
+
+        // ── Azure Speech SDK synthesis with real word-boundary timestamps ─────────────────
+        //
+        // This is the PRIMARY Azure TTS path.  The SDK fires wordBoundary events during
+        // synthesis with exact audioOffset (100-nanosecond ticks) for each word.
+        // These map directly to TalkingHead wtimes, anchoring lipsync to the real
+        // phoneme positions in the audio — far more accurate than the linear estimation
+        // the REST API requires.
+        //
+        // Returns { audioData: ArrayBuffer, wordBoundaries: [{text, audioOffset, duration}] }
+        function synthesizeWithAzureSDK(SpeechSDK, text) {
+            return new Promise((resolve, reject) => {
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
+
+                // MP3 @ 24 kHz 96 kbps — universally decodable via AudioContext.decodeAudioData
+                speechConfig.speechSynthesisOutputFormat =
+                    SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz96KBitRateMonoMp3;
+
+                // Pick the voice that matches the language tag
+                const voiceName = ttsLang.startsWith("en-IN") ? "en-IN-NeerjaNeural"
+                                : ttsLang.startsWith("hi")    ? "hi-IN-SwaraNeural"
+                                :                               "en-US-JennyNeural";
+                speechConfig.speechSynthesisVoiceName = voiceName;
+
+                // null audioConfig → synthesizer captures audio internally (no speaker output).
+                // The full audio is returned in result.audioData as an ArrayBuffer.
+                const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, null);
+
+                const wordBoundaries = [];
+                synthesizer.wordBoundary = (sender, event) => {
+                    // Filter to actual word boundaries only (skip punctuation / sentence markers).
+                    // SpeechSynthesisBoundaryType.Word === 0 in SDK v1.20+; fall back to
+                    // a regex guard for older bundles that lack the enum.
+                    const isWord = SpeechSDK.SpeechSynthesisBoundaryType
+                        ? event.boundaryType === SpeechSDK.SpeechSynthesisBoundaryType.Word
+                        : /\w/.test(event.text);
+                    if (isWord && event.text) {
+                        wordBoundaries.push({
+                            text:        event.text,
+                            audioOffset: event.audioOffset,    // 100-nanosecond ticks from audio start
+                            duration:    event.duration || 0,  // 100-nanosecond ticks (0 in old SDKs)
+                        });
+                    }
+                };
+
+                synthesizer.speakTextAsync(
+                    text,
+                    result => {
+                        synthesizer.close();
+                        if (result.errorDetails) {
+                            reject(new Error('[Azure SDK] Synthesis error: ' + result.errorDetails));
+                        } else if (!result.audioData || result.audioData.byteLength === 0) {
+                            reject(new Error('[Azure SDK] Synthesis returned empty audio'));
+                        } else {
+                            console.log("[MindMitra Avatar] Azure SDK ✔ synthesised "
+                                + Math.round(result.audioData.byteLength / 1024) + " KB audio, "
+                                + wordBoundaries.length + " word boundaries");
+                            resolve({ audioData: result.audioData, wordBoundaries });
+                        }
+                    },
+                    error => {
+                        synthesizer.close();
+                        reject(new Error('[Azure SDK] ' + error));
+                    }
+                );
+            });
+        }
+
+        // ── Azure TTS — REST API fallback (used when SDK fails or SDK load fails) ──────────
         // Returns audio as ArrayBuffer; word timings are estimated from total audio duration
         // (Azure REST API does not expose word boundary events — those require the JS SDK).
-        // Still far superior to Web Speech API: neural voice quality + TalkingHead lipsync engine.
         async function fetchAzureTTS(words) {
             const text = words.join(" ");
             // Build SSML — Azure requires <voice> element with exact voice name
@@ -352,7 +476,7 @@
                         headers: {
                             "Ocp-Apim-Subscription-Key": azureKey,
                             "Content-Type": "application/ssml+xml",
-                            "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-opus",
+                            "X-Microsoft-OutputFormat": "audio-24khz-96kbitrate-mono-mp3",
                         },
                         body: ssml,
                     }
@@ -389,82 +513,254 @@
             }, 250);
         }
 
+        // ── Sentence splitter ────────────────────────────────────────────────────────────
+        // Splits text into sentence-level chunks for parallel TTS fetching.
+        // Handles common abbreviations to avoid false sentence splits.
+        function splitIntoSentences(text) {
+            // Match sentence-ending punctuation followed by whitespace or end of string
+            const raw = text.match(/[^.!?]+(?:[.!?]+(?:\s|$)|$)/g) || [text];
+            return raw.map(s => s.trim()).filter(s => s.length > 2);
+        }
+
+        // ── Parallel TTS fetch + audio concatenation ─────────────────────────────────────
+        //
+        // KEY DESIGN PRINCIPLE:
+        //   TalkingHead.speakAudio() appends a mandatory { break: 500 } entry after every
+        //   call (talkinghead.mjs line 3390).  Calling it N times for N sentences creates
+        //   N × 500 ms of silence INSIDE the speech, making the avatar appear to stop
+        //   lip-syncing between sentences.
+        //
+        //   Fix: fire all TTS requests in parallel → collect decoded AudioBuffers →
+        //   concatenate into ONE buffer with cumulative word-timing offsets →
+        //   call speakAudio EXACTLY ONCE.  Result: seamless, gap-free audio with
+        //   correct continuous lip-sync across the entire message.
+        async function speakSentencesParallel(sentences) {
+            if (!sentences || sentences.length === 0) return false;
+            const cleanSentences = sentences
+                .map(s => stripMarkdown(s).trim())
+                .filter(s => s.length > 1);
+            if (cleanSentences.length === 0) return false;
+
+            if (googleKey) {
+                // ── Google TTS path ───────────────────────────────────────────────────────
+                // Fire all TTS fetches in parallel (each sentence = one SSML request
+                // with mark-based word timing).
+                const ttsPromises = cleanSentences.map(s => {
+                    const words = s.split(/\s+/).filter(w => w.length > 0);
+                    return fetchGoogleTTS(words);
+                });
+
+                // Collect decoded AudioBuffers and cumulative word timings.
+                const audioBuffers = [];
+                const allWords     = [];
+                const allWtimes    = [];
+                const allWdurations = [];
+                let cumulativeMs = 0;
+
+                for (let i = 0; i < ttsPromises.length; i++) {
+                    let result;
+                    try { result = await ttsPromises[i]; } catch (e) { result = null; }
+                    if (!result) continue;
+                    try {
+                        const arraybuf = b64ToArrayBuffer(result.audioContent);
+                        const audioBuf = await head.audioCtx.decodeAudioData(arraybuf);
+                        const durationMs = audioBuf.duration * 1000;
+                        const { words, wtimes, wdurations } = buildWordTimingsFromTimepoints(
+                            result.words, result.timepoints, durationMs
+                        );
+                        // Shift this sentence's timings by the cumulative duration so far.
+                        for (let j = 0; j < words.length; j++) {
+                            allWords.push(words[j]);
+                            allWtimes.push(wtimes[j] + cumulativeMs);
+                            allWdurations.push(wdurations[j]);
+                        }
+                        audioBuffers.push(audioBuf);
+                        cumulativeMs += durationMs;
+                        console.log("[MindMitra Avatar] Google TTS ▶ sentence " + (i+1) + "/"
+                            + cleanSentences.length + " — " + words.length + " words, "
+                            + audioBuf.duration.toFixed(2) + "s, offset " + Math.round(cumulativeMs - durationMs) + "ms");
+                    } catch (decodeErr) {
+                        console.warn("[MindMitra Avatar] Google TTS decode failed sentence " + i, decodeErr);
+                    }
+                }
+
+                if (audioBuffers.length > 0) {
+                    // ONE concatenated AudioBuffer → ONE speakAudio → no inter-sentence gaps.
+                    const combined = concatAudioBuffers(head.audioCtx, audioBuffers);
+                    console.log("[MindMitra Avatar] Google TTS ✔ combined " + audioBuffers.length
+                        + " sentence(s), total " + combined.duration.toFixed(2) + "s, "
+                        + allWords.length + " words");
+                    head.speakAudio({ audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations });
+                    postToParent({ type: "speakingStart" });
+                    startSpeakEndPoll();
+                } else {
+                    // All TTS fetches failed — fall back to TalkingHead native speakText.
+                    console.warn("[MindMitra Avatar] Google TTS: all fetches failed, using native speakText");
+                    head.speakText(cleanSentences.join(' '));
+                    postToParent({ type: "speakingStart" });
+                    startSpeakEndPoll();
+                }
+                return true;
+
+            } else if (azureKey) {
+                // ── Azure Speech SDK path (primary) ───────────────────────────────────────
+                //
+                // Strategy: join ALL sentences into one text → ONE SDK synthesis call →
+                // real wordBoundary events → exact per-word lipsync timing →
+                // ONE speakAudio call → continuous audio, no gaps.
+                //
+                // Falls back to the REST API + estimated timings if the SDK fails.
+                const fullText = cleanSentences.join(' ');
+
+                let sdkSuccess = false;
+                try {
+                    const SpeechSDK = await loadAzureSDK();
+                    const { audioData, wordBoundaries } = await synthesizeWithAzureSDK(SpeechSDK, fullText);
+
+                    // audioData is an ArrayBuffer returned by the SDK — decode it.
+                    const audioBuf = await head.audioCtx.decodeAudioData(audioData);
+                    const durationMs = audioBuf.duration * 1000;
+
+                    // Convert SDK word boundaries (100-ns ticks) to TalkingHead wtimes/wdurations.
+                    // audioOffset / 10 000 = milliseconds from audio start.
+                    const sdkWords    = [];
+                    const sdkWtimes   = [];
+                    const sdkWdurs    = [];
+                    for (let i = 0; i < wordBoundaries.length; i++) {
+                        const wb = wordBoundaries[i];
+                        sdkWords.push(wb.text);
+                        sdkWtimes.push(wb.audioOffset / 10000);  // 100-ns → ms
+                        // Prefer the SDK's own duration; fall back to gap-to-next-word.
+                        const nextOffsetMs = i + 1 < wordBoundaries.length
+                            ? wordBoundaries[i + 1].audioOffset / 10000
+                            : durationMs;
+                        const durMs = wb.duration > 0
+                            ? wb.duration / 10000
+                            : nextOffsetMs - sdkWtimes[i];
+                        sdkWdurs.push(Math.max(50, durMs));
+                    }
+
+                    if (sdkWords.length > 0) {
+                        head.speakAudio({ audio: audioBuf, words: sdkWords, wtimes: sdkWtimes, wdurations: sdkWdurs });
+                    } else {
+                        // SDK returned no word boundaries — use evenly-distributed fallback.
+                        console.warn("[MindMitra Avatar] Azure SDK: no word boundaries received, using even distribution");
+                        const plainWords = fullText.split(/\s+/).filter(w => w.length > 0);
+                        const { words: fw, wtimes: ft, wdurations: fd } = buildWordTimingsFromTimepoints(plainWords, [], durationMs);
+                        head.speakAudio({ audio: audioBuf, words: fw, wtimes: ft, wdurations: fd });
+                    }
+                    postToParent({ type: "speakingStart" });
+                    startSpeakEndPoll();
+                    sdkSuccess = true;
+                } catch (sdkErr) {
+                    console.warn("[MindMitra Avatar] Azure SDK failed — falling back to REST API:", sdkErr);
+                }
+
+                if (!sdkSuccess) {
+                    // ── Azure REST API fallback ───────────────────────────────────────────
+                    // Fetch all sentence audio in parallel, concatenate, call speakAudio once.
+                    const ttsPromises = cleanSentences.map(s => {
+                        const words = s.split(/\s+/).filter(w => w.length > 0);
+                        return fetchAzureTTS(words);
+                    });
+
+                    const audioBuffers  = [];
+                    const allWords      = [];
+                    const allWtimes     = [];
+                    const allWdurations = [];
+                    let cumulativeMs    = 0;
+
+                    for (let i = 0; i < ttsPromises.length; i++) {
+                        let result;
+                        try { result = await ttsPromises[i]; } catch (e) { result = null; }
+                        if (!result) continue;
+                        try {
+                            const audioBuf   = await head.audioCtx.decodeAudioData(result.audioBuffer);
+                            const durationMs = audioBuf.duration * 1000;
+                            const sentWords  = cleanSentences[i].split(/\s+/).filter(w => w.length > 0);
+                            const n = Math.max(sentWords.length, 1);
+                            for (let j = 0; j < sentWords.length; j++) {
+                                const wStart = cumulativeMs + Math.round((j / n) * durationMs);
+                                const wEnd   = j + 1 < sentWords.length
+                                    ? cumulativeMs + Math.round(((j + 1) / n) * durationMs)
+                                    : cumulativeMs + durationMs;
+                                allWords.push(sentWords[j]);
+                                allWtimes.push(wStart);
+                                allWdurations.push(Math.max(50, wEnd - wStart));
+                            }
+                            audioBuffers.push(audioBuf);
+                            cumulativeMs += durationMs;
+                        } catch (decodeErr) {
+                            console.warn("[MindMitra Avatar] Azure REST decode failed sentence " + i, decodeErr);
+                        }
+                    }
+
+                    if (audioBuffers.length > 0) {
+                        const combined = concatAudioBuffers(head.audioCtx, audioBuffers);
+                        head.speakAudio({ audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations });
+                        postToParent({ type: "speakingStart" });
+                        startSpeakEndPoll();
+                    } else {
+                        console.warn("[MindMitra Avatar] Azure REST: all fetches failed, using Web Speech fallback");
+                        head.speakText(fullText);
+                        speakWithWebSpeech(fullText);
+                        postToParent({ type: "speakingStart" });
+                        startSpeakEndPoll();
+                    }
+                }
+                return true;
+
+            } else {
+                // ── Web Speech API fallback ───────────────────────────────────────────────
+                // No TTS key — TalkingHead runs text-based lipsync while Web Speech
+                // provides the audio.  Join all sentences to avoid multiple cancel() calls.
+                const joinedText = cleanSentences.join(' ');
+                head.speakText(joinedText);
+                const fireWebSpeech = () => speakWithWebSpeech(joinedText);
+                if (window.speechSynthesis.getVoices().length === 0) {
+                    window.speechSynthesis.addEventListener("voiceschanged", fireWebSpeech, { once: true });
+                } else {
+                    fireWebSpeech();
+                }
+                postToParent({ type: "speakingStart" });
+                startSpeakEndPoll();
+                return true;
+            }
+        }
+
         // ── PostMessage bridge (React ↔ iframe) ──────────────────────────────────────────
         window.addEventListener("message", async (event) => {
             if (!head) return;
             const { type, text, mood } = event.data || {};
 
             switch (type) {
+                // ── speakTextStream: sentence-parallel TTS (primary path) ──────────────
+                // Accepts an array of pre-split sentences.  All TTS requests fire in
+                // parallel; audio is queued to TalkingHead in sentence order.
+                case "speakTextStream": {
+                    const sentences = event.data.sentences;
+                    if (!sentences || sentences.length === 0) break;
+                    console.log("[MindMitra Avatar] speakTextStream — " + sentences.length + " sentence(s) | TTS: " + TTS_MODE);
+                    try {
+                        await ensureAudioCtx();
+                        clearSpeakEndPoll();
+                        await speakSentencesParallel(sentences);
+                    } catch (err) {
+                        console.error("[MindMitra Avatar] ❌ speakTextStream error:", err);
+                    }
+                    break;
+                }
+
+                // ── speakText: legacy single-text path → auto-split into sentences ────
                 case "speakText":
                     if (!text) break;
                     console.log("[MindMitra Avatar] speakText (" + text.length + " chars) | TTS: " + TTS_MODE);
                     try {
                         await ensureAudioCtx();
                         clearSpeakEndPoll();
-                        const cleanText = stripMarkdown(text);
-
-                        if (googleKey) {
-                            // ── Single-fetch speakAudio() path: zero inter-sentence pauses ──
-                            // We make ONE Google TTS call for the entire response text.
-                            // This gives us a single AudioBuffer + real per-word timestamps
-                            // (timepoints[i].timeSeconds). speakAudio() hands it all to
-                            // TalkingHead in one shot — no sentence-boundary queuing, no gaps.
-                            const plainWords = cleanText.split(/\s+/).filter(w => w.length > 0);
-                            const result = await fetchGoogleTTS(plainWords);
-                            if (result) {
-                                const arraybuf = b64ToArrayBuffer(result.audioContent);
-                                const audioBuffer = await head.audioCtx.decodeAudioData(arraybuf);
-                                const { words, wtimes, wdurations } = buildWordTimingsFromTimepoints(
-                                    result.words, result.timepoints, audioBuffer.duration * 1000
-                                );
-                                console.log("[MindMitra Avatar] speakAudio → " + words.length + " words, " + audioBuffer.duration.toFixed(2) + "s");
-                                head.speakAudio({ audio: audioBuffer, words, wtimes, wdurations });
-                                postToParent({ type: "speakingStart" });
-                                startSpeakEndPoll();
-                            } else {
-                                // Fallback: speakText has sentence pauses but better than silence.
-                                head.speakText(cleanText);
-                                postToParent({ type: "speakingStart" });
-                                startSpeakEndPoll();
-                            }
-                        } else if (azureKey) {
-                            // ── Azure TTS fallback: neural voice with estimated word timings ──
-                            const plainWords = cleanText.split(/\s+/).filter(w => w.length > 0);
-                            const result = await fetchAzureTTS(plainWords);
-                            if (result) {
-                                try {
-                                    const audioBuffer = await head.audioCtx.decodeAudioData(result.audioBuffer);
-                                    const durationMs = audioBuffer.duration * 1000;
-                                    // Estimate word timings evenly across the audio duration
-                                    const wtimes = plainWords.map((_, i) => Math.round((i / plainWords.length) * durationMs));
-                                    const wdurations = plainWords.map((_, i) => {
-                                        const next = i + 1 < plainWords.length ? wtimes[i + 1] : durationMs;
-                                        return Math.max(50, next - wtimes[i]);
-                                    });
-                                    console.log("[MindMitra Avatar] Azure speakAudio → " + plainWords.length + " words, " + audioBuffer.duration.toFixed(2) + "s");
-                                    head.speakAudio({ audio: audioBuffer, words: plainWords, wtimes, wdurations });
-                                } catch (decodeErr) {
-                                    console.warn("[MindMitra Avatar] Azure audio decode failed, falling back:", decodeErr.message || decodeErr);
-                                    head.speakText(cleanText);
-                                    speakWithWebSpeech(cleanText);
-                                }
-                            } else {
-                                // Azure failed → Web Speech final fallback
-                                head.speakText(cleanText);
-                                speakWithWebSpeech(cleanText);
-                            }
-                        } else {
-                            // ── Web Speech API fallback (no TTS keys available) ──
-                            head.speakText(cleanText);
-                            const fireWebSpeech = () => speakWithWebSpeech(cleanText);
-                            if (window.speechSynthesis.getVoices().length === 0) {
-                                window.speechSynthesis.addEventListener("voiceschanged", fireWebSpeech, { once: true });
-                            } else {
-                                fireWebSpeech();
-                            }
-                            postToParent({ type: "speakingStart" });
-                            startSpeakEndPoll();
-                        }
+                        // Split into sentences and use parallel TTS for zero inter-sentence gaps
+                        const sentences = splitIntoSentences(text);
+                        await speakSentencesParallel(sentences);
                     } catch (err) {
                         console.error("[MindMitra Avatar] ❌ speakText error:", err);
                     }

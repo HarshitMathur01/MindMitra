@@ -112,6 +112,7 @@ export const ChatProvider = ({ children }) => {
   const [isAvatarVisible, setIsAvatarVisible] = useState(false);
 
   // ✅ NEW - Manually add message to avatar queue (for ChatGPTInterface to use)
+  // Replaces the queue with the latest message (discards backlog).
   const addAvatarMessage = (messageContent: string | any) => {
     console.log('🎭 [Avatar Queue] ═══════════════════════════════');
     console.log('🎭 [Avatar Queue] Adding message to avatar');
@@ -139,6 +140,26 @@ export const ChatProvider = ({ children }) => {
       return newQueue;
     });
     console.log('🎭 [Avatar Queue] ═══════════════════════════════');
+  };
+
+  // ✅ Append to avatar queue without replacing — used for sentence-by-sentence streaming.
+  // The first sentence is enqueued immediately (early TTS start), subsequent sentences
+  // are appended so the avatar speaks them back-to-back without gaps.
+  const appendAvatarMessage = (messageContent: string | any) => {
+    const inputData = typeof messageContent === 'string'
+      ? { content: messageContent }
+      : messageContent;
+    const text = typeof messageContent === 'string'
+      ? messageContent
+      : (messageContent.message || messageContent.content || '');
+    if (!text.trim()) return;
+
+    const avatarMessage = transformToAvatarMessage(inputData);
+    setMessages((prev) => {
+      const updated = [...prev, avatarMessage];
+      console.log('🎭 [Avatar Queue] Appended sentence — queue size:', updated.length);
+      return updated;
+    });
   };
 
   // ✅ NEW - Clear avatar message queue
@@ -213,8 +234,9 @@ export const ChatProvider = ({ children }) => {
         isAvatarVisible,
         toggleAvatar,
         closeAvatar,
-        addAvatarMessage,        // ✅ NEW - Expose to ChatGPTInterface
-        clearAvatarMessages,     // ✅ NEW - Expose for cleanup
+        addAvatarMessage,        // ✅ Replaces queue with latest message
+        appendAvatarMessage,     // ✅ Appends to queue for sentence-by-sentence TTS
+        clearAvatarMessages,     // ✅ Expose for cleanup
       }}
     >
       {children}

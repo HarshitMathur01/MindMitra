@@ -254,7 +254,7 @@ const ChatGPTInterface = () => {
   const voiceSilenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTranscriptRef = useRef('');
   const isAutoStoppingRef = useRef(false);
-  const { isAvatarVisible, toggleAvatar, closeAvatar, addAvatarMessage, clearAvatarMessages, message: avatarCurrentMessage } = useChat();
+  const { isAvatarVisible, toggleAvatar, closeAvatar, addAvatarMessage, appendAvatarMessage, clearAvatarMessages, message: avatarCurrentMessage } = useChat();
 
   // ── Avatar model selection ───────────────────────────────────────────────────────
   const [selectedAvatarId, setSelectedAvatarId] = useState<string>(
@@ -365,12 +365,13 @@ const ChatGPTInterface = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Refresh recent chats periodically to catch any new messages
+  // Refresh recent chats periodically to catch any new messages.
+  // Skip when the tab is hidden to avoid unnecessary background network load.
   useEffect(() => {
     if (user) {
       const interval = setInterval(() => {
-        loadRecentChats();
-      }, 10000); // Refresh every 10 seconds
+        if (!document.hidden) loadRecentChats();
+      }, 10000);
 
       return () => clearInterval(interval);
     }
@@ -727,48 +728,58 @@ const ChatGPTInterface = () => {
       };
       
       let isFirstChunk = true;
+      // SSE line buffer: accumulate across read() calls so split lines are never lost
+      let sseLineBuffer = "";
 
       if (reader) {
         while (true) {
           const { value, done: readerDone } = await reader.read();
           if (readerDone) break;
           if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const sseData = JSON.parse(line.substring(6));
-                  
-                  if (isFirstChunk && (sseData.chunk || sseData.message)) {
+            // Accumulate raw bytes and split on newline boundaries
+            sseLineBuffer += decoder.decode(value, { stream: true });
+            const rawLines = sseLineBuffer.split('\n');
+            // The last element may be an incomplete line — keep it in the buffer
+            sseLineBuffer = rawLines.pop() ?? "";
+
+            for (const line of rawLines) {
+              if (!line.startsWith('data: ')) continue;
+              try {
+                const sseData = JSON.parse(line.substring(6));
+                
+                if (isFirstChunk && (sseData.chunk || sseData.message)) {
+                  isFirstChunk = false;
+                  setIsLoading(false); // Instantly drop the "breathing space" loading bubble
+                  const currentSessionCheck = localStorage.getItem('currentChatSession');
+                  if (currentSessionCheck === sessionIdToUse) {
+                    setMessages(prev => [...prev, aiResponse]);
+                  }
+                }
+
+                  if (sseData.chunk) {
+                  fullMessage += sseData.chunk;
+                  setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: fullMessage } : msg));
+
+                  // Text is streamed to UI token-by-token above.
+                  // Avatar TTS is triggered once after the full response arrives
+                  // so the entire message is synthesised in one pass and lipsync
+                  // is anchored to the real audio rather than estimated per-chunk.
+                } else if (sseData.message) {
+                  if (isFirstChunk) { // Fallback if no chunks received
                     isFirstChunk = false;
-                    setIsLoading(false); // Instantly drop the "breathing space" loading bubble
+                    setIsLoading(false);
                     const currentSessionCheck = localStorage.getItem('currentChatSession');
                     if (currentSessionCheck === sessionIdToUse) {
                       setMessages(prev => [...prev, aiResponse]);
                     }
                   }
-
-                  if (sseData.chunk) {
-                    fullMessage += sseData.chunk;
-                    setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: fullMessage } : msg));
-                  } else if (sseData.message) {
-                    if (isFirstChunk) { // Fallback if no chunks received
-                        isFirstChunk = false;
-                        setIsLoading(false);
-                        const currentSessionCheck = localStorage.getItem('currentChatSession');
-                        if (currentSessionCheck === sessionIdToUse) {
-                          setMessages(prev => [...prev, aiResponse]);
-                        }
-                    }
-                    finalData = sseData;
-                    fullMessage = sseData.message; // Ensure exact final match
-                    setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: fullMessage } : msg));
-                  } else if (sseData.error) {
-                    console.error('SSE Error:', sseData.error);
-                  }
-                } catch (e) {}
-              }
+                  finalData = sseData;
+                  fullMessage = sseData.message; // Ensure exact final match
+                  setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: fullMessage } : msg));
+                } else if (sseData.error) {
+                  console.error('SSE Error:', sseData.error);
+                }
+              } catch (e) {}
             }
           }
         }
@@ -790,14 +801,14 @@ const ChatGPTInterface = () => {
         setTranscribingMsgId(aiResponse.id);
       }
 
-      // ✅ Always queue message - avatar will play when opened
-      console.log('🎭 [Chat] Queueing AI response for avatar (will play when opened)');
-      console.log('🎭 [Chat] Backend data contains:', {
-        hasMessage: !!data.message,
-        animation: data.animation,
-        facialExpression: data.facial_expression
-      });
-      addAvatarMessage(data);
+      // Send the complete response to the avatar in one shot.
+      // speakSentencesParallel splits into sentences, fetches all TTS in parallel,
+      // concatenates the audio buffers, and calls speakAudio exactly once —
+      // giving continuous, gap-free lipsync anchored to the real audio timing.
+      if (isAvatarVisible) {
+        console.log('🎭 [Chat] Queueing full AI response for avatar TTS');
+        addAvatarMessage(data);
+      }
 
       // Save AI response to database (non-blocking - ⚡ P0 optimization)
       saveMessage(aiResponse, sessionIdToUse).catch(err =>
@@ -1645,15 +1656,9 @@ const ChatGPTInterface = () => {
                               </motion.div>
                               <div className="flex-1 space-y-1.5">
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                                  {isAvatarVisible && transcribingMsgId === message.id ? (
-                                    <div className="mm-bubble mm-bubble--ai min-h-[2.5rem]">
-                                      <TypewriterText text={message.content} speed={350} onComplete={() => setTranscribingMsgId(null)} className="text-text-primary" />
-                                    </div>
-                                  ) : (
-                                    <div className="mm-bubble mm-bubble--ai">
+                                  <div className="mm-bubble mm-bubble--ai">
                                       <MessageRenderer content={message.content} />
                                     </div>
-                                  )}
                                 </motion.div>
                                 {/* Quick-reply chips under last AI message */}
                                 {isLastAi && (

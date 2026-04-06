@@ -1,9 +1,12 @@
 """
 Chat routes — POST /chat, POST /chat/stream, GET /chat/greeting, POST /transcribe.
 """
+import asyncio
 import json
 import logging
 import os
+import queue
+import re
 import tempfile
 import threading
 from typing import Any, Dict, Optional
@@ -30,10 +33,38 @@ from ..services.supabase_service import (
     session_message_counters,
     supabase_client,
 )
-from ..utils.constants import MEMORY_TRIGGER_INTERVAL, SCREENING_EMA_ALPHA, SCREENING_MIN_MESSAGES
+from ..utils.constants import (
+    MEMORY_TRIGGER_INTERVAL,
+    SCREENING_EMA_ALPHA,
+    SCREENING_MIN_MESSAGES,
+    STAGE_TRUST_WINDOW_MAX,
+    STAGE_DEEPENING_MAX,
+    STAGE_INSIGHT_MAX,
+    QUESTION_CAP_TRUST,
+    QUESTION_CAP_DEEPENING,
+    QUESTION_CAP_INSIGHT,
+    QUESTION_CAP_COMPANION,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# ── Compiled regex for sentence-boundary detection in SSE chunk buffer ──────
+# Matches end of a sentence: punctuation followed by a space.
+_SENTENCE_BOUNDARY_RE = re.compile(r'[.!?]\s')
+
+# ── Module-level Groq singleton for /transcribe (avoids reconnect per call) ─
+_groq_transcribe_client: Optional[Groq] = None
+
+
+def _get_groq_transcribe_client() -> Optional[Groq]:
+    """Return a cached Groq client for transcription, creating it once."""
+    global _groq_transcribe_client
+    if _groq_transcribe_client is None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if api_key:
+            _groq_transcribe_client = Groq(api_key=api_key)
+    return _groq_transcribe_client
 
 
 # ── Pydantic models ────────────────────────────────────────────────────────
@@ -65,12 +96,10 @@ async def transcribe_audio(
             logger.warning("⚠️ [TRANSCRIBE] Empty audio data received")
             raise HTTPException(status_code=400, detail="audio_data is empty or invalid")
 
-        groq_api_key = os.getenv("GROQ_API_KEY")
-        if not groq_api_key:
+        groq_client = _get_groq_transcribe_client()
+        if groq_client is None:
             logger.error("❌ [TRANSCRIBE] GROQ_API_KEY not configured")
             raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
-
-        groq_client = Groq(api_key=groq_api_key)
 
         # Write to a temp file — Groq SDK requires a real file object
         tmp_path: str | None = None
@@ -511,14 +540,27 @@ async def process_chat_stream(
 
         async def event_generator():
             try:
-                context = await fetch_user_context(user_id, request.session_id)
 
-                # Load previous session summary for cross-session continuity
-                prev_session_summary = {}
-                try:
-                    prev_session_summary = fetch_previous_session_summary(user_id, request.session_id)
-                except Exception:
-                    pass
+                # Pre-warm emotional trend cache immediately — the pipeline will need it
+                # ~500ms later (after intent routing + memory retrieval). Firing a daemon
+                # thread here ensures the 8b Groq call completes before route_and_execute
+                # calls get_emotional_trend(), turning a blocking call into a cache hit.
+                threading.Thread(
+                    target=memory_manager.get_emotional_trend,
+                    args=(user_id,),
+                    daemon=True,
+                    name="trend-prewarm",
+                ).start()
+
+                # Fetch context, previous session summary, and message count in parallel
+                async def _zero():
+                    return 0
+
+                context, prev_session_summary, _stream_msg_count = await asyncio.gather(
+                    fetch_user_context(user_id, request.session_id),
+                    asyncio.to_thread(fetch_previous_session_summary, user_id, request.session_id),
+                    asyncio.to_thread(get_hybrid_message_count, request.session_id) if request.session_id else _zero(),
+                )
 
                 # ── Prosodic analysis: enrich voice_analysis with Praat features ──
                 voice_analysis = dict(request.voice_analysis or {})
@@ -532,17 +574,7 @@ async def process_chat_stream(
                     except Exception as prosody_exc:
                         logger.warning(f"⚠️ [STREAM] Prosody analysis failed: {prosody_exc}")
 
-                import queue
-                import threading
-                import asyncio
-                from ..utils.constants import (
-                    STAGE_TRUST_WINDOW_MAX, STAGE_DEEPENING_MAX, STAGE_INSIGHT_MAX,
-                    QUESTION_CAP_TRUST, QUESTION_CAP_DEEPENING,
-                    QUESTION_CAP_INSIGHT, QUESTION_CAP_COMPANION,
-                )
-
-                # Determine question cap for stream-time filtering
-                _stream_msg_count = get_hybrid_message_count(request.session_id) if request.session_id else 0
+                # Determine question cap for stream-time filtering (count already fetched above)
                 if _stream_msg_count <= STAGE_TRUST_WINDOW_MAX:
                     _stream_q_cap = QUESTION_CAP_TRUST
                 elif _stream_msg_count <= STAGE_DEEPENING_MAX:
@@ -571,7 +603,8 @@ async def process_chat_stream(
                             companion_name=request.companion_name,
                             language=request.language,
                             previous_session_summary=prev_session_summary,
-                            chunk_callback=on_chunk
+                            chunk_callback=on_chunk,
+                            message_count=_stream_msg_count,
                         )
                         q.put(("done", res))
                     except Exception as e:
@@ -586,16 +619,15 @@ async def process_chat_stream(
                     try:
                         item = q.get_nowait()
                     except queue.Empty:
-                        await asyncio.sleep(0.01)
+                        await asyncio.sleep(0.002)  # 2ms polling — was 10ms
                         continue
 
                     kind, data = item
                     if kind == "chunk":
                         _chunk_buffer += data
                         # Emit only complete sentences (up to the last sentence boundary)
-                        import re as _re
                         _last_boundary = -1
-                        for _m in _re.finditer(r'[.!?]\s', _chunk_buffer):
+                        for _m in _SENTENCE_BOUNDARY_RE.finditer(_chunk_buffer):
                             _last_boundary = _m.end() - 1  # position of the space after punctuation
                         if _last_boundary > 0:
                             _emit_text = _chunk_buffer[:_last_boundary + 1]
@@ -603,7 +635,7 @@ async def process_chat_stream(
                             # Quick question scrub for zero-question stages
                             if _stream_q_cap == 0 and "?" in _emit_text:
                                 _emit_text = _emit_text.replace("?", ".")
-                                _emit_text = _re.sub(r"\.{2,}", ".", _emit_text)
+                                _emit_text = re.sub(r"\.{2,}", ".", _emit_text)
                             yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': _emit_text})}\n\n"
                     elif kind == "error":
                         raise Exception(data)
@@ -613,8 +645,7 @@ async def process_chat_stream(
                             _flush = _chunk_buffer
                             if _stream_q_cap == 0 and "?" in _flush:
                                 _flush = _flush.replace("?", ".")
-                                import re as _re
-                                _flush = _re.sub(r"\.{2,}", ".", _flush)
+                                _flush = re.sub(r"\.{2,}", ".", _flush)
                             yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': _flush})}\n\n"
                         result = data
                         break

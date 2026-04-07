@@ -5,7 +5,6 @@
 > **Python 3.12 · FastAPI 0.115 · uvicorn · ~6,000 lines across 24 files**
 
 ---
-
 ## Architecture Overview
 
 ```

@@ -105,7 +105,7 @@ memory:
 # 10. RESPONSE GENERATOR CONFIGURATION
 # ──────────────────────────────────────────────────────────────
 response_generator:
-  llm_provider: "glm"  # Options: "glm" | "azure"
+  llm_provider: "azure"  # Options: "glm" | "azure"
 
   # Recent conversation context
   recent_messages_count: 3

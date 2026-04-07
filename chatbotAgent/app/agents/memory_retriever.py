@@ -4,6 +4,7 @@ import math
 import os
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from tenacity import retry, stop_after_attempt, wait_random_exponential, before_sleep_log
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -39,14 +40,63 @@ class MemoryRetriever:
         'therapeutic': MEMORY_LIMIT_THERAPEUTIC,
         'crisis': MEMORY_LIMIT_CRISIS,
     }
+
+    # TTL constants for the has-memories count cache
+    _HAS_MEMORIES_TTL_TRUE  = 600.0   # 10 min — once memories exist they persist
+    _HAS_MEMORIES_TTL_FALSE = 120.0   # 2 min — recheck soon after first add
+
     def __init__(self, store):
         self.store = store
-        
+        # {user_id: (has_memories: bool, expires_at: float)}
+        self._has_memories_cache: Dict[str, Tuple[bool, float]] = {}
+        self._cache_lock = threading.Lock()
+
     @property
     def _ready(self): return self.store._ready
     @property
     def _mem0(self): return self.store._mem0
-    
+
+    # ── fast existence check ──────────────────────────────────────────────
+
+    def _has_any_memories(self, user_id: str) -> bool:
+        """
+        Single-row COUNT against memory_metadata — cheap Supabase call (~50ms).
+        Result is cached per-user so each active session pays the cost at most
+        once every 2 minutes (no memories) or 10 minutes (has memories).
+        Fails open (returns True) so the full retrieval path is used on error.
+        """
+        now = time.monotonic()
+        with self._cache_lock:
+            cached = self._has_memories_cache.get(user_id)
+            if cached is not None:
+                has_mem, expires_at = cached
+                if now < expires_at:
+                    return has_mem
+
+        try:
+            resp = (
+                supabase_client.table("memory_metadata")
+                .select("mem0_id", count="exact")
+                .eq("user_id", user_id)
+                .limit(1)
+                .execute()
+            )
+            has_mem = (resp.count or 0) > 0
+        except Exception as exc:
+            logger.debug(f"[MEMORY] _has_any_memories check failed ({exc}) — failing open")
+            return True  # fail-open: run full retrieval rather than silently drop context
+
+        ttl = self._HAS_MEMORIES_TTL_TRUE if has_mem else self._HAS_MEMORIES_TTL_FALSE
+        with self._cache_lock:
+            self._has_memories_cache[user_id] = (has_mem, now + ttl)
+
+        return has_mem
+
+    def invalidate_has_memories_cache(self, user_id: str) -> None:
+        """Call this after add_memories so the next request re-checks the DB."""
+        with self._cache_lock:
+            self._has_memories_cache.pop(user_id, None)
+
     def retrieve_memories(
         self,
         query: str,
@@ -74,23 +124,31 @@ class MemoryRetriever:
         if not self._ready or not self._mem0:
             return ""
 
+        # Fast-path: skip the expensive local embedding + Qdrant round-trip
+        # when the user has no stored memories at all (saves ~4–5 s for new users).
+        if not self._has_any_memories(user_id):
+            logger.info(f"✅ [MEMORY] retrieve_memories: 0 results (no memories stored for user)")
+            return ""
+
         try:
             _t = time.monotonic()
 
-            # ── Step 1: Over-fetch from mem0 (pure vector similarity) ────
-            results = self._mem0.search(
-                query=query,
-                user_id=user_id,
-                limit=MEMORY_OVERFETCH_LIMIT,
-            )
+            # ── Steps 1+2: mem0 vector search and Supabase metadata in parallel ──
+            # The embedding + Qdrant search and the metadata fetch are independent;
+            # running them concurrently saves ~100-200ms.
+            with ThreadPoolExecutor(max_workers=2) as _ex:
+                fut_search = _ex.submit(
+                    self._mem0.search, query=query, user_id=user_id, limit=MEMORY_OVERFETCH_LIMIT
+                )
+                fut_meta = _ex.submit(self._fetch_metadata_for_scoring, user_id)
+                results = fut_search.result()
+                metadata_map = fut_meta.result()
+
             raw_memories = results.get("results", [])
 
             if not raw_memories:
                 logger.info(f"✅ [MEMORY] retrieve_memories: 0 results (intent={intent})")
                 return ""
-
-            # ── Step 2: Fetch metadata from Supabase for scoring ─────────
-            metadata_map = self._fetch_metadata_for_scoring(user_id)
 
             # ── Step 3: Compute composite scores ─────────────────────────
             now = datetime.now(timezone.utc)

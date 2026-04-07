@@ -23,7 +23,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
-import * as SpeechSDK from 'microsoft-cognitiveservices-speech-sdk';
+import { loadAzureSpeechSDK } from '@/lib/azureSpeechLoader';
 
 // ─── Raw voice metrics (unbiased, objective measurements) ───
 export interface VoiceMetrics {
@@ -183,7 +183,7 @@ export const useAzureSpeech = (): UseAzureSpeechReturn => {
   const [error, setError] = useState<string | null>(null);
   const [noMatchCount, setNoMatchCount] = useState(0);
 
-  const recognizerRef = useRef<SpeechSDK.SpeechRecognizer | null>(null);
+  const recognizerRef = useRef<any>(null);
   const wordsRef = useRef<WordData[]>([]);
   const startTimeRef = useRef<number>(0);
   const finalTranscriptRef = useRef('');
@@ -191,7 +191,7 @@ export const useAzureSpeech = (): UseAzureSpeechReturn => {
   const noMatchCountRef = useRef(0);
 
   // ── Audio pipeline refs (PushStream mode) ────────────────────────────────
-  const pushStreamRef = useRef<SpeechSDK.PushAudioInputStream | null>(null);
+  const pushStreamRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
 
@@ -238,6 +238,8 @@ export const useAzureSpeech = (): UseAzureSpeechReturn => {
       finalTranscriptRef.current = '';
       noMatchCountRef.current = 0;
       startTimeRef.current = Date.now();
+
+      const SpeechSDK = await loadAzureSpeechSDK();
 
       // ── Configure Azure Speech ────────────────────────────────────────────
       const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);

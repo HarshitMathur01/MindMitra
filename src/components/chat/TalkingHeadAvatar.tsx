@@ -37,6 +37,15 @@ function estimateSpeakDurationMs(text: string): number {
     return Math.max(3000, (baseSec + 1.5) * 1000); // min 3s, add 1.5s buffer
 }
 
+/**
+ * Split text into sentence-level chunks for parallel TTS.
+ * Mirrors the logic in talkinghead.html → splitIntoSentences().
+ */
+function splitIntoSentences(text: string): string[] {
+    const raw = text.match(/[^.!?]+(?:[.!?]+(?:\s|$)|$)/g) ?? [text];
+    return raw.map((s) => s.trim()).filter((s) => s.length > 2);
+}
+
 interface Props {
     /** Google Cloud TTS API key.
      *  Falls back to VITE_GOOGLE_TTS_KEY env var.
@@ -139,8 +148,10 @@ const TalkingHeadAvatar = ({
         const emotion = EXPRESSION_TO_EMOTION[expression] ?? "neutral";
         postToIframe({ type: "setEmotion", emotion });
 
-        // Speak the text
-        postToIframe({ type: "speakText", text });
+        // Split text into sentences and dispatch speakTextStream so the iframe can
+        // fire all TTS requests in parallel and queue them back-to-back with no gaps.
+        const sentences = splitIntoSentences(text);
+        postToIframe({ type: "speakTextStream", sentences });
 
         // Fallback: mark message as played after estimated duration
         // (in case the iframe doesn't send speakingEnd)

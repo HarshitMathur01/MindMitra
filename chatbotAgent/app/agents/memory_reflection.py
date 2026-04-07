@@ -37,7 +37,7 @@ class MemoryReflection:
         self.store = store
         self.retriever = retriever
         self._emotional_trend_cache = {}
-        self._EMOTIONAL_TREND_CACHE_TTL_S = 3600.0
+        self._EMOTIONAL_TREND_CACHE_TTL_S = 600.0  # 10-minute TTL (was 1 hour)
         
     @property
     def _ready(self): return self.store._ready
@@ -322,7 +322,7 @@ class MemoryReflection:
             )
 
             response = self._groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama-3.1-8b-instant",  # Insight sentences from memories — 8b is sufficient, 88% cheaper
                 messages=[
                     {"role": "system", "content": "You are a reflective memory synthesis agent. Return only a JSON array of insight strings."},
                     {"role": "user", "content": prompt},
@@ -521,7 +521,7 @@ class MemoryReflection:
             )
 
             response = self._groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama-3.1-8b-instant",  # 1-sentence summary — 8b is sufficient, 88% cheaper
                 messages=[
                     {"role": "system", "content": "You are an empathetic companion analyzing emotional patterns. Return only a single sentence."},
                     {"role": "user", "content": prompt},

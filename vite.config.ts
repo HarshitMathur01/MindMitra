@@ -24,5 +24,6 @@ export default defineConfig(({ mode }) => ({
     // public/talkinghead.html which uses an import-map bare specifier
     // ("talkinghead") that Vite cannot resolve as an npm package.
     entries: ["index.html", "src/**/*.{ts,tsx,js,jsx}"],
+
   },
 }));

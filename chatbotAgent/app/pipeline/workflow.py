@@ -5,16 +5,16 @@ import json
 import logging
 import os
 import threading
+import time
 from .analysis_engine import AnalysisEngine
 from .crisis_manager import CrisisManager
 from .pipeline_orchestrator import PipelineOrchestrator
-import time
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from supabase import Client, create_client
+from supabase import Client, create_client, ClientOptions
 
 from ..agents.intent_router import IntentRouter
 from ..agents.analysis_agent import AnalysisAgent
@@ -57,7 +57,8 @@ class MindMitraWorkflow:
         )
 
         if supabase_url and supabase_key and self.feature_flags.get("save_to_supabase", True):
-            self.supabase: Optional[Client] = create_client(supabase_url, supabase_key)
+            options = ClientOptions(postgrest_client_timeout=15.0)
+            self.supabase: Optional[Client] = create_client(supabase_url, supabase_key, options=options)
             logger.info("✅ [WORKFLOW] Supabase client ready")
         else:
             self.supabase = None
@@ -202,6 +203,7 @@ class MindMitraWorkflow:
         language: Optional[str] = None,
         previous_session_summary: Optional[Dict] = None,
         chunk_callback=None,
+        message_count: int = 0,
     ) -> Dict[str, Any]:
         """Main processing pipeline — same signature & return format as original."""
         start_time = datetime.now()
@@ -247,7 +249,7 @@ class MindMitraWorkflow:
 
         # ── Execute routed pipeline ──────────────────────────────────────────
         # Crisis check + intent routing → path A / B / C / D
-        self.orchestrator.route_and_execute(ctx, session_id)
+        self.orchestrator.route_and_execute(ctx, session_id, message_count=message_count)
 
         processing_time = (datetime.now() - start_time).total_seconds()
 
@@ -328,13 +330,14 @@ def process_user_chat(
     language: Optional[str] = None,
     previous_session_summary: Optional[Dict] = None,
     chunk_callback=None,
+    message_count: int = 0,
 ) -> Dict[str, Any]:
     """Public entry point — identical signature to original v1."""
-    import time
     logger.info(f"🚀 [ENTRY] MindMitra v2 — user={user_id}, session={session_id}")
     if personality:
         logger.info(f"🎭 [ENTRY] Personality={personality}, name={companion_name}, lang={language}")
     start = time.time()
+
     try:
         workflow = get_workflow_instance()
         result = workflow.process_chat(
@@ -343,6 +346,7 @@ def process_user_chat(
             personality=personality, companion_name=companion_name, language=language,
             previous_session_summary=previous_session_summary,
             chunk_callback=chunk_callback,
+            message_count=message_count,
         )
         result["processing_time"] = round(time.time() - start, 2)
         result["voice_aware"] = bool(voice_analysis)

@@ -49,6 +49,18 @@ External systems provide authentication, persistence, vector search, and model i
 - Vector database service
 - LLM providers for routing, therapeutic output, summarization, and analysis
 - Speech-to-text fallback provider
+- Azure Cognitive Services — Speech SDK (browser-side, primary TTS with real word-boundary timestamps for lipsync)
+- Azure Cognitive Services — TTS REST API (browser-side, fallback when SDK unavailable)
+- Web Speech API (browser built-in, last-resort fallback when no TTS keys configured)
+
+## Avatar / TTS Speech Flow
+1. After full LLM response arrives the client sends the complete text to the avatar iframe.
+2. The avatar iframe splits the text into sentences and synthesises via Azure Speech SDK.
+3. The SDK fires `wordBoundary` events with exact per-word audio offsets (100-ns ticks).
+4. All sentence audio buffers are concatenated into a single AudioBuffer.
+5. TalkingHead.speakAudio() is called exactly once with the combined buffer and real word timestamps.
+6. This produces continuous gap-free audio with lipsync anchored to actual phoneme positions.
+7. If the SDK fails, the REST API path is used with linear-interpolation word timings as fallback.
 
 ## Implementation Status
 - Overall layered architecture: Implemented

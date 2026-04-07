@@ -18,7 +18,6 @@ import TalkingHeadAvatar from "./TalkingHeadAvatar"
 import { useChat } from "../../hooks/useChat"
 import { motion, AnimatePresence } from "framer-motion"
 import MessageRenderer from "./MessageRenderer"
-import { jsPDF } from "jspdf";
 import QuickReplies from "./QuickReplies";
 import { AVATAR_OPTIONS } from "@/lib/avatarOptions";
 
@@ -965,7 +964,7 @@ const ChatGPTInterface = () => {
     });
   };
 
-  const exportChatAsPdf = () => {
+  const exportChatAsPdf = async () => {
     if (messages.length === 0) {
       toast({
         title: "No messages to export",
@@ -974,6 +973,7 @@ const ChatGPTInterface = () => {
       return;
     }
 
+    const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();

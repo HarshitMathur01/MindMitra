@@ -374,7 +374,7 @@
                 _sdkPromise = new Promise((resolve, reject) => {
                     if (window.SpeechSDK) { resolve(window.SpeechSDK); return; }
                     const s = document.createElement('script');
-                    s.src = 'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.42.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js';
+                    s.src = 'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.48.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js';
                     s.onload  = () => window.SpeechSDK
                         ? resolve(window.SpeechSDK)
                         : reject(new Error('SpeechSDK global not found after load'));

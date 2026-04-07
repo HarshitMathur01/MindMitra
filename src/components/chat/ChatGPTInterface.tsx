@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Send, Mic, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,52 @@ const loadingPhases = [
   "Thinking of what to say",
   "Putting it into words",
 ];
+
+type MoodOption = {
+  emoji: string;
+  label: string;
+  value: number;
+};
+
+const moodLabelsByValue: Record<number, string> = {
+  1: "Struggling",
+  2: "Low",
+  3: "Okay",
+  4: "Good",
+  5: "Great",
+};
+
+const moodEmojiPools: Record<number, string[]> = {
+  1: ["😔", "😣", "😞", "😢", "🥺"],
+  2: ["😕", "🙁", "😟", "🫤", "😶"],
+  3: ["😐", "🙂", "😌", "🫡", "😶‍🌫️"],
+  4: ["😊", "😃", "😄", "😎", "🌤️"],
+  5: ["🤩", "😁", "✨", "🥳", "🌟"],
+};
+
+const hashSessionSeed = (sessionId: string): number => {
+  let hash = 0;
+  for (let i = 0; i < sessionId.length; i++) {
+    hash = (hash * 31 + sessionId.charCodeAt(i)) % 1000003;
+  }
+  return hash;
+};
+
+const buildMoodOptionsForSession = (sessionId: string | null): MoodOption[] => {
+  const values = [1, 2, 3, 4, 5];
+  const seed = sessionId ? hashSessionSeed(sessionId) : Math.floor(Math.random() * 1000000);
+
+  return values.map((value, index) => {
+    const pool = moodEmojiPools[value] ?? ["🙂"];
+    const emoji = pool[(seed + index * 7) % pool.length] ?? pool[0];
+
+    return {
+      value,
+      label: moodLabelsByValue[value] ?? "Mood",
+      emoji,
+    };
+  });
+};
 
 // Real-time transcription component — reveals text word by word
 const TypewriterText = ({
@@ -247,6 +293,7 @@ const ChatGPTInterface = () => {
   // Mood check-in state (per session)
   const [moodSelected, setMoodSelected] = useState(false);
   const [moodValue, setMoodValue] = useState<number | null>(null);
+  const moodOptions = useMemo(() => buildMoodOptionsForSession(currentSessionId), [currentSessionId]);
   // Send micro-interaction
   const [justSent, setJustSent] = useState(false);
   // Scroll-to-bottom button
@@ -717,7 +764,7 @@ const ChatGPTInterface = () => {
       const decoder = new TextDecoder();
       let fullMessage = "";
       let finalData: any = {};
-      
+
       const tempId = (Date.now() + 1).toString();
       const aiResponse: Message = {
         id: tempId,
@@ -725,7 +772,7 @@ const ChatGPTInterface = () => {
         sender: "ai",
         timestamp: new Date(),
       };
-      
+
       let isFirstChunk = true;
 
       if (reader) {
@@ -739,7 +786,7 @@ const ChatGPTInterface = () => {
               if (line.startsWith('data: ')) {
                 try {
                   const sseData = JSON.parse(line.substring(6));
-                  
+
                   if (isFirstChunk && (sseData.chunk || sseData.message)) {
                     isFirstChunk = false;
                     setIsLoading(false); // Instantly drop the "breathing space" loading bubble
@@ -754,12 +801,12 @@ const ChatGPTInterface = () => {
                     setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: fullMessage } : msg));
                   } else if (sseData.message) {
                     if (isFirstChunk) { // Fallback if no chunks received
-                        isFirstChunk = false;
-                        setIsLoading(false);
-                        const currentSessionCheck = localStorage.getItem('currentChatSession');
-                        if (currentSessionCheck === sessionIdToUse) {
-                          setMessages(prev => [...prev, aiResponse]);
-                        }
+                      isFirstChunk = false;
+                      setIsLoading(false);
+                      const currentSessionCheck = localStorage.getItem('currentChatSession');
+                      if (currentSessionCheck === sessionIdToUse) {
+                        setMessages(prev => [...prev, aiResponse]);
+                      }
                     }
                     finalData = sseData;
                     fullMessage = sseData.message; // Ensure exact final match
@@ -767,7 +814,7 @@ const ChatGPTInterface = () => {
                   } else if (sseData.error) {
                     console.error('SSE Error:', sseData.error);
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             }
           }
@@ -776,10 +823,10 @@ const ChatGPTInterface = () => {
 
       console.log('📡 Stream complete. Final data:', finalData);
       const data = finalData;
-      
+
       if (!data || !data.message) {
-         // Fallback if missing payload
-         data.message = fullMessage || "I apologize, but I'm having trouble responding right now.";
+        // Fallback if missing payload
+        data.message = fullMessage || "I apologize, but I'm having trouble responding right now.";
       }
       aiResponse.content = data.message;
 
@@ -1558,13 +1605,7 @@ const ChatGPTInterface = () => {
                   >
                     <p className="text-sm font-semibold text-text-primary">How are you feeling right now?</p>
                     <div className="flex justify-center gap-2">
-                      {[
-                        { emoji: "😔", label: "Struggling", value: 1 },
-                        { emoji: "😕", label: "Low", value: 2 },
-                        { emoji: "😐", label: "Okay", value: 3 },
-                        { emoji: "🙂", label: "Good", value: 4 },
-                        { emoji: "😊", label: "Great", value: 5 },
-                      ].map(({ emoji, label, value }) => (
+                      {moodOptions.map(({ emoji, label, value }) => (
                         <button
                           key={value}
                           onClick={() => handleMoodSelect(value)}

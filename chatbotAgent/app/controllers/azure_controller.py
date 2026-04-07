@@ -21,6 +21,7 @@ class AzureController:
         self.api_key     = config.get_api_key("azure") or ""
         self.model_name  = config.get_model("azure")
         self.base_url    = config.get("azure_controller.base_url", "")
+        self.reasoning_effort = config.get("azure_controller.reasoning.effort", config.get("azure_controller.reasoning_effort", ""))
         self.temperature = float(config.get("azure_controller.temperature", 0.45))
         self.top_p       = float(config.get("azure_controller.top_p", 0.85))
         self.max_tokens  = int(config.get("azure_controller.max_tokens", 1000))
@@ -223,6 +224,8 @@ class AzureController:
                     base_request["temperature"] = _temperature
                 if _use_top_p:
                     base_request["top_p"] = _top_p
+                if self.reasoning_effort:
+                    base_request["reasoning_effort"] = self.reasoning_effort
 
                 if chunk_callback:
                     response = self._client.chat.completions.create(

@@ -13,6 +13,7 @@ import base64
 import logging
 import os
 import tempfile
+import time
 import warnings
 from pathlib import Path
 
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 # ── FastAPI app ────────────────────────────────────────────────────────────
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -61,6 +62,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MindMitra Chatbot Agent", version="2.0.0", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info(
+        f"[HTTP] {request.method} {request.url.path} -> {response.status_code} ({duration_ms:.1f}ms)"
+    )
+    return response
 
 # ── CRITICAL: register /health BEFORE any heavy imports ───────────────────
 # keep a thin inline definition here as well so health works even if

@@ -11,7 +11,7 @@ Guarantee: never raises — always returns a valid dict.
 """
 import logging
 from typing import Any, Dict, List, Optional
-
+import time
 from ..utils.json_utils import parse_json_from_llm_output
 
 logger = logging.getLogger(__name__)
@@ -65,45 +65,80 @@ class IntentRouter:
         prompt = self._build_prompt(user_message, history, activity_hint, screening_hint, voice_hint)
 
         try:
+            start_time = time.perf_counter()
             resp = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {
                         "role": "system",
                         "content": (
-                            "You are a strict intent classifier for a mental health assistant.\n\n"
-                            "Classify the user message into EXACTLY one of:\n"
-                            "- casual\n- emotional\n- therapeutic\n- crisis\n\n"
-                            "Definitions:\n"
-                            "- casual → general conversation, greetings, small talk\n"
-                            "- emotional → expressing feelings\n"
-                            "- therapeutic → seeking advice, coping strategies, help\n"
-                            "- crisis → self-harm, suicide, danger, urgent distress\n\n"
-                            "Output ONLY valid JSON. No markdown, no explanation.\n"
-                            'Format: {"intent": "<intent>", "confidence": <float>}'
+                            "=== Strict OUTPUT FORMAT ===\n"
+                            "Output ONLY valid JSON. No markdown, no explanation, no extra text.\n"
+                            'Format: {"intent": "<intent>", "confidence": <float between 0.0 and 1.0>}\n\n'
+
+                            "You are a precise intent classifier for a mental health AI companion called MindMitra.\n\n"
+                            "Your job is to classify the user's message into EXACTLY one of these four intents:\n"
+                            "- casual\n"
+                            "- emotional\n"
+                            "- therapeutic\n"
+                            "- crisis\n\n"
+
+                            "=== DEFINITIONS WITH EXAMPLES ===\n\n"
+
+                            "CASUAL — General conversation, greetings, small talk, curiosity, or neutral questions.\n"
+                            "The user is not expressing distress. Tone is light, neutral, or friendly.\n"
+                            "Examples:\n"
+                            "  'hey, how are you?'\n"
+                            "  'what can you help me with?'\n"
+                            "  'I had a pretty okay day'\n"
+                
+
+                            "EMOTIONAL — The user is expressing or processing feelings, but is not in danger and is not asking for advice.\n"
+                            "They want to feel heard and validated. Tone may be sad, frustrated, anxious, overwhelmed, lonely, confused, or numb.\n"
+                            "There is NO immediate danger signal. They are sharing, not seeking solutions, or solution is not needed, listning does the therapy.\n"
+                            "Examples:\n"
+                            "  'I've been feeling really low lately'\n"
+                            "  'I don't know why but I've been crying a lot'\n"
+                            "  'I feel so alone even when I'm around people'\n"                      
+
+                            "THERAPEUTIC — The user is actively seeking help, strategies, or guidance or you think guidance/councelling is must / needed thing for user.\n"
+                            "They want/need coping tools, structured support, information, or a plan.\n"
+                            "Tone is solution-oriented or explicitly requesting advice. May also include users who want to understand their feelings.\n"
+                            "Examples:(There can be various other situations as well where you have to classify between emotional and THERAPEUTIC)\n"
+                            "  'how do I stop overthinking at night?'\n"
+                            "  'can you teach me a breathing exercise?'\n"
+                            "  'what should I do when I feel a panic attack coming?'\n"
+        
+
+                            "CRISIS — The user may be in immediate danger, expressing suicidal ideation, self-harm urges, severe hopelessness, or describes an urgent situation that requires escalation.\n"
+                            "This includes direct or indirect signals. ALWAYS err on the side of caution — if there is ANY possibility of danger, classify as crisis.\n"
+                            "Indirect signals count: feeling like a burden, saying goodbye, giving away things, feeling completely trapped with no way out.\n"
+                            "Examples:\n"
+                            "  'I want to die'\n"
+                            "  'I can't do this anymore'\n"
+                            "  'I've been hurting myself'\n"
+
+                            "=== Strict OUTPUT FORMAT ===\n"
+                            "Output ONLY valid JSON. No markdown, no explanation, no extra text.\n"
+                            'Format: {"intent": "<intent>", "confidence": <float between 0.0 and 1.0>}\n\n'
+
+                            "===Strict OUTPUT FORMAT ===\n"
+                            "Output ONLY valid JSON. No markdown, no explanation, no extra text.\n"
+                            'Format: {"intent": "<intent>", "confidence": <float between 0.0 and 1.0>}\n\n'
                         ),
                     },
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.0,
-                max_tokens=50,
+                max_tokens=3000,
             )
-            raw = (resp.choices[0].message.content or "").strip()
-            logger.info(f"[INTENT RAW OUTPUT] {raw}")
-            parsed = parse_json_from_llm_output(raw)
-            logger.info(f"[INTENT PARSED] {parsed}")
 
-            # if (
-            #     isinstance(parsed, dict)
-            #     and parsed.get("intent") in _VALID_INTENTS
-            #     and isinstance(parsed.get("confidence"), (int, float))
-            # ):
-            #     result = {
-            #         "intent": str(parsed["intent"]),
-            #         "confidence": float(parsed["confidence"]),
-            #     }
-            #     logger.info(f"🎯 [INTENT-ROUTER] {result['intent']} ({result['confidence']:.2f})")
-            #     return result
+            raw = (resp.choices[0].message.content or "").strip()
+            # logger.info(f"[INTENT RAW OUTPUT] {raw}")
+            parsed = parse_json_from_llm_output(raw)
+            # logger.info(f"[INTENT PARSED] {parsed}")
+
+
             if isinstance(parsed, dict):
 
                 intent = parsed.get("intent", "emotional")
@@ -120,14 +155,17 @@ class IntentRouter:
                     "intent": intent,
                     "confidence": confidence
                 }
+                api_time = time.perf_counter()
 
                 logger.info(f"🎯 [INTENT-ROUTER] {intent} ({confidence:.2f})")
-
+                logger.info(f"""⏱️ [TIMING]- API Call: {(api_time - start_time)*1000:.2f} ms""")
                 return result
 
             logger.warning(f"⚠️ [INTENT-ROUTER] Unexpected response shape, using default")
         except Exception as e:
             logger.warning(f"⚠️ [INTENT-ROUTER] Classification failed: {e}")
+
+            
 
         return _DEFAULT_RESULT.copy()
 

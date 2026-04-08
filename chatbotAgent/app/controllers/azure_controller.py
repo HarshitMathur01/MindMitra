@@ -17,19 +17,49 @@ logger = logging.getLogger(__name__)
 
 
 class AzureController:
-    def _init_(self):
+    def __init__(self):
         self.api_key     = config.get_api_key("azure") or ""
         self.model_name  = config.get_model("azure")
         self.base_url    = config.get("azure_controller.base_url", "")
         self.reasoning_effort = config.get("azure_controller.reasoning.effort", config.get("azure_controller.reasoning_effort", ""))
-        self.temperature = float(config.get("azure_controller.temperature", 0.45))
-        self.top_p       = float(config.get("azure_controller.top_p", 0.85))
-        self.max_tokens  = int(config.get("azure_controller.max_tokens", 1000))
+        
+        try:
+            self.temperature = float(config.get("azure_controller.temperature", 0.45))
+        except (TypeError, ValueError):
+            logger.warning("⚠️ [Azure] Invalid temperature config; using default 0.45")
+            self.temperature = 0.45
 
-        max_concurrent      = int(config.get("azure_controller.max_concurrent", 3))
-        self._semaphore     = threading.Semaphore(max_concurrent)
-        self._max_retries   = int(config.get("azure_controller.max_retries", 2))
-        self._base_backoff  = float(config.get("azure_controller.base_backoff", 2.0))
+        try:
+            self.top_p = float(config.get("azure_controller.top_p", 0.85))
+        except (TypeError, ValueError):
+            logger.warning("⚠️ [Azure] Invalid top_p config; using default 0.85")
+            self.top_p = 0.85
+
+        try:
+            self.max_tokens = int(config.get("azure_controller.max_tokens", 1000))
+        except (TypeError, ValueError):
+            logger.warning("⚠️ [Azure] Invalid max_tokens config; using default 1000")
+            self.max_tokens = 1000
+
+        try:
+            max_concurrent = int(config.get("azure_controller.max_concurrent", 3))
+        except (TypeError, ValueError):
+            logger.warning("⚠️ [Azure] Invalid max_concurrent config; using default 3")
+            max_concurrent = 3
+
+        self._semaphore = threading.Semaphore(max_concurrent)
+
+        try:
+            self._max_retries = int(config.get("azure_controller.max_retries", 2))
+        except (TypeError, ValueError):
+            logger.warning("⚠️ [Azure] Invalid max_retries config; using default 2")
+            self._max_retries = 2
+
+        try:
+            self._base_backoff = float(config.get("azure_controller.base_backoff", 2.0))
+        except (TypeError, ValueError):
+            logger.warning("⚠️ [Azure] Invalid base_backoff config; using default 2.0")
+            self._base_backoff = 2.0
 
         self._client = None
         if not self.api_key:
@@ -193,14 +223,18 @@ class AzureController:
 
     def invoke(self, messages: List[dict], chunk_callback=None, **kwargs) -> GLMResponse:
         """Thread-safe invoke — identical interface to LLMController.invoke()."""
-        _max_tokens  = kwargs.pop("max_completion_tokens", kwargs.pop("max_tokens", self.max_tokens))
-        _temperature = kwargs.pop("temperature", self.temperature)
-        _top_p       = kwargs.pop("top_p",       self.top_p)
+        _max_tokens  = kwargs.pop("max_completion_tokens", kwargs.pop("max_tokens", getattr(self, "max_tokens", 1000)))
+        _temperature = kwargs.pop("temperature", getattr(self, "temperature", 0.45))
+        _top_p       = kwargs.pop("top_p", getattr(self, "top_p", 0.85))
         _token_param = self._token_param_name()
-        _use_temperature = True
-        _use_top_p = True
+        model_lower = (self.model_name or "").lower()
 
-        if self._client is None:
+        # GPT-5 deployments commonly reject sampling params, so skip them up front
+        # to avoid predictable retries and latency.
+        _use_temperature = not model_lower.startswith("gpt-5")
+        _use_top_p = not model_lower.startswith("gpt-5")
+
+        if getattr(self, "_client", None) is None:
             logger.error("❌ [Azure] Cannot invoke – client not initialised")
             return GLMResponse("Error: Azure client not initialised")
 
@@ -210,7 +244,7 @@ class AzureController:
             chat_messages.insert(0, {"role": "system", "content": "You are a helpful assistant."})
 
         # Reserve a few extra attempts for one-time parameter compatibility adaptation.
-        total_attempts = self._max_retries + 3
+        total_attempts = getattr(self, "_max_retries", 2) + 3
         for attempt in range(total_attempts):
             self._semaphore.acquire()
             _released = False
@@ -262,7 +296,7 @@ class AzureController:
                     logger.warning(f"⚠️ [Azure] Empty response (attempt {attempt + 1}/{total_attempts})")
                     self._semaphore.release()
                     _released = True
-                    time.sleep(self._base_backoff * (2 ** attempt))
+                    time.sleep(getattr(self, "_base_backoff", 2.0) * (2 ** attempt))
                     continue
                 return GLMResponse(content)
 
@@ -305,7 +339,7 @@ class AzureController:
                     continue
 
                 if "429" in str(e) or "rate" in error_str or "quota" in error_str:
-                    wait = self._base_backoff * (2 ** attempt)
+                    wait = getattr(self, "_base_backoff", 2.0) * (2 ** attempt)
                     logger.warning(f"⚠️ [Azure] Rate limited (attempt {attempt + 1}/{total_attempts}), backing off {wait:.1f}s")
                     self._semaphore.release()
                     _released = True
@@ -316,7 +350,7 @@ class AzureController:
                     logger.warning(f"⚠️ [Azure] Timeout (attempt {attempt + 1}/{total_attempts}): {e}")
                     self._semaphore.release()
                     _released = True
-                    time.sleep(self._base_backoff)
+                    time.sleep(getattr(self, "_base_backoff", 2.0))
                     continue
 
                 logger.error(f"❌ [Azure] Request failed: {e}")

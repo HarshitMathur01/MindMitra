@@ -76,7 +76,9 @@ class IntentRouter:
                             "Output ONLY valid JSON. No markdown, no explanation, no extra text.\n"
                             'Format: {"intent": "<intent>", "confidence": <float between 0.0 and 1.0>}\n\n'
 
-                            "You are a precise intent classifier for a mental health AI companion called MindMitra.\n\n"
+                            "You are a precise intent classifier for a mental health AI companion called MindMitra.\n"
+                            "The user may write in ANY language (English, Hindi, Hinglish, Japanese, Telugu, Kannada, Tamil, or others). "
+                            "Classify based on meaning regardless of language.\n\n"
                             "Your job is to classify the user's message into EXACTLY one of these four intents:\n"
                             "- casual\n"
                             "- emotional\n"

@@ -150,15 +150,14 @@ function buildVoiceAnalysis(
   };
 }
 
-export const useVoiceRecording = () => {
+export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastVoiceAnalysis, setLastVoiceAnalysis] = useState<VoiceAnalysis | null>(null);
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [recordingDuration, setRecordingDuration] = useState(0);
   
-  // Azure Speech SDK (primary)
-  const azure = useAzureSpeech();
+  const azure = useAzureSpeech(sttLocale);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);

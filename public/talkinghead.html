@@ -66,9 +66,33 @@
         const googleKey   = params.get("googleKey")   || "";
         const azureKey   = params.get("azureKey")   || "";
         const azureRegion= params.get("azureRegion")|| "eastasia";
-        const ttsVoice   = params.get("ttsVoice")   || "en-IN-Neural2-A";  // Indian English female, Neural2
+        const ttsVoice   = params.get("ttsVoice")   || "en-IN-Neural2-A";
         const ttsLang    = params.get("ttsLang")    || "en-IN";
         const avatarUrl  = params.get("avatarUrl")  || "/talkinghead/avatars/brunette.glb";
+
+        // Table-driven Azure voice map keyed by BCP-47 prefix
+        const AZURE_VOICE_TABLE = {
+            "en-IN": "en-IN-NeerjaNeural",
+            "en-US": "en-US-JennyNeural",
+            "hi-IN": "hi-IN-SwaraNeural",
+            "ja-JP": "ja-JP-NanamiNeural",
+            "te-IN": "te-IN-ShrutiNeural",
+            "kn-IN": "kn-IN-SapnaNeural",
+            "ta-IN": "ta-IN-PallaviNeural",
+        };
+
+        function resolveAzureVoice(lang) {
+            return AZURE_VOICE_TABLE[lang] || ttsVoice || "en-IN-NeerjaNeural";
+        }
+
+        // ── Oculus/Azure Viseme Mapping (Viseme ID 0-21 → TalkingHead strings) ──────────
+        // Azure SDK emits visemeReceived events with IDs 0–21 per SAPI5 standard.
+        // Map these to TalkingHead's viseme string format for proper lip-sync bypass.
+        const AZURE_TO_OCULUS = {
+            0: 'sil', 1: 'aa', 2: 'aa', 3: 'oh', 4: 'E', 5: 'E', 6: 'ih', 7: 'ou',
+            8: 'oh', 9: 'ou', 10: 'oh', 11: 'aa', 12: 'ih', 13: 'RR', 14: 'nn',
+            15: 'SS', 16: 'CH', 17: 'TH', 18: 'FF', 19: 'DD', 20: 'kk', 21: 'PP'
+        };
 
         // ── TTS endpoint selection ────────────────────────────────────────────────────────
         //
@@ -402,17 +426,15 @@
                 speechConfig.speechSynthesisOutputFormat =
                     SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz96KBitRateMonoMp3;
 
-                // Pick the voice that matches the language tag
-                const voiceName = ttsLang.startsWith("en-IN") ? "en-IN-NeerjaNeural"
-                                : ttsLang.startsWith("hi")    ? "hi-IN-SwaraNeural"
-                                :                               "en-US-JennyNeural";
-                speechConfig.speechSynthesisVoiceName = voiceName;
+                speechConfig.speechSynthesisVoiceName = resolveAzureVoice(ttsLang);
 
                 // null audioConfig → synthesizer captures audio internally (no speaker output).
                 // The full audio is returned in result.audioData as an ArrayBuffer.
                 const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, null);
 
                 const wordBoundaries = [];
+                const azureVisemes = [];
+
                 synthesizer.wordBoundary = (sender, event) => {
                     // Filter to actual word boundaries only (skip punctuation / sentence markers).
                     // SpeechSynthesisBoundaryType.Word === 0 in SDK v1.20+; fall back to
@@ -429,6 +451,15 @@
                     }
                 };
 
+                synthesizer.visemeReceived = (sender, event) => {
+                    if (event.visemeId !== undefined) {
+                        azureVisemes.push({
+                            visemeId: event.visemeId,
+                            audioOffset: event.audioOffset,
+                        });
+                    }
+                };
+
                 synthesizer.speakTextAsync(
                     text,
                     result => {
@@ -440,8 +471,9 @@
                         } else {
                             console.log("[MindMitra Avatar] Azure SDK ✔ synthesised "
                                 + Math.round(result.audioData.byteLength / 1024) + " KB audio, "
-                                + wordBoundaries.length + " word boundaries");
-                            resolve({ audioData: result.audioData, wordBoundaries });
+                                + wordBoundaries.length + " word boundaries, "
+                                + azureVisemes.length + " visemes");
+                            resolve({ audioData: result.audioData, wordBoundaries, azureVisemes });
                         }
                     },
                     error => {
@@ -458,11 +490,7 @@
         async function fetchAzureTTS(words) {
             const text = words.join(" ");
             // Build SSML — Azure requires <voice> element with exact voice name
-            const azureVoice = ttsLang.startsWith("en-IN")
-                ? "en-IN-NeerjaNeural"   // Indian English female neural
-                : ttsLang.startsWith("hi")
-                ? "hi-IN-SwaraNeural"     // Hindi female neural
-                : "en-US-JennyNeural";   // US English fallback
+            const azureVoice = resolveAzureVoice(ttsLang);
             const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${ttsLang}">` +
                          `<voice name="${azureVoice}">` +
                          `<prosody rate="-10%" pitch="+5%">${escapeXml(text)}</prosody>` +
@@ -517,9 +545,18 @@
         // Splits text into sentence-level chunks for parallel TTS fetching.
         // Handles common abbreviations to avoid false sentence splits.
         function splitIntoSentences(text) {
-            // Match sentence-ending punctuation followed by whitespace or end of string
-            const raw = text.match(/[^.!?]+(?:[.!?]+(?:\s|$)|$)/g) || [text];
-            return raw.map(s => s.trim()).filter(s => s.length > 2);
+            // Locale-aware split: Latin (.!?), Japanese (。！？), Indic danda (।)
+            const raw = text.match(/[^.!?。！？।]+(?:[.!?。！？।]+(?:\s|$)|$)/g) || [text];
+            return raw.map(s => s.trim()).filter(s => s.length > 1);
+        }
+
+        const _CJK_RE = /[\u3000-\u9FFF\u3040-\u309F\u30A0-\u30FF]/;
+
+        function tokenizeForTTS(text) {
+            if (_CJK_RE.test(text)) {
+                return [...text].filter(c => c.trim().length > 0);
+            }
+            return text.split(/\s+/).filter(w => w.length > 0);
         }
 
         // ── Parallel TTS fetch + audio concatenation ─────────────────────────────────────
@@ -546,11 +583,9 @@
                 // Fire all TTS fetches in parallel (each sentence = one SSML request
                 // with mark-based word timing).
                 const ttsPromises = cleanSentences.map(s => {
-                    const words = s.split(/\s+/).filter(w => w.length > 0);
-                    return fetchGoogleTTS(words);
+                    return fetchGoogleTTS(tokenizeForTTS(s));
                 });
 
-                // Collect decoded AudioBuffers and cumulative word timings.
                 const audioBuffers = [];
                 const allWords     = [];
                 const allWtimes    = [];
@@ -615,7 +650,7 @@
                 let sdkSuccess = false;
                 try {
                     const SpeechSDK = await loadAzureSDK();
-                    const { audioData, wordBoundaries } = await synthesizeWithAzureSDK(SpeechSDK, fullText);
+                    const { audioData, wordBoundaries, azureVisemes } = await synthesizeWithAzureSDK(SpeechSDK, fullText);
 
                     // audioData is an ArrayBuffer returned by the SDK — decode it.
                     const audioBuf = await head.audioCtx.decodeAudioData(audioData);
@@ -640,12 +675,38 @@
                         sdkWdurs.push(Math.max(50, durMs));
                     }
 
+                    // Convert SDK Visemes to TalkingHead vtimes/vdurations format
+                    const sdkVisemes  = [];
+                    const sdkVtimes   = [];
+                    const sdkVdurs    = [];
+                    if (azureVisemes && azureVisemes.length > 0) {
+                        for (let i = 0; i < azureVisemes.length; i++) {
+                            const v = azureVisemes[i];
+                            const oculusViseme = AZURE_TO_OCULUS[v.visemeId] || 'sil';
+                            sdkVisemes.push(oculusViseme);
+                            sdkVtimes.push(v.audioOffset / 10000); // 100-ns to ms
+                            
+                            const nextVOffsetMs = (i + 1 < azureVisemes.length) 
+                                ? azureVisemes[i + 1].audioOffset / 10000 
+                                : durationMs;
+                            
+                            // Azure issues extremely fast consecutive visemes occasionally, floor at 20ms
+                            sdkVdurs.push(Math.max(20, nextVOffsetMs - (v.audioOffset / 10000)));
+                        }
+                    }
+
                     if (sdkWords.length > 0) {
-                        head.speakAudio({ audio: audioBuf, words: sdkWords, wtimes: sdkWtimes, wdurations: sdkWdurs });
+                        const audioConfig = { audio: audioBuf, words: sdkWords, wtimes: sdkWtimes, wdurations: sdkWdurs };
+                        if (sdkVisemes.length > 0) {
+                            audioConfig.visemes = sdkVisemes;
+                            audioConfig.vtimes = sdkVtimes;
+                            audioConfig.vdurations = sdkVdurs;
+                        }
+                        head.speakAudio(audioConfig);
                     } else {
                         // SDK returned no word boundaries — use evenly-distributed fallback.
                         console.warn("[MindMitra Avatar] Azure SDK: no word boundaries received, using even distribution");
-                        const plainWords = fullText.split(/\s+/).filter(w => w.length > 0);
+                        const plainWords = tokenizeForTTS(fullText);
                         const { words: fw, wtimes: ft, wdurations: fd } = buildWordTimingsFromTimepoints(plainWords, [], durationMs);
                         head.speakAudio({ audio: audioBuf, words: fw, wtimes: ft, wdurations: fd });
                     }
@@ -660,8 +721,7 @@
                     // ── Azure REST API fallback ───────────────────────────────────────────
                     // Fetch all sentence audio in parallel, concatenate, call speakAudio once.
                     const ttsPromises = cleanSentences.map(s => {
-                        const words = s.split(/\s+/).filter(w => w.length > 0);
-                        return fetchAzureTTS(words);
+                        return fetchAzureTTS(tokenizeForTTS(s));
                     });
 
                     const audioBuffers  = [];
@@ -677,7 +737,7 @@
                         try {
                             const audioBuf   = await head.audioCtx.decodeAudioData(result.audioBuffer);
                             const durationMs = audioBuf.duration * 1000;
-                            const sentWords  = cleanSentences[i].split(/\s+/).filter(w => w.length > 0);
+                            const sentWords  = tokenizeForTTS(cleanSentences[i]);
                             const n = Math.max(sentWords.length, 1);
                             for (let j = 0; j < sentWords.length; j++) {
                                 const wStart = cumulativeMs + Math.round((j / n) * durationMs);

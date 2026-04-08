@@ -34,7 +34,7 @@ Single-turn chat response.
   "avatar_visible": true,
   "personality": "mitra|arjun|diya|riya|zen | null",
   "companion_name": "string | null",
-  "language": "english|hindi|hinglish | null"
+  "language": "english|hindi|hinglish|japanese|telugu|kannada|tamil | null"
 }
 ```
 

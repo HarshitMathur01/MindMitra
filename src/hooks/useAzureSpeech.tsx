@@ -175,7 +175,7 @@ function computeVoiceMetrics(words: WordData[], totalDurationMs: number): VoiceM
 }
 
 
-export const useAzureSpeech = (): UseAzureSpeechReturn => {
+export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechReturn => {
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -243,7 +243,7 @@ export const useAzureSpeech = (): UseAzureSpeechReturn => {
 
       // ── Configure Azure Speech ────────────────────────────────────────────
       const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(azureKey, azureRegion);
-      speechConfig.speechRecognitionLanguage = 'en-IN'; // Indian English
+      speechConfig.speechRecognitionLanguage = sttLocale;
       speechConfig.requestWordLevelTimestamps();
       speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
 

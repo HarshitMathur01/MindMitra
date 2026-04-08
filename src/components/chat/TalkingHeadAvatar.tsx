@@ -40,10 +40,11 @@ function estimateSpeakDurationMs(text: string): number {
 /**
  * Split text into sentence-level chunks for parallel TTS.
  * Mirrors the logic in talkinghead.html → splitIntoSentences().
+ * Handles Latin (.!?), Japanese (。！？), and Indic danda (।) terminators.
  */
 function splitIntoSentences(text: string): string[] {
-    const raw = text.match(/[^.!?]+(?:[.!?]+(?:\s|$)|$)/g) ?? [text];
-    return raw.map((s) => s.trim()).filter((s) => s.length > 2);
+    const raw = text.match(/[^.!?。！？।]+(?:[.!?。！？।]+(?:\s|$)|$)/g) ?? [text];
+    return raw.map((s) => s.trim()).filter((s) => s.length > 1);
 }
 
 interface Props {

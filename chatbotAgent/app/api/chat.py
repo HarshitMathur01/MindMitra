@@ -222,7 +222,7 @@ def _build_avatar_package(
     return {"animation": "Idle", "facial_expression": "default"}
 
 
-def _maybe_trigger_memory(session_id: str, user_id: str) -> None:
+def _maybe_trigger_memory(session_id: str, user_id: str, content_locale: str | None = None) -> None:
     """Increment counter and trigger memory extraction every MEMORY_TRIGGER_INTERVAL messages."""
     try:
         session_message_counters[session_id] += 1
@@ -230,12 +230,12 @@ def _maybe_trigger_memory(session_id: str, user_id: str) -> None:
         logger.info(f"📊 [MEMORY] Session count: {count}")
         if count > 0 and count % MEMORY_TRIGGER_INTERVAL == 0:
             logger.info(f"🔔 [MEMORY] Triggering mem0 extraction at message #{count}")
-            # Fetch recent unprocessed messages
             messages = fetch_last_n_messages(session_id, n=MEMORY_TRIGGER_INTERVAL)
             if messages:
+                meta = {"content_locale": content_locale} if content_locale else None
                 threading.Thread(
                     target=memory_manager.add_memories,
-                    args=(messages, user_id, session_id),
+                    args=(messages, user_id, session_id, meta),
                     daemon=True,
                 ).start()
     except Exception as e:
@@ -491,8 +491,7 @@ async def process_chat(
         avatar = _build_avatar_package(ai_text, result, request.avatar_visible, request.personality)
 
         if request.session_id:
-            _maybe_trigger_memory(request.session_id, user_id)
-            # Session summary (runs every 3x memory trigger intervals)
+            _maybe_trigger_memory(request.session_id, user_id, content_locale=request.language)
             count = get_hybrid_message_count(request.session_id)
             if count > 0 and count % (MEMORY_TRIGGER_INTERVAL * 3) == 0:
                 threading.Thread(
@@ -663,10 +662,8 @@ async def process_chat_stream(
                         f"event: avatar_ready\ndata: {json.dumps({'animation': 'Talking_0', 'facial_expression': mood['facial_expression']})}\n\n"
                     )
 
-                # Memory trigger (uses constant — no stream/non-stream discrepancy)
                 if request.session_id:
-                    _maybe_trigger_memory(request.session_id, user_id)
-                    # Session summary (runs every 3x memory trigger intervals)
+                    _maybe_trigger_memory(request.session_id, user_id, content_locale=request.language)
                     count = get_hybrid_message_count(request.session_id)
                     if count > 0 and count % (MEMORY_TRIGGER_INTERVAL * 3) == 0:
                         threading.Thread(

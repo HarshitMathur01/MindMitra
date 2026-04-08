@@ -193,6 +193,22 @@ ABSOLUTE RULES:
             ),
             "hindi": "LANGUAGE: Respond primarily in Hindi (Devanagari script). Use Hindi naturally as if speaking to a friend.",
             "hinglish": "LANGUAGE: Respond in Hinglish — a natural mix of Hindi and English, like urban Indian youth speak. Example: 'Yaar, I totally get it. Ye pressure bohot zyada ho sakta hai.'",
+            "japanese": (
+                "LANGUAGE: Respond entirely in Japanese. Use polite-casual register (です/ます mixed with softer colloquial where warmth demands). "
+                "Avoid stiff keigo unless the user sets that tone. Sound like a kind, attentive friend — not a textbook."
+            ),
+            "telugu": (
+                "LANGUAGE: Respond entirely in Telugu (Telugu script). Use warm, conversational Telugu as if speaking to a close friend. "
+                "Avoid overly formal or literary phrasing. Natural spoken Telugu is the goal."
+            ),
+            "kannada": (
+                "LANGUAGE: Respond entirely in Kannada (Kannada script). Use warm, everyday Kannada. "
+                "Sound approachable and genuine — like a trusted friend, not a formal counselor."
+            ),
+            "tamil": (
+                "LANGUAGE: Respond entirely in Tamil (Tamil script). Use conversational, warm Tamil. "
+                "Avoid overly literary or Sanskritized forms. Speak like a supportive friend."
+            ),
         }
 
         # ── Chain of Empathy (CoE) approach labels ───────────────────

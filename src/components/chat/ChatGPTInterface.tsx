@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Send, Mic, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Send, Mic, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Eye, EyeOff, ChevronDown, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import MessageRenderer from "./MessageRenderer"
 import QuickReplies from "./QuickReplies";
 import { AVATAR_OPTIONS } from "@/lib/avatarOptions";
+import { voiceForLocale, sttLocale as getSttLocale, LANGUAGE_LABELS, type SupportedLanguage } from "@/lib/locale";
 
 interface Message {
   id: string;
@@ -282,7 +283,7 @@ const ChatGPTInterface = () => {
   const { user } = useAuth();
   const { settings, saveSettings } = useSettings();
   const { toast } = useToast();
-  const { isRecording, isProcessing, toggleRecording, currentTranscript, lastVoiceAnalysis } = useVoiceRecording();
+  const { isRecording, isProcessing, toggleRecording, currentTranscript, lastVoiceAnalysis } = useVoiceRecording(getSttLocale(settings?.language));
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
   const pendingVoiceAnalysisRef = useRef<any>(null);
   const pendingAudioDataRef = useRef<string | null>(null);
@@ -312,6 +313,16 @@ const ChatGPTInterface = () => {
     }
   }, [settings?.avatar_model]);
   const selectedAvatar = AVATAR_OPTIONS.find(a => a.id === selectedAvatarId) ?? AVATAR_OPTIONS[0];
+
+  // ── Language selection ─────────────────────────────────────────────────────────
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>(
+    (settings?.language as SupportedLanguage) ?? 'english'
+  );
+  useEffect(() => {
+    if (settings?.language) {
+      setSelectedLanguage(settings.language as SupportedLanguage);
+    }
+  }, [settings?.language]);
 
   const userDisplayName =
     user?.user_metadata?.full_name ??
@@ -1543,6 +1554,40 @@ const ChatGPTInterface = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* ── Language picker ───────────────────────────────────────────── */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-surface border-border hover:shadow-theme gap-2"
+                >
+                  <Globe className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-sm hidden sm:inline">
+                    {LANGUAGE_LABELS[selectedLanguage] || "English"}
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-text-secondary" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {(Object.entries(LANGUAGE_LABELS) as [SupportedLanguage, string][]).map(([langCode, label]) => (
+                  <DropdownMenuItem
+                    key={langCode}
+                    onClick={async () => {
+                      setSelectedLanguage(langCode);
+                      await saveSettings({ language: langCode });
+                    }}
+                    className="flex items-center justify-between py-2"
+                  >
+                    <span className="font-medium text-sm">{label}</span>
+                    {selectedLanguage === langCode && (
+                      <div className="w-2 h-2 rounded-full bg-primary ml-2 flex-shrink-0" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="hover:bg-background transition-colors">
@@ -1571,7 +1616,12 @@ const ChatGPTInterface = () => {
         <div className={`grid grid-rows-1 h-[80%] ${isAvatarVisible ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {isAvatarVisible && (
             <div className="relative bg-background border-r border-border overflow-hidden transition-colors duration-300">
-              <TalkingHeadAvatar key={selectedAvatarId} avatarUrl={selectedAvatar.url} />
+              <TalkingHeadAvatar
+                key={`${selectedAvatarId}-${settings?.language}`}
+                avatarUrl={selectedAvatar.url}
+                ttsLang={voiceForLocale(settings?.language).ttsLang}
+                ttsVoice={voiceForLocale(settings?.language).ttsVoice}
+              />
               {/* Real-time transcription subtitle overlay */}
               <AnimatePresence>
                 {avatarCurrentMessage?.text && (

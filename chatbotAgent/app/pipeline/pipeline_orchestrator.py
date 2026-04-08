@@ -20,6 +20,7 @@ from ..agents.response_agent import ResponseGenerator
 from ..controllers.llm_controller import LLMController
 from ..agents.analysis_agent import AnalysisAgent
 from ..core.config import config
+from ..services.locale_service import resolve_locale
 from supabase import Client
 
 logger = logging.getLogger(__name__)
@@ -375,6 +376,17 @@ class PipelineOrchestrator:
         """
         text = ctx["user_message"]
         recent = ctx["session_context"].get("recent_messages", [])
+
+        # Resolve locale (client setting wins, then script detection, then default)
+        client_lang = ctx.get("personality_settings", {}).get("language")
+        locale_ctx = resolve_locale(text, client_lang)
+        ctx["personality_settings"]["language"] = locale_ctx.locale
+        ctx["locale_context"] = {
+            "locale": locale_ctx.locale,
+            "bcp47": locale_ctx.bcp47,
+            "confidence": locale_ctx.confidence,
+            "source": locale_ctx.source,
+        }
 
         _t_router = time.monotonic()
 

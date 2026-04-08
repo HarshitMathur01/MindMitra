@@ -116,6 +116,70 @@ const PATTERN_GROUPS: PatternGroup[] = [
       /\bbekaar\s+hu(n|ng)?\b/,
     ],
   },
+  {
+    id: 'suicidal-ideation-ja',
+    level: 'critical',
+    patterns: [
+      /死にたい/,
+      /自殺/,
+      /生きたくない/,
+    ],
+  },
+  {
+    id: 'self-harm-ja',
+    level: 'high',
+    patterns: [
+      /自分を傷つけ/,
+      /死のう/,
+      /生きる意味/,
+    ],
+  },
+  {
+    id: 'suicidal-ideation-te',
+    level: 'critical',
+    patterns: [
+      /చనిపోవాలని/,
+      /ఆత్మహత్య/,
+    ],
+  },
+  {
+    id: 'self-harm-te',
+    level: 'high',
+    patterns: [
+      /బ్రతకాలని\s*లేదు/,
+      /నన్ను\s*నేను\s*హర్ట్/,
+    ],
+  },
+  {
+    id: 'suicidal-ideation-kn',
+    level: 'critical',
+    patterns: [
+      /ಸಾಯಬೇಕು/,
+      /ಆತ್ಮಹತ್ಯೆ/,
+    ],
+  },
+  {
+    id: 'self-harm-kn',
+    level: 'high',
+    patterns: [
+      /ಬದುಕಲು\s*ಇಷ್ಟವಿಲ್ಲ/,
+    ],
+  },
+  {
+    id: 'suicidal-ideation-ta',
+    level: 'critical',
+    patterns: [
+      /சாகணும்/,
+      /தற்கொலை/,
+    ],
+  },
+  {
+    id: 'self-harm-ta',
+    level: 'high',
+    patterns: [
+      /வாழ\s*விரும்பவில்லை/,
+    ],
+  },
 
   // ── MEDIUM ────────────────────────────────────────────────────────────────
   {

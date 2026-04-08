@@ -825,7 +825,7 @@ const ChatGPTInterface = () => {
                 } else if (sseData.error) {
                   console.error('SSE Error:', sseData.error);
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           }
         }
@@ -1691,15 +1691,15 @@ const ChatGPTInterface = () => {
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ type: "spring", stiffness: 200 }}
-                                className="mm-avatar mm-avatar--ai flex-shrink-0"
+                                className="mm-avatar mm-avatar--ai flex-shrink-0 !h-12 !w-12"
                               >
-                                <img src="/image6.png" alt="AI companion" className="h-4 w-4 object-cover" />
+                                <img src="/image6.png" alt="AI companion" className="h-10 w-10 object-cover" />
                               </motion.div>
                               <div className="flex-1 space-y-1.5">
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
                                   <div className="mm-bubble mm-bubble--ai">
-                                      <MessageRenderer content={message.content} />
-                                    </div>
+                                    <MessageRenderer content={message.content} />
+                                  </div>
                                 </motion.div>
                                 {/* Quick-reply chips under last AI message */}
                                 {isLastAi && (
@@ -1740,11 +1740,11 @@ const ChatGPTInterface = () => {
                                   </Button>
                                 </motion.div>
                               </div>
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }} className="mm-avatar mm-avatar--user flex-shrink-0">
+                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }} className="mm-avatar mm-avatar--user flex-shrink-0 !h-12 !w-12">
                                 {userAvatarUrl ? (
-                                  <img src={userAvatarUrl} alt={userDisplayName} className="h-4 w-4 rounded-full object-cover" />
+                                  <img src={userAvatarUrl} alt={userDisplayName} className="h-10 w-10 rounded-full object-cover" />
                                 ) : (
-                                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
+                                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
                                     {userInitial}
                                   </span>
                                 )}
@@ -1766,8 +1766,8 @@ const ChatGPTInterface = () => {
                   exit={{ opacity: 0 }}
                   className="flex gap-3 items-start"
                 >
-                  <div className="mm-avatar mm-avatar--ai flex-shrink-0">
-                    <img src="/image6.png" alt="AI companion" className="h-4 w-4 object-cover" />
+                  <div className="mm-avatar mm-avatar--ai flex-shrink-0 !h-12 !w-12">
+                    <img src="/image6.png" alt="AI companion" className="h-10 w-10 object-cover" />
                   </div>
                   <div className="mm-bubble mm-bubble--ai min-w-[220px] py-3 px-5">
                     <div className="flex items-center justify-between gap-3">

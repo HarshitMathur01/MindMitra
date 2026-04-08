@@ -2,13 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Pause, Play, Square } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import forestStreamSound from "@/sounds/forest-stream-sounds-gentle-bird-song-relaxing-nature-sounds-collaboration-with_YhaQ8age.mp3";
 
 const SESSION_LENGTHS = [5, 10, 15, 20];
 
-const SOUNDS = [
+type SoundOption = {
+  label: string;
+  emoji: string;
+  audioSrc?: string;
+};
+
+const SOUNDS: SoundOption[] = [
   { label: "Silence", emoji: "🔇" },
   { label: "Rain", emoji: "🌧️" },
-  { label: "Forest", emoji: "🌲" },
+  { label: "Forest", emoji: "🌲", audioSrc: forestStreamSound },
   { label: "Ocean", emoji: "🌊" },
 ];
 
@@ -66,6 +73,7 @@ export default function Meditate() {
   const navigate = useNavigate();
   const [sessionMins, setSessionMins] = useState(10);
   const [soundIdx, setSoundIdx] = useState(0);
+  const [volume, setVolume] = useState(0.7);
   const [running, setRunning] = useState(false);
   const [remaining, setRemaining] = useState(sessionMins * 60);
   const [done, setDone] = useState(false);
@@ -75,6 +83,7 @@ export default function Meditate() {
   const affirmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const remainingRef = useRef(remaining);
   const runningRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const total = sessionMins * 60;
   const progress = total > 0 ? (total - remaining) / total : 0;
@@ -88,6 +97,9 @@ export default function Meditate() {
     if (affirmIntervalRef.current) clearInterval(affirmIntervalRef.current);
     intervalRef.current = null;
     affirmIntervalRef.current = null;
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
     runningRef.current = false;
     setRunning(false);
   };
@@ -104,6 +116,22 @@ export default function Meditate() {
   const begin = () => {
     runningRef.current = true;
     setRunning(true);
+
+    const selectedSound = SOUNDS[soundIdx];
+    if (selectedSound?.audioSrc) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
+        audioRef.current.loop = true;
+      }
+
+      audioRef.current.src = selectedSound.audioSrc;
+      audioRef.current.volume = volume;
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch((error) => {
+        console.debug("Meditation audio playback was blocked:", error);
+      });
+    }
+
     intervalRef.current = setInterval(() => {
       remainingRef.current -= 1;
       setRemaining(remainingRef.current);
@@ -131,7 +159,28 @@ export default function Meditate() {
   useEffect(() => () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (affirmIntervalRef.current) clearInterval(affirmIntervalRef.current);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
   }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  const handleSelectSound = (index: number) => {
+    setSoundIdx(index);
+    // Sound chips should only select the track. Audio must start only from the Start button.
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = "";
+    }
+  };
 
   const completionQuote = useMemo(
     () => COMPLETION_QUOTES[Math.floor(Math.random() * COMPLETION_QUOTES.length)],
@@ -194,11 +243,10 @@ export default function Meditate() {
                 <button
                   key={mins}
                   onClick={() => setSessionMins(mins)}
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium backdrop-blur-sm transition-all duration-150 ${
-                    mins === sessionMins
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium backdrop-blur-sm transition-all duration-150 ${mins === sessionMins
                       ? "bg-white text-black shadow-md"
                       : "bg-white/20 text-white hover:bg-white/30"
-                  }`}
+                    }`}
                 >
                   {mins} min
                 </button>
@@ -262,12 +310,11 @@ export default function Meditate() {
                 {SOUNDS.map((s, i) => (
                   <button
                     key={s.label}
-                    onClick={() => setSoundIdx(i)}
-                    className={`flex flex-col items-center gap-1 rounded-2xl px-4 py-2.5 text-xs font-medium backdrop-blur-sm transition-all duration-150 ${
-                      i === soundIdx
+                    onClick={() => handleSelectSound(i)}
+                    className={`flex flex-col items-center gap-1 rounded-2xl px-4 py-2.5 text-xs font-medium backdrop-blur-sm transition-all duration-150 ${i === soundIdx
                         ? "bg-white/90 text-black shadow-md scale-105"
                         : "bg-white/20 text-white hover:bg-white/30"
-                    }`}
+                      }`}
                   >
                     <span className="text-lg">{s.emoji}</span>
                     <span>{s.label}</span>
@@ -275,6 +322,22 @@ export default function Meditate() {
                 ))}
               </motion.div>
             )}
+
+            {/* Volume */}
+            <div className="mx-auto flex w-full max-w-xs items-center gap-3 rounded-2xl bg-white/20 px-4 py-2 backdrop-blur-sm">
+              <span className="text-xs font-medium text-white/85">Volume</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(event) => setVolume(Number(event.target.value))}
+                className="h-1 w-full accent-white"
+                aria-label="Meditation volume"
+              />
+              <span className="w-10 text-right text-xs font-medium text-white/85">{Math.round(volume * 100)}%</span>
+            </div>
 
             {/* Play / Pause / Stop */}
             <div className="flex items-center justify-center gap-5">

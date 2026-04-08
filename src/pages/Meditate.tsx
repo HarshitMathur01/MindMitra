@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Pause, Play, Square } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import rainSoftPianoSound from "@/sounds/no-ads-rain-and-soft-piano-for-healing-sleep-relaxing-music-to-calm-the-mind-and_4Ir1pYlT.mp3";
 import forestStreamSound from "@/sounds/forest-stream-sounds-gentle-bird-song-relaxing-nature-sounds-collaboration-with_YhaQ8age.mp3";
+import oceanBlissSound from "@/sounds/ocean-bliss-water-koshi-wind-chimes-meditation-432hz-128kbps_n7vJEJhj.mp3";
 
 const SESSION_LENGTHS = [5, 10, 15, 20];
 
@@ -14,9 +16,9 @@ type SoundOption = {
 
 const SOUNDS: SoundOption[] = [
   { label: "Silence", emoji: "🔇" },
-  { label: "Rain", emoji: "🌧️" },
+  { label: "Rain", emoji: "🌧️", audioSrc: rainSoftPianoSound },
   { label: "Forest", emoji: "🌲", audioSrc: forestStreamSound },
-  { label: "Ocean", emoji: "🌊" },
+  { label: "Ocean", emoji: "🌊", audioSrc: oceanBlissSound },
 ];
 
 const SOUND_SCENES = [
@@ -244,8 +246,8 @@ export default function Meditate() {
                   key={mins}
                   onClick={() => setSessionMins(mins)}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium backdrop-blur-sm transition-all duration-150 ${mins === sessionMins
-                      ? "bg-white text-black shadow-md"
-                      : "bg-white/20 text-white hover:bg-white/30"
+                    ? "bg-white text-black shadow-md"
+                    : "bg-white/20 text-white hover:bg-white/30"
                     }`}
                 >
                   {mins} min
@@ -312,8 +314,8 @@ export default function Meditate() {
                     key={s.label}
                     onClick={() => handleSelectSound(i)}
                     className={`flex flex-col items-center gap-1 rounded-2xl px-4 py-2.5 text-xs font-medium backdrop-blur-sm transition-all duration-150 ${i === soundIdx
-                        ? "bg-white/90 text-black shadow-md scale-105"
-                        : "bg-white/20 text-white hover:bg-white/30"
+                      ? "bg-white/90 text-black shadow-md scale-105"
+                      : "bg-white/20 text-white hover:bg-white/30"
                       }`}
                   >
                     <span className="text-lg">{s.emoji}</span>

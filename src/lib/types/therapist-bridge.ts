@@ -58,6 +58,8 @@ export interface ReferralPayload {
 export interface ReferralResponse {
   id: string;
   status: "created" | "failed";
+  snapshotId?: string;
+  clinicianViewToken?: string;
 }
 
 export const therapistBridgeColors = {

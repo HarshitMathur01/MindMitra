@@ -39,6 +39,15 @@ External systems provide authentication, persistence, vector search, and model i
 - Crisis path prioritizes immediate safe response behavior.
 - Escalation can occur before or during deeper analysis.
 
+## MindGym (Therapeutic Practices)
+MindGym is an **offline practices toolkit** inside the web client.
+
+- Hub route: `/mindgym`
+- Tool route: `/mindgym/:toolId` (lazy-loaded)
+
+MindGym tracks XP/streak/badges in browser localStorage and runs its own client-side crisis overlay UI.
+For implementation details, see `docs/mindgym.md`.
+
 ## Architecture Boundaries
 - Client handles presentation and avatar speech playback.
 - Backend handles orchestration, safety, and memory logic.
@@ -62,9 +71,16 @@ External systems provide authentication, persistence, vector search, and model i
 6. This produces continuous gap-free audio with lipsync anchored to actual phoneme positions.
 7. If the SDK fails, the REST API path is used with linear-interpolation word timings as fallback.
 
+## Therapist Bridge (clinician handoff)
+- **Purpose:** Build a consent-scoped, provenance-aware brief from relational data (`user_activities`, `session_summaries`, `crisis_events`, screening scores in `user_contexts`) and optional guarded LLM narrative — exposed as FastAPI routes under `/therapist-bridge/*`.
+- **Persistence:** `therapist_profile_snapshots` and `therapist_referrals` (Supabase) store immutable snapshots and opaque `clinician_view_token` for brief retrieval.
+- **Client:** The web app calls the same backend as chat via `VITE_BACKEND_URL`; MindGym completions can be mirrored into `user_activities` when `privacy_therapist_share` is enabled.
+- **Safety:** Crisis rows remain without user message text; narrative layer forbids diagnostic labels and requires evidence refs validated against Layer A/B.
+
 ## Implementation Status
 - Overall layered architecture: Implemented
 - Streaming response architecture: Implemented
 - Safety-first crisis gate: Implemented
 - Separation of orchestration and memory subsystems: Implemented
+- Therapist Bridge snapshot + referral API: Implemented
 - Formal rate-limiting and traffic shaping: Planned

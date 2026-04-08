@@ -228,6 +228,96 @@ Memory diagnostics endpoint.
 }
 ```
 
+---
+
+## 10) GET /therapist-bridge/therapists
+Directory stub for MVP (JSON list of therapist cards for the web client).
+
+### Response
+Array of therapist objects (see `Therapist` type in the web app).
+
+---
+
+## 11) POST /therapist-bridge/profile-preview
+Builds a **consent-filterable** emotional profile from Supabase (`user_activities`, `session_summaries`, `crisis_events`, `user_contexts` screening block) plus optional **LLM narrative** (non-diagnostic).
+
+### Auth
+- `Authorization: Bearer <Supabase JWT>` (or dev `SKIP_AUTH` bypass)
+
+### Request
+```json
+{
+  "includeNarrative": true,
+  "narrativeAsync": false,
+  "consent": {
+    "shareFullProfile": true,
+    "shareAssessments": true,
+    "sharePatterns": true,
+    "shareAnonymously": true
+  }
+}
+```
+`consent` may be omitted for an unfiltered preview.
+
+### Response (aliases camelCase in JSON)
+```json
+{
+  "emotionalProfile": {
+    "moodTrends": [],
+    "patterns": [],
+    "topics": [],
+    "assessments": [],
+    "crisisEvents": []
+  },
+  "layers": { "facts": {}, "metrics": {}, "narrative": {} },
+  "disclaimer": "string",
+  "dataGaps": [],
+  "schemaVersion": "1"
+}
+```
+
+---
+
+## 12) POST /therapist-bridge/referral
+Creates an immutable **profile snapshot** and **referral** row. Returns an opaque **clinician view token** for the magic-link brief endpoint.
+
+### Auth
+- `Authorization: Bearer <Supabase JWT>`
+
+### Request
+```json
+{
+  "therapistId": "string",
+  "consent": {
+    "shareFullProfile": true,
+    "shareAssessments": true,
+    "sharePatterns": true,
+    "shareAnonymously": true
+  }
+}
+```
+
+### Response
+```json
+{
+  "id": "uuid",
+  "status": "created | failed",
+  "snapshotId": "uuid | null",
+  "clinicianViewToken": "string | null"
+}
+```
+
+---
+
+## 13) GET /therapist-bridge/clinician-brief/{token}
+Returns the **stored snapshot** for a referral. Intended for clinician-facing UI or PDF export; secured by opaque token (resolve server-side with service role — do not embed PII in URLs in production mailers without additional gates).
+
+### Response
+Same high-level shape as snapshot `emotionalProfile` + `disclaimer` + `consentScope`.
+
+---
+
 ## Contract Notes
 - This API currently has no explicit versioned prefix.
 - Contracts are derived from current implementation and may evolve; breaking changes should be documented here first.
+- **Therapist Bridge** content is screening and platform-signal summary only — not a diagnosis.

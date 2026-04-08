@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: [
+      "nonshrinkable-averie-unprovidently.ngrok-free.dev",
+    ],
   },
   plugins: [
     react(),

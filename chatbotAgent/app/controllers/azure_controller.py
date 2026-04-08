@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class AzureController:
-    def __init__(self):
+    def _init_(self):
         self.api_key     = config.get_api_key("azure") or ""
         self.model_name  = config.get_model("azure")
         self.base_url    = config.get("azure_controller.base_url", "")
@@ -200,11 +200,6 @@ class AzureController:
         _use_temperature = True
         _use_top_p = True
 
-        # Proactively drop temperature/top_p for known reasoning models to prevent 4-8s penalty from API retries
-        if self.model_name and ("gpt-5" in self.model_name.lower() or "o1" in self.model_name.lower()):
-            _use_temperature = False
-            _use_top_p = False
-
         if self._client is None:
             logger.error("❌ [Azure] Cannot invoke – client not initialised")
             return GLMResponse("Error: Azure client not initialised")
@@ -251,7 +246,7 @@ class AzureController:
                     # Some GPT-5 deployments return no text deltas via chat.completions stream.
                     # Fall back to responses API and emit in chunks so stream clients still receive updates.
                     if not saw_stream_text and (self.model_name or "").lower().startswith("gpt-5"):
-                        logger.warning(f"⚠️ [Azure] Stream failed or empty chunks. Attempting synchronous fallback API..."); fallback_text = self._invoke_responses_fallback(chat_messages, _max_tokens)
+                        fallback_text = self._invoke_responses_fallback(chat_messages, _max_tokens)
                         if fallback_text:
                             self._emit_chunked_text(fallback_text, chunk_callback)
                             content = fallback_text

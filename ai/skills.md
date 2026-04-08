@@ -23,6 +23,7 @@ Define what AI can change autonomously and what requires explicit human approval
 
 ## Requires Approval + Rollout Plan
 - Changes affecting user-visible therapeutic behavior
+- Changes to Therapist Profile Builder metrics or PDF exporter formatting
 - Changes to streaming semantics/event names
 - Changes to routing path semantics
 - Changes to onboarding crisis logic
@@ -53,6 +54,12 @@ Define what AI can change autonomously and what requires explicit human approval
 2. Validate config and secrets impact
 3. Run behavior and cost checks
 4. Update /docs/architecture.md and /README.md
+
+### Change Clinical Profile Metrics or PDF Output
+1. Define explicitly which offline arrays or backend metrics are parsed.
+2. Verify JS/Python object structure equivalence across `App.tsx`, `therapist_profile_builder.py`, and `exportClinicalPDF.ts`.
+3. Add safety disclaimers to ensure LLM content cannot be construed as a diagnosis.
+4. Update /docs/therapist_bridge.md.
 
 ## Non-Negotiables
 - Do not silently change contracts.

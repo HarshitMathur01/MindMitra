@@ -1,4 +1,4 @@
-import { MessageSquare, Puzzle, BookOpen, LogOut, User, Stethoscope, Menu, X, Settings, Users, GraduationCap, ChevronDown, CircleUserRound, Gamepad2 } from "lucide-react";
+import { MessageSquare, Puzzle, BookOpen, LogOut, User, Stethoscope, Menu, X, Settings, Users, GraduationCap, ChevronDown, CircleUserRound, Gamepad2, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,6 +41,7 @@ const Header = () => {
   ];
 
   const moodArcadeItems = [
+    { label: 'MindGym', icon: Dumbbell, path: '/mindgym' },
     { label: 'Games', icon: Puzzle, path: '/games' },
     { label: 'Q&A Tests', icon: BookOpen, path: '/qa-tests' },
   ];

@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, RotateCcw, Trophy, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/layout/Header";
 import { motion, AnimatePresence } from "framer-motion";
+import TherapeuticGameShell from "@/components/mindgym/TherapeuticGameShell";
 import { useGameDataSaver } from "@/lib/gameDataSaver";
 
 const MemoryChallenge = () => {
@@ -154,171 +154,97 @@ const MemoryChallenge = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300 flex flex-col">
-      <Header />
-      <main className="container mx-auto px-4 py-10 max-w-2xl text-center">
-        {/* Back Button & Title */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/games")}
-            className="gap-2 mb-6 text-lg font-medium text-primary hover:text-primary/80"
+    <TherapeuticGameShell
+      title="Memory Challenge"
+      gameId="memory-challenge"
+      xp={score}
+      completed={gameState === "finished"}
+      onReset={resetGame}
+      themePhase={gameState === "finished" ? "success" : gameState === "playing" ? "focus" : "idle"}
+    >
+      <div className="max-w-md mx-auto w-full flex flex-col items-center">
+        {gameState === "ready" && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-8 mt-12"
           >
-            <ArrowLeft className="h-5 w-5" />
-            Back to Games
-          </Button>
-
-          <h1 className="text-4xl font-extrabold mb-3 bg-gradient-to-r from-pink-600 via-red-500 to-purple-600 bg-clip-text text-transparent">
-            Memory Challenge
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Watch the sequence, then repeat it by clicking the magical cards in the same order.
-          </p>
-        </div>
-
-        {/* Game State Messages */}
-        <div className="mb-6">
-          <div className="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-primary">
-            <Sparkles className="h-4 w-4" />
-            <span>{gameStatusLabel}</span>
-          </div>
-
-          {gameState === "ready" && (
-            <div className="flex justify-center">
-              <Button onClick={() => startGame()} className="gap-2 px-6 py-3 text-lg rounded-xl">
-                <Trophy className="h-5 w-5" />
-                Start Game
-              </Button>
-            </div>
-          )}
-
-          {gameState === "showing" && (
-            <div className="text-center">
-              <div className="text-xl font-semibold text-primary mb-1"> Watch the sequence!</div>
-              <div className="text-muted-foreground">
-                Showing {showingIndex + 1} of {sequence.length}
-              </div>
-            </div>
-          )}
-
-          {gameState === "playing" && (
-            <div className="text-center">
-              <div className="text-xl font-semibold text-pink-600">Your turn!</div>
-              <div className="text-muted-foreground">Click the cards in order</div>
-              <div className="text-sm text-primary mt-1">
-                {sequence.length - playerSequence.length} moves left
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-5 text-center rounded-2xl shadow-md bg-crushed-silk/50 backdrop-blur-md">
-            <div className="text-3xl font-bold text-purple-600">{currentLevel}</div>
-            <div className="text-sm text-muted-foreground">Level</div>
-          </Card>
-          <Card className="p-5 text-center rounded-2xl shadow-md bg-crushed-silk/50 backdrop-blur-md">
-            <div className="text-3xl font-bold text-pink-600">{score}</div>
-            <div className="text-sm text-muted-foreground">Score</div>
-          </Card>
-          <Card className="p-5 text-center rounded-2xl shadow-md bg-crushed-silk/50 backdrop-blur-md">
-            <div className="text-3xl font-bold text-yellow-600">{sequence.length}</div>
-            <div className="text-sm text-muted-foreground">Sequence</div>
-          </Card>
-          <Card className="p-5 text-center rounded-2xl shadow-md bg-crushed-silk/50 backdrop-blur-md">
-            <div className="text-3xl font-bold text-indigo-600">{bestScore}</div>
-            <div className="text-sm text-muted-foreground">Best</div>
-          </Card>
-        </div>
-
-        {(gameState === "showing" || gameState === "playing") && (
-          <div className="mb-6 flex justify-center">
-            <Button variant="outline" onClick={resetGame} className="gap-2">
-              <RotateCcw className="h-4 w-4" />
-              Restart
-            </Button>
-          </div>
-        )}
-
-        {/* Progress */}
-        {gameState === "playing" && (
-          <div className="mb-8">
-            <div className="flex justify-between text-sm mb-2 text-primary">
-              <span>Progress</span>
-              <span>
-                {playerSequence.length} / {sequence.length}
-              </span>
-            </div>
-            <Progress value={(playerSequence.length / sequence.length) * 100} className="h-3" />
-          </div>
-        )}
-
-        {/* Game Grid */}
-        <Card className="p-8 rounded-2xl bg-crushed-silk/40 backdrop-blur-lg shadow-lg border border-white/50">
-          <div className="grid grid-cols-3 gap-4">
-            {cards.map((index) => (
-              <div
-                key={index}
-                className={getCardStyle(index)}
-                role="button"
-                tabIndex={gameState === "playing" ? 0 : -1}
-                aria-label={`Card ${index + 1}`}
-                aria-disabled={gameState !== "playing"}
-                onClick={() => handleCardClick(index)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    handleCardClick(index);
-                  }
-                }}
-              >
-                {activeCard === index && (
-                  <span className="text-4xl">👻</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
-
-      </main>
-
-      {/* GAME OVER POPUP */}
-      <AnimatePresence>
-        {gameState === "finished" && (
-          <motion.div
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <Card className="p-8 rounded-2xl bg-crushed-silk/10 backdrop-blur-lg shadow-xl border border-white/30 text-center">
-              <div className="flex justify-center space-x-2 mb-6">
-                {"GAME OVER".split("").map((letter, i) => (
-                  <motion.span
-                    key={i}
-                    className="text-5xl font-extrabold text-red-600"
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.2 }}
-                  >
-                    {letter}
-                  </motion.span>
-                ))}
-              </div>
-              <p className="text-white mb-6 drop-shadow-lg">
-                You reached level {currentLevel} with a score of {score}
+            <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10">
+              <p className="text-white/70 mb-8 leading-relaxed text-lg font-light">
+                Watch the sequence of shifting lights, then repeat it to strengthen your focus and anchor your mind in the present moment.
               </p>
-              <Button onClick={resetGame} className="gap-2 px-6 py-3 rounded-xl">
-                <RotateCcw className="h-5 w-5" />
-                Play Again
-              </Button>
-            </Card>
+              <button 
+                onClick={() => startGame()} 
+                className="w-full py-5 rounded-2xl bg-teal-500 hover:bg-teal-600 text-white font-medium tracking-wide shadow-[0_0_20px_rgba(20,184,166,0.3)] transition-all duration-300"
+              >
+                Begin Focus Exercise
+              </button>
+            </div>
+            
+            {(bestScore > 0) && (
+              <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/5 border border-white/10">
+                <span className="text-white/40 text-sm uppercase tracking-widest">Personal Best</span>
+                <span className="text-teal-400 font-semibold">{bestScore} XP</span>
+              </div>
+            )}
           </motion.div>
         )}
-      </AnimatePresence>
-    </div>
+
+        {(gameState === "showing" || gameState === "playing") && (
+          <div className="w-full flex flex-col items-center space-y-8 mt-4">
+            <div className="flex w-full justify-between items-center px-4">
+               <div className="text-center">
+                 <p className="text-xs text-white/40 uppercase tracking-widest mb-1">Level</p>
+                 <p className="text-2xl font-light text-white/90">{currentLevel}</p>
+               </div>
+               <div className="text-center">
+                 <p className="text-sm font-medium text-teal-400 mb-1">{gameState === "showing" ? "Observe..." : "Your Turn"}</p>
+                 <div className="flex gap-1 justify-center mt-2 h-1.5 w-32 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="bg-teal-400 h-full rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${gameState === 'showing' ? ((showingIndex)/sequence.length)*100 : ((playerSequence.length)/sequence.length)*100}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                 </div>
+               </div>
+               <div className="text-center">
+                 <p className="text-xs text-white/40 uppercase tracking-widest mb-1">XP</p>
+                 <p className="text-2xl font-light text-white/90">{score}</p>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 p-6 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl w-full aspect-square">
+              {cards.map((index) => {
+                const isActive = activeCard === index;
+                const isClickable = gameState === "playing";
+                
+                return (
+                  <motion.button
+                    key={index}
+                    whileHover={isClickable ? { scale: 1.05 } : {}}
+                    whileTap={isClickable ? { scale: 0.95 } : {}}
+                    onClick={() => handleCardClick(index)}
+                    disabled={!isClickable}
+                    className={`rounded-2xl transition-all duration-300 relative overflow-hidden backdrop-blur-sm ${
+                      isActive 
+                        ? "bg-teal-400 border border-teal-300 shadow-[0_0_30px_rgba(45,212,191,0.5)] scale-105 z-10" 
+                        : "bg-white/5 border border-white/10 hover:bg-white/10 opacity-70"
+                    }`}
+                  >
+                     {isActive && (
+                       <motion.div 
+                         initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }}
+                         className="absolute inset-0 bg-white/20 rounded-2xl"
+                       />
+                     )}
+                  </motion.button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </TherapeuticGameShell>
   );
 };
-
 export default MemoryChallenge;

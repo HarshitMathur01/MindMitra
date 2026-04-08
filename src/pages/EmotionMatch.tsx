@@ -1,3 +1,4 @@
+import TherapeuticGameShell from "@/components/mindgym/TherapeuticGameShell";
 import { useState } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from "@/components/ui/card";
@@ -203,225 +204,116 @@ const EmotionMatch = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
-      <Header />
+    <TherapeuticGameShell
+      title="Emotion Detective"
+      gameId="emotion-match"
+      xp={score}
+      completed={isCompleted}
+      onReset={handleReset}
+      themePhase={isCompleted ? "success" : selectedEmotion ? "focus" : "idle"}
+    >
+      <div className="max-w-4xl mx-auto w-full">
+        {/* Progress Bar */}
+        <motion.div variants={itemVariants} className="mb-8 bg-white/5 p-4 rounded-3xl border border-white/10 backdrop-blur-md">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-white/70 tracking-wide uppercase">
+              Image {currentImageIndex + 1} of {emotionImages.length}
+            </span>
+            <span className="text-sm font-medium text-teal-400">
+              {score} XP
+            </span>
+          </div>
+          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+            <motion.div
+              className="bg-teal-400 h-1.5 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${((currentImageIndex + 1) / emotionImages.length) * 100}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            />
+          </div>
+        </motion.div>
 
-      <motion.div
-        className="container mx-auto px-4 py-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/games')}
-            className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-all duration-300 hover:scale-105"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Back to Games
-          </Button>
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Image Section */}
+          <motion.div variants={itemVariants}>
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6 rounded-3xl">
+              <h3 className="text-lg font-light tracking-wide mb-6 text-center text-white/80">
+                What emotion do you see?
+              </h3>
 
-          <motion.h1
-            className="text-3xl font-bold text-gradient"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            💝 Emotion Detective
-          </motion.h1>
-
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            className="flex items-center gap-2 bg-surface/70 backdrop-blur-sm hover:bg-surface/90 transition-all duration-300 hover:scale-105"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Reset
-          </Button>
-        </div>
-
-        {!isCompleted ? (
-          <motion.div
-            className="max-w-4xl mx-auto"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Progress Bar */}
-            <motion.div variants={itemVariants} className="mb-8">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-text-primary">
-                  Progress: {currentImageIndex + 1} of {emotionImages.length}
-                </span>
-                <span className="text-sm font-medium text-purple-600">
-                  Score: {score} points
-                </span>
+              <div className="relative overflow-hidden rounded-2xl mb-4 shadow-[0_0_30px_rgba(0,0,0,0.2)]">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentImageIndex}
+                    variants={imageVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.5 }}
+                    src={currentImage.src}
+                    alt={currentImage.alt}
+                    className="w-full h-64 object-cover rounded-2xl"
+                  />
+                </AnimatePresence>
               </div>
-              <div className="w-full bg-surface rounded-full h-3">
-                <motion.div
-                  className="bg-gradient-to-r from-rose-400 to-purple-500 h-3 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${((currentImageIndex + 1) / emotionImages.length) * 100}%` }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                />
-              </div>
-            </motion.div>
 
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Image Section */}
-              <motion.div variants={itemVariants}>
-                <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-xl p-6">
-                  <h3 className="text-xl font-semibold mb-4 text-center text-text-primary">
-                    What emotion do you see?
-                  </h3>
-
-                  <div className="relative overflow-hidden rounded-lg mb-4">
-                    <AnimatePresence mode="wait">
-                      <motion.img
-                        key={currentImageIndex}
-                        variants={imageVariants}
-                        initial="enter"
-                        animate="center"
-                        exit="exit"
-                        transition={{ duration: 0.5 }}
-                        src={currentImage.src}
-                        alt={currentImage.alt}
-                        className="w-full h-64 object-cover rounded-lg"
-                      />
-                    </AnimatePresence>
-                  </div>
-
-                  <p className="text-center text-text-secondary text-sm">
-                    {currentImage.alt}
-                  </p>
-                </Card>
-              </motion.div>
-
-              {/* Selection Section */}
-              <motion.div variants={itemVariants}>
-                <Card className="bg-crushed-silk/70 backdrop-blur-sm border-0 shadow-xl p-6">
-                  <h3 className="text-xl font-semibold mb-4 text-text-primary">
-                    Choose the emotion
-                  </h3>
-
-                  <div className="grid grid-cols-3 gap-2 mb-6">
-                    {emotionOptions.map((emotion, index) => (
-                      <motion.button
-                        key={emotion}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05, duration: 0.3 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleEmotionSelect(emotion)}
-                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-300 ${selectedEmotion === emotion
-                            ? 'bg-gradient-to-r from-rose-400 to-purple-500 text-white shadow-lg'
-                            : 'bg-surface hover:bg-crushed-silk text-text-primary'
-                          }`}
-                      >
-                        {emotion}
-                      </motion.button>
-                    ))}
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-text-primary mb-2">
-                      Describe what you see (optional):
-                    </label>
-                    <Textarea
-                      value={customText}
-                      onChange={(e) => setCustomText(e.target.value)}
-                      placeholder="What details in the image show this emotion? What might this person be thinking or feeling?"
-                      className="bg-crushed-silk/50 border-border focus:border-purple-400 transition-colors"
-                      rows={3}
-                    />
-                  </div>
-
-                  <Button
-                    onClick={handleNext}
-                    disabled={!selectedEmotion}
-                    className="w-full bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white py-3 transition-all duration-300 disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {currentImageIndex === emotionImages.length - 1 ? 'Complete' : 'Next Image'}
-                  </Button>
-                </Card>
-              </motion.div>
+              <p className="text-center text-white/50 text-sm italic">
+                Observe the facial expression and body language
+              </p>
             </div>
           </motion.div>
-        ) : (
-          /* Completion Screen */
-          <motion.div
-            className="max-w-2xl mx-auto text-center"
-            variants={celebrationVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <Card className="bg-crushed-silk/80 backdrop-blur-sm border-0 shadow-2xl p-8">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="w-20 h-20 bg-gradient-to-br from-rose-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6"
-              >
-                <Heart className="h-10 w-10 text-white" />
-              </motion.div>
 
-              <h2 className="text-3xl font-bold text-gradient mb-4">
-                Emotional Journey Complete! 🌟
-              </h2>
-
-              <div className="mb-6">
-                <p className="text-xl text-text-secondary mb-2">
-                  {getScoreRating().rating}
-                </p>
-                <p className="text-3xl font-bold text-purple-600 mb-4">
-                  Final Score: {score} points
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-rose-50 dark:bg-rose-900/20 p-4 rounded-lg">
-                    <p className="font-semibold text-rose-700 dark:text-rose-300">Images Analyzed</p>
-                    <p className="text-2xl text-rose-600 dark:text-rose-300">{matches.length}</p>
-                  </div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-                    <p className="font-semibold text-purple-700 dark:text-purple-300">Accuracy</p>
-                    <p className="text-2xl text-purple-600 dark:text-purple-300">
-                      {Math.round((matches.filter(m => m.emotion.toLowerCase() ===
-                        emotionImages.find(img => img.id === m.imageId)?.suggestedEmotion.toLowerCase()).length / matches.length) * 100)}%
-                    </p>
-                  </div>
-                  <div className="bg-surface p-4 rounded-lg">
-                    <p className="font-semibold text-primary">Detailed Responses</p>
-                    <p className="text-2xl text-primary">
-                      {matches.filter(m => m.customText.length > 10).length}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-4 justify-center">
-                <Button
-                  onClick={handleReset}
-                  className="bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white px-8 py-3"
+          <motion.div variants={itemVariants} className="flex flex-col h-full bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl">
+            <div className="grid grid-cols-3 gap-3 mb-8">
+              {emotionOptions.map((emotion, index) => (
+                <motion.button
+                  key={emotion}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleEmotionSelect(emotion)}
+                  className={`py-3 px-2 rounded-2xl text-xs font-medium transition-all duration-300 ${
+                    selectedEmotion === emotion
+                      ? 'bg-teal-500/20 border-teal-500/50 border text-teal-100 shadow-[0_0_15px_rgba(20,184,166,0.2)]'
+                      : 'bg-white/5 border border-white/5 hover:bg-white/10 text-white/70'
+                  }`}
                 >
-                  Try Again
-                </Button>
-                <Button
-                  onClick={() => navigate('/games')}
-                  variant="outline"
-                  className="px-8 py-3"
-                >
-                  Back to Games
-                </Button>
-              </div>
-            </Card>
+                  {emotion}
+                </motion.button>
+              ))}
+            </div>
+
+            <div className="mb-8 flex-grow">
+              <label className="block text-xs font-medium text-white/50 mb-3 tracking-wide uppercase">
+                Notes (Optional)
+              </label>
+              <Textarea
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                placeholder="What details in the image show this emotion?"
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-teal-500/50 transition-colors rounded-2xl resize-none"
+                rows={4}
+              />
+            </div>
+
+            <Button
+              onClick={handleNext}
+              disabled={!selectedEmotion}
+              className={`w-full py-6 rounded-2xl transition-all duration-500 ${
+                selectedEmotion
+                  ? "bg-teal-500 hover:bg-teal-600 text-white shadow-[0_0_20px_rgba(20,184,166,0.3)]"
+                  : "bg-white/5 text-white/30 cursor-not-allowed border border-white/10"
+              }`}
+            >
+              <CheckCircle2 className="h-5 w-5 mr-3" />
+              {currentImageIndex === emotionImages.length - 1 ? 'Complete Session' : 'Continue'}
+            </Button>
           </motion.div>
-        )}
-      </motion.div>
-    </div>
+        </div>
+      </div>
+    </TherapeuticGameShell>
   );
 };
-
 export default EmotionMatch;

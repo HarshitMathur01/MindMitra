@@ -6,6 +6,32 @@
     font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
 }
 
+.mindgym-root {
+    /* MindGym design tokens (scoped) */
+    --mg-bg-primary: #0f0d13;
+    --mg-bg-card: rgba(255, 255, 255, 0.03);
+    --mg-accent-calm: #14b8a6; /* teal */
+    --mg-accent-warm: #fbbf24; /* amber */
+    --mg-accent-alert: #fb7185; /* soft rose */
+    --mg-text-primary: rgba(255, 255, 255, 0.92);
+    --mg-text-secondary: rgba(255, 255, 255, 0.55);
+    --mg-radius-card: 20px;
+    --mg-shadow-card: 0 12px 40px -12px rgba(0, 0, 0, 0.55);
+
+    /* background: var(--mg-bg-primary); */
+    color: var(--mg-text-primary);
+
+    /* Typography: scoped to MindGym only */
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.mindgym-root h1,
+.mindgym-root h2,
+.mindgym-root h3 {
+    font-family: 'DM Serif Display', serif;
+    letter-spacing: 0.2px;
+}
+
 :root {
     /* Warm cream — base page background & surfaces */
     --background: 35 40% 97%;

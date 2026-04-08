@@ -9,7 +9,8 @@ Before coding, read in this order:
 2. /docs/architecture.md
 3. /docs/rag.md
 4. /docs/memory.md
-5. /README.md
+5. /docs/therapist_bridge.md
+6. /README.md
 
 If any old document conflicts with these files, treat /docs and /README as authoritative.
 
@@ -33,6 +34,7 @@ When touching these areas, update docs in the same change:
 - API route or schema change -> /docs/api_contracts.md
 - Retrieval or memory trigger/scoring change -> /docs/rag.md and /docs/memory.md
 - System flow change -> /docs/architecture.md
+- Therapist clinical metric or profile definition change -> /docs/therapist_bridge.md
 - Setup or developer workflow change -> /README.md
 
 ## Quality Bar

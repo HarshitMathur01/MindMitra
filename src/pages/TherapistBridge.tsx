@@ -19,6 +19,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { createReferral, fetchEmotionalProfile, fetchTherapists, hasMinimumConsentForBooking } from "@/lib/api/therapist-bridge";
 import { defaultConsentState, EmotionalProfile as EmotionalProfileType, Therapist } from "@/lib/types/therapist-bridge";
+import { triggerMindGymClinicalSync } from "@/lib/api/syncMindGymClinicalData";
+import { exportClinicalBriefToPDF } from "@/lib/utils/exportClinicalPDF";
+import { Download, RefreshCw } from "lucide-react";
 
 const TherapistBridge = () => {
   const navigate = useNavigate();
@@ -90,6 +93,11 @@ const TherapistBridge = () => {
         profileSnapshot: profile,
       });
 
+      if (referral.status !== "created") {
+        toast.error("Referral could not be completed. Check that you are signed in and try again.");
+        return;
+      }
+
       toast.success("Therapist referral created. Proceeding to booking.");
       navigate(`/booking/${referral.id}`);
     } catch (error) {
@@ -135,7 +143,40 @@ const TherapistBridge = () => {
             <Skeleton className="h-72 w-full" />
           </Card>
         ) : (
-          profile && <EmotionalProfile profile={profile} />
+          profile && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center bg-card p-4 rounded-xl shadow-sm border">
+                <div>
+                  <h3 className="font-semibold">Clinical Data Management</h3>
+                  <p className="text-sm text-muted-foreground">Keep your profile current by syncing offline data or export your clinical brief.</p>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    const msg = await triggerMindGymClinicalSync();
+                    toast(msg, { icon: <RefreshCw className="w-4 h-4" /> });
+                  }}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Sync Device Data
+                  </Button>
+                  <Button variant="default" size="sm" onClick={() => {
+                    if (!profile) return;
+                    exportClinicalBriefToPDF({
+                      userId: user?.id || "demo-ID-1234",
+                      userName: user?.user_metadata?.full_name || "User",
+                      dateStr: new Date().toLocaleDateString(),
+                      consentMask: consentState,
+                      profileData: profile
+                    });
+                    toast.success("Clinical PDF downloaded successfully.");
+                  }}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export PDF Brief
+                  </Button>
+                </div>
+              </div>
+              <EmotionalProfile profile={profile} />
+            </div>
+          )
         )}
 
         <ConsentForm consentState={consentState} setConsentState={setConsentState} onReviewData={() => setReviewModalOpen(true)} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,8 +41,12 @@ import Journal from "./pages/Journal";
 import Gratitude from "./pages/Gratitude";
 import StressControl from "./pages/StressControl";
 import Nutrition from "./pages/Nutrition";
+import MindGymHub from "./pages/mindgym/MindGymHub";
+import MindGymToolPage from "./pages/mindgym/MindGymToolPage";
 
 const queryClient = new QueryClient();
+
+import { triggerMindGymClinicalSync } from "@/lib/api/syncMindGymClinicalData";
 
 /**
  * AppContent — lives inside BrowserRouter so hooks that need router context
@@ -57,6 +61,15 @@ function AppContent() {
   const { isFirstTime, loading, onboardingStep } = useFirstTimeUser();
   const [onboardingDone, setOnboardingDone] = useState(false);
   const location = useLocation();
+
+  // Silent fallback sync: Ensure any stranded offline MindGym data 
+  // trapped in localStorage pushes to Supabase when the user boots.
+  useEffect(() => {
+    // Fire-and-forget; no await required on boot. Non-blocking.
+    triggerMindGymClinicalSync().catch((err) => {
+      console.warn("Silent Boot Sync for MindGym deferred:", err);
+    });
+  }, []);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -126,6 +139,8 @@ function AppContent() {
           <Route path="/gratitude" element={<Gratitude />} />
           <Route path="/stress-control" element={<StressControl />} />
           <Route path="/nutrition" element={<Nutrition />} />
+          <Route path="/mindgym" element={<MindGymHub />} />
+          <Route path="/mindgym/:toolId" element={<MindGymToolPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

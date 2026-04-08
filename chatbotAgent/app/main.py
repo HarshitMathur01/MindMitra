@@ -132,9 +132,11 @@ app.add_middleware(
 # ── Include routers (after /health) ────────────────────────────────────────
 from app.api.chat import router as chat_router
 from app.api.onboarding import router as onboarding_router
+from app.api.therapist_bridge import router as therapist_bridge_router
 
 app.include_router(chat_router)
 app.include_router(onboarding_router)
+app.include_router(therapist_bridge_router)
 
 
 

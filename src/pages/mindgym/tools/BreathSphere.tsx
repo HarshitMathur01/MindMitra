@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Timer, Volume2, VolumeX, Play, RotateCcw, Check } from "lucide-react";
+import { Wind, Timer, Volume2, VolumeX, Play, RotateCcw, Check, Megaphone } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { useAzureNarration } from "@/hooks/useAzureNarration";
 import { cn } from "@/lib/utils";
 
 interface BreathSphereProps {
@@ -54,6 +55,46 @@ const DURATIONS = [
   { label: "5 min", seconds: 300 },
 ];
 
+const BREATH_GUIDE_VOICE = {
+  voiceName: "en-us-ava:DragonHDOmniLatestNeural",
+  language: "en-US",
+  role: "Girl",
+  style: "whispering",
+} as const;
+
+function buildGuidePrompt(pattern: Pattern, phase: Phase): string {
+  if (pattern === "sigh") {
+    switch (phase) {
+      case "inhale":
+        return "Take a double inhale, gently and slowly.";
+      case "holdIn":
+        return "Pause briefly and keep your shoulders relaxed.";
+      case "exhale":
+        return "Exhale slowly and let the air out fully.";
+      case "holdOut":
+        return "Rest for a moment. Stay relaxed.";
+    }
+  }
+
+  const duration = PATTERNS[pattern].phases[phase];
+  if (duration <= 0) return "";
+
+  const countText = `${duration} count${duration === 1 ? "" : "s"}`;
+
+  switch (phase) {
+    case "inhale":
+      return `Inhale slowly for ${countText}.`;
+    case "holdIn":
+      return `Hold gently for ${countText}.`;
+    case "exhale":
+      return `Exhale slowly for ${countText}.`;
+    case "holdOut":
+      return `Rest for ${countText}.`;
+  }
+}
+
+const BREATH_COMPLETE_PROMPT = "Great work. Take a slow breath and notice how you feel.";
+
 interface Particle {
   id: number;
   x: number;
@@ -76,7 +117,7 @@ function useAmbientSound() {
     if (runningRef.current) return;
     try {
       const ctx = new AudioContext();
-      
+
       const bufferLength = ctx.sampleRate * 2;
       const buffer = ctx.createBuffer(1, bufferLength, ctx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -85,7 +126,7 @@ function useAmbientSound() {
         const white = Math.random() * 2 - 1;
         data[i] = (lastOut + (0.02 * white)) / 1.02;
         lastOut = data[i];
-        data[i] *= 3.5; 
+        data[i] *= 3.5;
       }
 
       const source = ctx.createBufferSource();
@@ -162,6 +203,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
   const [started, setStarted] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const [guideVoiceOn, setGuideVoiceOn] = useState(true);
   const [moodAnswer, setMoodAnswer] = useState<boolean | null>(null);
 
   const [phase, setPhase] = useState<Phase>("inhale");
@@ -185,8 +227,21 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
   const cycleRef = useRef(0);
 
   const audio = useAmbientSound();
+  const narration = useAzureNarration({
+    voiceName: BREATH_GUIDE_VOICE.voiceName,
+    language: BREATH_GUIDE_VOICE.language,
+    role: BREATH_GUIDE_VOICE.role,
+    style: BREATH_GUIDE_VOICE.style,
+  });
+  const lastNarratedPhaseRef = useRef<Phase | null>(null);
+  const completedNarrationRef = useRef(false);
 
   const config = PATTERNS[pattern];
+  const sphereHue = sphereColorPhase === "inhale" ? "146" : "100";
+  const sphereDepthHue = sphereColorPhase === "inhale" ? "138" : "92";
+  const sphereHighlightHue = sphereColorPhase === "inhale" ? "42" : "48";
+  const warmSurfaceCard = "rounded-[2rem] border border-border bg-white/88 shadow-[0_20px_50px_-30px_rgba(62,84,60,0.24)] backdrop-blur-sm";
+  const warmControlCard = "rounded-2xl border border-border bg-white/84 shadow-[0_16px_36px_-28px_rgba(62,84,60,0.18)] backdrop-blur-sm";
 
   const spawnParticles = useCallback(() => {
     const newParticles: Particle[] = [];
@@ -338,6 +393,42 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
     }
   }, [phase, started, soundOn, audio, spawnParticles]);
 
+  useEffect(() => {
+    if (!narration.isSupported) {
+      narration.cancel();
+      lastNarratedPhaseRef.current = null;
+      return;
+    }
+
+    if (!guideVoiceOn) {
+      narration.cancel();
+      lastNarratedPhaseRef.current = null;
+      return;
+    }
+
+    if (!started) {
+      if (!completed) {
+        narration.cancel();
+        lastNarratedPhaseRef.current = null;
+      }
+      return;
+    }
+
+    const guidePrompt = buildGuidePrompt(pattern, phase);
+    if (!guidePrompt || lastNarratedPhaseRef.current === phase) return;
+
+    lastNarratedPhaseRef.current = phase;
+    void narration.speak(guidePrompt).catch(() => undefined);
+  }, [completed, guideVoiceOn, narration, pattern, phase, started]);
+
+  useEffect(() => {
+    if (!completed || !guideVoiceOn || !narration.isSupported) return;
+    if (completedNarrationRef.current) return;
+
+    completedNarrationRef.current = true;
+    void narration.speak(BREATH_COMPLETE_PROMPT).catch(() => undefined);
+  }, [completed, guideVoiceOn, narration]);
+
   const toggleSound = () => {
     if (soundOn) {
       audio.stop();
@@ -367,6 +458,9 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
     cycleRef.current = 0;
     elapsedRef.current = 0;
     setParticles([]);
+    narration.cancel();
+    lastNarratedPhaseRef.current = null;
+    completedNarrationRef.current = false;
     if (timerIdRef.current) clearInterval(timerIdRef.current);
     audio.stop();
   };
@@ -374,6 +468,41 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
   const handleCustomDuration = () => {
     const mins = parseFloat(customMin);
     if (mins > 0 && mins <= 30) setDuration(Math.round(mins * 60));
+  };
+
+  const handleStartBreathing = () => {
+    setStarted(true);
+
+    if (!guideVoiceOn || !narration.isSupported) return;
+
+    const guidePrompt = buildGuidePrompt(pattern, "inhale");
+    if (!guidePrompt) return;
+
+    narration.cancel();
+    lastNarratedPhaseRef.current = "inhale";
+    void narration.speak(`Let's breathe together. ${guidePrompt}`).catch(() => undefined);
+  };
+
+  const toggleGuideVoice = () => {
+    if (!narration.isSupported) return;
+
+    const nextEnabled = !guideVoiceOn;
+    setGuideVoiceOn(nextEnabled);
+
+    if (!nextEnabled) {
+      narration.cancel();
+      lastNarratedPhaseRef.current = null;
+      return;
+    }
+
+    if (!started || completed) return;
+
+    const guidePrompt = buildGuidePrompt(pattern, phase);
+    if (!guidePrompt) return;
+
+    narration.cancel();
+    lastNarratedPhaseRef.current = phase;
+    void narration.speak(guidePrompt).catch(() => undefined);
   };
 
   return (
@@ -384,7 +513,9 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
       xp={20}
       completed={completed && moodAnswer !== null}
       onReset={handleReset}
-      themeColor="from-[#0a1128] via-[#12243d] to-[#0d182b]"
+      themeColor="from-[#f6f0e4] via-[#f2ecde] to-[#e8f0e4]"
+      themeAccent="emerald"
+      surfaceTone="warm"
     >
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-24">
         <AnimatePresence mode="wait">
@@ -394,10 +525,10 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-8"
+              className={`space-y-8 p-5 sm:p-6 ${warmSurfaceCard}`}
             >
               <div>
-                <p className="text-xs text-white/40 uppercase tracking-wider mb-3">
+                <p className="text-sm font-semibold text-text-secondary uppercase tracking-[0.24em] mb-3">
                   Breathing Pattern
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -409,14 +540,14 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                         className={cn(
                           "p-4 rounded-2xl border text-left transition-all duration-300",
                           pattern === key
-                            ? "border-primary/50 bg-primary/10 shadow-[0_0_20px_rgba(20,184,166,0.15)]"
-                            : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]",
+                            ? "border-primary/40 bg-primary/12 shadow-[0_0_24px_rgba(82,111,85,0.14)]"
+                            : "border-border bg-white/92 hover:bg-white",
                         )}
                       >
-                        <p className="text-sm font-medium text-white/90 mb-1">
+                        <p className="text-base font-semibold text-text-primary mb-1">
                           {val.label}
                         </p>
-                        <p className="text-xs text-white/40">{val.desc}</p>
+                        <p className="text-sm leading-5 text-text-secondary">{val.desc}</p>
                       </button>
                     ),
                   )}
@@ -424,7 +555,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
               </div>
 
               <div>
-                <p className="text-xs text-white/40 uppercase tracking-wider mb-3">
+                <p className="text-sm font-semibold text-text-secondary uppercase tracking-[0.24em] mb-3">
                   Duration
                 </p>
                 <div className="flex gap-3 flex-wrap">
@@ -433,10 +564,10 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                       key={d.seconds}
                       onClick={() => setDuration(d.seconds)}
                       className={cn(
-                        "px-5 py-2.5 rounded-xl border text-sm transition-all duration-300",
+                        "px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300",
                         duration === d.seconds
-                          ? "border-primary/50 bg-primary/10 text-primary"
-                          : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]",
+                          ? "border-primary/40 bg-primary/12 text-primary"
+                          : "border-border bg-white/92 text-text-primary hover:bg-white",
                       )}
                     >
                       {d.label}
@@ -450,12 +581,12 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                       placeholder="Custom"
                       value={customMin}
                       onChange={(e) => setCustomMin(e.target.value)}
-                      className="w-20 px-3 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-primary/50"
+                      className="w-20 px-3 py-2.5 rounded-xl border border-border bg-white/92 text-sm text-text-primary font-medium placeholder:text-text-secondary/55 focus:outline-none focus:border-primary/40"
                     />
                     {customMin && (
                       <button
                         onClick={handleCustomDuration}
-                        className="text-xs text-primary hover:text-primary"
+                        className="text-sm font-semibold text-primary hover:text-primary"
                       >
                         Set
                       </button>
@@ -466,8 +597,8 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
 
               <div className="text-center pt-4">
                 <motion.button
-                  onClick={() => setStarted(true)}
-                  className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-primary hover:bg-primary/90 text-white font-medium text-lg transition-colors"
+                  onClick={handleStartBreathing}
+                  className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg transition-colors shadow-[0_18px_40px_-24px_rgba(82,111,85,0.55)]"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                 >
@@ -486,34 +617,48 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
               exit={{ opacity: 0 }}
               className="flex flex-col items-center pt-4"
             >
-              <div className="flex items-center justify-between w-full mb-6">
+              <div className={`flex items-center justify-between w-full mb-6 px-4 py-3 ${warmControlCard}`}>
                 <div className="flex items-center gap-3">
-                  <Wind className="w-4 h-4 text-primary/60" />
-                  <span className="text-sm text-white/50">
+                  <Wind className="w-4 h-4 text-primary/70" />
+                  <span className="text-sm sm:text-base font-medium text-text-primary">
                     Cycle {Math.max(1, cycleCount)}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
+                    onClick={toggleGuideVoice}
+                    className={cn(
+                      "p-2 rounded-lg transition-colors",
+                      narration.isSupported ? "hover:bg-white" : "cursor-not-allowed opacity-40",
+                    )}
+                    title={guideVoiceOn ? "Mute guide voice" : "Enable guide voice"}
+                    aria-label={guideVoiceOn ? "Mute guide voice" : "Enable guide voice"}
+                    disabled={!narration.isSupported}
+                  >
+                    <Megaphone className={`w-4 h-4 ${guideVoiceOn ? "text-primary" : "text-text-secondary"} ${narration.isSpeaking ? "animate-pulse" : ""}`} />
+                  </button>
+                  <button
                     onClick={toggleSound}
-                    className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                    className="p-2 rounded-lg hover:bg-white transition-colors"
+                    title={soundOn ? "Mute ambient sound" : "Enable ambient sound"}
+                    aria-label={soundOn ? "Mute ambient sound" : "Enable ambient sound"}
                   >
                     {soundOn ? (
-                      <Volume2 className="w-4 h-4 text-white/40" />
+                      <Volume2 className="w-4 h-4 text-primary" />
                     ) : (
-                      <VolumeX className="w-4 h-4 text-white/40" />
+                      <VolumeX className="w-4 h-4 text-text-secondary" />
                     )}
                   </button>
-                  <div className="flex items-center gap-1.5 text-white/40">
+                  <div className="flex items-center gap-1.5 text-text-primary">
                     <Timer className="w-3.5 h-3.5" />
-                    <span className="text-sm font-mono tabular-nums">
+                    <span className="text-sm sm:text-base font-semibold font-mono tabular-nums">
                       {mins}:{secs.toString().padStart(2, "0")}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="relative w-72 h-72 flex items-center justify-center my-8">
+              <div className="relative w-72 h-72 flex items-center justify-center my-8 rounded-full border border-border bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.98)_0%,rgba(247,242,232,0.94)_48%,rgba(227,238,218,0.82)_100%)] shadow-[0_30px_70px_-35px_rgba(62,84,60,0.35)] overflow-hidden">
                 {/* Outer glow rings — Framer Motion animated */}
                 {[1, 2, 3].map((ring) => (
                   <motion.div
@@ -524,9 +669,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                     }}
                     transition={{ type: "tween", duration: 0.6, ease: "easeOut" }}
                     style={{
-                      background: `radial-gradient(circle, hsla(${
-                        sphereColorPhase === "inhale" ? "188" : "35"
-                      }, 70%, 50%, ${glowIntensity * 0.08 / ring}) 0%, transparent 70%)`,
+                      background: `radial-gradient(circle, hsla(${sphereHue}, 36%, 58%, ${glowIntensity * 0.08 / ring}) 0%, transparent 70%)`,
                     }}
                   />
                 ))}
@@ -539,23 +682,11 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                   }}
                   transition={{ type: "tween", duration: 0.6, ease: "easeOut" }}
                   style={{
-                    background: `radial-gradient(circle at 35% 35%, hsla(${
-                      sphereColorPhase === "inhale" ? "188" : "35"
-                    }, 80%, 65%, ${glowIntensity + 0.1}), hsla(${
-                      sphereColorPhase === "inhale" ? "188" : "35"
-                    }, 60%, 40%, ${glowIntensity * 0.7}), hsla(${
-                      sphereColorPhase === "inhale" ? "218" : "65"
-                    }, 50%, 20%, ${glowIntensity * 0.3}))`,
+                    background: `radial-gradient(circle at 35% 35%, hsla(${sphereHue}, 44%, 74%, ${glowIntensity + 0.1}), hsla(${sphereDepthHue}, 32%, 44%, ${glowIntensity * 0.72}), hsla(${sphereHighlightHue}, 52%, 94%, ${glowIntensity * 0.3}))`,
                     boxShadow: `
-                      0 0 ${40 * glowIntensity}px hsla(${
-                      sphereColorPhase === "inhale" ? "188" : "35"
-                    }, 70%, 50%, ${glowIntensity * 0.6}),
-                      0 0 ${80 * glowIntensity}px hsla(${
-                      sphereColorPhase === "inhale" ? "188" : "35"
-                    }, 60%, 40%, ${glowIntensity * 0.3}),
-                      inset 0 0 ${30 * glowIntensity}px hsla(${
-                      sphereColorPhase === "inhale" ? "188" : "35"
-                    }, 90%, 80%, ${glowIntensity * 0.2})
+                      0 0 ${40 * glowIntensity}px hsla(${sphereHue}, 38%, 52%, ${glowIntensity * 0.55}),
+                      0 0 ${80 * glowIntensity}px hsla(${sphereDepthHue}, 34%, 42%, ${glowIntensity * 0.28}),
+                      inset 0 0 ${30 * glowIntensity}px hsla(${sphereHighlightHue}, 55%, 96%, ${glowIntensity * 0.18})
                     `,
                   }}
                 />
@@ -570,7 +701,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                   }}
                   transition={{ type: "tween", duration: 0.6, ease: "easeOut" }}
                   style={{
-                    background: `radial-gradient(ellipse, hsla(0, 0%, 100%, ${glowIntensity * 0.25}), transparent 70%)`,
+                    background: `radial-gradient(ellipse, hsla(42, 68%, 98%, ${glowIntensity * 0.4}), transparent 70%)`,
                   }}
                 />
 
@@ -584,12 +715,8 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                       height: p.size,
                       left: `calc(50% + ${p.x}px)`,
                       top: `calc(50% + ${p.y}px)`,
-                      background: `hsla(${
-                        sphereColorPhase === "inhale" ? "188" : "35"
-                      }, 70%, 70%, ${p.opacity * p.life})`,
-                      boxShadow: `0 0 ${p.size * 2}px hsla(${
-                        sphereColorPhase === "inhale" ? "188" : "35"
-                      }, 70%, 60%, ${p.opacity * p.life * 0.5})`,
+                      background: `hsla(${sphereHue}, 36%, 60%, ${p.opacity * p.life})`,
+                      boxShadow: `0 0 ${p.size * 2}px hsla(${sphereHue}, 38%, 54%, ${p.opacity * p.life * 0.5})`,
                     }}
                   />
                 ))}
@@ -605,12 +732,8 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                       style={{
                         left: `calc(50% + ${Math.cos(angle) * radius}px)`,
                         top: `calc(50% + ${Math.sin(angle) * radius}px)`,
-                        background: `hsla(${
-                          sphereColorPhase === "inhale" ? "188" : "35"
-                        }, 60%, 60%, ${glowIntensity * 0.4})`,
-                        boxShadow: `0 0 6px hsla(${
-                          sphereColorPhase === "inhale" ? "188" : "35"
-                        }, 60%, 60%, ${glowIntensity * 0.3})`,
+                        background: `hsla(${sphereHue}, 34%, 58%, ${glowIntensity * 0.4})`,
+                        boxShadow: `0 0 6px hsla(${sphereHue}, 34%, 58%, ${glowIntensity * 0.3})`,
                       }}
                     />
                   );
@@ -622,12 +745,12 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                 key={phase}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-4"
+                className={`text-center mb-4 px-5 py-4 ${warmControlCard}`}
               >
-                <p className="text-2xl font-light text-white/90 tracking-wide">
+                <p className="text-3xl font-semibold text-text-primary tracking-tight">
                   {PHASE_LABELS[phase]}
                 </p>
-                <p className="text-sm text-white/30 mt-1">
+                <p className="text-sm sm:text-base text-text-secondary mt-1">
                   {config.phases[phase]}s
                 </p>
               </motion.div>
@@ -639,7 +762,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                   cy="24"
                   r="20"
                   fill="none"
-                  stroke="rgba(255,255,255,0.05)"
+                  stroke="rgba(74,95,73,0.12)"
                   strokeWidth="2"
                 />
                 <circle
@@ -659,7 +782,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
 
               {/* Session progress */}
               <div className="w-full max-w-xs">
-                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                <div className="h-2 bg-border/70 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary/50 rounded-full transition-all duration-1000"
                     style={{
@@ -676,27 +799,27 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
               key="post"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center pt-12 space-y-8"
+              className={`text-center pt-12 space-y-8 p-5 sm:p-6 ${warmSurfaceCard}`}
             >
               <div>
-                <p className="text-5xl font-light text-primary mb-2">
+                <p className="text-6xl font-semibold text-primary mb-2">
                   {cycleCount}
                 </p>
-                <p className="text-white/40 text-sm">
+                <p className="text-text-secondary text-sm sm:text-base">
                   breathing cycles completed
                 </p>
               </div>
 
               <div className="space-y-4">
-                <p className="text-white/70 text-lg">Do you feel calmer?</p>
+                <p className="text-text-primary text-xl font-semibold">Do you feel calmer?</p>
                 <div className="flex justify-center gap-4">
                   <motion.button
                     onClick={() => setMoodAnswer(true)}
                     className={cn(
-                      "flex items-center gap-2 px-6 py-3 rounded-2xl border transition-all duration-300",
+                      "flex items-center gap-2 px-7 py-3.5 rounded-2xl border text-base font-semibold transition-all duration-300",
                       moodAnswer === true
-                        ? "border-primary/50 bg-primary/15 text-primary"
-                        : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]",
+                        ? "border-primary/40 bg-primary/12 text-primary"
+                        : "border-border bg-white/92 text-text-primary hover:bg-white",
                     )}
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
@@ -707,10 +830,10 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                   <motion.button
                     onClick={() => setMoodAnswer(false)}
                     className={cn(
-                      "flex items-center gap-2 px-6 py-3 rounded-2xl border transition-all duration-300",
+                      "flex items-center gap-2 px-7 py-3.5 rounded-2xl border text-base font-semibold transition-all duration-300",
                       moodAnswer === false
-                        ? "border-white/50 bg-white/15 text-white"
-                        : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]",
+                        ? "border-border bg-white text-text-primary"
+                        : "border-border bg-white/92 text-text-primary hover:bg-white",
                     )}
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
@@ -723,7 +846,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-sm text-white/40 italic"
+                    className="text-sm sm:text-base text-text-secondary italic leading-7 max-w-prose mx-auto"
                   >
                     That's okay — it can take practice. Try a longer session next
                     time.

@@ -102,7 +102,7 @@ const Header = () => {
                   <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${weCircleOpen ? 'rotate-180' : ''}`} />
                   {weCircleItems.some(i => location.pathname === i.path) && (
                     <motion.span
-                      className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4/5 rounded-full bg-primary"
+                      className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
                       layoutId="activeNavUnderline"
                       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
@@ -156,7 +156,7 @@ const Header = () => {
                   <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${moodArcadeOpen ? 'rotate-180' : ''}`} />
                   {moodArcadeItems.some(i => location.pathname === i.path) && (
                     <motion.span
-                      className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4/5 rounded-full bg-primary"
+                      className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
                       layoutId="activeNavUnderline"
                       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
@@ -210,7 +210,7 @@ const Header = () => {
                     {item.label}
                     {isActive && (
                       <motion.span
-                        className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4/5 rounded-full bg-primary"
+                        className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
                         layoutId="activeNavUnderline"
                         transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                       />

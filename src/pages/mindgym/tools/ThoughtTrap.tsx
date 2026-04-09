@@ -85,6 +85,11 @@ interface JournalEntry {
 
 const STORAGE_KEY = "mindmitra_thought_journal_v1";
 
+const WARM_PANEL =
+  "rounded-[2rem] border border-border bg-white/88 shadow-[0_20px_50px_-30px_rgba(62,84,60,0.24)] backdrop-blur-sm";
+const WARM_INPUT =
+  "w-full rounded-2xl p-5 bg-white/92 text-text-primary placeholder:text-text-secondary/55 border border-border focus:border-primary/40 focus:outline-none resize-none text-base leading-relaxed transition-all duration-300";
+
 function loadJournal(): JournalEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -193,9 +198,11 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
       onReset={handleReset}
       totalSteps={4}
       currentStep={step}
-      themeColor="from-[#0f0c29] via-[#302b63] to-[#24243e]"
+      themeColor="from-[#f6f0e4] via-[#f2ecde] to-[#e8f0e4]"
+      themeAccent="emerald"
+      surfaceTone="warm"
     >
-      <div className="max-w-2xl mx-auto px-4 pt-6 pb-24">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 pt-6 pb-24">
         <AnimatePresence mode="wait">
           {/* Step 1: Capture the thought */}
           {step === 0 && (
@@ -204,16 +211,16 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              className={`space-y-6 p-5 sm:p-6 ${WARM_PANEL}`}
             >
               <div className="text-center mb-8">
-                <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-4">
-                  <PenLine className="w-7 h-7 text-purple-400" />
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+                  <PenLine className="w-7 h-7 text-primary" />
                 </div>
-                <h2 className="text-xl font-semibold text-white/90 mb-2">
+                <h2 className="text-2xl font-semibold text-text-primary mb-2 tracking-tight">
                   Catch the thought
                 </h2>
-                <p className="text-sm text-white/40 max-w-md mx-auto">
+                <p className="text-sm sm:text-base text-text-secondary max-w-md mx-auto leading-7">
                   What negative thought keeps replaying in your mind? Write it
                   exactly as it sounds in your head.
                 </p>
@@ -226,10 +233,8 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                   placeholder="e.g., I'm not smart enough for this college..."
                   rows={4}
                   className={cn(
-                    "w-full rounded-2xl p-5 bg-white/[0.03] text-white/90 placeholder:text-white/20",
-                    "border border-white/10 focus:border-purple-500/40 focus:outline-none resize-none",
-                    "text-base leading-relaxed transition-all duration-300",
-                    "focus:shadow-[0_0_30px_rgba(168,85,247,0.1)]",
+                    WARM_INPUT,
+                    "focus:shadow-[0_0_30px_rgba(82,111,85,0.12)]",
                   )}
                 />
 
@@ -237,7 +242,7 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                 {thought.length > 10 && (
                   <>
                     <motion.div
-                      className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-purple-500/20 blur-sm"
+                      className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-primary/18 blur-sm"
                       animate={{ y: [0, -6, 0], scale: [1, 1.2, 1] }}
                       transition={{
                         duration: 3,
@@ -246,7 +251,7 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                       }}
                     />
                     <motion.div
-                      className="absolute -bottom-2 -left-2 w-4 h-4 rounded-full bg-purple-400/15 blur-sm"
+                      className="absolute -bottom-2 -left-2 w-4 h-4 rounded-full bg-emerald-400/15 blur-sm"
                       animate={{ y: [0, -4, 0], scale: [1, 1.3, 1] }}
                       transition={{
                         duration: 2.5,
@@ -264,10 +269,10 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                   onClick={handleThoughtSubmit}
                   disabled={!thought.trim()}
                   className={cn(
-                    "flex items-center gap-2 px-6 py-3 rounded-2xl font-medium transition-all duration-300",
+                    "flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all duration-300",
                     thought.trim()
-                      ? "bg-purple-600 hover:bg-purple-500 text-white"
-                      : "bg-white/5 text-white/20 cursor-not-allowed",
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_16px_34px_-24px_rgba(82,111,85,0.45)]"
+                      : "bg-white/70 text-text-secondary/50 cursor-not-allowed border border-border",
                   )}
                   whileHover={thought.trim() ? { scale: 1.03 } : {}}
                   whileTap={thought.trim() ? { scale: 0.97 } : {}}
@@ -286,21 +291,23 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              className={`space-y-6 p-5 sm:p-6 ${WARM_PANEL}`}
             >
               <div className="text-center mb-4">
-                <h2 className="text-xl font-semibold text-white/90 mb-2">
+                <h2 className="text-2xl font-semibold text-text-primary mb-2 tracking-tight">
                   Spot the thinking traps
                 </h2>
-                <p className="text-sm text-white/40 max-w-md mx-auto">
+                <p className="text-sm sm:text-base text-text-secondary max-w-md mx-auto leading-7">
                   Which of these patterns match your thought? Select all that
                   apply.
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-purple-500/5 border border-purple-500/10">
-                <p className="text-sm text-white/30 mb-1">Your thought:</p>
-                <p className="text-white/70 italic">"{thought}"</p>
+              <div className="p-4 rounded-2xl bg-primary/10 border border-border">
+                <p className="text-sm font-semibold text-text-secondary mb-1 uppercase tracking-[0.2em]">
+                  Your thought:
+                </p>
+                <p className="text-text-primary/80 italic leading-7">"{thought}"</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -314,8 +321,8 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                     className={cn(
                       "p-4 rounded-2xl border text-left transition-all duration-300 group",
                       selectedDistortions.includes(d.id)
-                        ? "border-purple-500/40 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.12)]"
-                        : "border-white/8 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/15",
+                        ? "border-primary/40 bg-primary/10 shadow-[0_0_20px_rgba(82,111,85,0.14)]"
+                        : "border-border bg-white/92 hover:bg-white hover:border-primary/20",
                     )}
                   >
                     <div className="flex items-start gap-3">
@@ -324,10 +331,10 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                         <div className="flex items-center gap-2 mb-1">
                           <p
                             className={cn(
-                              "text-sm font-medium transition-colors",
+                              "text-sm font-semibold transition-colors",
                               selectedDistortions.includes(d.id)
-                                ? "text-purple-300"
-                                : "text-white/80 group-hover:text-white",
+                                ? "text-primary"
+                                : "text-text-primary group-hover:text-primary",
                             )}
                           >
                             {d.name}
@@ -337,11 +344,11 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
                             >
-                              <Check className="w-3.5 h-3.5 text-purple-400" />
+                              <Check className="w-3.5 h-3.5 text-primary" />
                             </motion.div>
                           )}
                         </div>
-                        <p className="text-xs text-white/30 leading-relaxed">
+                        <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                           "{d.example}"
                         </p>
                       </div>
@@ -353,7 +360,7 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
               <div className="flex justify-between pt-2">
                 <button
                   onClick={() => setStep(0)}
-                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-text-secondary hover:text-text-primary hover:bg-white/80 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
@@ -362,10 +369,10 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                   onClick={() => setStep(2)}
                   disabled={selectedDistortions.length === 0}
                   className={cn(
-                    "flex items-center gap-2 px-6 py-3 rounded-2xl font-medium transition-all duration-300",
+                    "flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all duration-300",
                     selectedDistortions.length > 0
-                      ? "bg-purple-600 hover:bg-purple-500 text-white"
-                      : "bg-white/5 text-white/20 cursor-not-allowed",
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_16px_34px_-24px_rgba(82,111,85,0.45)]"
+                      : "bg-white/70 text-text-secondary/50 cursor-not-allowed border border-border",
                   )}
                   whileHover={
                     selectedDistortions.length > 0 ? { scale: 1.03 } : {}
@@ -388,31 +395,33 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              className={`space-y-6 p-5 sm:p-6 ${WARM_PANEL}`}
             >
               <div className="text-center mb-4">
-                <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-7 h-7 text-teal-400" />
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-7 h-7 text-primary" />
                 </div>
-                <h2 className="text-xl font-semibold text-white/90 mb-2">
+                <h2 className="text-2xl font-semibold text-text-primary mb-2 tracking-tight">
                   Reframe the thought
                 </h2>
-                <p className="text-sm text-white/40 max-w-md mx-auto">
+                <p className="text-sm sm:text-base text-text-secondary max-w-md mx-auto leading-7">
                   Let's build a more balanced perspective. Fill in the blanks
                   below.
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-purple-500/5 border border-purple-500/10 mb-2">
-                <p className="text-sm text-white/30 mb-1">Trapped thought:</p>
-                <p className="text-white/60 italic text-sm">"{thought}"</p>
+              <div className="p-4 rounded-2xl bg-primary/10 border border-border mb-2">
+                <p className="text-sm font-semibold text-text-secondary mb-1 uppercase tracking-[0.2em]">
+                  Trapped thought:
+                </p>
+                <p className="text-text-primary/75 italic text-sm leading-7">"{thought}"</p>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {selectedDistortions.map((id) => {
                     const d = DISTORTIONS.find((x) => x.id === id);
                     return (
                       <span
                         key={id}
-                        className="text-xs px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/20"
+                        className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20"
                       >
                         {d?.emoji} {d?.name}
                       </span>
@@ -421,10 +430,10 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                 </div>
               </div>
 
-              <div className="space-y-4 p-5 rounded-2xl bg-white/[0.02] border border-white/8">
-                <p className="text-white/70 text-sm leading-relaxed">
+              <div className="space-y-4 p-5 rounded-2xl bg-white/92 border border-border shadow-[0_16px_36px_-28px_rgba(62,84,60,0.12)]">
+                <p className="text-text-primary text-sm sm:text-base leading-7">
                   Even though{" "}
-                  <span className="text-purple-300/80 italic">
+                  <span className="text-primary/80 italic font-medium">
                     {thought.trim()}
                   </span>
                   , it's also true that...
@@ -435,24 +444,24 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                   placeholder="e.g., I've handled tough situations before"
                   rows={2}
                   className={cn(
-                    "w-full rounded-xl p-4 bg-white/[0.03] text-white/90 placeholder:text-white/20",
-                    "border border-white/10 focus:border-teal-500/40 focus:outline-none resize-none",
+                    "w-full rounded-xl p-4 bg-white/92 text-text-primary placeholder:text-text-secondary/55",
+                    "border border-border focus:border-primary/40 focus:outline-none resize-none",
                     "text-sm leading-relaxed transition-all duration-300",
-                    "focus:shadow-[0_0_20px_rgba(20,184,166,0.1)]",
+                    "focus:shadow-[0_0_20px_rgba(82,111,85,0.1)]",
                   )}
                 />
 
-                <p className="text-white/70 text-sm">...and I can</p>
+                <p className="text-text-primary text-sm sm:text-base font-medium">...and I can</p>
                 <textarea
                   value={reframeCan}
                   onChange={(e) => setReframeCan(e.target.value)}
                   placeholder="e.g., ask for help and take it one step at a time"
                   rows={2}
                   className={cn(
-                    "w-full rounded-xl p-4 bg-white/[0.03] text-white/90 placeholder:text-white/20",
-                    "border border-white/10 focus:border-teal-500/40 focus:outline-none resize-none",
+                    "w-full rounded-xl p-4 bg-white/92 text-text-primary placeholder:text-text-secondary/55",
+                    "border border-border focus:border-primary/40 focus:outline-none resize-none",
                     "text-sm leading-relaxed transition-all duration-300",
-                    "focus:shadow-[0_0_20px_rgba(20,184,166,0.1)]",
+                    "focus:shadow-[0_0_20px_rgba(82,111,85,0.1)]",
                   )}
                 />
               </div>
@@ -460,7 +469,7 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
               <div className="flex justify-between pt-2">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-text-secondary hover:text-text-primary hover:bg-white/80 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
@@ -469,10 +478,10 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                   onClick={handleReframeSubmit}
                   disabled={!reframeAlso.trim() || !reframeCan.trim()}
                   className={cn(
-                    "flex items-center gap-2 px-6 py-3 rounded-2xl font-medium transition-all duration-300",
+                    "flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all duration-300",
                     reframeAlso.trim() && reframeCan.trim()
-                      ? "bg-teal-600 hover:bg-teal-500 text-white"
-                      : "bg-white/5 text-white/20 cursor-not-allowed",
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_16px_34px_-24px_rgba(82,111,85,0.45)]"
+                      : "bg-white/70 text-text-secondary/50 cursor-not-allowed border border-border",
                   )}
                   whileHover={
                     reframeAlso.trim() && reframeCan.trim()
@@ -499,13 +508,13 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-8 pt-4"
+              className={`space-y-8 pt-4 p-5 sm:p-6 ${WARM_PANEL}`}
             >
               <div className="text-center">
-                <h2 className="text-xl font-semibold text-white/90 mb-2">
+                <h2 className="text-2xl font-semibold text-text-primary mb-2 tracking-tight">
                   The shift
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm sm:text-base text-text-secondary leading-7">
                   See how your perspective transformed
                 </p>
               </div>
@@ -516,15 +525,15 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="relative p-5 rounded-2xl bg-red-500/5 border border-red-500/10"
+                  className="relative p-5 rounded-2xl bg-rose-500/8 border border-rose-200"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-red-400/60" />
-                    <p className="text-xs text-red-400/60 uppercase tracking-wider font-medium">
+                    <AlertTriangle className="w-4 h-4 text-rose-500/70" />
+                    <p className="text-xs text-rose-500/70 uppercase tracking-[0.22em] font-semibold">
                       Trapped Thought
                     </p>
                   </div>
-                  <p className="text-white/50 italic line-through decoration-red-400/30">
+                  <p className="text-text-secondary italic line-through decoration-rose-400/40 leading-7">
                     "{thought}"
                   </p>
                   <div className="flex flex-wrap gap-1.5 mt-3">
@@ -533,7 +542,7 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                       return (
                         <span
                           key={id}
-                          className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-300/60 border border-red-500/15"
+                          className="text-xs px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 border border-rose-200"
                         >
                           {d?.emoji} {d?.name}
                         </span>
@@ -549,7 +558,7 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                   transition={{ delay: 0.1, duration: 0.4 }}
                   className="flex justify-center"
                 >
-                  <div className="w-px h-8 bg-gradient-to-b from-red-500/20 to-teal-500/20" />
+                  <div className="w-px h-8 bg-gradient-to-b from-rose-300/30 to-primary/30" />
                 </motion.div>
 
                 {/* Reframed thought */}
@@ -563,15 +572,15 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                         type: "spring",
                         damping: 20,
                       }}
-                      className="relative p-5 rounded-2xl bg-teal-500/5 border border-teal-500/15 shadow-[0_0_30px_rgba(20,184,166,0.08)]"
+                      className="relative p-5 rounded-2xl bg-primary/10 border border-primary/20 shadow-[0_0_30px_rgba(82,111,85,0.1)]"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="w-4 h-4 text-teal-400/70" />
-                        <p className="text-xs text-teal-400/70 uppercase tracking-wider font-medium">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        <p className="text-xs text-primary uppercase tracking-[0.22em] font-semibold">
                           Reframed
                         </p>
                       </div>
-                      <p className="text-white/80 leading-relaxed">
+                      <p className="text-text-primary leading-7 text-base">
                         {fullReframe}
                       </p>
                     </motion.div>
@@ -586,12 +595,12 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
                   transition={{ delay: 0.8 }}
                   className="text-center pt-4"
                 >
-                  <p className="text-sm text-white/30 mb-6 italic">
+                  <p className="text-sm sm:text-base text-text-secondary mb-6 italic">
                     Saved to your Thought Journal
                   </p>
                   <motion.button
                     onClick={handleFinish}
-                    className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-medium transition-colors"
+                    className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-colors shadow-[0_16px_34px_-24px_rgba(82,111,85,0.45)]"
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                   >

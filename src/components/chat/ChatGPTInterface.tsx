@@ -1870,7 +1870,7 @@ const ChatGPTInterface = () => {
           className="sticky bottom-0 z-20 shrink-0 border-t border-border bg-card/95 backdrop-blur p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]"
         >
           <div className="max-w-4xl mx-auto">
-            <div className={`relative ${inputValue.length > 0 ? "pb-5 sm:pb-6" : ""}`}>
+            <div className="relative">
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
@@ -1906,17 +1906,6 @@ const ChatGPTInterface = () => {
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-
-              {/* Character count indicator */}
-              {inputValue.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="absolute -bottom-6 right-2 text-xs text-muted-foreground"
-                >
-                  {inputValue.length} characters
-                </motion.div>
-              )}
             </div>
           </div>
         </motion.div>

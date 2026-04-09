@@ -1137,6 +1137,7 @@ const ChatGPTInterface = () => {
       const params = new URLSearchParams({ session_id: sessionId });
       if (personalityId) params.set('personality', personalityId);
       if (companionName) params.set('companion_name', companionName);
+      if (settings?.language) params.set('language', settings.language.toLowerCase());
 
       const response = await fetch(`${backendUrl}/chat/greeting?${params}`, {
         headers: {

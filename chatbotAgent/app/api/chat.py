@@ -11,7 +11,7 @@ import tempfile
 import threading
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from groq import Groq
 from pydantic import BaseModel
@@ -404,6 +404,7 @@ async def get_greeting(
     user_id: Optional[str] = None,
     personality: Optional[str] = None,
     companion_name: Optional[str] = None,
+    language: Optional[str] = Query(None),
     authorization: str = Header(None),
 ):
     """Generate a personalised greeting for a new chat session."""
@@ -416,6 +417,7 @@ async def get_greeting(
         greeting_data = generate_greeting(
             authenticated_user_id, session_id,
             personality=personality, companion_name=companion_name,
+            language=language,
         )
         return greeting_data
 

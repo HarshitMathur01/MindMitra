@@ -97,8 +97,8 @@
         // Azure SDK emits visemeReceived events with IDs 0–21 per SAPI5 standard.
         // Map these to TalkingHead's viseme string format for proper lip-sync bypass.
         const AZURE_TO_OCULUS = {
-            0: 'sil', 1: 'aa', 2: 'aa', 3: 'oh', 4: 'E', 5: 'E', 6: 'ih', 7: 'ou',
-            8: 'oh', 9: 'ou', 10: 'oh', 11: 'aa', 12: 'ih', 13: 'RR', 14: 'nn',
+            0: 'sil', 1: 'aa', 2: 'aa', 3: 'O', 4: 'E', 5: 'E', 6: 'I', 7: 'U',
+            8: 'O', 9: 'U', 10: 'O', 11: 'aa', 12: 'I', 13: 'RR', 14: 'nn',
             15: 'SS', 16: 'CH', 17: 'TH', 18: 'FF', 19: 'DD', 20: 'kk', 21: 'PP'
         };
 
@@ -567,6 +567,43 @@
             return text.split(/\s+/).filter(w => w.length > 0);
         }
 
+        /**
+         * If the native TTS pipeline (Google or Azure REST) provides valid audio and word durations
+         * but NO visemes, TalkingHead falls back to its local English-only parser.
+         * This parser drops non-latin characters (Hindi, Japanese), generating zero visemes, leaving
+         * the avatar's mouth completely frozen.
+         * 
+         * This function catches that edge case and populates synthetic 'open' (aa) and 'closed' (sil)
+         * viseme keyframes based entirely on the provided word durations, ensuring the mouth animates
+         * continuously regardless of language.
+         */
+        function addSyntheticVisemesIfNeeded(config) {
+            if (config.visemes && config.visemes.length > 0) return config;
+            
+            if (config.wtimes && config.wdurations && config.wtimes.length > 0) {
+                const vtimes = [];
+                const vdurations = [];
+                const visemes = [];
+                for (let i = 0; i < config.wtimes.length; i++) {
+                    const wt = config.wtimes[i];
+                    const wd = config.wdurations[i];
+                    // At the start of the word, open mouth
+                    vtimes.push(wt);
+                    vdurations.push(wd * 0.8);
+                    visemes.push('aa');
+                    
+                    // Close mouth briefly between words
+                    vtimes.push(wt + (wd * 0.8));
+                    vdurations.push(wd * 0.2);
+                    visemes.push('sil');
+                }
+                config.visemes = visemes;
+                config.vtimes = vtimes;
+                config.vdurations = vdurations;
+            }
+            return config;
+        }
+
         // ── Parallel TTS fetch + audio concatenation ─────────────────────────────────────
         //
         // KEY DESIGN PRINCIPLE:
@@ -633,7 +670,7 @@
                     console.log("[MindMitra Avatar] Google TTS ✔ combined " + audioBuffers.length
                         + " sentence(s), total " + combined.duration.toFixed(2) + "s, "
                         + allWords.length + " words");
-                    head.speakAudio({ audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations });
+                    head.speakAudio(addSyntheticVisemesIfNeeded({ audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations }));
                     postToParent({ type: "speakingStart" });
                     startSpeakEndPoll();
                 } else {
@@ -710,13 +747,13 @@
                             audioConfig.vtimes = sdkVtimes;
                             audioConfig.vdurations = sdkVdurs;
                         }
-                        head.speakAudio(audioConfig);
+                        head.speakAudio(addSyntheticVisemesIfNeeded(audioConfig));
                     } else {
                         // SDK returned no word boundaries — use evenly-distributed fallback.
                         console.warn("[MindMitra Avatar] Azure SDK: no word boundaries received, using even distribution");
                         const plainWords = tokenizeForTTS(fullText);
                         const { words: fw, wtimes: ft, wdurations: fd } = buildWordTimingsFromTimepoints(plainWords, [], durationMs);
-                        head.speakAudio({ audio: audioBuf, words: fw, wtimes: ft, wdurations: fd });
+                        head.speakAudio(addSyntheticVisemesIfNeeded({ audio: audioBuf, words: fw, wtimes: ft, wdurations: fd }));
                     }
                     postToParent({ type: "speakingStart" });
                     startSpeakEndPoll();
@@ -765,7 +802,7 @@
 
                     if (audioBuffers.length > 0) {
                         const combined = concatAudioBuffers(head.audioCtx, audioBuffers);
-                        head.speakAudio({ audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations });
+                        head.speakAudio(addSyntheticVisemesIfNeeded({ audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations }));
                         postToParent({ type: "speakingStart" });
                         startSpeakEndPoll();
                     } else {

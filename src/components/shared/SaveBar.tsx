@@ -30,7 +30,7 @@ export function SaveBar({ show, saving, saved, onSave, onDiscard, className }: S
                         className
                     )}
                 >
-                    <p className="text-sm text-text-secondary hidden sm:block">
+                    <p className="text-sm text-muted-foreground hidden sm:block">
                         You have unsaved changes
                     </p>
                     <div className="flex items-center gap-3 w-full sm:w-auto">

@@ -549,7 +549,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                         }}
                         transition={{ duration: 1, ease: "easeInOut" }}
                       >
-                        <p className="text-sm text-[#3a3020] font-serif leading-relaxed whitespace-pre-wrap">
+                        <p className="text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap">
                           {worryText}
                         </p>
                       </motion.div>
@@ -576,7 +576,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                           placeholder="What's worrying you?"
                           rows={4}
                           maxLength={300}
-                          className="w-full bg-transparent text-[#3a3020] placeholder-[#a09080] p-4 rounded-lg resize-none focus:outline-none text-sm font-serif leading-relaxed"
+                          className="w-full bg-transparent text-foreground placeholder:text-muted-foreground p-4 rounded-lg resize-none focus:outline-none text-sm font-serif leading-relaxed"
                           style={{
                             backgroundImage:
                               "repeating-linear-gradient(transparent, transparent 27px, #d4c8b8 27px, #d4c8b8 28px)",
@@ -664,10 +664,10 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                         "linear-gradient(135deg, #f5f0e8, #e8e0d0)",
                     }}
                   >
-                    <p className="text-sm text-[#3a3020] font-serif leading-relaxed">
+                    <p className="text-sm text-foreground font-serif leading-relaxed">
                       {unreviewedWorries[reviewIdx].text}
                     </p>
-                    <p className="text-xs text-[#a09080] mt-3">
+                    <p className="text-xs text-muted-foreground mt-3">
                       Added{" "}
                       {new Date(
                         unreviewedWorries[reviewIdx].addedAt,

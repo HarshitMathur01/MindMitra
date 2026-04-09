@@ -221,7 +221,7 @@ const StatPill = ({ icon: Icon, text }: { icon: React.ElementType; text: string 
     <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/80 backdrop-blur-sm border border-border/50 text-sm text-text-secondary"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/80 backdrop-blur-sm border border-border/50 text-sm text-muted-foreground"
     >
         <Icon className="h-4 w-4 text-primary" />
         <span>{text}</span>
@@ -251,7 +251,7 @@ const EmotionBadge = ({ emotion }: { emotion: Emotion }) => {
         grateful: "🙏",
     };
     return (
-        <span className="inline-flex items-center gap-1 text-xs text-text-secondary">
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <span>{emojiMap[emotion]}</span>
             <span className="capitalize">Feeling {emotion}</span>
         </span>
@@ -276,7 +276,7 @@ const ReactionBtn = ({
         onClick={onClick}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all duration-200 ${active
                 ? "bg-primary/15 text-primary font-semibold scale-105"
-                : "bg-surface hover:bg-primary/10 text-text-secondary border border-border/50"
+                : "bg-surface hover:bg-primary/10 text-muted-foreground border border-border/50"
             }`}
     >
         <span>{emoji}</span>
@@ -347,8 +347,8 @@ const PostCard = ({
 
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-text-primary text-sm">{post.anonymous_name}</span>
-                            <span className="text-xs text-text-secondary">{timeAgo(post.created_at)}</span>
+                            <span className="font-semibold text-foreground text-sm">{post.anonymous_name}</span>
+                            <span className="text-xs text-muted-foreground">{timeAgo(post.created_at)}</span>
                         </div>
 
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -364,7 +364,7 @@ const PostCard = ({
 
                     <button
                         onClick={handleReport}
-                        className="p-1.5 rounded-lg text-text-secondary/40 hover:text-danger hover:bg-danger/10 transition-colors"
+                        className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-danger hover:bg-danger/10 transition-colors"
                         title="Report post"
                     >
                         <Flag className="h-4 w-4" />
@@ -373,11 +373,11 @@ const PostCard = ({
 
                 {/* Title */}
                 {post.title && (
-                    <h3 className="font-bold text-text-primary text-base mb-2 leading-snug">{post.title}</h3>
+                    <h3 className="font-bold text-foreground text-base mb-2 leading-snug">{post.title}</h3>
                 )}
 
                 {/* Content */}
-                <div className="text-text-secondary text-sm leading-relaxed mb-4">
+                <div className="text-muted-foreground text-sm leading-relaxed mb-4">
                     {isLong && !expanded ? (
                         <>
                             {post.content.slice(0, 200)}...
@@ -409,7 +409,7 @@ const PostCard = ({
 
                     <button
                         onClick={() => onOpenReplies(post)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-surface hover:bg-primary/10 text-text-secondary border border-border/50 transition-colors ml-auto"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-surface hover:bg-primary/10 text-muted-foreground border border-border/50 transition-colors ml-auto"
                     >
                         <MessageCircle className="h-3.5 w-3.5" />
                         <span>{post.reply_count} replies</span>
@@ -482,8 +482,8 @@ const ReplyDrawer = ({
         <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
             <DialogContent className="max-w-lg max-h-[85vh] flex flex-col bg-surface border-border/60 rounded-2xl p-0 overflow-hidden">
                 <DialogHeader className="px-5 pt-5 pb-3 border-b border-border/40">
-                    <DialogTitle className="text-base font-bold text-text-primary line-clamp-1">{post.title}</DialogTitle>
-                    <p className="text-xs text-text-secondary mt-1">Replies to {post.anonymous_name}'s post</p>
+                    <DialogTitle className="text-base font-bold text-foreground line-clamp-1">{post.title}</DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Replies to {post.anonymous_name}'s post</p>
                 </DialogHeader>
 
                 {/* Replies list */}
@@ -499,10 +499,10 @@ const ReplyDrawer = ({
                             <AnonAvatar name={reply.anonymous_name} />
                             <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-text-primary">{reply.anonymous_name}</span>
-                                    <span className="text-xs text-text-secondary">{timeAgo(reply.created_at)}</span>
+                                    <span className="text-sm font-semibold text-foreground">{reply.anonymous_name}</span>
+                                    <span className="text-xs text-muted-foreground">{timeAgo(reply.created_at)}</span>
                                 </div>
-                                <p className="text-sm text-text-secondary mt-1 leading-relaxed">{reply.content}</p>
+                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{reply.content}</p>
                             </div>
                         </div>
                     ))}
@@ -572,11 +572,11 @@ const PostComposer = ({
         <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-surface border-border/60 rounded-2xl">
                 <DialogHeader>
-                    <DialogTitle className="text-lg font-bold text-text-primary flex items-center gap-2">
+                    <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                         <PenLine className="h-5 w-5 text-primary" />
                         Share Anonymously
                     </DialogTitle>
-                    <p className="text-sm text-text-secondary mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                         Your identity is completely hidden. Be honest, be brave, be you.
                     </p>
                 </DialogHeader>
@@ -584,7 +584,7 @@ const PostComposer = ({
                 <div className="space-y-5 mt-2">
                     {/* Post type */}
                     <div>
-                        <label className="text-sm font-medium text-text-primary mb-2 block">What kind of post?</label>
+                        <label className="text-sm font-medium text-foreground mb-2 block">What kind of post?</label>
                         <div className="grid grid-cols-2 gap-2">
                             {postTypes.map((pt) => (
                                 <button
@@ -592,7 +592,7 @@ const PostComposer = ({
                                     onClick={() => setPostType(pt.id)}
                                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all border ${postType === pt.id
                                             ? "bg-primary/15 border-primary/40 text-primary font-semibold"
-                                            : "bg-background border-border/50 text-text-secondary hover:bg-primary/5"
+                                            : "bg-background border-border/50 text-muted-foreground hover:bg-primary/5"
                                         }`}
                                 >
                                     <span>{pt.icon}</span>
@@ -607,7 +607,7 @@ const PostComposer = ({
 
                     {/* Category */}
                     <div>
-                        <label className="text-sm font-medium text-text-primary mb-2 block">Category</label>
+                        <label className="text-sm font-medium text-foreground mb-2 block">Category</label>
                         <Select value={category} onValueChange={(v) => setCategory(v as CategoryId)}>
                             <SelectTrigger className="rounded-xl bg-background border-border/50">
                                 <SelectValue />
@@ -622,7 +622,7 @@ const PostComposer = ({
 
                     {/* Emotion */}
                     <div>
-                        <label className="text-sm font-medium text-text-primary mb-2 block">How are you feeling?</label>
+                        <label className="text-sm font-medium text-foreground mb-2 block">How are you feeling?</label>
                         <div className="flex flex-wrap gap-2">
                             {emotions.map((em) => (
                                 <button
@@ -630,7 +630,7 @@ const PostComposer = ({
                                     onClick={() => setEmotion(em)}
                                     className={`px-3 py-1.5 rounded-full text-xs capitalize transition-all border ${emotion === em
                                             ? "bg-primary/15 border-primary/40 text-primary font-semibold"
-                                            : "bg-background border-border/50 text-text-secondary hover:bg-primary/5"
+                                            : "bg-background border-border/50 text-muted-foreground hover:bg-primary/5"
                                         }`}
                                 >
                                     {em}
@@ -641,7 +641,7 @@ const PostComposer = ({
 
                     {/* Title */}
                     <div>
-                        <label className="text-sm font-medium text-text-primary mb-2 block">Title</label>
+                        <label className="text-sm font-medium text-foreground mb-2 block">Title</label>
                         <Input
                             placeholder="Give your post a title..."
                             value={title}
@@ -653,7 +653,7 @@ const PostComposer = ({
 
                     {/* Content */}
                     <div>
-                        <label className="text-sm font-medium text-text-primary mb-2 block">Your story</label>
+                        <label className="text-sm font-medium text-foreground mb-2 block">Your story</label>
                         <Textarea
                             placeholder={
                                 postType === "vent"
@@ -668,13 +668,13 @@ const PostComposer = ({
                             onChange={(e) => setContent(e.target.value.slice(0, maxLen))}
                             className="min-h-[140px] rounded-xl bg-background border-border/50 resize-none"
                         />
-                        <p className="text-xs text-text-secondary mt-1 text-right">{content.length}/{maxLen}</p>
+                        <p className="text-xs text-muted-foreground mt-1 text-right">{content.length}/{maxLen}</p>
                     </div>
 
                     {/* Privacy reminder */}
                     <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/5 border border-primary/20">
                         <Shield className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                        <p className="text-xs text-text-secondary">
+                        <p className="text-xs text-muted-foreground">
                             Your post is <span className="font-semibold text-primary">100% anonymous</span>. No one can see your name, email, or profile. A random username will be assigned.
                         </p>
                     </div>
@@ -767,7 +767,7 @@ const PeerSupport = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
             <Header />
 
             {/* ─── HERO SECTION ──────────────────────────────────────────── */}
@@ -784,10 +784,10 @@ const PeerSupport = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                     >
-                        <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 leading-tight">
+                        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
                             You're Not Alone
                         </h1>
-                        <p className="text-lg text-text-secondary mb-8 leading-relaxed">
+                        <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
                             Connect with students who truly get it — the pressure, the expectations, the late nights.
                         </p>
 
@@ -802,7 +802,7 @@ const PeerSupport = () => {
                             <Button
                                 variant="outline"
                                 onClick={scrollToFeed}
-                                className="rounded-xl border-border/60 text-text-secondary hover:bg-primary/5 h-11 px-6"
+                                className="rounded-xl border-border/60 text-muted-foreground hover:bg-primary/5 h-11 px-6"
                             >
                                 Browse Stories
                             </Button>
@@ -852,7 +852,7 @@ const PeerSupport = () => {
                                 onClick={() => setSortBy(opt.id)}
                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${sortBy === opt.id
                                         ? "bg-primary/15 text-primary"
-                                        : "text-text-secondary hover:bg-primary/5"
+                                        : "text-muted-foreground hover:bg-primary/5"
                                     }`}
                             >
                                 <opt.icon className="h-3.5 w-3.5" />
@@ -862,7 +862,7 @@ const PeerSupport = () => {
                     </div>
 
                     <div className="relative flex-1 max-w-xs ml-auto">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary/60" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                         <Input
                             placeholder="Search stories..."
                             value={searchQuery}
@@ -882,8 +882,8 @@ const PeerSupport = () => {
 
                     {visiblePosts.length === 0 && (
                         <div className="text-center py-16">
-                            <p className="text-text-secondary text-lg mb-2">No posts found</p>
-                            <p className="text-text-secondary/70 text-sm">Be the first to share in this category!</p>
+                            <p className="text-muted-foreground text-lg mb-2">No posts found</p>
+                            <p className="text-muted-foreground/70 text-sm">Be the first to share in this category!</p>
                             <Button
                                 onClick={() => setComposerOpen(true)}
                                 className="mt-4 rounded-xl bg-primary hover:bg-primary/90 text-white"

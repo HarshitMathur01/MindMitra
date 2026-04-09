@@ -77,11 +77,11 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
         >
             {/* Companion Name */}
             <div className="space-y-2">
-                <Label className="text-sm font-medium text-text-primary flex items-center gap-2">
+                <Label className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
                     AI Companion Name
                 </Label>
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-muted-foreground">
                     What would you like to call your AI friend? — Apne AI dost ko kya naam dein?
                 </p>
                 <Input
@@ -94,7 +94,7 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
 
             {/* Avatar Personality */}
             <div className="space-y-3">
-                <Label className="text-sm font-medium text-text-primary">
+                <Label className="text-sm font-medium text-foreground">
                     Companion Personality
                 </Label>
                 <RadioGroup
@@ -114,8 +114,8 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
                             <RadioGroupItem value={p.value} id={`personality-${p.value}`} className="mt-0.5" />
                             <div>
                                 <span className="text-lg mr-1">{p.emoji}</span>
-                                <span className="text-sm font-semibold text-text-primary">{p.label}</span>
-                                <p className="text-xs text-text-secondary mt-0.5">{p.description}</p>
+                                <span className="text-sm font-semibold text-foreground">{p.label}</span>
+                                <p className="text-xs text-muted-foreground mt-0.5">{p.description}</p>
                             </div>
                         </Label>
                     ))}
@@ -124,7 +124,7 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
 
             {/* Session Reminder Time */}
             <div className="space-y-2">
-                <Label className="text-sm font-medium text-text-primary flex items-center gap-2">
+                <Label className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Clock className="h-4 w-4 text-primary" />
                     Session Reminder Time
                 </Label>
@@ -138,7 +138,7 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
 
             {/* Language */}
             <div className="space-y-2">
-                <Label className="text-sm font-medium text-text-primary flex items-center gap-2">
+                <Label className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Globe className="h-4 w-4 text-primary" />
                     Language Preference
                 </Label>
@@ -156,7 +156,7 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
 
             {/* Theme */}
             <div className="space-y-2">
-                <Label className="text-sm font-medium text-text-primary flex items-center gap-2">
+                <Label className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Palette className="h-4 w-4 text-primary" />
                     Theme
                 </Label>
@@ -167,7 +167,7 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
                             onClick={() => option === 'system' ? setThemePreference('system') : setTheme(option)}
                             className={`px-4 py-2.5 rounded-xl border capitalize text-sm font-medium transition-all duration-200 ${themePreference === option
                                     ? 'bg-primary text-white border-primary shadow-sm'
-                                    : 'bg-surface text-text-secondary border-border hover:border-primary/30'
+                                    : 'bg-surface text-muted-foreground border-border hover:border-primary/30'
                                 }`}
                             type="button"
                         >

@@ -70,8 +70,8 @@ function PersonalityCard({
       </div>
 
       {/* Name + tagline */}
-      <h3 className="text-base font-semibold text-text-primary">{p.name}</h3>
-      <p className="text-sm text-text-secondary mt-0.5">{p.tagline}</p>
+      <h3 className="text-base font-semibold text-foreground">{p.name}</h3>
+      <p className="text-sm text-muted-foreground mt-0.5">{p.tagline}</p>
 
       {/* Best-for chip */}
       <span
@@ -85,7 +85,7 @@ function PersonalityCard({
       </span>
 
       {/* Description */}
-      <p className="text-sm text-text-secondary mt-2 line-clamp-2">{p.description}</p>
+      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{p.description}</p>
 
       {/* Expandable sample response */}
       <div className="mt-3">
@@ -113,7 +113,7 @@ function PersonalityCard({
               className="overflow-hidden"
             >
               <div
-                className="mt-2 rounded-xl px-3 py-2.5 text-sm text-text-secondary italic leading-relaxed"
+                className="mt-2 rounded-xl px-3 py-2.5 text-sm text-muted-foreground italic leading-relaxed"
                 style={{ backgroundColor: `${p.colorAccent}08` }}
               >
                 "{p.sampleResponse}"
@@ -229,9 +229,9 @@ export function PersonalitySelector() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-text-primary">Choose Your AI Companion</h2>
+          <h2 className="text-lg font-semibold text-foreground">Choose Your AI Companion</h2>
         </div>
-        <p className="text-sm text-text-secondary">
+        <p className="text-sm text-muted-foreground">
           Your companion's personality shapes how they talk to you. You can change this anytime.
         </p>
       </div>
@@ -256,9 +256,9 @@ export function PersonalitySelector() {
       <div className="space-y-2">
         <label
           htmlFor="companion-name"
-          className="flex items-center gap-1.5 text-sm font-medium text-text-primary"
+          className="flex items-center gap-1.5 text-sm font-medium text-foreground"
         >
-          <Pencil className="h-3.5 w-3.5 text-text-secondary" />
+          <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
           Give your companion a name
         </label>
         <div className="flex items-center gap-3">
@@ -269,15 +269,15 @@ export function PersonalitySelector() {
             onChange={e => setLocalName(e.target.value)}
             maxLength={24}
             placeholder={currentPersonality.name}
-            className="w-full max-w-xs rounded-xl border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 transition-shadow"
+            className="w-full max-w-xs rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 transition-shadow"
             style={{ '--tw-ring-color': currentPersonality.colorAccent } as any}
             aria-label="Custom companion name"
           />
-          <span className="text-xs text-text-secondary/50">
+          <span className="text-xs text-muted-foreground/50">
             {displayName.length}/24
           </span>
         </div>
-        <p className="text-xs text-text-secondary/60 ml-0.5">
+        <p className="text-xs text-muted-foreground/60 ml-0.5">
           They'll introduce themselves with this name. Leave blank to use the default.
         </p>
       </div>
@@ -305,7 +305,7 @@ export function PersonalitySelector() {
             <Button
               variant="ghost"
               onClick={() => { setLocalSelected(null); setLocalName(null) }}
-              className="rounded-xl text-text-secondary"
+              className="rounded-xl text-muted-foreground"
             >
               Cancel
             </Button>

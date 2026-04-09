@@ -77,32 +77,32 @@ const QATests = () => {
     switch (category) {
       case "Self-Assessment":
         return {
-          color: "text-text-primary bg-surface border-border",
+          color: "text-foreground bg-surface border-border",
           icon: "🌱"
         };
       case "Personality":
         return {
-          color: "text-text-primary bg-surface border-border",
+          color: "text-foreground bg-surface border-border",
           icon: "🧠"
         };
       case "Wellness":
         return {
-          color: "text-text-primary bg-surface border-border",
+          color: "text-foreground bg-surface border-border",
           icon: "💖"
         };
       case "Social Skills":
         return {
-          color: "text-text-secondary bg-background border-border",
+          color: "text-muted-foreground bg-background border-border",
           icon: "👥"
         };
       case "Cognition":
         return {
-          color: "text-text-secondary bg-background border-border",
+          color: "text-muted-foreground bg-background border-border",
           icon: "🔍"
         };
       default:
         return {
-          color: "text-text-secondary bg-background border-border",
+          color: "text-muted-foreground bg-background border-border",
           icon: "📋"
         };
     }
@@ -149,7 +149,7 @@ const QATests = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <Header />
 
       {/* Hero Section */}
@@ -180,12 +180,12 @@ const QATests = () => {
                   <div className="p-3 rounded-2xl bg-primary shadow-theme">
                     <Star className="w-8 h-8 text-white" />
                   </div>
-                  <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-text-primary">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground">
                     Psychological Assessments
                   </h1>
                 </div>
 
-                <p className="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto mb-8">
+                <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
                   Discover insights about yourself through scientifically-backed assessments
                 </p>
 
@@ -198,7 +198,7 @@ const QATests = () => {
                 >
                   <div className="flex items-center gap-2 px-4 py-2 bg-surface/80 rounded-full shadow-theme border border-border">
                     <Sparkles className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-text-primary">
+                    <span className="font-semibold text-foreground">
                       <motion.span
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -210,11 +210,11 @@ const QATests = () => {
                   </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-surface/80 rounded-full shadow-theme border border-border">
                     <TrendingUp className="w-4 h-4 text-success" />
-                    <span className="font-semibold text-text-primary">Science-Backed</span>
+                    <span className="font-semibold text-foreground">Science-Backed</span>
                   </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-surface/80 rounded-full shadow-theme border border-border">
                     <Clock className="w-4 h-4 text-secondary" />
-                    <span className="font-semibold text-text-primary">Quick Results</span>
+                    <span className="font-semibold text-foreground">Quick Results</span>
                   </div>
                 </motion.div>
               </motion.div>
@@ -255,8 +255,8 @@ const QATests = () => {
                     {!test.available && (
                       <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-lg">
                         <div className="text-center p-6">
-                          <Lock className="w-12 h-12 text-text-secondary mx-auto mb-2" />
-                          <p className="text-sm font-semibold text-text-secondary">Coming Soon</p>
+                          <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm font-semibold text-muted-foreground">Coming Soon</p>
                         </div>
                       </div>
                     )}
@@ -285,7 +285,7 @@ const QATests = () => {
                       {/* Content */}
                       <div className="mb-6">
                         <div className="flex items-center gap-2 mb-3">
-                          <h3 className="font-bold text-xl text-text-primary group-hover:text-primary transition-all duration-300">
+                          <h3 className="font-bold text-xl text-foreground group-hover:text-primary transition-all duration-300">
                             {test.title}
                           </h3>
                           {!test.available && (
@@ -299,7 +299,7 @@ const QATests = () => {
                           )}
                         </div>
 
-                        <p className="text-text-secondary text-sm mb-4 leading-relaxed">
+                        <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
                           {test.description}
                         </p>
 
@@ -314,7 +314,7 @@ const QATests = () => {
                           </motion.span>
                         </div>
 
-                        <div className="flex justify-between items-center text-xs text-text-secondary bg-background p-3 rounded-lg border border-border">
+                        <div className="flex justify-between items-center text-xs text-muted-foreground bg-background p-3 rounded-lg border border-border">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {test.duration}
@@ -334,7 +334,7 @@ const QATests = () => {
                         <Button
                           className={`w-full py-2 sm:py-3 text-sm sm:text-base rounded-xl font-semibold transition-all duration-300 active:scale-95 ${test.available
                             ? `bg-gradient-to-r ${test.color} hover:shadow-theme text-white border-0`
-                            : 'bg-background text-text-secondary cursor-not-allowed border border-border'
+                            : 'bg-background text-muted-foreground cursor-not-allowed border border-border'
                             }`}
                           disabled={!test.available}
                           onClick={() => test.available && test.id === "wellness-checkin" && navigate('/wellness-checkin')}
@@ -369,9 +369,9 @@ const QATests = () => {
               <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-theme">
                 <BookOpen className="h-6 w-6 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-text-primary">How It Works</h3>
+              <h3 className="text-xl font-semibold text-foreground">How It Works</h3>
             </div>
-            <p className="text-text-secondary leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed">
               Each assessment uses validated psychological scales and questionnaires.
               Your responses are analyzed to provide personalized insights about your
               personality, well-being, and cognitive patterns.
@@ -383,9 +383,9 @@ const QATests = () => {
               <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center shadow-theme">
                 <Heart className="h-6 w-6 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-text-primary">Your Privacy</h3>
+              <h3 className="text-xl font-semibold text-foreground">Your Privacy</h3>
             </div>
-            <p className="text-text-secondary leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed">
               All your responses are completely confidential and secure.
               The results are for your personal insight and growth,
               helping you better understand yourself.
@@ -400,7 +400,7 @@ const QATests = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
         >
-          <p className="text-text-secondary text-sm leading-relaxed">
+          <p className="text-muted-foreground text-sm leading-relaxed">
             🌟 Take your time with each assessment. There are no right or wrong answers -
             just honest reflections that will help you on your journey of self-discovery.
           </p>

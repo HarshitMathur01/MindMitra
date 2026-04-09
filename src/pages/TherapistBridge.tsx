@@ -109,9 +109,9 @@ const TherapistBridge = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 sm:px-6 py-8 max-w-5xl">
         <HeroSection
           onViewProfile={() => document.getElementById("emotional-profile")?.scrollIntoView({ behavior: "smooth" })}
           onFindTherapist={() => document.getElementById("find-therapist")?.scrollIntoView({ behavior: "smooth" })}
@@ -145,7 +145,7 @@ const TherapistBridge = () => {
         ) : (
           profile && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center bg-card p-4 rounded-xl shadow-sm border">
+              <div className="flex justify-between items-center bg-card p-4 rounded-xl shadow-card border border-border">
                 <div>
                   <h3 className="font-semibold">Clinical Data Management</h3>
                   <p className="text-sm text-muted-foreground">Keep your profile current by syncing offline data or export your clinical brief.</p>

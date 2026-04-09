@@ -77,7 +77,7 @@ const Header = () => {
               <img src="/image.png" alt="MindMitra Logo" className="w-10 h-10 object-contain" />
             </motion.div>
             <div>
-              <h1 className="text-xl font-bold text-text-primary">
+              <h1 className="text-xl font-bold text-foreground">
                 MindMitra
               </h1>
               <p className="text-xs text-muted-foreground">Your Wellness Companion</p>
@@ -126,7 +126,7 @@ const Header = () => {
                           onClick={() => { navigate(item.path); setWeCircleOpen(false); }}
                           className={`flex items-center gap-3 w-full px-4 py-3 text-sm transition-colors ${isActive
                             ? 'bg-primary/15 text-primary font-semibold'
-                            : 'text-text-secondary hover:bg-primary/10'
+                            : 'text-muted-foreground hover:bg-primary/10'
                             }`}
                         >
                           <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
@@ -180,7 +180,7 @@ const Header = () => {
                           onClick={() => { navigate(item.path); setMoodArcadeOpen(false); }}
                           className={`flex items-center gap-3 w-full px-4 py-3 text-sm transition-colors ${isActive
                             ? 'bg-primary/15 text-primary font-semibold'
-                            : 'text-text-secondary hover:bg-primary/10'
+                            : 'text-muted-foreground hover:bg-primary/10'
                             }`}
                         >
                           <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
@@ -288,7 +288,7 @@ const Header = () => {
                   onClick={() => setMobileWeCircleOpen(prev => !prev)}
                   className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${weCircleItems.some(i => location.pathname === i.path)
                     ? 'bg-primary/15 text-primary font-semibold'
-                    : 'text-text-secondary hover:bg-primary/10'
+                    : 'text-muted-foreground hover:bg-primary/10'
                     }`}
                 >
                   <CircleUserRound className="h-4 w-4 text-primary/70" />
@@ -312,7 +312,7 @@ const Header = () => {
                             onClick={() => { navigate(item.path); setMobileMenuOpen(false); setMobileWeCircleOpen(false); }}
                             className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors ${isActive
                               ? 'bg-primary/15 text-primary font-semibold'
-                              : 'text-text-secondary hover:bg-primary/10'
+                              : 'text-muted-foreground hover:bg-primary/10'
                               }`}
                           >
                             <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
@@ -332,7 +332,7 @@ const Header = () => {
                   onClick={() => setMobileMoodArcadeOpen(prev => !prev)}
                   className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${moodArcadeItems.some(i => location.pathname === i.path)
                     ? 'bg-primary/15 text-primary font-semibold'
-                    : 'text-text-secondary hover:bg-primary/10'
+                    : 'text-muted-foreground hover:bg-primary/10'
                     }`}
                 >
                   <Gamepad2 className="h-4 w-4 text-primary/70" />
@@ -356,7 +356,7 @@ const Header = () => {
                             onClick={() => { navigate(item.path); setMobileMenuOpen(false); setMobileMoodArcadeOpen(false); }}
                             className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors ${isActive
                               ? 'bg-primary/15 text-primary font-semibold'
-                              : 'text-text-secondary hover:bg-primary/10'
+                              : 'text-muted-foreground hover:bg-primary/10'
                               }`}
                           >
                             <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
@@ -378,7 +378,7 @@ const Header = () => {
                     onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                     className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive
                       ? 'bg-primary/15 text-primary font-semibold'
-                      : 'text-text-secondary hover:bg-primary/10'
+                      : 'text-muted-foreground hover:bg-primary/10'
                       }`}
                   >
                     <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
@@ -392,7 +392,7 @@ const Header = () => {
                   <div className="border-t border-border my-1" />
                   <button
                     onClick={() => { navigate('/profile'); setMobileMenuOpen(false); }}
-                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${location.pathname === '/profile' ? 'bg-primary/15 text-primary font-semibold' : 'text-text-secondary hover:bg-primary/10'
+                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${location.pathname === '/profile' ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:bg-primary/10'
                       }`}
                   >
                     <User className="h-4 w-4 text-primary/70" />
@@ -400,7 +400,7 @@ const Header = () => {
                   </button>
                   <button
                     onClick={() => { navigate('/settings'); setMobileMenuOpen(false); }}
-                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${location.pathname === '/settings' ? 'bg-primary/15 text-primary font-semibold' : 'text-text-secondary hover:bg-primary/10'
+                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${location.pathname === '/settings' ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:bg-primary/10'
                       }`}
                   >
                     <Settings className="h-4 w-4 text-primary/70" />

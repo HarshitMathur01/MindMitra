@@ -235,7 +235,7 @@ export default function BalloonPositivityGame() {
   }, [lives]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden font-sans bg-background text-text-primary transition-colors duration-300">
+    <div className="relative min-h-screen w-full overflow-hidden font-sans bg-background text-foreground transition-colors duration-300">
 
       <div className="absolute inset-0 bg-gradient-to-br from-yellow-100 via-pink-100 to-sky-100 dark:from-primary/5 dark:via-surface dark:to-background" />
 
@@ -244,7 +244,7 @@ export default function BalloonPositivityGame() {
         <div>
           <button
             onClick={() => navigate("/games")}
-            className="flex items-center gap-2 rounded-xl bg-crushed-silk/80 px-3 py-1.5 text-sm font-medium text-text-primary shadow hover:bg-yellow-400 hover:text-white transition"
+            className="flex items-center gap-2 rounded-xl bg-crushed-silk/80 px-3 py-1.5 text-sm font-medium text-foreground shadow hover:bg-yellow-400 hover:text-white transition"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Games
@@ -300,7 +300,7 @@ export default function BalloonPositivityGame() {
       </div>
 
 
-      <div className="relative z-10 mx-auto mt-2 w-full max-w-5xl px-4 text-center text-text-primary">
+      <div className="relative z-10 mx-auto mt-2 w-full max-w-5xl px-4 text-center text-foreground">
         <p>
           Remove the {" "}
           <span className="font-semibold text-rose-600">gloom</span>, and welcome the bloom
@@ -332,7 +332,7 @@ export default function BalloonPositivityGame() {
               ) : (
                 <h2 className="mb-2 text-2xl font-semibold text-indigo-600">Time’s Up!!</h2>
               )}
-              <p className="mb-2 text-text-primary">
+              <p className="mb-2 text-foreground">
                 Final Score: <span className="font-bold">{score}</span>
               </p>
               <p className="mb-4 italic text-emerald-600">{finalAffirmation}</p>
@@ -368,10 +368,10 @@ export default function BalloonPositivityGame() {
         )}
       </AnimatePresence>
 
-      <footer className="relative z-10 mt-6 pb-8 text-center text-xs text-text-secondary">
+      <footer className="relative z-10 mt-6 pb-8 text-center text-xs text-muted-foreground">
         <p>Designed for joy Click Start, then pop the negative words.</p>
         {lastAffirmation && (
-          <p className="mt-1 italic text-text-secondary">Last affirmation: {lastAffirmation}</p>
+          <p className="mt-1 italic text-muted-foreground">Last affirmation: {lastAffirmation}</p>
         )}
       </footer>
     </div>
@@ -381,8 +381,8 @@ export default function BalloonPositivityGame() {
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-crushed-silk/80 p-3 text-center shadow-sm">
-      <div className="text-[11px] uppercase tracking-wider text-text-secondary">{label}</div>
-      <div className="text-lg font-semibold text-text-primary">{value}</div>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-lg font-semibold text-foreground">{value}</div>
     </div>
   );
 }

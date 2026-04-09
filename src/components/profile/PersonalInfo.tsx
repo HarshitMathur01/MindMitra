@@ -168,11 +168,11 @@ export function PersonalInfo({ profile, loading, saving, onSave }: PersonalInfoP
         >
             <Card className="bg-surface border-border shadow-sm rounded-2xl">
                 <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                    <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                         <User className="h-5 w-5 text-primary" />
                         Personal Information
                     </CardTitle>
-                    <p className="text-sm text-text-secondary">
+                    <p className="text-sm text-muted-foreground">
                         All fields are optional — share only what feels comfortable 💛
                     </p>
                 </CardHeader>
@@ -180,8 +180,8 @@ export function PersonalInfo({ profile, loading, saving, onSave }: PersonalInfoP
                     {fields.map(field => (
                         <div key={field.key} className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label className="text-sm font-medium text-text-primary flex items-center gap-2">
-                                    <field.icon className="h-4 w-4 text-text-secondary" />
+                                <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                                    <field.icon className="h-4 w-4 text-muted-foreground" />
                                     {field.label}
                                 </Label>
                                 {field.privacyKey && (

@@ -11,6 +11,7 @@ from typing import Any, List, Optional
 from zai import ZhipuAiClient
 
 from ..core.config import config
+from ..core.logging import log_timing
 
 logger = logging.getLogger(__name__)
 
@@ -90,36 +91,38 @@ class LLMController:
                         for m in messages
                     ]
 
-                if chunk_callback:
-                    response = self._client.chat.completions.create(
-                        model=self.model_name,
-                        messages=chat_messages,
-                        max_tokens=_max_tokens,
-                        temperature=_temperature,
-                        top_p=_top_p,
-                        stream=True,
-                        **kwargs,
-                    )
-                    content = ""
-                    for chunk in response:
-                        if hasattr(chunk, 'choices') and chunk.choices and hasattr(chunk.choices[0], 'delta') and chunk.choices[0].delta.content:
-                            piece = chunk.choices[0].delta.content
-                            content += piece
-                            chunk_callback(piece)
-                else:
-                    response = self._client.chat.completions.create(
-                        model=self.model_name,
-                        messages=chat_messages,
-                        max_tokens=_max_tokens,
-                        temperature=_temperature,
-                        top_p=_top_p,
-                        **kwargs,
-                    )
-                    content = (
-                        response.choices[0].message.content
-                        if response and hasattr(response, 'choices') and response.choices
-                        else ""
-                    )
+                with log_timing("GLM LLM Call", model=self.model_name, stream=bool(chunk_callback)):
+                    if chunk_callback:
+                        response = self._client.chat.completions.create(
+                            model=self.model_name,
+                            messages=chat_messages,
+                            max_tokens=_max_tokens,
+                            temperature=_temperature,
+                            top_p=_top_p,
+                            stream=True,
+                            **kwargs,
+                        )
+                        content = ""
+                        for chunk in response:
+                            if hasattr(chunk, 'choices') and chunk.choices and hasattr(chunk.choices[0], 'delta') and chunk.choices[0].delta.content:
+                                piece = chunk.choices[0].delta.content
+                                content += piece
+                                chunk_callback(piece)
+                    else:
+                        response = self._client.chat.completions.create(
+                            model=self.model_name,
+                            messages=chat_messages,
+                            max_tokens=_max_tokens,
+                            temperature=_temperature,
+                            top_p=_top_p,
+                            **kwargs,
+                        )
+                        content = (
+                            response.choices[0].message.content
+                            if response and hasattr(response, 'choices') and response.choices
+                            else ""
+                        )
+                
                 if not content:
                     logger.warning(
                         f"⚠️ [GLM] Empty response (attempt {attempt + 1}/{self._max_retries})"

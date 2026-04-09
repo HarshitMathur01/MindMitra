@@ -13,6 +13,7 @@ import google.generativeai as genai
 
 from ..controllers.llm_controller import LLMController
 from ..services.supabase_service import supabase_client
+from ..core.logging import log_timing
 
 from ..utils.constants import (
     MEMORY_OVERFETCH_LIMIT,
@@ -131,15 +132,14 @@ class MemoryRetriever:
             return ""
 
         try:
-            _t = time.monotonic()
-
-            # ── Steps 1+2: mem0 vector search and Supabase metadata in parallel ──
-            # The embedding + Qdrant search and the metadata fetch are independent;
-            # running them concurrently saves ~100-200ms.
-            with ThreadPoolExecutor(max_workers=2) as _ex:
-                fut_search = _ex.submit(
-                    self._mem0.search, query=query, user_id=user_id, limit=MEMORY_OVERFETCH_LIMIT
-                )
+            with log_timing("Memory Retrieval Pipeline", query=query, intent=intent, user_id=user_id):
+                # ── Steps 1+2: mem0 vector search and Supabase metadata in parallel ──
+                # The embedding + Qdrant search and the metadata fetch are independent;
+                # running them concurrently saves ~100-200ms.
+                with ThreadPoolExecutor(max_workers=2) as _ex:
+                    fut_search = _ex.submit(
+                        self._mem0.search, query=query, user_id=user_id, limit=MEMORY_OVERFETCH_LIMIT
+                    )
                 fut_meta = _ex.submit(self._fetch_metadata_for_scoring, user_id)
                 results = fut_search.result()
                 metadata_map = fut_meta.result()
@@ -226,11 +226,10 @@ class MemoryRetriever:
 
             total = len(semantic_memories) + len(procedural_memories) + len(reflection_memories)
 
-            elapsed = (time.monotonic() - _t) * 1000
             logger.info(
                 f"✅ [MEMORY] retrieve_memories: {total} results "
                 f"(semantic={len(semantic_memories)}, procedural={len(procedural_memories)}, "
-                f"reflections={len(reflection_memories)}, intent={intent}) in {elapsed:.0f}ms"
+                f"reflections={len(reflection_memories)}, intent={intent})"
             )
 
             if total == 0:

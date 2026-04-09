@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { useVoiceRecording } from "@/hooks/useVoiceRecording";
+import { useVoiceRecording, type VoiceAnalysis } from "@/hooks/useVoiceRecording";
 import { useAuth } from "@/hooks/useAuth";
 import { useSettings } from "@/hooks/useSettings";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,13 @@ type RecentChatPreview = {
   messageCount: number;
 };
 
+/** Parsed `data: {...}` lines from the chat SSE stream */
+type ChatSsePayload = {
+  chunk?: string;
+  message?: string;
+  error?: string;
+};
+
 const suggestedPrompts = [
   "Help me understand my personality type",
   "I'm feeling anxious, what can I do?",
@@ -53,12 +60,13 @@ const suggestedPrompts = [
 ];
 
 const quickCategories = [
-  { label: "Mental Health", icon: "🧠", color: "bg-primary/15 text-primary" },
-  { label: "Personality", icon: "🎭", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
-  { label: "Stress Relief", icon: "🌿", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
-  { label: "Relationships", icon: "💖", color: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300" },
-  { label: "Self-Care", icon: "✨", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
-  { label: "Therapy", icon: "💬", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" },
+  // Token-first calm chips (avoid bespoke per-topic colors)
+  { label: "Mental Health", icon: "🧠", color: "bg-primary/10 text-primary" },
+  { label: "Personality", icon: "🎭", color: "bg-primary/10 text-primary" },
+  { label: "Stress Relief", icon: "🌿", color: "bg-primary/10 text-primary" },
+  { label: "Relationships", icon: "💖", color: "bg-primary/10 text-primary" },
+  { label: "Self-Care", icon: "✨", color: "bg-primary/10 text-primary" },
+  { label: "Therapy", icon: "💬", color: "bg-primary/10 text-primary" },
 ];
 
 const loadingPhases = [
@@ -222,14 +230,14 @@ const RecentChatItem = ({
         variant="ghost"
         disabled={loadingSession}
         className={`w-full h-auto rounded-xl text-left px-3 py-2.5 transition-all duration-200 group relative border-l-2 ${isActive
-          ? 'bg-primary/10 border-l-primary text-text-primary'
-          : 'border-l-transparent text-text-secondary hover:text-text-primary hover:bg-background/50'
+          ? 'bg-primary/10 border-l-primary text-foreground'
+          : 'border-l-transparent text-muted-foreground hover:text-foreground hover:bg-background/50'
           } ${loadingSession ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={() => onSelect(chat.id)}
       >
         <div className="min-w-0 w-full">
           <p className="truncate leading-tight text-sm font-medium">{chat.title}</p>
-          <p className="text-xs text-text-secondary/70 mt-0.5">{displayMessageCount} msgs</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">{displayMessageCount} msgs</p>
         </div>
       </Button>
     </motion.div>
@@ -285,7 +293,7 @@ const ChatGPTInterface = () => {
   const { toast } = useToast();
   const { isRecording, isProcessing, toggleRecording, currentTranscript, lastVoiceAnalysis } = useVoiceRecording(getSttLocale(settings?.language));
   const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
-  const pendingVoiceAnalysisRef = useRef<any>(null);
+  const pendingVoiceAnalysisRef = useRef<VoiceAnalysis | null>(null);
   const pendingAudioDataRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -294,8 +302,6 @@ const ChatGPTInterface = () => {
   const [moodSelected, setMoodSelected] = useState(false);
   const [moodValue, setMoodValue] = useState<number | null>(null);
   const moodOptions = useMemo(() => buildMoodOptionsForSession(currentSessionId), [currentSessionId]);
-  // Send micro-interaction
-  const [justSent, setJustSent] = useState(false);
   // Scroll-to-bottom button
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const voiceSilenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -380,7 +386,6 @@ const ChatGPTInterface = () => {
 
   const loadingPhase = loadingPhases[Math.min(Math.floor(loadingProgress / 33), loadingPhases.length - 1)] ?? loadingPhases[0];
   const headerStatusText = isLoading ? loadingPhase : 'Online';
-  const bubbleStatusText = `${loadingPhase} ${loadingProgress}%`;
 
   // Signal to PersonalitySelector that a chat session is open (enables mid-session switch warning)
   useEffect(() => {
@@ -712,10 +717,6 @@ const ChatGPTInterface = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
-    // Send button micro-interaction
-    setJustSent(true);
-    setTimeout(() => setJustSent(false), 600);
-
     try {
       // Get current session for authentication
       const { data: { session } } = await supabase.auth.getSession();
@@ -774,7 +775,7 @@ const ChatGPTInterface = () => {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullMessage = "";
-      let finalData: any = {};
+      let finalData: ChatSsePayload = {};
 
       const tempId = (Date.now() + 1).toString();
       const aiResponse: Message = {
@@ -802,7 +803,7 @@ const ChatGPTInterface = () => {
             for (const line of rawLines) {
               if (!line.startsWith('data: ')) continue;
               try {
-                const sseData = JSON.parse(line.substring(6));
+                const sseData = JSON.parse(line.substring(6)) as ChatSsePayload;
 
                 if (isFirstChunk && (sseData.chunk || sseData.message)) {
                   isFirstChunk = false;
@@ -836,7 +837,9 @@ const ChatGPTInterface = () => {
                 } else if (sseData.error) {
                   console.error('SSE Error:', sseData.error);
                 }
-              } catch (e) { }
+              } catch {
+                /* Malformed SSE JSON — skip line */
+              }
             }
           }
         }
@@ -933,6 +936,13 @@ const ChatGPTInterface = () => {
     toast({
       title: "Copied!",
       description: "Message copied to clipboard.",
+    });
+  };
+
+  const sendFeedback = (kind: "up" | "down") => {
+    toast({
+      title: "Thanks!",
+      description: kind === "up" ? "Feedback saved." : "We'll improve this response.",
     });
   };
 
@@ -1244,40 +1254,33 @@ const ChatGPTInterface = () => {
   })();
 
   return (
-    <div className="flex h-screen bg-background text-text-primary transition-colors duration-300 relative overflow-hidden">
-      {/* Ambient depth blobs — warm teal + ivory */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-20 -right-10 w-80 h-80 rounded-full bg-primary/[0.06] blur-3xl" />
-        <div className="absolute -bottom-16 -left-10 w-72 h-72 rounded-full bg-[hsl(38,55%,80%)]/[0.14] blur-3xl" />
-      </div>
-      {/* Enhanced ChatGPT-style Sidebar with Glassmorphism */}
+    <div className="flex h-dvh max-h-dvh min-h-0 bg-background text-foreground relative overflow-hidden">
+      {/* Sidebar */}
       <motion.div
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className={`${sidebarCollapsed ? 'w-0' : 'w-72'} transition-all duration-300 bg-gradient-to-b from-primary/25 via-background to-background text-text-primary flex flex-col border-r border-border backdrop-blur-xl overflow-hidden shadow-theme`}
+        transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+        className={`${sidebarCollapsed ? 'w-0' : 'w-72'} transition-all duration-200 bg-surface text-foreground flex flex-col min-h-0 border-r border-border overflow-hidden`}
       >
-        {/* Sidebar Header with Gradient */}
-        <div className="p-4 border-b border-border bg-background/40">
+        <div className="p-4 border-b border-border bg-surface">
           <Button
             onClick={startNewChat}
-            className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-[hsl(168,48%,34%)] hover:from-[hsl(188,55%,32%)] hover:to-[hsl(168,52%,28%)] border-0 text-white justify-start gap-2 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-300"
-            variant="outline"
+            className="w-full h-11 rounded-xl justify-start gap-2 text-sm font-semibold shadow-card hover:shadow-card-hover transition-all duration-200"
+            variant="default"
           >
             <Plus className="h-4 w-4" />
             New chat
           </Button>
         </div>
 
-        {/* Search with Animation */}
         <div className="p-4 border-b border-border/80">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary group-focus-within:text-primary transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
             <Input
               placeholder="Search chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 rounded-2xl pl-10 bg-background/75 border border-border text-text-primary placeholder:text-text-secondary focus:border-primary focus:ring-2 focus:ring-primary/25 text-sm transition-all duration-300"
+              className="h-11 rounded-xl pl-10 bg-background border border-input text-foreground placeholder:text-muted-foreground text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
           </div>
         </div>
@@ -1289,7 +1292,7 @@ const ChatGPTInterface = () => {
             {/* Navigation Items with Hover Effects */}
             <Button
               variant="ghost"
-              className="w-full h-12 rounded-2xl justify-start px-3 text-text-primary bg-background/60 hover:bg-background/90 text-sm font-medium flex-shrink-0 transition-all duration-300"
+              className="w-full h-11 rounded-xl justify-start px-3 text-foreground hover:bg-muted/40 text-sm font-medium flex-shrink-0 transition-all duration-200"
               onClick={() => navigate('/')}
             >
               <Home className="h-5 w-5 mr-2" />
@@ -1311,7 +1314,7 @@ const ChatGPTInterface = () => {
                     <Skeleton className="h-9 w-full bg-surface/50 rounded-xl" />
                   </div>
                 ) : recentChats.length === 0 ? (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-3 py-2 text-sm text-text-secondary italic">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-3 py-2 text-sm text-muted-foreground italic">
                     No recent chats
                   </motion.div>
                 ) : (
@@ -1340,7 +1343,7 @@ const ChatGPTInterface = () => {
               </div>
             </div>
 
-            {/* Quick Topics Section with Gradient Effects */}
+            {/* Quick Topics */}
             <div className="pt-1 pb-1">
               <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider px-1 mb-2">
                 Quick Topics
@@ -1350,7 +1353,7 @@ const ChatGPTInterface = () => {
                   <Button
                     key={category.label}
                     variant="ghost"
-                    className="w-full justify-start px-3 text-text-primary/90 hover:bg-background/60 hover:text-text-primary text-sm py-1 h-9 rounded-xl transition-all duration-300"
+                    className="w-full justify-start px-3 hover:bg-muted/40 text-sm py-1 h-9 rounded-xl transition-all duration-200"
                     onClick={() => handleSendMessage(`Tell me about ${category.label.toLowerCase()}`)}
                   >
                     <span className="w-5 h-5 mr-2 flex items-center justify-center text-lg flex-shrink-0">{category.icon}</span>
@@ -1360,7 +1363,7 @@ const ChatGPTInterface = () => {
               </div>
             </div>
 
-            {/* Suggested Prompts Section with Hover Effects */}
+            {/* Suggested */}
             <div className="pt-1 pb-1">
               <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider px-1 mb-2">
                 Suggested
@@ -1370,7 +1373,7 @@ const ChatGPTInterface = () => {
                   <Button
                     key={index}
                     variant="ghost"
-                    className="w-full justify-start px-3 text-text-secondary hover:bg-background/60 hover:text-text-primary text-sm p-2.5 h-auto leading-tight rounded-xl transition-all duration-300"
+                    className="w-full justify-start px-3 text-muted-foreground hover:bg-muted/40 hover:text-foreground text-sm p-2.5 h-auto leading-tight rounded-xl transition-all duration-200"
                     onClick={() => handleSendMessage(prompt)}
                   >
                     <span className="text-left line-clamp-2">
@@ -1384,19 +1387,19 @@ const ChatGPTInterface = () => {
           </div>
 
           {/* Footer with Gradient — pinned at bottom */}
-          <div className="flex-shrink-0 border-t border-border pt-2 bg-background/30 px-3">
+          <div className="flex-shrink-0 border-t border-border pt-2 bg-surface px-3">
             <div className="flex items-center justify-between px-1 py-2">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-theme">
-                  <User className="h-3 w-3 text-white" />
+                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-xs">
+                  <User className="h-3 w-3 text-primary-foreground" />
                 </div>
-                <span className="text-sm text-text-secondary truncate max-w-[170px]">
+                <span className="text-sm text-muted-foreground truncate max-w-[170px]">
                   {user?.email?.split('@')[0] || 'User'}
                 </span>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-text-secondary hover:text-text-primary hover:bg-background transition-colors">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-background transition-colors">
                     <MoreVertical className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1417,19 +1420,19 @@ const ChatGPTInterface = () => {
       </motion.div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0">
         {/* Enhanced Chat Header with Glassmorphism */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="border-b border-border bg-surface/80 backdrop-blur-xl p-4 flex items-center justify-between shadow-theme"
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          className="border-b border-border bg-card/95 backdrop-blur p-3 sm:p-4 flex items-center justify-between gap-2 min-w-0"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
-              className="hover:bg-background transition-colors"
+              className="hover:bg-muted/40 transition-colors"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
               {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
@@ -1439,13 +1442,13 @@ const ChatGPTInterface = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className="w-9 h-9 rounded-full bg-[#FAEBD7] flex items-center justify-center shadow-[0_8px_18px_rgba(15,23,42,0.18)] transition-colors duration-150 hover:bg-[#F3DFC6]"
+                  className="w-9 h-9 rounded-full bg-accent flex items-center justify-center shadow-xs transition-colors duration-150 hover:bg-accent/80"
                   aria-label="Go to home"
                 >
                   <img src="/image.png" alt="MindMitra" className="h-5 w-5 object-contain" />
                 </button>
                 {/* Online indicator dot — pulse when loading, steady when idle */}
-                <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-background ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+                <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-background ${isLoading ? 'bg-warning animate-pulse' : 'bg-success'}`} />
               </div>
               <button
                 type="button"
@@ -1453,72 +1456,31 @@ const ChatGPTInterface = () => {
                 className="text-left"
                 aria-label="Go to home"
               >
-                <h1 className="text-xl font-bold text-text-primary leading-tight">MindMitra</h1>
-                <p className="text-[11px] text-text-secondary leading-none">{headerStatusText}</p>
+                <h1 className="text-base sm:text-lg font-semibold text-foreground leading-tight">MindMitra</h1>
+                <p className="text-[11px] text-muted-foreground leading-none">{headerStatusText}</p>
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0 max-w-[100%] sm:max-w-none overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Button
+              variant="outline"
+              size="sm"
+              className={`flex-shrink-0 bg-card border-border gap-2 transition-all duration-200 ${isAvatarVisible ? 'border-primary/30' : ''}`}
+              onClick={() => {
+                toggleAvatar();
+                if (isAvatarVisible) setTranscribingMsgId(null);
+              }}
             >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  toggleAvatar();
-                  if (isAvatarVisible) setTranscribingMsgId(null); // Clear transcription when hiding avatar
-                }}
-                className={`
-                  group relative overflow-hidden transition-all duration-300
-                  ${isAvatarVisible
-                    ? 'bg-surface border-primary/40 hover:shadow-theme'
-                    : 'bg-surface border-border hover:shadow-theme'
-                  }
-                `}
-              >
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                  animate={{
-                    x: isAvatarVisible ? ['-100%', '100%'] : '-100%',
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: isAvatarVisible ? Infinity : 0,
-                    ease: 'linear',
-                  }}
-                />
-                <div className="relative flex items-center gap-2">
-                  <motion.div
-                    animate={{ rotate: isAvatarVisible ? 0 : 180 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {isAvatarVisible ? (
-                      <Eye className="h-4 w-4 text-primary" />
-                    ) : (
-                      <EyeOff className="h-4 w-4 text-text-secondary" />
-                    )}
-                  </motion.div>
-                  <span className="font-medium">
-                    {isAvatarVisible ? 'Hide Avatar' : 'Show Avatar'}
-                  </span>
-                  <motion.div
-                    animate={{ scale: isAvatarVisible ? [1, 1.2, 1] : 1 }}
-                    transition={{ duration: 1.5, repeat: isAvatarVisible ? Infinity : 0 }}
-                  >
-                    <div className={`
-                      w-2 h-2 rounded-full 
-                      ${isAvatarVisible
-                        ? 'bg-success shadow-theme'
-                        : 'bg-text-secondary'
-                      }
-                    `} />
-                  </motion.div>
-                </div>
-              </Button>
-            </motion.div>
+              {isAvatarVisible ? (
+                <Eye className="h-4 w-4 text-primary" />
+              ) : (
+                <EyeOff className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="font-medium hidden sm:inline">
+                {isAvatarVisible ? 'Hide Avatar' : 'Show Avatar'}
+              </span>
+              <span className={`ml-1 h-2 w-2 rounded-full ${isAvatarVisible ? 'bg-success' : 'bg-muted-foreground/50'}`} aria-hidden="true" />
+            </Button>
 
             {/* ── Avatar model picker ───────────────────────────────────────── */}
             <DropdownMenu>
@@ -1526,11 +1488,11 @@ const ChatGPTInterface = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-surface border-border hover:shadow-theme gap-2"
+                  className="bg-card border-border gap-2 flex-shrink-0"
                 >
                   <User className="h-4 w-4 text-primary" />
                   <span className="font-medium text-sm hidden sm:inline">{selectedAvatar.name}</span>
-                  <ChevronDown className="h-3 w-3 text-text-secondary" />
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
@@ -1561,13 +1523,13 @@ const ChatGPTInterface = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-surface border-border hover:shadow-theme gap-2"
+                  className="bg-card border-border gap-2 flex-shrink-0"
                 >
                   <Globe className="h-4 w-4 text-primary" />
                   <span className="font-medium text-sm hidden sm:inline">
                     {LANGUAGE_LABELS[selectedLanguage] || "English"}
                   </span>
-                  <ChevronDown className="h-3 w-3 text-text-secondary" />
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
@@ -1591,7 +1553,7 @@ const ChatGPTInterface = () => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="hover:bg-background transition-colors">
+                <Button variant="ghost" size="sm" className="hover:bg-muted/40 transition-colors flex-shrink-0">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -1613,10 +1575,10 @@ const ChatGPTInterface = () => {
           </div>
         </motion.div>
 
-        {/* Messages Area with Animations - Conditional 50-50 split */}
-        <div className={`grid grid-rows-1 h-[80%] ${isAvatarVisible ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {/* Content */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
           {isAvatarVisible && (
-            <div className="relative bg-background border-r border-border overflow-hidden transition-colors duration-300">
+            <div className="relative bg-background border-b border-border lg:border-b-0 lg:border-r lg:w-5/12 min-h-0 shrink-0 overflow-hidden max-h-[38vh] lg:max-h-none">
               <TalkingHeadAvatar
                 key={`${selectedAvatarId}-${settings?.language}`}
                 avatarUrl={selectedAvatar.url}
@@ -1630,15 +1592,15 @@ const ChatGPTInterface = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                     className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none z-10"
                   >
-                    <div className="bg-black/70 backdrop-blur-md rounded-xl px-4 py-3 mx-2 max-h-24 overflow-hidden">
+                    <div className="bg-foreground/80 backdrop-blur rounded-xl px-4 py-3 mx-2 max-h-24 overflow-hidden">
                       <TypewriterText
                         text={avatarCurrentMessage.text}
                         speed={350}
                         maxVisibleWords={12}
-                        className="text-white text-sm font-medium leading-relaxed drop-shadow-lg"
+                        className="text-background text-sm font-medium leading-relaxed drop-shadow-lg"
                       />
                     </div>
                   </motion.div>
@@ -1646,14 +1608,15 @@ const ChatGPTInterface = () => {
               </AnimatePresence>
             </div>
           )}
-          <div className="flex-1 overflow-y-scroll bg-background transition-colors duration-300 relative"
+          <div
+            className={`flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-y-contain bg-background relative ${isAvatarVisible ? 'lg:w-7/12' : ''}`}
             ref={scrollAreaRef}
             onScroll={(e) => {
               const el = e.currentTarget;
               setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 250);
             }}
           >
-            <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
               {/* ── Mood check-in widget (new session only) ──────────────── */}
               <AnimatePresence>
                 {filteredMessages.length <= 1 && !moodSelected && (
@@ -1663,15 +1626,15 @@ const ChatGPTInterface = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -12, scale: 0.95 }}
                     transition={{ duration: 0.35 }}
-                    className="mx-auto max-w-sm bg-surface/90 border border-border rounded-2xl p-5 text-center space-y-3 shadow-sm"
+                    className="mx-auto max-w-sm bg-card border border-border rounded-2xl p-5 text-center space-y-3 shadow-card"
                   >
-                    <p className="text-sm font-semibold text-text-primary">How are you feeling right now?</p>
-                    <div className="flex justify-center gap-2">
+                    <p className="text-sm font-semibold text-foreground">How are you feeling right now?</p>
+                    <div className="flex flex-wrap justify-center gap-2">
                       {moodOptions.map(({ emoji, label, value }) => (
                         <button
                           key={value}
                           onClick={() => handleMoodSelect(value)}
-                          className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-primary/10 transition-colors group"
+                          className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-muted/40 transition-colors group"
                           title={label}
                         >
                           <span className="text-2xl group-hover:scale-125 transition-transform duration-200 select-none">{emoji}</span>
@@ -1738,20 +1701,17 @@ const ChatGPTInterface = () => {
                         >
                           {message.sender === "ai" ? (
                             <div className="flex gap-3 items-start">
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: "spring", stiffness: 200 }}
-                                className="mm-avatar mm-avatar--ai flex-shrink-0 !h-12 !w-12"
-                              >
-                                <img src="/image6.png" alt="AI companion" className="h-10 w-10 object-cover" />
-                              </motion.div>
-                              <div className="flex-1 space-y-1.5">
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                                  <div className="mm-bubble mm-bubble--ai">
+                              <div className="flex-shrink-0">
+                                <div className="h-9 w-9 rounded-full bg-primary/10 border border-border flex items-center justify-center">
+                                  <img src="/image6.png" alt="AI companion" className="h-7 w-7 rounded-full object-cover" />
+                                </div>
+                              </div>
+                              <div className="flex-1 flex flex-col items-start space-y-2 min-w-0">
+                                <div className="bg-card border border-border rounded-2xl shadow-card px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
+                                  <div className="text-sm leading-6 text-foreground break-words">
                                     <MessageRenderer content={message.content} />
                                   </div>
-                                </motion.div>
+                                </div>
                                 {/* Quick-reply chips under last AI message */}
                                 {isLastAi && (
                                   <QuickReplies
@@ -1760,46 +1720,95 @@ const ChatGPTInterface = () => {
                                     visible={!isLoading}
                                   />
                                 )}
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }} whileHover={{ opacity: 1 }} className="flex items-center gap-2 transition-opacity">
-                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all" onClick={() => copyMessage(message.content)}>
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all">
-                                    <ThumbsUp className="h-3 w-3" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-danger/10 hover:text-danger hover:scale-110 transition-all">
-                                    <ThumbsDown className="h-3 w-3" />
-                                  </Button>
-                                  <span className="text-xs text-text-secondary ml-2">
+                                <div className="flex items-center gap-2">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 w-8 p-0 hover:bg-muted/40 transition-all duration-200"
+                                        aria-label="Message actions"
+                                      >
+                                        <MoreVertical className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="w-44">
+                                      <DropdownMenuItem onClick={() => copyMessage(message.content)}>
+                                        <Copy className="h-4 w-4 mr-2" />
+                                        Copy
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => sendFeedback("up")}>
+                                        <ThumbsUp className="h-4 w-4 mr-2" />
+                                        Helpful
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => sendFeedback("down")}>
+                                        <ThumbsDown className="h-4 w-4 mr-2" />
+                                        Not helpful
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+
+                                  <div className="hidden sm:flex items-center gap-1">
+                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-muted/40 transition-all duration-200" onClick={() => copyMessage(message.content)} aria-label="Copy message">
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-muted/40 transition-all duration-200" onClick={() => sendFeedback("up")} aria-label="Like message">
+                                      <ThumbsUp className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-danger/10 hover:text-danger transition-all duration-200" onClick={() => sendFeedback("down")} aria-label="Dislike message">
+                                      <ThumbsDown className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+
+                                  <span className="text-xs text-muted-foreground ml-1">
                                     {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                   </span>
-                                </motion.div>
+                                </div>
                               </div>
                             </div>
                           ) : (
                             <div className="flex gap-3 justify-end items-start">
                               <div className="flex-1 flex flex-col items-end">
-                                <motion.div initial={{ scale: 0.95, opacity: 0, x: 12 }} animate={{ scale: 1, opacity: 1, x: 0 }} className="mm-bubble mm-bubble--user">
-                                  <span className="mm-user-text">{message.content}</span>
-                                </motion.div>
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }} whileHover={{ opacity: 1 }} className="flex items-center justify-end gap-2 mt-1 transition-opacity">
-                                  <span className="text-xs text-text-secondary opacity-70">
+                                <div className="bg-primary text-primary-foreground rounded-2xl shadow-xs px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
+                                  <span className="text-sm leading-6 whitespace-pre-wrap break-words">{message.content}</span>
+                                </div>
+                                <div className="flex items-center justify-end gap-2 mt-1">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 w-8 p-0 hover:bg-muted/40 transition-all duration-200"
+                                        aria-label="Message actions"
+                                      >
+                                        <MoreVertical className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-40">
+                                      <DropdownMenuItem onClick={() => copyMessage(message.content)}>
+                                        <Copy className="h-4 w-4 mr-2" />
+                                        Copy
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+
+                                  <span className="text-xs text-muted-foreground">
                                     {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                   </span>
-                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-background hover:scale-110 transition-all" onClick={() => copyMessage(message.content)}>
+                                  <Button size="sm" variant="ghost" className="hidden sm:inline-flex h-8 w-8 p-0 hover:bg-muted/40 transition-all duration-200" onClick={() => copyMessage(message.content)} aria-label="Copy message">
                                     <Copy className="h-3 w-3" />
                                   </Button>
-                                </motion.div>
+                                </div>
                               </div>
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }} className="mm-avatar mm-avatar--user flex-shrink-0 !h-12 !w-12">
+                              <div className="flex-shrink-0">
                                 {userAvatarUrl ? (
-                                  <img src={userAvatarUrl} alt={userDisplayName} className="h-10 w-10 rounded-full object-cover" />
+                                  <img src={userAvatarUrl} alt={userDisplayName} className="h-9 w-9 rounded-full object-cover border border-border" />
                                 ) : (
-                                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
+                                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                                     {userInitial}
                                   </span>
                                 )}
-                              </motion.div>
+                              </div>
                             </div>
                           )}
                         </motion.div>
@@ -1817,46 +1826,17 @@ const ChatGPTInterface = () => {
                   exit={{ opacity: 0 }}
                   className="flex gap-3 items-start"
                 >
-                  <div className="mm-avatar mm-avatar--ai flex-shrink-0 !h-12 !w-12">
-                    <img src="/image6.png" alt="AI companion" className="h-10 w-10 object-cover" />
-                  </div>
-                  <div className="mm-bubble mm-bubble--ai min-w-[220px] py-3 px-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-[11px] text-text-secondary">{bubbleStatusText}</p>
-                      <span className="text-[10px] font-medium text-primary/80">breathing space</span>
+                  <div className="flex-shrink-0">
+                    <div className="h-9 w-9 rounded-full bg-primary/10 border border-border flex items-center justify-center">
+                      <img src="/image6.png" alt="AI companion" className="h-7 w-7 rounded-full object-cover" />
                     </div>
-                    <div className="mt-2.5 space-y-2">
-                      <div className="h-1.5 overflow-hidden rounded-full bg-primary/10">
-                        <motion.div
-                          className="h-full rounded-full bg-gradient-to-r from-primary/40 via-primary to-primary/50"
-                          animate={{
-                            width: `${Math.max(12, loadingProgress)}%`,
-                            opacity: [0.7, 1, 0.7],
-                          }}
-                          transition={{
-                            width: { duration: 0.35, ease: "easeOut" },
-                            opacity: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <motion.div
-                          className="h-2.5 w-2.5 rounded-full bg-primary/55"
-                          animate={{ scale: [1, 1.35, 1], opacity: [0.45, 0.85, 0.45] }}
-                          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0 }}
-                        />
-                        <motion.div
-                          className="h-2.5 w-2.5 rounded-full bg-primary/45"
-                          animate={{ scale: [1, 1.28, 1], opacity: [0.35, 0.72, 0.35] }}
-                          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.25 }}
-                        />
-                        <motion.div
-                          className="h-2.5 w-2.5 rounded-full bg-primary/35"
-                          animate={{ scale: [1, 1.2, 1], opacity: [0.28, 0.6, 0.28] }}
-                          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                        />
-                      </div>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl shadow-card px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
+                    <p className="text-xs text-muted-foreground">{loadingPhase}</p>
+                    <div className="mt-2 flex items-center gap-1.5" aria-hidden="true">
+                      <motion.div className="h-2 w-2 rounded-full bg-muted-foreground/60" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0 }} />
+                      <motion.div className="h-2 w-2 rounded-full bg-muted-foreground/60" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.15 }} />
+                      <motion.div className="h-2 w-2 rounded-full bg-muted-foreground/60" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }} />
                     </div>
                   </div>
                 </motion.div>
@@ -1874,7 +1854,7 @@ const ChatGPTInterface = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   onClick={scrollToBottom}
-                  className="fixed bottom-24 right-6 z-30 w-10 h-10 rounded-full bg-primary/90 text-white shadow-lg flex items-center justify-center hover:bg-primary transition-colors backdrop-blur-sm"
+                  className="fixed z-30 w-10 h-10 rounded-full bg-card border border-border text-foreground shadow-card flex items-center justify-center hover:bg-muted/40 transition-colors right-4 sm:right-6 bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </motion.button>
@@ -1882,62 +1862,49 @@ const ChatGPTInterface = () => {
             </AnimatePresence>
           </div>
         </div>
-        {/* Enhanced Input Area with Glassmorphism */}
+        {/* Input bar */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="border-t border-border bg-surface/80 backdrop-blur-xl p-4 shadow-theme"
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          className="sticky bottom-0 z-20 shrink-0 border-t border-border bg-card/95 backdrop-blur p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]"
         >
           <div className="max-w-4xl mx-auto">
-            <div className="relative group">
+            <div className={`relative ${inputValue.length > 0 ? "pb-5 sm:pb-6" : ""}`}>
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Message MindMitra..."
-                className="pr-20 py-4 text-sm rounded-2xl border-2 border-border focus:border-primary focus:ring-4 focus:ring-primary/20 bg-crushed-silk text-text-primary transition-all duration-300 shadow-theme focus:shadow-theme-lg"
+                className="pr-20 h-12 text-sm rounded-2xl bg-background border border-input text-foreground placeholder:text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 disabled={isLoading}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${isRecording
-                      ? 'text-danger bg-danger/10 hover:bg-danger/20 voice-recording-active'
-                      : 'hover:bg-background'
-                      }`}
-                    onClick={handleVoiceInput}
-                    disabled={isProcessing || isLoading}
-                    aria-label={isRecording ? 'Stop recording' : 'Start voice recording'}
-                  >
-                    {isProcessing ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    ) : (
-                      <motion.div
-                        animate={isRecording ? { scale: [1, 1.2, 1] } : {}}
-                        transition={{ duration: 1, repeat: isRecording ? Infinity : 0 }}
-                      >
-                        <Mic className="h-4 w-4" />
-                      </motion.div>
-                    )}
-                  </Button>
-                </motion.div>
-                <motion.div
-                  animate={justSent ? { scale: [1, 1.22, 0.95, 1], rotate: [0, 12, -6, 0] } : {}}
-                  transition={{ type: "spring", stiffness: 400, damping: 14 }}
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.9 }}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={`h-9 w-9 p-0 rounded-full transition-all duration-200 ${isRecording
+                    ? 'text-danger bg-danger/10 hover:bg-danger/20 voice-recording-active'
+                    : 'hover:bg-muted/40'
+                    }`}
+                  onClick={handleVoiceInput}
+                  disabled={isProcessing || isLoading}
+                  aria-label={isRecording ? 'Stop recording' : 'Start voice recording'}
                 >
-                  <Button
-                    onClick={() => handleSendMessage()}
-                    disabled={!inputValue.trim() || isLoading}
-                    className="bg-gradient-to-br from-primary to-[hsl(168,48%,34%)] hover:from-[hsl(188,55%,32%)] hover:to-[hsl(168,52%,28%)] text-white h-9 w-9 p-0 rounded-full shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </motion.div>
+                  {isProcessing ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  onClick={() => handleSendMessage()}
+                  disabled={!inputValue.trim() || isLoading}
+                  className="h-9 w-9 p-0 rounded-full shadow-xs transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Send message"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
 
               {/* Character count indicator */}
@@ -1945,7 +1912,7 @@ const ChatGPTInterface = () => {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="absolute -bottom-6 right-2 text-xs text-text-secondary"
+                  className="absolute -bottom-6 right-2 text-xs text-muted-foreground"
                 >
                   {inputValue.length} characters
                 </motion.div>

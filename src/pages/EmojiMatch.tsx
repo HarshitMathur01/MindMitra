@@ -157,7 +157,7 @@ const EmojiMatch = () => {
   };
 
   return (
-    <div className="h-[100dvh] overflow-hidden flex flex-col relative bg-background text-text-primary transition-colors duration-300">
+    <div className="h-[100dvh] overflow-hidden flex flex-col relative bg-background text-foreground transition-colors duration-300">
       <Header />
       {gameWon && <Confetti recycle={false} numberOfPieces={400} />}
       <main className="flex-1 container mx-auto px-4 py-2 flex flex-col items-center justify-center overflow-hidden">
@@ -210,10 +210,10 @@ const EmojiMatch = () => {
           <Dialog open={gameWon} onOpenChange={setGameWon}>
             <DialogContent className="sm:max-w-md rounded-2xl shadow-2xl border-2 border-pink-400 dark:border-primary/50 bg-gradient-to-r from-pink-100 via-yellow-100 via-green-100 to-indigo-200 dark:from-surface dark:via-surface dark:to-surface">
               <DialogHeader>
-                <DialogTitle className="text-3xl font-extrabold text-text-primary text-center drop-shadow-md">
+                <DialogTitle className="text-3xl font-extrabold text-foreground text-center drop-shadow-md">
                   Congratulations!
                 </DialogTitle>
-                <DialogDescription className="text-center text-lg text-text-secondary font-semibold mt-2">
+                <DialogDescription className="text-center text-lg text-muted-foreground font-semibold mt-2">
                   You completed the game!
                 </DialogDescription>
               </DialogHeader>
@@ -264,7 +264,7 @@ const EmojiMatch = () => {
                     `}
                     style={{ backfaceVisibility: "hidden" }}
                   >
-                    <span className="text-indigo-600 dark:text-text-secondary text-2xl sm:text-3xl font-bold font-sans">?</span>
+                    <span className="text-indigo-600 dark:text-muted-foreground text-2xl sm:text-3xl font-bold font-sans">?</span>
                   </Card>
 
                   {/* Back Face (Emoji) */}

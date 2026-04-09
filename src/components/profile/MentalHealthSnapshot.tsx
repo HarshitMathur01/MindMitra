@@ -51,13 +51,13 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
             <Card className="bg-surface border-border shadow-sm rounded-2xl">
                 <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                        <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                             <Brain className="h-5 w-5 text-primary" />
                             My Wellness Snapshot
                         </CardTitle>
                         <Tooltip>
                             <TooltipTrigger>
-                                <Info className="h-4 w-4 text-text-secondary hover:text-primary transition-colors" />
+                                <Info className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                             </TooltipTrigger>
                             <TooltipContent side="left" className="max-w-[260px]">
                                 <p className="text-xs">
@@ -67,7 +67,7 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                    <p className="text-sm text-text-secondary">
+                    <p className="text-sm text-muted-foreground">
                         A gentle overview of your mental wellness journey 🌿
                     </p>
                 </CardHeader>
@@ -76,7 +76,7 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                     {/* Stress Triggers */}
                     {snapshot.stress_triggers.length > 0 && (
                         <div className="space-y-2">
-                            <p className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Areas we've noticed
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -96,7 +96,7 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                     {/* Emotional Trend */}
                     <div className="flex items-center justify-between bg-background/50 rounded-xl p-4 border border-border/50">
                         <div className="space-y-1">
-                            <p className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Emotional Trend
                             </p>
                             <p className={`text-sm font-semibold capitalize ${trendColor[snapshot.emotional_trend]}`}>
@@ -129,10 +129,10 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                             <MessageSquare className="h-5 w-5 text-accent" />
                         </div>
                         <div>
-                            <p className="text-sm font-semibold text-text-primary">
+                            <p className="text-sm font-semibold text-foreground">
                                 {snapshot.sessions_completed} conversations
                             </p>
-                            <p className="text-xs text-text-secondary">
+                            <p className="text-xs text-muted-foreground">
                                 Sessions completed with MindMitra
                             </p>
                         </div>
@@ -144,12 +144,12 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                             <Stethoscope className="h-5 w-5 text-secondary" />
                         </div>
                         <div>
-                            <p className="text-sm font-semibold text-text-primary">
+                            <p className="text-sm font-semibold text-foreground">
                                 {snapshot.therapist_name
                                     ? `Connected with ${snapshot.therapist_name}`
                                     : 'Not connected yet'}
                             </p>
-                            <p className="text-xs text-text-secondary">
+                            <p className="text-xs text-muted-foreground">
                                 {snapshot.therapist_name
                                     ? 'Your therapist can view your wellness summary'
                                     : 'Connect with a therapist through Therapist Bridge'}
@@ -158,7 +158,7 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                     </div>
 
                     {/* Disclaimer */}
-                    <p className="text-xs text-text-secondary/70 text-center italic pt-2">
+                    <p className="text-xs text-muted-foreground/70 text-center italic pt-2">
                         This snapshot is generated to help you on your journey — it's never shared without your consent.
                     </p>
                 </CardContent>

@@ -115,14 +115,14 @@ export function ProfileHero({ profile, loading, onSave }: ProfileHeroProps) {
                         </div>
                     ) : (
                         <div className="flex items-center gap-2">
-                            <h2 className="text-2xl font-bold text-text-primary">
+                            <h2 className="text-2xl font-bold text-foreground">
                                 {profile?.display_name || 'Your Name'}
                             </h2>
                             <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={handleEditName}
-                                className="h-8 w-8 p-0 text-text-secondary hover:text-primary"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
                             >
                                 <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -131,7 +131,7 @@ export function ProfileHero({ profile, loading, onSave }: ProfileHeroProps) {
                 </div>
 
                 {/* Tagline */}
-                <p className="text-text-secondary text-sm italic">
+                <p className="text-muted-foreground text-sm italic">
                     Your safe space, your story. 💙
                 </p>
 

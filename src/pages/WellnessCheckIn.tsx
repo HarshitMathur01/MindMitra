@@ -206,7 +206,7 @@ const WellnessCheckIn = () => {
   if (showResults) {
     const results = calculateResults();
     return (
-      <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
         <Header />
         <main className="container mx-auto px-4 py-8">
           <Card className="max-w-2xl mx-auto p-8 text-center">
@@ -235,7 +235,7 @@ const WellnessCheckIn = () => {
   const question = questions[currentQuestion];
 
   return (
-    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">

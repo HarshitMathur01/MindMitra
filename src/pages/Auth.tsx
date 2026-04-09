@@ -247,16 +247,16 @@ const Auth = () => {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 h-11 bg-muted/50">
-                <TabsTrigger 
-                  value="signin" 
-                  className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-smooth"
+              <TabsList className="grid w-full grid-cols-2 mb-6 h-11 bg-muted/50 rounded-xl">
+                <TabsTrigger
+                  value="signin"
+                  className="text-sm font-medium rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-xs transition-all duration-200"
                 >
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="signup" 
-                  className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-smooth"
+                <TabsTrigger
+                  value="signup"
+                  className="text-sm font-medium rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-xs transition-all duration-200"
                 >
                   Sign Up
                 </TabsTrigger>
@@ -317,21 +317,15 @@ const Auth = () => {
 
                     <Button
                       type="submit"
-                      className="w-full h-11 gradient-primary hover-glow transition-smooth text-white font-medium"
+                      className="w-full h-11 gradient-primary hover-glow text-white font-medium transition-all duration-200 active:scale-[0.98]"
                       disabled={isLoading || isGoogleLoading}
                     >
                       {isLoading ? (
-                        <motion.span
-                          animate={{ opacity: [1, 0.5, 1] }}
-                          transition={{ duration: 1.2, repeat: Infinity }}
-                        >
-                          Signing in...
+                        <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                          Signing in…
                         </motion.span>
                       ) : (
-                        <>
-                          Sign In
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
+                        <>Sign In <ArrowRight className="ml-2 h-4 w-4" /></>
                       )}
                     </Button>
                   </motion.form>
@@ -347,44 +341,19 @@ const Auth = () => {
                     className="space-y-4"
                   >
                     <div className="space-y-1.5">
-                      <Label htmlFor="signup-email" className="text-sm font-medium text-foreground">
-                        Email
-                      </Label>
+                      <Label htmlFor="signup-email" className="text-sm font-medium text-foreground">Email</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="you@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          className="pl-10 h-11 transition-smooth"
-                        />
+                        <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10 h-11 transition-all duration-200" />
                       </div>
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="signup-password" className="text-sm font-medium text-foreground">
-                        Password
-                      </Label>
+                      <Label htmlFor="signup-password" className="text-sm font-medium text-foreground">Password</Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="At least 6 characters"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          minLength={6}
-                          className="pl-10 pr-10 h-11 transition-smooth"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
+                        <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="pl-10 pr-10 h-11 transition-all duration-200" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
@@ -392,21 +361,15 @@ const Auth = () => {
 
                     <Button
                       type="submit"
-                      className="w-full h-11 gradient-primary hover-glow transition-smooth text-white font-medium"
+                      className="w-full h-11 gradient-primary hover-glow text-white font-medium transition-all duration-200 active:scale-[0.98]"
                       disabled={isLoading || isGoogleLoading}
                     >
                       {isLoading ? (
-                        <motion.span
-                          animate={{ opacity: [1, 0.5, 1] }}
-                          transition={{ duration: 1.2, repeat: Infinity }}
-                        >
-                          Creating account...
+                        <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                          Creating account…
                         </motion.span>
                       ) : (
-                        <>
-                          Create Account
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
+                        <>Create Account <ArrowRight className="ml-2 h-4 w-4" /></>
                       )}
                     </Button>
                   </motion.form>

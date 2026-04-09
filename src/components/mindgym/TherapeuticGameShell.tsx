@@ -55,7 +55,9 @@ function useAmbientAudio(track: AudioTrack) {
     try {
       sourceRef.current?.stop();
       ctxRef.current?.close();
-    } catch {}
+    } catch {
+      /* stop/close may throw if already stopped */
+    }
     ctxRef.current = null;
     sourceRef.current = null;
     gainRef.current = null;

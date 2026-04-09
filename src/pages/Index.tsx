@@ -61,11 +61,11 @@ type FeatureCard = {
 };
 
 const moodOptions: MoodOption[] = [
-  { emoji: "😰", label: "Anxious", ring: "ring-blue-300", bg: "bg-blue-50 dark:bg-blue-500/10" },
-  { emoji: "😢", label: "Sad", ring: "ring-violet-300", bg: "bg-violet-50 dark:bg-violet-500/10" },
-  { emoji: "😐", label: "Neutral", ring: "ring-amber-300", bg: "bg-amber-50 dark:bg-amber-500/10" },
-  { emoji: "😊", label: "Happy", ring: "ring-green-300", bg: "bg-green-50 dark:bg-green-500/10" },
-  { emoji: "🤩", label: "Excited", ring: "ring-rose-300", bg: "bg-rose-50 dark:bg-rose-500/10" },
+  { emoji: "😰", label: "Anxious", ring: "ring-calm-blue", bg: "bg-calm-blue/40 dark:bg-calm-blue/20" },
+  { emoji: "😢", label: "Sad", ring: "ring-warm-purple", bg: "bg-warm-purple/40 dark:bg-warm-purple/20" },
+  { emoji: "😐", label: "Neutral", ring: "ring-warning/50", bg: "bg-warning/15 dark:bg-warning/10" },
+  { emoji: "😊", label: "Happy", ring: "ring-serene-green", bg: "bg-serene-green/40 dark:bg-serene-green/20" },
+  { emoji: "🤩", label: "Excited", ring: "ring-soft-pink", bg: "bg-soft-pink/40 dark:bg-soft-pink/20" },
 ];
 
 const affirmationsByPeriod: Record<"morning" | "afternoon" | "evening", string[]> = {
@@ -86,55 +86,11 @@ const affirmationsByPeriod: Record<"morning" | "afternoon" | "evening", string[]
   ],
 };
 
-const culturalPrefixByRegion: Record<string, string[]> = {
-  IN: ["Namaste", "Shubh din"],
-  PK: ["Assalamu alaikum", "Khush aamdeed"],
-  BD: ["Nomoskar", "Assalamu alaikum"],
-  NP: ["Namaste", "Namaskar"],
-  LK: ["Ayubowan", "Vanakkam"],
-  US: ["You belong", "You are seen"],
-  GB: ["You belong", "You are seen"],
-  CA: ["You belong", "You are seen"],
-  AU: ["You belong", "You are seen"],
-};
-
 const quickActions: QuickAction[] = [
-  {
-    title: "Breathe",
-    duration: "3 min",
-    icon: Wind,
-    bg: "bg-primary/10 dark:bg-primary/15",
-    iconColor: "text-primary dark:text-primary",
-    route: "/breathe",
-    weeklyDone: 4,
-  },
-  {
-    title: "Meditate",
-    duration: "10 min",
-    icon: Sparkles,
-    bg: "bg-primary/10 dark:bg-primary/15",
-    iconColor: "text-primary dark:text-primary",
-    route: "/meditate",
-    weeklyDone: 5,
-  },
-  {
-    title: "Journal",
-    duration: "5 min",
-    icon: BookOpen,
-    bg: "bg-primary/10 dark:bg-primary/15",
-    iconColor: "text-primary dark:text-primary",
-    route: "/journal",
-    weeklyDone: 3,
-  },
-  {
-    title: "Gratitude",
-    duration: "3 min",
-    icon: Heart,
-    bg: "bg-primary/10 dark:bg-primary/15",
-    iconColor: "text-primary dark:text-primary",
-    route: "/gratitude",
-    weeklyDone: 2,
-  },
+  { title: "Breathe", duration: "3 min", icon: Wind, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/breathe", weeklyDone: 4 },
+  { title: "Meditate", duration: "10 min", icon: Sparkles, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/meditate", weeklyDone: 5 },
+  { title: "Journal", duration: "5 min", icon: BookOpen, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/journal", weeklyDone: 3 },
+  { title: "Gratitude", duration: "3 min", icon: Heart, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/gratitude", weeklyDone: 2 },
 ];
 
 const pastMoodTags = [
@@ -145,129 +101,35 @@ const pastMoodTags = [
 ];
 
 const morningHeroImages = [
-  "https://images.unsplash.com/photo-1470137430626-983a37b8ea46?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8Z29vZCUyMG1vcm5pbmd8ZW58MHwwfDB8fHww",
-  "https://images.unsplash.com/photo-1526344966-89049886b28d?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTh8fGdvb2QlMjBtb3JuaW5nfGVufDB8MHwwfHx8MA%3D%3D",
+  "https://images.unsplash.com/photo-1470137430626-983a37b8ea46?w=1800&auto=format&fit=crop&q=90&dpr=2",
+  "https://images.unsplash.com/photo-1526344966-89049886b28d?w=1800&auto=format&fit=crop&q=90&dpr=2",
 ];
 
 const afternoonHeroImages = [
-  "https://images.unsplash.com/photo-1581205445756-15c1d2e9a8df?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGdvb2QlMjBhZnRlcm5vb258ZW58MHwwfDB8fHww",
-  "https://images.unsplash.com/photo-1700409670474-08236194ff99?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fGFmdGVybm9vbiUyMHNreXxlbnwwfDB8MHx8fDA%3D",
+  "https://images.unsplash.com/photo-1581205445756-15c1d2e9a8df?w=1800&auto=format&fit=crop&q=90&dpr=2",
+  "https://images.unsplash.com/photo-1700409670474-08236194ff99?w=1800&auto=format&fit=crop&q=90&dpr=2",
 ];
 
 const eveningHeroImages = [
-  "https://plus.unsplash.com/premium_photo-1673002094195-f18084be89ce?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8c3Vuc2V0fGVufDB8MHwwfHx8MA%3D%3D",
-  "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8bGFuZHNjYXBlfGVufDB8MHwwfHx8MA%3D%3D",
-  "https://images.unsplash.com/photo-1433838552652-f9a46b332c40?w=1800&auto=format&fit=crop&q=90&dpr=2&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fGxhbmRzY2FwZXxlbnwwfDB8MHx8fDA%3D",
+  "https://plus.unsplash.com/premium_photo-1673002094195-f18084be89ce?w=1800&auto=format&fit=crop&q=90&dpr=2",
+  "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1800&auto=format&fit=crop&q=90&dpr=2",
+  "https://images.unsplash.com/photo-1433838552652-f9a46b332c40?w=1800&auto=format&fit=crop&q=90&dpr=2",
 ];
 
 const contentCards: ContentCard[] = [
-  {
-    title: "3 grounding rituals for busy mornings",
-    type: "Article",
-    href: "/articles/grounding-rituals-busy-mornings",
-    image:
-      "https://plus.unsplash.com/premium_photo-1666794846975-c07e4374bc48?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDIwfHx8ZW58MHx8fHx8",
-  },
-  {
-    title: "How to reset your nervous system in 2 minutes",
-    type: "Carousel",
-    href: "/articles/reset-your-nervous-system",
-    image:
-      "https://images.unsplash.com/photo-1599168215926-ebe820046d54?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Zm9yZXN0JTIwbW91bnRhaW58ZW58MHx8MHx8fDA%3D",
-  },
-  {
-    title: "A calming bedtime routine for deep rest",
-    type: "Video",
-    href: "/articles/calming-bedtime-routine",
-    image:
-      "https://plus.unsplash.com/premium_photo-1661953124438-3959644bbcb4?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Zm9yZXN0JTIwbW91bnRhaW58ZW58MHx8MHx8fDA%3D",
-  },
-  {
-    title: "Mountain reset for a calmer mind",
-    type: "Guide",
-    href: "/articles/mountain-reset-calmer-mind",
-    image:
-      "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8NGslMjBtb3VudGFpbnxlbnwwfHwwfHx8MA%3D%3D",
-  },
-  {
-    title: "Nature focus: 5-minute visual grounding",
-    type: "Mindful View",
-    href: "/articles/nature-focus-visual-grounding",
-    image:
-      "https://plus.unsplash.com/premium_photo-1661964177687-57387c2cbd14?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fDRrJTIwbW91bnRhaW58ZW58MHwwfDB8fHww",
-  },
+  { title: "3 grounding rituals for busy mornings", type: "Article", href: "/articles/grounding-rituals-busy-mornings", image: "https://plus.unsplash.com/premium_photo-1666794846975-c07e4374bc48?w=600&auto=format&fit=crop&q=60" },
+  { title: "How to reset your nervous system in 2 minutes", type: "Carousel", href: "/articles/reset-your-nervous-system", image: "https://images.unsplash.com/photo-1599168215926-ebe820046d54?w=600&auto=format&fit=crop&q=60" },
+  { title: "A calming bedtime routine for deep rest", type: "Video", href: "/articles/calming-bedtime-routine", image: "https://plus.unsplash.com/premium_photo-1661953124438-3959644bbcb4?w=600&auto=format&fit=crop&q=60" },
+  { title: "Mountain reset for a calmer mind", type: "Guide", href: "/articles/mountain-reset-calmer-mind", image: "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=600&auto=format&fit=crop&q=60" },
+  { title: "Nature focus: 5-minute visual grounding", type: "Mindful View", href: "/articles/nature-focus-visual-grounding", image: "https://plus.unsplash.com/premium_photo-1661964177687-57387c2cbd14?w=600&auto=format&fit=crop&q=60" },
 ];
 
 const featureCards: FeatureCard[] = [
-  {
-    title: "Tranquil Moments",
-    description:
-      "Connect with your inner peace through our collection of mindfulness tracks.",
-    buttonLabel: "Start Listening",
-    buttonClassName: "bg-sky-500 text-white",
-    bg: "bg-sky-50 dark:bg-sky-500/10",
-    accent: "from-blue-100 to-sky-50 dark:from-blue-900/20 dark:to-sky-900/10",
-    illustration: "🎧",
-    category: "Mindfulness",
-    imageSrc: "/image1.png",
-    categoryClassName: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
-    route: "/meditate",
-  },
-  {
-    title: "Stress Control Online",
-    description:
-      "An evidence-based CBT program helps you learn how to deal with stress.",
-    buttonLabel: "Explore more",
-    buttonClassName: "bg-amber-500 text-white",
-    bg: "bg-amber-50 dark:bg-amber-500/10",
-    accent: "from-orange-200 to-orange-50 dark:from-orange-900/20 dark:to-orange-900/10",
-    illustration: "🧘",
-    category: "CBT Program",
-    imageSrc: "/image2.png",
-    categoryClassName: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-    route: "/stress-control",
-  },
-  {
-    title: "Diet and Nutrition Counselling",
-    description:
-      "Get personalized free health counselling and a diet plan.",
-    buttonLabel: "Diet Counselling",
-    buttonClassName: "bg-green-600 text-white",
-    bg: "bg-green-50 dark:bg-green-500/10",
-    accent: "from-green-200 to-green-50 dark:from-green-900/20 dark:to-green-900/10",
-    illustration: "🥗",
-    category: "Nutrition",
-    imageSrc: "/image3.png",
-    categoryClassName: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-    route: "/nutrition",
-  },
-  {
-    title: "Counselling support, anytime",
-    description: "Get free & unlimited support from the experts.",
-    buttonLabel: "Counselling Sessions",
-    buttonClassName: "bg-blue-500 text-white",
-    bg: "bg-blue-50 dark:bg-blue-500/10",
-    accent: "from-blue-200 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/10",
-    illustration: "💬",
-    category: "Expert Support",
-    imageSrc: "/image4.png",
-    categoryClassName: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-    route: "/therapist-bridge",
-  },
-  {
-    title: "This is your safe space",
-    description:
-      "Try expressing your thoughts, feelings and stories to boost your mental health daily.",
-    buttonLabel: "Write about today",
-    buttonClassName: "bg-violet-500 text-white",
-    bg: "bg-violet-50 dark:bg-violet-500/10",
-    accent: "from-violet-200 to-violet-50 dark:from-violet-900/20 dark:to-violet-900/10",
-    illustration: "✍️",
-    category: "Journaling",
-    imageSrc: "/safe_space.png",
-    categoryClassName: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
-    route: "/journal",
-  },
+  { title: "Tranquil Moments", description: "Connect with your inner peace through our collection of mindfulness tracks.", buttonLabel: "Start Listening", buttonClassName: "bg-sky-500 text-white", bg: "bg-calm-blue/40 dark:bg-calm-blue/20", accent: "from-calm-blue to-transparent", illustration: "🎧", category: "Mindfulness", imageSrc: "/image1.png", categoryClassName: "bg-calm-blue text-primary", route: "/meditate" },
+  { title: "Stress Control Online", description: "An evidence-based CBT program helps you learn how to deal with stress.", buttonLabel: "Explore more", buttonClassName: "bg-warning text-white", bg: "bg-warning/15 dark:bg-warning/10", accent: "from-warning/20 to-transparent", illustration: "🧘", category: "CBT Program", imageSrc: "/image2.png", categoryClassName: "bg-warning/20 text-warning", route: "/stress-control" },
+  { title: "Diet and Nutrition Counselling", description: "Get personalized free health counselling and a diet plan.", buttonLabel: "Diet Counselling", buttonClassName: "bg-success text-white", bg: "bg-serene-green/40 dark:bg-serene-green/20", accent: "from-serene-green to-transparent", illustration: "🥗", category: "Nutrition", imageSrc: "/image3.png", categoryClassName: "bg-serene-green text-success", route: "/nutrition" },
+  { title: "Counselling support, anytime", description: "Get free & unlimited support from the experts.", buttonLabel: "Counselling Sessions", buttonClassName: "bg-primary text-primary-foreground", bg: "bg-calm-blue/30 dark:bg-calm-blue/15", accent: "from-calm-blue to-transparent", illustration: "💬", category: "Expert Support", imageSrc: "/image4.png", categoryClassName: "bg-calm-blue text-primary", route: "/therapist-bridge" },
+  { title: "This is your safe space", description: "Try expressing your thoughts, feelings and stories to boost your mental health daily.", buttonLabel: "Write about today", buttonClassName: "bg-warm-purple/60 text-foreground", bg: "bg-warm-purple/20 dark:bg-warm-purple/10", accent: "from-warm-purple to-transparent", illustration: "✍️", category: "Journaling", imageSrc: "/safe_space.png", categoryClassName: "bg-warm-purple/40 text-foreground", route: "/journal" },
 ];
 
 const weekLabels = ["M", "T", "W", "T", "F", "S", "S"];
@@ -275,9 +137,9 @@ const dummyWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "�
 const loggedWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "🤩", "😊", null];
 
 const sectionTitleClass = "text-[18px] font-semibold text-foreground";
-const cardClass = "rounded-[24px] bg-card p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5";
-const horizontalScrollClass =
-  "flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+const cardClass = "rounded-2xl bg-card p-4 shadow-card sm:p-5";
+const horizontalScrollClass = "flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+
 const getVisibleContentCardCount = (width: number) => {
   if (width < 640) return 1;
   if (width < 1024) return 2;
@@ -285,10 +147,7 @@ const getVisibleContentCardCount = (width: number) => {
 };
 
 const getContentCardColumnWidth = (visibleCount: number, peekPx: number, gapRem = 1) => {
-  if (visibleCount <= 1) {
-    return `calc(100% - ${peekPx}px)`;
-  }
-
+  if (visibleCount <= 1) return `calc(100% - ${peekPx}px)`;
   return `calc((100% - ${(visibleCount - 1) * gapRem}rem - ${peekPx}px) / ${visibleCount})`;
 };
 
@@ -322,21 +181,7 @@ const getHeroBackgroundPosition = (dayPeriod: "morning" | "afternoon" | "evening
 
 const getDayOfYear = (date: Date) => {
   const start = new Date(date.getFullYear(), 0, 0);
-  const diff = date.getTime() - start.getTime();
-  return Math.floor(diff / 86400000);
-};
-
-const getRegionCode = () => {
-  const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-  const parts = locale.split(/[-_]/);
-  return parts.length > 1 ? parts[1]?.toUpperCase() ?? "" : "";
-};
-
-const getDynamicAffirmation = (date: Date, period: "morning" | "afternoon" | "evening") => {
-  const dayIndex = getDayOfYear(date);
-  const hourIndex = date.getHours();
-  const pool = affirmationsByPeriod[period];
-  return pool[(dayIndex + hourIndex) % pool.length];
+  return Math.floor((date.getTime() - start.getTime()) / 86400000);
 };
 
 const getRandomAffirmation = (period: "morning" | "afternoon" | "evening") => {
@@ -347,39 +192,19 @@ const getRandomAffirmation = (period: "morning" | "afternoon" | "evening") => {
 const getNextDayPeriodBoundary = (current: Date) => {
   const next = new Date(current);
   const hours = current.getHours();
-
-  if (hours < 12) {
-    next.setHours(12, 0, 0, 0);
-    return next;
-  }
-
-  if (hours < 17) {
-    next.setHours(17, 0, 0, 0);
-    return next;
-  }
-
+  if (hours < 12) { next.setHours(12, 0, 0, 0); return next; }
+  if (hours < 17) { next.setHours(17, 0, 0, 0); return next; }
   next.setDate(next.getDate() + 1);
   next.setHours(12, 0, 0, 0);
   return next;
 };
 
-const getDashboardRevealStyle = (
-  index: number,
-  extraStyles: CSSProperties = {},
-) => ({
+const getDashboardRevealStyle = (index: number, extraStyles: CSSProperties = {}): CSSProperties => ({
   ...extraStyles,
   ["--mm-enter-delay" as const]: `${80 + index * 90}ms`,
-}) as CSSProperties;
+});
 
-const SectionHeader = ({
-  title,
-  action,
-  onAction,
-}: {
-  title: string;
-  action?: string;
-  onAction?: () => void;
-}) => (
+const SectionHeader = ({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) => (
   <div className="flex items-center justify-between gap-3">
     <h2 className={sectionTitleClass}>{title}</h2>
     {action ? (
@@ -417,13 +242,9 @@ const Index = () => {
     { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", writer: "Nelson Mandela" },
     { text: "The way to get started is to quit talking and begin doing.", writer: "Walt Disney" },
     { text: "Your time is limited, so don't waste it living someone else's life.", writer: "Steve Jobs" },
-    { text: "If life were predictable it would cease to be life, and be without flavor.", writer: "Eleanor Roosevelt" },
-    { text: "Life is what happens when you're busy making other plans.", writer: "John Lennon" },
-    { text: "The only impossible journey is the one you never begin.", writer: "Tony Robbins" },
     { text: "Life itself is the most wonderful fairy tale.", writer: "Hans Christian Andersen" },
     { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", writer: "Winston S. Churchill" },
-    { text: "What you get by achieving your goals is not as important as what you become by achieving your goals.", writer: "Zig Ziglar" },
-    { text: "Believe you can and you're halfway there.", writer: "Theodore Roosevelt" }
+    { text: "Believe you can and you're halfway there.", writer: "Theodore Roosevelt" },
   ];
 
   const [dailyQuote] = useState(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -440,27 +261,17 @@ const Index = () => {
   const heroBackgroundPosition = getHeroBackgroundPosition(dayPeriod);
 
   const displayName = useMemo(() => {
-    const metadataName =
-      user?.user_metadata?.full_name ??
-      user?.user_metadata?.name ??
-      user?.email?.split("@")[0] ??
-      "Friend";
-
-    return String(metadataName)
-      .trim()
-      .split(/[\s_-]+/)[0]
-      .replace(/^./, (character) => character.toUpperCase());
+    const name = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email?.split("@")[0] ?? "Friend";
+    return String(name).trim().split(/[\s_-]+/)[0].replace(/^./, (c) => c.toUpperCase());
   }, [user]);
 
   const avatarInitial = displayName.charAt(0).toUpperCase() || "F";
   const [affirmation] = useState(() => getRandomAffirmation(dayPeriod));
   const resolvedWeekMoods = loggedWeekMoods.length > 0 ? loggedWeekMoods : dummyWeekMoods;
   const loopedContentCards = useMemo(
-    () => (
-      contentCards.length > visibleContentCardCount
-        ? [...contentCards, ...contentCards.slice(0, visibleContentCardCount)]
-        : contentCards
-    ),
+    () => contentCards.length > visibleContentCardCount
+      ? [...contentCards, ...contentCards.slice(0, visibleContentCardCount)]
+      : contentCards,
     [visibleContentCardCount],
   );
   const isContentCarouselInteractive = contentCards.length > visibleContentCardCount;
@@ -475,24 +286,15 @@ const Index = () => {
   const showFloatingChatBubble = !isScrollingDown && !isTypingFocus;
 
   const weekMoodData = weekLabels.map((label, index) => ({
-    label,
-    mood: index < currentDayIndex ? (resolvedWeekMoods[index] ?? null) : null,
-    isToday: index === currentDayIndex,
+    label, mood: index < currentDayIndex ? (resolvedWeekMoods[index] ?? null) : null, isToday: index === currentDayIndex,
   }));
-  const loggedMoodCount = weekMoodData.filter((day) => day.mood !== null).length;
+  const loggedMoodCount = weekMoodData.filter((d) => d.mood !== null).length;
   const moodCompletionPercent = Math.round((loggedMoodCount / weekMoodData.length) * 100);
 
   useEffect(() => {
     const nextBoundary = getNextDayPeriodBoundary(currentTime);
-    const delayMs = Math.max(0, nextBoundary.getTime() - Date.now());
-
-    const timer = window.setTimeout(() => {
-      setCurrentTime(new Date());
-    }, delayMs);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
+    const timer = window.setTimeout(() => setCurrentTime(new Date()), Math.max(0, nextBoundary.getTime() - Date.now()));
+    return () => window.clearTimeout(timer);
   }, [currentTime]);
 
   useEffect(() => {
@@ -500,145 +302,64 @@ const Index = () => {
       const nextWidth = window.innerWidth;
       const nextVisibleCount = getVisibleContentCardCount(nextWidth);
       setViewportWidth(nextWidth);
-      setVisibleContentCardCount((previousCount) => {
-        if (previousCount === nextVisibleCount) {
-          return previousCount;
-        }
-
+      setVisibleContentCardCount((prev) => {
+        if (prev === nextVisibleCount) return prev;
         setIsContentCarouselAnimating(false);
         setContentCarouselIndex(0);
         return nextVisibleCount;
       });
     };
-
     window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
-    if (!selectedMood) {
-      setIsMoodToastVisible(false);
-      return;
-    }
-
+    if (!selectedMood) { setIsMoodToastVisible(false); return; }
     setIsMoodToastVisible(true);
-
-    const fadeTimer = window.setTimeout(() => {
-      setIsMoodToastVisible(false);
-    }, 2400);
-
-    const hideCardTimer = window.setTimeout(() => {
-      setIsMoodCardVisible(false);
-    }, 3200);
-
-    return () => {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(hideCardTimer);
-    };
+    const fadeTimer = window.setTimeout(() => setIsMoodToastVisible(false), 2400);
+    const hideCardTimer = window.setTimeout(() => setIsMoodCardVisible(false), 3200);
+    return () => { window.clearTimeout(fadeTimer); window.clearTimeout(hideCardTimer); };
   }, [selectedMood]);
 
   useEffect(() => {
-    const isTypingElement = (target: EventTarget | null) => {
-      if (!(target instanceof HTMLElement)) {
-        return false;
-      }
-
-      const tagName = target.tagName;
-      return (
-        target.isContentEditable ||
-        tagName === "INPUT" ||
-        tagName === "TEXTAREA" ||
-        tagName === "SELECT"
-      );
+    const isTypingElement = (t: EventTarget | null) => {
+      if (!(t instanceof HTMLElement)) return false;
+      return t.isContentEditable || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT";
     };
-
-    const handleFocusIn = (event: FocusEvent) => {
-      if (isTypingElement(event.target)) {
-        setIsTypingFocus(true);
-      }
-    };
-
-    const handleFocusOut = () => {
-      window.setTimeout(() => {
-        setIsTypingFocus(isTypingElement(document.activeElement));
-      }, 0);
-    };
-
+    const handleFocusIn = (e: FocusEvent) => { if (isTypingElement(e.target)) setIsTypingFocus(true); };
+    const handleFocusOut = () => { window.setTimeout(() => setIsTypingFocus(isTypingElement(document.activeElement)), 0); };
     window.addEventListener("focusin", handleFocusIn);
     window.addEventListener("focusout", handleFocusOut);
-
-    return () => {
-      window.removeEventListener("focusin", handleFocusIn);
-      window.removeEventListener("focusout", handleFocusOut);
-    };
+    return () => { window.removeEventListener("focusin", handleFocusIn); window.removeEventListener("focusout", handleFocusOut); };
   }, []);
 
   useEffect(() => {
     previousScrollY.current = window.scrollY;
-
     const handleScroll = () => {
       const currentY = window.scrollY;
-      const scrollDelta = currentY - previousScrollY.current;
-
-      if (scrollDelta > 8 && currentY > 120) {
-        setIsScrollingDown(true);
-      } else if (scrollDelta < -8) {
-        setIsScrollingDown(false);
-      }
-
-      if (scrollingDownResetTimer.current) {
-        window.clearTimeout(scrollingDownResetTimer.current);
-      }
-
-      scrollingDownResetTimer.current = window.setTimeout(() => {
-        setIsScrollingDown(false);
-      }, 800);
-
+      const delta = currentY - previousScrollY.current;
+      if (delta > 8 && currentY > 120) setIsScrollingDown(true);
+      else if (delta < -8) setIsScrollingDown(false);
+      if (scrollingDownResetTimer.current) window.clearTimeout(scrollingDownResetTimer.current);
+      scrollingDownResetTimer.current = window.setTimeout(() => setIsScrollingDown(false), 800);
       previousScrollY.current = currentY;
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (scrollingDownResetTimer.current) {
-        window.clearTimeout(scrollingDownResetTimer.current);
-      }
-    };
+    return () => { window.removeEventListener("scroll", handleScroll); if (scrollingDownResetTimer.current) window.clearTimeout(scrollingDownResetTimer.current); };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (suppressCardClickTimer.current) {
-        window.clearTimeout(suppressCardClickTimer.current);
-      }
-    };
-  }, []);
+  useEffect(() => () => { if (suppressCardClickTimer.current) window.clearTimeout(suppressCardClickTimer.current); }, []);
 
   const handleNextContentCards = () => {
-    if (!isContentCarouselInteractive) {
-      return;
-    }
-
+    if (!isContentCarouselInteractive) return;
     setIsContentCarouselAnimating(true);
-    setContentCarouselIndex((previousIndex) => previousIndex + 1);
+    setContentCarouselIndex((prev) => prev + 1);
   };
 
   const handlePreviousContentCards = () => {
-    if (!isContentCarouselInteractive) {
-      return;
-    }
-
+    if (!isContentCarouselInteractive) return;
     setIsContentCarouselAnimating(true);
-    setContentCarouselIndex((previousIndex) => {
-      if (previousIndex <= 0) {
-        return Math.max(contentCards.length - 1, 0);
-      }
-
-      return previousIndex - 1;
-    });
+    setContentCarouselIndex((prev) => prev <= 0 ? Math.max(contentCards.length - 1, 0) : prev - 1);
   };
 
   const handleSelectContentCard = (index: number) => {
@@ -646,116 +367,78 @@ const Index = () => {
     setContentCarouselIndex(index);
   };
 
-  const handleContentCarouselPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isContentCarouselInteractive) {
-      return;
-    }
-
-    carouselPointerStartX.current = event.clientX;
+  const handleContentCarouselPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isContentCarouselInteractive) return;
+    carouselPointerStartX.current = e.clientX;
     hasDraggedContentCarousel.current = false;
     setIsContentCarouselDragging(true);
     setIsContentCarouselAnimating(false);
     setContentDragOffset(0);
-    event.currentTarget.setPointerCapture(event.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const handleContentCarouselPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isContentCarouselInteractive || !isContentCarouselDragging || carouselPointerStartX.current === null) {
-      return;
-    }
-
-    const delta = event.clientX - carouselPointerStartX.current;
-    if (Math.abs(delta) > 8) {
-      hasDraggedContentCarousel.current = true;
-    }
+  const handleContentCarouselPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isContentCarouselInteractive || !isContentCarouselDragging || carouselPointerStartX.current === null) return;
+    const delta = e.clientX - carouselPointerStartX.current;
+    if (Math.abs(delta) > 8) hasDraggedContentCarousel.current = true;
     setContentDragOffset(delta);
   };
 
-  const handleContentCarouselPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isContentCarouselInteractive) {
-      return;
-    }
-
-    if (carouselPointerStartX.current === null) {
-      setIsContentCarouselDragging(false);
-      setContentDragOffset(0);
-      return;
-    }
-
-    const delta = event.clientX - carouselPointerStartX.current;
-    const swipeThreshold = 56;
-
+  const handleContentCarouselPointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isContentCarouselInteractive) return;
+    if (carouselPointerStartX.current === null) { setIsContentCarouselDragging(false); setContentDragOffset(0); return; }
+    const delta = e.clientX - carouselPointerStartX.current;
     carouselPointerStartX.current = null;
     setIsContentCarouselDragging(false);
     setContentDragOffset(0);
     setIsContentCarouselAnimating(true);
-
     if (Math.abs(delta) > 8) {
       suppressCardClick.current = true;
-      if (suppressCardClickTimer.current) {
-        window.clearTimeout(suppressCardClickTimer.current);
-      }
-      suppressCardClickTimer.current = window.setTimeout(() => {
-        suppressCardClick.current = false;
-      }, 220);
+      if (suppressCardClickTimer.current) window.clearTimeout(suppressCardClickTimer.current);
+      suppressCardClickTimer.current = window.setTimeout(() => { suppressCardClick.current = false; }, 220);
     }
-
-    if (delta <= -swipeThreshold) {
-      handleNextContentCards();
-      return;
-    }
-
-    if (delta >= swipeThreshold) {
-      handlePreviousContentCards();
-    }
+    if (delta <= -56) { handleNextContentCards(); return; }
+    if (delta >= 56) handlePreviousContentCards();
   };
 
   const handleContentCarouselTransitionEnd = () => {
-    if (contentCarouselIndex < contentCards.length) {
-      return;
-    }
-
+    if (contentCarouselIndex < contentCards.length) return;
     setIsContentCarouselAnimating(false);
     setContentCarouselIndex(0);
   };
 
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
-
-  if (!user) {
-    return <PublicLanding />;
-  }
+  if (loading) return <DashboardSkeleton />;
+  if (!user) return <PublicLanding />;
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] text-[#1A1A1A]">
+    <div className="min-h-screen bg-background text-foreground">
       <main
         className="flex w-full max-w-none flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-8"
         style={{ paddingBottom: "calc(10rem + env(safe-area-inset-bottom))" }}
       >
+        {/* ── Hero ── */}
         <section
-          className="mm-dashboard-stagger relative min-h-[220px] overflow-hidden rounded-[32px] px-4 pb-6 pt-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:min-h-[280px] sm:px-6"
+          className="mm-dashboard-stagger relative min-h-[220px] overflow-hidden rounded-3xl px-4 pb-6 pt-4 text-white shadow-overlay sm:min-h-[280px] sm:px-6"
           style={getDashboardRevealStyle(0, {
-            backgroundImage:
-              `linear-gradient(180deg, rgba(17,24,39,0.12) 0%, rgba(15,23,42,0.48) 100%), url('${heroBackgroundImage}')`,
+            backgroundImage: `linear-gradient(180deg, rgba(17,24,39,0.12) 0%, rgba(15,23,42,0.48) 100%), url('${heroBackgroundImage}')`,
             backgroundSize: "cover",
             backgroundPosition: heroBackgroundPosition,
             backgroundRepeat: "no-repeat",
           })}
         >
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(15,23,42,0.22))]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/20" />
 
           <div className="relative z-10 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => navigate("/chat")}
-                className="flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-full border border-white/40 bg-white/25 p-0 ring-2 ring-white/70 shadow-lg shadow-white/30 backdrop-blur-md transition-transform duration-150 hover:scale-105"
+                className="flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-full border border-white/40 bg-white/25 ring-2 ring-white/70 shadow-lg shadow-white/30 backdrop-blur-md transition-transform duration-150 hover:scale-105"
                 aria-label="Open AI companion"
               >
                 <img src="/image5.png" alt="AI companion" className="h-full w-full rounded-full object-cover" />
               </button>
-              <p className="breathing-hero font-genz max-w-[10rem] text-xs font-semibold leading-tight text-white/95 sm:text-sm">
+              <p className="breathing-hero max-w-[10rem] text-xs font-semibold leading-tight text-white/95 sm:text-sm">
                 Meet your 3D avatar companion
               </p>
             </div>
@@ -764,31 +447,25 @@ const Index = () => {
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/18 backdrop-blur-md text-white transition-transform duration-150 hover:scale-105"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/20 backdrop-blur-md text-white transition-transform duration-150 hover:scale-105"
                 aria-label="Toggle color theme"
               >
-                {theme === "dark" ? (
-                  <Sun className="h-5 w-5" />
-                ) : (
-                  <Moon className="h-5 w-5" />
-                )}
-                <span className="sr-only">Toggle dark or light mode</span>
+                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
               <button
                 type="button"
-                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/18 backdrop-blur-md transition-transform duration-150 hover:scale-105"
+                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/20 backdrop-blur-md transition-transform duration-150 hover:scale-105"
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5 text-white" />
-                <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F97316] px-1 text-[10px] font-semibold text-white">
+                <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-semibold text-white">
                   3
                 </span>
               </button>
-
               <button
                 type="button"
                 onClick={() => navigate("/profile")}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-[#F59E0B] text-sm font-semibold text-white shadow-sm transition-transform duration-150 hover:scale-105"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-primary text-sm font-semibold text-primary-foreground shadow-xs transition-transform duration-150 hover:scale-105"
                 aria-label="Open profile"
               >
                 {avatarInitial}
@@ -801,30 +478,29 @@ const Index = () => {
             <h1 className="mt-3 text-[2rem] font-bold leading-tight sm:text-[2.35rem]">
               {displayName} <span className="inline-block origin-[70%_70%]">👋</span>
             </h1>
-            <p className="mt-3 rounded-full bg-white/18 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur-sm">
+            <p className="mt-3 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur-sm">
               🔥 6-day streak — keep it up!
             </p>
           </div>
         </section>
 
+        {/* ── Daily Affirmation ── */}
         <section
-          className="mm-dashboard-stagger rounded-[24px] border border-primary/20 border-l-4 border-l-primary bg-primary/10 px-5 py-4 shadow-[0_16px_35px_rgba(129,140,248,0.12)] dark:border-slate-700 dark:bg-slate-900/70 dark:shadow-[0_16px_35px_rgba(15,23,42,0.35)]"
+          className="mm-dashboard-stagger rounded-2xl border border-primary/20 border-l-4 border-l-primary bg-primary/8 px-5 py-4 shadow-card"
           style={getDashboardRevealStyle(1)}
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary dark:text-sky-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             Daily affirmation 💫
           </p>
-          <p className="mt-2 max-w-3xl whitespace-pre-line text-[15px] leading-7 text-foreground dark:text-slate-100">
+          <p className="mt-2 max-w-3xl whitespace-pre-line text-[15px] leading-7 text-foreground">
             {affirmation}
           </p>
         </section>
 
+        {/* ── Mood Check-in ── */}
         <div className="mm-dashboard-stagger" style={getDashboardRevealStyle(2)}>
           <section
-            className={`${cardClass} overflow-hidden transition-all duration-700 ${isMoodCardVisible
-              ? "max-h-[260px] translate-y-0 opacity-100"
-              : "pointer-events-none max-h-0 -translate-y-2 p-0 opacity-0 shadow-none"
-              }`}
+            className={`${cardClass} overflow-hidden transition-all duration-700 ${isMoodCardVisible ? "max-h-[260px] translate-y-0 opacity-100" : "pointer-events-none max-h-0 -translate-y-2 p-0 opacity-0 shadow-none"}`}
             aria-hidden={!isMoodCardVisible}
           >
             <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
@@ -833,16 +509,11 @@ const Index = () => {
 
             <div className="mt-4 min-h-[110px]">
               {selectedMood ? (
-                <div
-                  className={`flex h-full flex-col items-center justify-center rounded-[20px] bg-amber-50 dark:bg-amber-500/10 px-4 py-6 text-center transition-all duration-700 ${isMoodToastVisible
-                    ? "translate-y-0 opacity-100"
-                    : "pointer-events-none -translate-y-1 opacity-0"
-                    }`}
-                >
+                <div className={`flex h-full flex-col items-center justify-center rounded-xl bg-warning/10 px-4 py-6 text-center transition-all duration-700 ${isMoodToastVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}>
                   <div className="text-4xl">{selectedMood.emoji}</div>
                   <p className="mt-3 text-base font-semibold text-foreground">Thanks for checking in! 💛</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    We&apos;ve saved that you&apos;re feeling {selectedMood.label.toLowerCase()} today.
+                    We've saved that you're feeling {selectedMood.label.toLowerCase()} today.
                   </p>
                 </div>
               ) : (
@@ -852,7 +523,7 @@ const Index = () => {
                       key={mood.label}
                       type="button"
                       onClick={() => setSelectedMood(mood)}
-                      className={`flex flex-col items-center rounded-[20px] px-2 py-3 text-center transition-transform duration-150 hover:scale-[1.04] ${mood.bg}`}
+                      className={`flex flex-col items-center rounded-xl px-2 py-3 text-center transition-transform duration-150 hover:scale-[1.04] ${mood.bg}`}
                     >
                       <span className={`rounded-full ring-2 ring-transparent transition-all duration-150 ${mood.ring} px-1 py-1 text-[2rem]`}>
                         {mood.emoji}
@@ -866,38 +537,32 @@ const Index = () => {
           </section>
         </div>
 
+        {/* ── Quick Actions ── */}
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(3)}>
           <SectionHeader title="Quick Actions" action="More >" onAction={() => navigate("/healthy-habits")} />
           <div className={`${horizontalScrollClass} md:grid md:grid-cols-4 md:overflow-visible md:pb-0`}>
             {quickActions.map((action) => {
               const Icon = action.icon;
               const progressPct = Math.round((action.weeklyDone / 7) * 100);
-
               return (
                 <button
                   key={action.title}
                   type="button"
                   onClick={() => navigate(action.route)}
-                  className={`group relative min-w-[100px] flex-1 overflow-hidden rounded-[28px] border border-white/50 p-4 text-left shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_22px_50px_rgba(15,23,42,0.14)] active:scale-[0.98] md:min-w-0 dark:border-white/10 dark:shadow-[0_16px_36px_rgba(2,6,23,0.35)] ${action.bg}`}
+                  className={`group relative min-w-[100px] flex-1 overflow-hidden rounded-3xl border border-border/50 p-4 text-left shadow-card transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-card-hover active:scale-[0.98] md:min-w-0 dark:border-white/10 ${action.bg}`}
                 >
-                  <span className="absolute inset-0 bg-gradient-to-br from-white/35 via-transparent to-black/5 opacity-70 transition-opacity duration-200 group-hover:opacity-100 dark:from-white/10 dark:to-black/10" />
+                  <span className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-black/5 opacity-70 transition-opacity duration-200 group-hover:opacity-100 dark:from-white/10" />
                   <span className="absolute -right-5 -top-5 h-20 w-20 rounded-full bg-white/20 blur-2xl transition-transform duration-300 group-hover:scale-110" />
-                  {/* Completion dot */}
                   {action.weeklyDone >= 7 && (
-                    <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-green-400 shadow-sm" />
+                    <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-success shadow-xs" />
                   )}
-                  {/* Icon with gradient ring */}
-                  <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-[0_8px_18px_rgba(255,255,255,0.35)] ring-2 ring-white/70 backdrop-blur-sm transition-transform duration-200 group-hover:scale-105 dark:bg-white/10 dark:ring-white/10 ${action.iconColor}`}>
+                  <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-xs ring-2 ring-white/70 backdrop-blur-sm transition-transform duration-200 group-hover:scale-105 dark:bg-white/10 dark:ring-white/10 ${action.iconColor}`}>
                     <Icon className="h-5 w-5 drop-shadow-sm" />
                   </div>
                   <p className="relative mt-4 text-sm font-semibold text-foreground">{action.title}</p>
                   <p className="relative mt-0.5 text-xs font-medium text-muted-foreground">{action.duration}</p>
-                  {/* Weekly progress bar */}
                   <div className="relative mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-current opacity-60 transition-all duration-300 group-hover:opacity-80"
-                      style={{ width: `${progressPct}%` }}
-                    />
+                    <div className="h-full rounded-full bg-current opacity-60 transition-all duration-300 group-hover:opacity-80" style={{ width: `${progressPct}%` }} />
                   </div>
                   <p className="relative mt-1 text-[10px] font-medium text-muted-foreground">{action.weeklyDone}/7 this week</p>
                 </button>
@@ -906,6 +571,7 @@ const Index = () => {
           </div>
         </section>
 
+        {/* ── Past Moods ── */}
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(4)}>
           <h2 className={sectionTitleClass}>Your past moods</h2>
           <div className={horizontalScrollClass}>
@@ -922,25 +588,27 @@ const Index = () => {
           </div>
         </section>
 
+        {/* ── Daily Rhythm Banner ── */}
         <section
-          className="mm-dashboard-stagger rounded-[28px] bg-gradient-to-br from-[#E0E8FF] via-[#EDE9FE] to-[#DBEAFE] p-5 shadow-[0_18px_40px_rgba(59,130,246,0.08)]"
+          className="mm-dashboard-stagger rounded-3xl bg-gradient-to-br from-calm-blue via-warm-purple/30 to-serene-green/20 p-5 shadow-card"
           style={getDashboardRevealStyle(5)}
         >
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-[#1E3A8A]">A gentle glance at your daily rhythm</h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-[#475569]">
+              <h2 className="text-xl font-semibold text-foreground">A gentle glance at your daily rhythm</h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                 Keep tabs on the tiny wins that help your mind feel grounded and cared for.
               </p>
             </div>
-            <div className="hidden h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white/60 text-3xl md:flex">
+            <div className="hidden h-20 w-20 shrink-0 items-center justify-center rounded-full bg-background/60 text-3xl md:flex">
               📈
             </div>
           </div>
         </section>
 
+        {/* ── Search ── */}
         <section className="mm-dashboard-stagger" style={getDashboardRevealStyle(6)}>
-          <label className="flex items-center gap-3 rounded-[22px] border border-border bg-card px-4 py-4">
+          <label className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 shadow-xs transition-shadow focus-within:shadow-card focus-within:ring-2 focus-within:ring-ring">
             <Search className="h-5 w-5 text-muted-foreground" />
             <input
               type="text"
@@ -950,20 +618,21 @@ const Index = () => {
           </label>
         </section>
 
+        {/* ── Habits CTA ── */}
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(7)}>
           <SectionHeader title="Habits" action="See all >" />
           <button
             type="button"
             onClick={() => navigate("/healthy-habits")}
-            className="w-full rounded-[28px] bg-gradient-to-r from-[#F8B4B4] via-[#FDBA8C] to-[#FCD9B6] p-5 text-left text-white shadow-[0_24px_50px_rgba(249,115,22,0.18)] transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full rounded-3xl bg-gradient-to-r from-soft-pink/80 via-warning/50 to-warning/30 p-5 text-left text-foreground shadow-card-hover transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
           >
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="max-w-lg">
                 <h2 className="text-2xl font-bold">Build Healthy Habits!</h2>
-                <p className="mt-2 text-sm leading-6 text-white/90">
+                <p className="mt-2 text-sm leading-6 text-foreground/80">
                   A new way to nurture your mind, one step at a time.
                 </p>
-                <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.20)] transition-all duration-200 group-hover:scale-[1.04] active:scale-[0.98]">
+                <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background shadow-card transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]">
                   Get Started
                   <ArrowRight className="h-4 w-4" />
                 </span>
@@ -971,19 +640,20 @@ const Index = () => {
               <img
                 src="/image7.png"
                 alt="Healthy habits illustration"
-                className="h-28 w-full max-w-[160px] shrink-0 rounded-[20px] object-cover shadow-[0_12px_28px_rgba(0,0,0,0.12)]"
+                className="h-28 w-full max-w-[160px] shrink-0 rounded-2xl object-cover shadow-card"
               />
             </div>
           </button>
         </section>
 
+        {/* ── Latest Content Carousel ── */}
         <section
-          className="mm-dashboard-stagger space-y-4 rounded-[28px] border border-border bg-card/90 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5"
+          className="mm-dashboard-stagger space-y-4 rounded-3xl border border-border bg-card/90 p-4 shadow-card sm:p-5"
           style={getDashboardRevealStyle(8)}
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm font-medium text-orange-500">What&apos;s fresh?</p>
+              <p className="text-sm font-medium text-warning">What's fresh?</p>
               <h2 className="mt-1 text-[18px] font-semibold text-foreground">Latest content for you</h2>
             </div>
 
@@ -991,13 +661,13 @@ const Index = () => {
               <div className="text-sm text-muted-foreground">
                 {activeContentCardIndex + 1}/{contentCards.length}
               </div>
-              {isContentCarouselInteractive ? (
+              {isContentCarouselInteractive && (
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={handlePreviousContentCards}
                     aria-label="Show previous content cards"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#111827] text-white shadow-[0_12px_24px_rgba(15,23,42,0.14)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2563EB]"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
@@ -1005,12 +675,12 @@ const Index = () => {
                     type="button"
                     onClick={handleNextContentCards}
                     aria-label="Show next content cards"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#111827] text-white shadow-[0_12px_24px_rgba(15,23,42,0.14)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2563EB]"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
 
@@ -1031,41 +701,23 @@ const Index = () => {
                   key={`${card.title}-${index}`}
                   role={card.href ? "button" : undefined}
                   tabIndex={card.href ? 0 : undefined}
-                  onClick={card.href ? () => {
-                    if (suppressCardClick.current) {
-                      return;
-                    }
-                    navigate(card.href);
-                  } : undefined}
-                  onKeyDown={card.href ? (event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      navigate(card.href);
-                    }
-                  } : undefined}
-                  className={`group relative overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_14px_30px_rgba(15,23,42,0.08)] transition-all duration-200 ${card.href
-                    ? "cursor-pointer hover:-translate-y-1.5 hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                    : ""
-                    }`}
+                  onClick={card.href ? () => { if (!suppressCardClick.current) navigate(card.href!); } : undefined}
+                  onKeyDown={card.href ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(card.href!); } } : undefined}
+                  className={`group relative overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all duration-200 ${card.href ? "cursor-pointer hover:-translate-y-1.5 hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" : ""}`}
                 >
                   <div className="relative h-40 w-full overflow-hidden">
-                    <img
-                      src={card.image}
-                      alt={card.title}
-                      className={`h-full w-full object-cover transition-transform duration-300 ${card.href ? "group-hover:scale-[1.02]" : ""}`}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/30 via-transparent to-transparent" />
+                    <img src={card.image} alt={card.title} className={`h-full w-full object-cover transition-transform duration-300 ${card.href ? "group-hover:scale-[1.02]" : ""}`} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 via-transparent to-transparent" />
                     <button
                       type="button"
-                      onClick={(event) => event.stopPropagation()}
-                      onKeyDown={(event) => event.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
                       aria-label={`Save ${card.title}`}
-                      className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-card/90 text-foreground shadow-[0_10px_20px_rgba(15,23,42,0.12)] backdrop-blur-sm transition-colors duration-150 hover:text-primary"
+                      className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-card/90 text-foreground shadow-card backdrop-blur-sm transition-colors duration-150 hover:text-primary"
                     >
                       <Bookmark className="h-4 w-4" />
                     </button>
-
-                    <div className="absolute left-3 top-3 z-10 rounded-full bg-card/90 px-3 py-1 text-xs font-semibold text-foreground shadow-[0_10px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+                    <div className="absolute left-3 top-3 z-10 rounded-full bg-card/90 px-3 py-1 text-xs font-semibold text-foreground shadow-xs backdrop-blur-sm">
                       {card.type}
                     </div>
                   </div>
@@ -1074,12 +726,10 @@ const Index = () => {
                     <h3 className={`text-sm font-semibold leading-6 transition-colors duration-150 ${card.href ? "text-foreground group-hover:text-primary" : "text-foreground"}`}>
                       {card.title}
                     </h3>
-
                     <div className="flex items-center justify-between gap-3 text-sm">
                       <p className="text-muted-foreground">{getContentCardActionLabel(card.type)}</p>
                       <span className="inline-flex items-center gap-1 font-semibold text-primary">
-                        Open
-                        <ArrowRight className="h-4 w-4" />
+                        Open <ArrowRight className="h-4 w-4" />
                       </span>
                     </div>
                   </div>
@@ -1088,13 +738,12 @@ const Index = () => {
             </div>
           </div>
 
-          {isContentCarouselInteractive ? (
+          {isContentCarouselInteractive && (
             <div className="flex items-center justify-between gap-3 pt-1">
               <p className="text-xs text-muted-foreground">Swipe cards to explore more</p>
               <div className="flex items-center gap-1.5" role="tablist" aria-label="Content carousel pagination">
                 {contentCards.map((card, index) => {
                   const isActive = index === activeContentCardIndex;
-
                   return (
                     <button
                       key={card.title}
@@ -1103,36 +752,30 @@ const Index = () => {
                       role="tab"
                       aria-selected={isActive}
                       aria-label={`Go to card ${index + 1}: ${card.title}`}
-                      className={`h-2.5 rounded-full transition-all duration-200 ${isActive
-                        ? "w-6 bg-primary"
-                        : "w-2.5 bg-muted-foreground/35 hover:bg-muted-foreground/55"
-                        }`}
+                      className={`h-2.5 rounded-full transition-all duration-200 ${isActive ? "w-6 bg-primary" : "w-2.5 bg-muted-foreground/35 hover:bg-muted-foreground/55"}`}
                     />
                   );
                 })}
               </div>
             </div>
-          ) : null}
+          )}
         </section>
 
+        {/* ── Wellness Toolkit ── */}
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(9)}>
           <SectionHeader title="Your Wellness Toolkit" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {featureCards.map((card, index) => (
               <article
                 key={card.title}
-                className={`mm-dashboard-stagger flex flex-col rounded-[24px] ${card.bg} p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]`}
+                className={`mm-dashboard-stagger flex flex-col rounded-2xl ${card.bg} p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover`}
                 style={getDashboardRevealStyle(10 + index)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${card.categoryClassName}`}>
                     {card.category}
                   </span>
-                  <img
-                    src={card.imageSrc}
-                    alt={card.title}
-                    className="h-24 w-24 shrink-0 rounded-xl object-cover"
-                  />
+                  <img src={card.imageSrc} alt={card.title} className="h-24 w-24 shrink-0 rounded-xl object-cover" />
                 </div>
                 <h3 className="mt-3 text-base font-semibold text-foreground">{card.title}</h3>
                 <p className="mt-1 text-sm leading-5 text-muted-foreground">{card.description}</p>
@@ -1140,20 +783,20 @@ const Index = () => {
                   className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] ${card.buttonClassName}`}
                   onClick={() => navigate(card.route)}
                 >
-                  {card.buttonLabel}
-                  <ArrowRight className="h-4 w-4" />
+                  {card.buttonLabel} <ArrowRight className="h-4 w-4" />
                 </button>
               </article>
             ))}
           </div>
         </section>
 
+        {/* ── Week Mood Tracker ── */}
         <section
-          className="mm-dashboard-stagger rounded-[24px] bg-card p-4 shadow-[0_14px_30px_rgba(148,163,184,0.08)]"
+          className="mm-dashboard-stagger rounded-2xl bg-card p-4 shadow-card"
           style={getDashboardRevealStyle(15)}
         >
           <div className="flex items-center justify-between">
-            <h2 className={sectionTitleClass}>This week&apos;s mood</h2>
+            <h2 className={sectionTitleClass}>This week's mood</h2>
             <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               {moodCompletionPercent}% logged
             </span>
@@ -1166,12 +809,7 @@ const Index = () => {
                   {day.label}
                 </span>
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full text-lg ${day.isToday
-                    ? "border-2 border-blue-300 bg-blue-50 text-primary"
-                    : day.mood
-                      ? "bg-card text-foreground shadow-sm"
-                      : "border border-dashed border-border text-muted-foreground"
-                    }`}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full text-lg ${day.isToday ? "border-2 border-primary/50 bg-primary/10 text-primary" : day.mood ? "bg-card text-foreground shadow-xs" : "border border-dashed border-border text-muted-foreground"}`}
                 >
                   {day.mood ?? "·"}
                 </div>
@@ -1181,14 +819,15 @@ const Index = () => {
 
           <div className="mt-3">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-gradient-to-r from-blue-400 to-primary" style={{ width: `${moodCompletionPercent}%` }} />
+              <div className="h-full rounded-full bg-gradient-to-r from-primary/70 to-primary" style={{ width: `${moodCompletionPercent}%` }} />
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground">{loggedMoodCount} of {weekMoodData.length} days logged</p>
           </div>
         </section>
 
+        {/* ── Daily Quote ── */}
         <section
-          className="mm-dashboard-stagger rounded-[20px] bg-card p-4 shadow-[0_12px_24px_rgba(148,163,184,0.06)]"
+          className="mm-dashboard-stagger rounded-2xl bg-card p-4 shadow-card"
           style={getDashboardRevealStyle(16)}
         >
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Daily Insight</p>
@@ -1201,30 +840,32 @@ const Index = () => {
         </section>
       </main>
 
+      {/* ── Floating Chat Bubble ── */}
       <div
         className={`fixed right-4 z-30 flex items-center gap-2.5 transition-all duration-300 sm:right-6 ${showFloatingChatBubble ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"}`}
         style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
       >
-        <p className="breathing-hero rounded-2xl border border-white/60 bg-white/95 px-4 py-2 text-xs font-semibold text-[#1F2937] shadow-[0_12px_32px_rgba(15,23,42,0.12)] backdrop-blur-md">
+        <p className="breathing-hero rounded-2xl border border-border bg-card/95 px-4 py-2 text-xs font-semibold text-foreground shadow-card backdrop-blur-md">
           {greeting} Chat with me 👋
         </p>
         <button
           type="button"
           onClick={() => navigate("/chat")}
-          className="mm-fab-glow relative h-14 w-14 overflow-hidden rounded-full shadow-[0_18px_40px_rgba(99,102,241,0.30)] ring-2 ring-white/40 transition-all duration-200 hover:scale-110 hover:shadow-[0_22px_48px_rgba(99,102,241,0.40)] active:scale-95"
+          className="mm-fab-glow relative h-14 w-14 overflow-hidden rounded-full shadow-overlay ring-2 ring-primary/40 transition-all duration-200 hover:scale-110 active:scale-95"
           aria-label="Open AI companion"
         >
           <img src="/image5.png" alt="AI companion" className="h-full w-full object-cover" />
         </button>
       </div>
 
+      {/* ── Bottom Navigation ── */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-[#E8E0F0]/40 bg-white/80 px-6 pt-3 shadow-[0_-8px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-border/50 bg-card/80 px-6 pt-3 shadow-[0_-4px_16px_var(--shadow)] backdrop-blur-xl"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
         <div className="mx-auto flex max-w-md items-center justify-around">
-          <button className="group flex flex-col items-center gap-1 text-[#3B82F6] transition-transform duration-150 hover:scale-105">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EFF6FF] transition-colors duration-200">
+          <button className="group flex flex-col items-center gap-1 text-primary transition-transform duration-150 hover:scale-105">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 transition-colors duration-200">
               <Home className="h-5 w-5" />
             </div>
             <span className="text-[11px] font-semibold">Home</span>
@@ -1233,9 +874,9 @@ const Index = () => {
           <button
             type="button"
             onClick={() => navigate("/psychological-content")}
-            className="group flex flex-col items-center gap-1 text-[#9CA3AF] transition-all duration-150 hover:scale-105 hover:text-[#6B7280]"
+            className="group flex flex-col items-center gap-1 text-muted-foreground transition-all duration-150 hover:scale-105 hover:text-foreground"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-[#F5F3FF]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-accent">
               <Compass className="h-5 w-5" />
             </div>
             <span className="text-[11px] font-medium">Discover</span>
@@ -1244,9 +885,9 @@ const Index = () => {
           <button
             type="button"
             onClick={() => navigate("/profile")}
-            className="group flex flex-col items-center gap-1 text-[#9CA3AF] transition-all duration-150 hover:scale-105 hover:text-[#6B7280]"
+            className="group flex flex-col items-center gap-1 text-muted-foreground transition-all duration-150 hover:scale-105 hover:text-foreground"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-[#FFF7ED]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-accent">
               <User className="h-5 w-5" />
             </div>
             <span className="text-[11px] font-medium">Profile</span>

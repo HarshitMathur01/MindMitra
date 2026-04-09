@@ -135,7 +135,7 @@ const TestimonialCarousel = () => {
                             title={tab.label}
                             className={`w-11 h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center ${filter === tab.key
                                 ? 'bg-primary text-white shadow-md'
-                                : 'bg-crushed-silk text-text-secondary hover:bg-crushed-silk/80 border border-border/60'
+                                : 'bg-crushed-silk text-muted-foreground hover:bg-crushed-silk/80 border border-border/60'
                                 }`}
                         >
                             <tab.icon className="h-4 w-4" />
@@ -150,14 +150,14 @@ const TestimonialCarousel = () => {
                         onClick={prev}
                         className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 z-10 w-10 h-10 bg-crushed-silk rounded-full shadow-lg flex items-center justify-center hover:bg-crushed-silk/70 transition-colors"
                     >
-                        <ChevronLeft className="h-5 w-5 text-text-secondary" />
+                        <ChevronLeft className="h-5 w-5 text-muted-foreground" />
                     </button>
 
                     <button
                         onClick={next}
                         className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 z-10 w-10 h-10 bg-crushed-silk rounded-full shadow-lg flex items-center justify-center hover:bg-crushed-silk/70 transition-colors"
                     >
-                        <ChevronRight className="h-5 w-5 text-text-secondary" />
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </button>
 
                     <AnimatePresence mode="wait">
@@ -182,7 +182,7 @@ const TestimonialCarousel = () => {
                                     </span>
                                 </div>
 
-                                <p className="text-lg md:text-xl text-text-secondary leading-relaxed mb-8 italic">
+                                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 italic">
                                     "{testimonial.quote}"
                                 </p>
 
@@ -194,8 +194,8 @@ const TestimonialCarousel = () => {
                                         {testimonial.avatar}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="font-semibold text-text-primary">{testimonial.name}</p>
-                                        <p className="text-sm text-text-secondary">{testimonial.role} • {testimonial.institution}</p>
+                                        <p className="font-semibold text-foreground">{testimonial.name}</p>
+                                        <p className="text-sm text-muted-foreground">{testimonial.role} • {testimonial.institution}</p>
                                     </div>
                                     <div className="flex gap-0.5">
                                         {Array.from({ length: 5 }).map((_, i) => (

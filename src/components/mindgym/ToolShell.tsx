@@ -103,7 +103,7 @@ export default function ToolShell({
 
   return (
     <div
-      className={`mindgym-root min-h-screen relative overflow-hidden flex flex-col items-center select-none bg-gradient-to-b ${themeColor} transition-colors duration-[2s] ${isWarmTone ? "text-text-primary" : ""}`}
+      className={`mindgym-root min-h-screen relative overflow-hidden flex flex-col items-center select-none bg-gradient-to-b ${themeColor} transition-colors duration-[2s] ${isWarmTone ? "text-foreground" : ""}`}
       style={rootStyle}
     >
 
@@ -150,13 +150,13 @@ export default function ToolShell({
             <div className={isWarmTone ? "bg-white/75 backdrop-blur-xl border border-border rounded-3xl flex items-center justify-between px-3 py-2.5 shadow-[0_20px_60px_-30px_rgba(62,84,60,0.28)]" : "bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl flex items-center justify-between px-3 py-2.5 shadow-2xl"}>
               <button
                 onClick={() => navigate("/mindgym")}
-                className={isWarmTone ? "flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-text-secondary hover:text-text-primary transition-all shadow-sm" : "flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"}
+                className={isWarmTone ? "flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-muted-foreground hover:text-foreground transition-all shadow-sm" : "flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"}
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
 
               <div className="flex flex-col items-center justify-center mx-2 flex-grow overflow-hidden">
-                <h1 className={isWarmTone ? "text-sm font-medium text-text-primary drop-shadow-sm truncate w-full text-center tracking-wide" : "text-sm font-medium text-white/90 drop-shadow-sm truncate w-full text-center tracking-wide"}>{title}</h1>
+                <h1 className={isWarmTone ? "text-sm font-medium text-foreground drop-shadow-sm truncate w-full text-center tracking-wide" : "text-sm font-medium text-white/90 drop-shadow-sm truncate w-full text-center tracking-wide"}>{title}</h1>
                 {totalSteps != null && currentStep != null && (
                   <div className={isWarmTone ? "w-24 h-1 bg-black/10 rounded-full mt-1.5 overflow-hidden flex shadow-inner" : "w-24 h-1 bg-black/20 rounded-full mt-1.5 overflow-hidden flex shadow-inner"}>
                     {Array.from({ length: totalSteps }, (_, i) => (
@@ -172,7 +172,7 @@ export default function ToolShell({
 
               <button
                 onClick={() => setWhyOpen(!whyOpen)}
-                className={`flex items-center justify-center h-10 px-3 rounded-full transition-all outline-none ${isWarmTone ? (whyOpen ? 'bg-primary/12 text-primary' : 'text-text-secondary hover:bg-white/90 hover:text-text-primary') : (whyOpen ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/90')}`}
+                className={`flex items-center justify-center h-10 px-3 rounded-full transition-all outline-none ${isWarmTone ? (whyOpen ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-white/90 hover:text-foreground') : (whyOpen ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/90')}`}
                 title="Why this works"
               >
                 {whyOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -193,8 +193,8 @@ export default function ToolShell({
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className={isWarmTone ? "text-xs font-semibold text-text-primary uppercase tracking-wider mb-1" : "text-xs font-semibold text-white/90 uppercase tracking-wider mb-1"}>Clinical Basis</h3>
-                      <p className={isWarmTone ? "text-base text-text-primary/80 leading-7 font-normal max-w-prose" : "text-sm text-white/70 leading-relaxed font-light"}>
+                      <h3 className={isWarmTone ? "text-xs font-semibold text-foreground uppercase tracking-wider mb-1" : "text-xs font-semibold text-white/90 uppercase tracking-wider mb-1"}>Clinical Basis</h3>
+                      <p className={isWarmTone ? "text-base text-foreground/80 leading-7 font-normal max-w-prose" : "text-sm text-white/70 leading-relaxed font-light"}>
                         {clinicalBasis}
                       </p>
                     </div>

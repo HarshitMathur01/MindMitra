@@ -146,7 +146,7 @@ const CrisisSafetyDemo = () => {
                                         False Positive Handling
                                     </h3>
                                     <div className="bg-surface/80 rounded-lg p-4 border border-primary/15">
-                                        <p className="text-sm text-text-primary mb-3">
+                                        <p className="text-sm text-foreground mb-3">
                                             <strong>Example:</strong> "I killed that exam!"
                                         </p>
                                         <div className="flex items-start gap-2">

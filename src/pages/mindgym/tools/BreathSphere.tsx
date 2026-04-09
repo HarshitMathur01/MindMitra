@@ -152,6 +152,7 @@ function useAmbientSound() {
       filterRef.current = filter;
       runningRef.current = true;
     } catch {
+      /* Web Audio may be unavailable or suspended */
     }
   }, []);
 
@@ -183,6 +184,7 @@ function useAmbientSound() {
       sourceRef.current?.stop();
       ctxRef.current?.close();
     } catch {
+      /* stop/close may throw if already torn down */
     }
     runningRef.current = false;
     ctxRef.current = null;
@@ -528,7 +530,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
               className={`space-y-8 p-5 sm:p-6 ${warmSurfaceCard}`}
             >
               <div>
-                <p className="text-sm font-semibold text-text-secondary uppercase tracking-[0.24em] mb-3">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-[0.24em] mb-3">
                   Breathing Pattern
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -544,10 +546,10 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                             : "border-border bg-white/92 hover:bg-white",
                         )}
                       >
-                        <p className="text-base font-semibold text-text-primary mb-1">
+                        <p className="text-base font-semibold text-foreground mb-1">
                           {val.label}
                         </p>
-                        <p className="text-sm leading-5 text-text-secondary">{val.desc}</p>
+                        <p className="text-sm leading-5 text-muted-foreground">{val.desc}</p>
                       </button>
                     ),
                   )}
@@ -555,7 +557,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-text-secondary uppercase tracking-[0.24em] mb-3">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-[0.24em] mb-3">
                   Duration
                 </p>
                 <div className="flex gap-3 flex-wrap">
@@ -567,7 +569,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                         "px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300",
                         duration === d.seconds
                           ? "border-primary/40 bg-primary/12 text-primary"
-                          : "border-border bg-white/92 text-text-primary hover:bg-white",
+                          : "border-border bg-white/92 text-foreground hover:bg-white",
                       )}
                     >
                       {d.label}
@@ -581,7 +583,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                       placeholder="Custom"
                       value={customMin}
                       onChange={(e) => setCustomMin(e.target.value)}
-                      className="w-20 px-3 py-2.5 rounded-xl border border-border bg-white/92 text-sm text-text-primary font-medium placeholder:text-text-secondary/55 focus:outline-none focus:border-primary/40"
+                      className="w-20 px-3 py-2.5 rounded-xl border border-border bg-white/92 text-sm text-foreground font-medium placeholder:text-muted-foreground/55 focus:outline-none focus:border-primary/40"
                     />
                     {customMin && (
                       <button
@@ -620,7 +622,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
               <div className={`flex items-center justify-between w-full mb-6 px-4 py-3 ${warmControlCard}`}>
                 <div className="flex items-center gap-3">
                   <Wind className="w-4 h-4 text-primary/70" />
-                  <span className="text-sm sm:text-base font-medium text-text-primary">
+                  <span className="text-sm sm:text-base font-medium text-foreground">
                     Cycle {Math.max(1, cycleCount)}
                   </span>
                 </div>
@@ -635,7 +637,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                     aria-label={guideVoiceOn ? "Mute guide voice" : "Enable guide voice"}
                     disabled={!narration.isSupported}
                   >
-                    <Megaphone className={`w-4 h-4 ${guideVoiceOn ? "text-primary" : "text-text-secondary"} ${narration.isSpeaking ? "animate-pulse" : ""}`} />
+                    <Megaphone className={`w-4 h-4 ${guideVoiceOn ? "text-primary" : "text-muted-foreground"} ${narration.isSpeaking ? "animate-pulse" : ""}`} />
                   </button>
                   <button
                     onClick={toggleSound}
@@ -646,10 +648,10 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                     {soundOn ? (
                       <Volume2 className="w-4 h-4 text-primary" />
                     ) : (
-                      <VolumeX className="w-4 h-4 text-text-secondary" />
+                      <VolumeX className="w-4 h-4 text-muted-foreground" />
                     )}
                   </button>
-                  <div className="flex items-center gap-1.5 text-text-primary">
+                  <div className="flex items-center gap-1.5 text-foreground">
                     <Timer className="w-3.5 h-3.5" />
                     <span className="text-sm sm:text-base font-semibold font-mono tabular-nums">
                       {mins}:{secs.toString().padStart(2, "0")}
@@ -747,10 +749,10 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                 animate={{ opacity: 1, y: 0 }}
                 className={`text-center mb-4 px-5 py-4 ${warmControlCard}`}
               >
-                <p className="text-3xl font-semibold text-text-primary tracking-tight">
+                <p className="text-3xl font-semibold text-foreground tracking-tight">
                   {PHASE_LABELS[phase]}
                 </p>
-                <p className="text-sm sm:text-base text-text-secondary mt-1">
+                <p className="text-sm sm:text-base text-muted-foreground mt-1">
                   {config.phases[phase]}s
                 </p>
               </motion.div>
@@ -805,13 +807,13 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                 <p className="text-6xl font-semibold text-primary mb-2">
                   {cycleCount}
                 </p>
-                <p className="text-text-secondary text-sm sm:text-base">
+                <p className="text-muted-foreground text-sm sm:text-base">
                   breathing cycles completed
                 </p>
               </div>
 
               <div className="space-y-4">
-                <p className="text-text-primary text-xl font-semibold">Do you feel calmer?</p>
+                <p className="text-foreground text-xl font-semibold">Do you feel calmer?</p>
                 <div className="flex justify-center gap-4">
                   <motion.button
                     onClick={() => setMoodAnswer(true)}
@@ -819,7 +821,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                       "flex items-center gap-2 px-7 py-3.5 rounded-2xl border text-base font-semibold transition-all duration-300",
                       moodAnswer === true
                         ? "border-primary/40 bg-primary/12 text-primary"
-                        : "border-border bg-white/92 text-text-primary hover:bg-white",
+                        : "border-border bg-white/92 text-foreground hover:bg-white",
                     )}
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
@@ -832,8 +834,8 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                     className={cn(
                       "flex items-center gap-2 px-7 py-3.5 rounded-2xl border text-base font-semibold transition-all duration-300",
                       moodAnswer === false
-                        ? "border-border bg-white text-text-primary"
-                        : "border-border bg-white/92 text-text-primary hover:bg-white",
+                        ? "border-border bg-white text-foreground"
+                        : "border-border bg-white/92 text-foreground hover:bg-white",
                     )}
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
@@ -846,7 +848,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-sm sm:text-base text-text-secondary italic leading-7 max-w-prose mx-auto"
+                    className="text-sm sm:text-base text-muted-foreground italic leading-7 max-w-prose mx-auto"
                   >
                     That's okay — it can take practice. Try a longer session next
                     time.

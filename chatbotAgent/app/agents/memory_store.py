@@ -12,6 +12,7 @@ import google.generativeai as genai
 
 from ..controllers.llm_controller import LLMController
 from ..services.supabase_service import supabase_client
+from ..core.logging import log_timing
 
 logger = logging.getLogger(__name__)
 
@@ -185,24 +186,21 @@ class MemoryStore:
             return {"results": [], "error": "mem0 not initialised"}
 
         try:
-            _t = time.monotonic()
-
             # Build metadata payload
             meta = metadata.copy() if metadata else {}
             if session_id:
                 meta["session_id"] = session_id
             meta.setdefault("source", "conversation")
 
-            result = self._mem0.add(
-                messages=messages,
-                user_id=user_id,
-                metadata=meta,
-            )
+            with log_timing("Memorystore Add extraction", provider="groq", model="llama-3.1-8b-instant", user_id=user_id):
+                result = self._mem0.add(
+                    messages=messages,
+                    user_id=user_id,
+                    metadata=meta,
+                )
 
-            elapsed = (time.monotonic() - _t) * 1000
             count = len(result.get("results", []))
-            logger.info(f"✅ [MEMORY] add_memories: {count} memories in {elapsed:.0f}ms")
-
+            
             # Fire-and-forget: importance scoring + metadata save to Supabase
             if count > 0:
                 # Determine memory_type from metadata

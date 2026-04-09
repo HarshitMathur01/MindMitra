@@ -15,13 +15,13 @@ export default function CrisisOverlay({ open, onClose }: CrisisOverlayProps) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#f3efe4]/88 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/85 backdrop-blur-sm p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="relative w-full max-w-md rounded-3xl bg-white/92 border border-border p-8 text-center shadow-[0_28px_80px_-40px_rgba(62,84,60,0.32)]"
+            className="relative w-full max-w-md rounded-3xl bg-card/95 border border-border p-8 text-center shadow-overlay"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
@@ -29,16 +29,16 @@ export default function CrisisOverlay({ open, onClose }: CrisisOverlayProps) {
           >
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-text-secondary hover:text-text-primary transition-colors"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <Heart className="w-12 h-12 text-rose-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-text-primary mb-2">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
               You matter. Help is here.
             </h2>
-            <p className="text-text-secondary text-sm mb-6 leading-relaxed">
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
               If you&apos;re going through a tough time, please reach out. You don&apos;t
               have to face this alone.
             </p>
@@ -50,8 +50,8 @@ export default function CrisisOverlay({ open, onClose }: CrisisOverlayProps) {
               >
                 <Phone className="w-5 h-5 text-rose-500 shrink-0" />
                 <div className="text-left">
-                  <p className="text-sm font-medium text-text-primary">iCall Helpline</p>
-                  <p className="text-xs text-text-secondary">9152987821 (Mon–Sat, 8am–10pm)</p>
+                  <p className="text-sm font-medium text-foreground">iCall Helpline</p>
+                  <p className="text-xs text-muted-foreground">9152987821 (Mon–Sat, 8am–10pm)</p>
                 </div>
               </a>
               <a
@@ -60,15 +60,15 @@ export default function CrisisOverlay({ open, onClose }: CrisisOverlayProps) {
               >
                 <Phone className="w-5 h-5 text-primary shrink-0" />
                 <div className="text-left">
-                  <p className="text-sm font-medium text-text-primary">NIMHANS Helpline</p>
-                  <p className="text-xs text-text-secondary">080-46110007 (24/7)</p>
+                  <p className="text-sm font-medium text-foreground">NIMHANS Helpline</p>
+                  <p className="text-xs text-muted-foreground">080-46110007 (24/7)</p>
                 </div>
               </a>
             </div>
 
             <Button
               onClick={() => { onClose(); navigate("/chat"); }}
-              className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground h-12 shadow-[0_16px_40px_-24px_rgba(62,84,60,0.45)]"
+              className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground h-12 shadow-card-hover"
             >
               <MessageSquare className="w-4 h-4 mr-2" />
               Talk to MindMitra AI

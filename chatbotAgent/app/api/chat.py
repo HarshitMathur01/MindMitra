@@ -17,6 +17,7 @@ from groq import Groq
 from pydantic import BaseModel
 
 from ..core.auth import validate_user_token
+from ..core.logging import log_timing
 from ..models.request_models import ChatRequest
 from ..models.response_models import ChatResponse
 from ..pipeline.workflow import get_workflow_instance, process_user_chat
@@ -474,20 +475,21 @@ async def process_chat(
             except Exception as prosody_exc:
                 logger.warning(f"⚠️ [CHAT] Prosody analysis failed: {prosody_exc}")
 
-        result = process_user_chat(
-            user_message=request.user_message,
-            recent_messages=context["recent_messages"],
-            conversation_summary=conv_summary,
-            user_activities=context["user_activities"],
-            user_patterns={},
-            voice_analysis=voice_analysis,
-            user_id=user_id,
-            session_id=request.session_id,
-            personality=request.personality,
-            companion_name=request.companion_name,
-            language=request.language,
-            previous_session_summary=prev_session_summary,
-        )
+        with log_timing("Workflow Pipeline: process_user_chat", session_id=request.session_id, user_id=user_id):
+            result = process_user_chat(
+                user_message=request.user_message,
+                recent_messages=context["recent_messages"],
+                conversation_summary=conv_summary,
+                user_activities=context["user_activities"],
+                user_patterns={},
+                voice_analysis=voice_analysis,
+                user_id=user_id,
+                session_id=request.session_id,
+                personality=request.personality,
+                companion_name=request.companion_name,
+                language=request.language,
+                previous_session_summary=prev_session_summary,
+            )
 
         ai_text = result.get("message", "")
         avatar = _build_avatar_package(ai_text, result, request.avatar_visible, request.personality)

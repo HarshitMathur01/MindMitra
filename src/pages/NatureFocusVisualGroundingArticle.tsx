@@ -75,7 +75,7 @@ const NatureFocusVisualGroundingArticle = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
             <Header />
 
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8">
@@ -85,7 +85,7 @@ const NatureFocusVisualGroundingArticle = () => {
                             <button
                                 type="button"
                                 onClick={() => navigate(-1)}
-                                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:text-primary"
+                                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                             >
                                 <ArrowLeft className="h-4 w-4" />
                                 Back
@@ -120,7 +120,7 @@ const NatureFocusVisualGroundingArticle = () => {
                             <img
                                 src="https://plus.unsplash.com/premium_photo-1661964177687-57387c2cbd14?auto=format&fit=crop&w=900&q=80"
                                 alt="Nature focus: 5-minute visual grounding"
-                                className="h-full max-h-[320px] w-full rounded-[24px] object-cover"
+                                className="h-full max-h-[320px] w-full rounded-2xl object-cover"
                             />
                         </div>
                     </div>
@@ -141,7 +141,7 @@ const NatureFocusVisualGroundingArticle = () => {
                                 const Icon = step.icon;
 
                                 return (
-                                    <section key={step.title} className="rounded-[24px] border border-border/50 bg-slate-50 p-5">
+                                    <section key={step.title} className="rounded-2xl border border-border/50 bg-slate-50 p-5">
                                         <div className="flex flex-wrap items-start justify-between gap-4">
                                             <div className="flex items-start gap-3">
                                                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -181,7 +181,7 @@ const NatureFocusVisualGroundingArticle = () => {
                             })}
                         </div>
 
-                        <section className="mt-8 rounded-[24px] border border-border/50 bg-[#F8FAFC] p-5">
+                        <section className="mt-8 rounded-2xl border border-border/50 bg-muted/40 p-5">
                             <h2 className="text-lg font-semibold text-slate-900">References</h2>
                             <p className="mt-2 text-sm leading-7 text-slate-600">
                                 These sources support the grounding, relaxation, and nature-exposure ideas used in this visual reset.

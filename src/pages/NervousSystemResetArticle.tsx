@@ -46,7 +46,7 @@ const NervousSystemResetArticle = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
             <Header />
 
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8">
@@ -56,7 +56,7 @@ const NervousSystemResetArticle = () => {
                             <button
                                 type="button"
                                 onClick={() => navigate(-1)}
-                                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:text-primary"
+                                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                             >
                                 <ArrowLeft className="h-4 w-4" />
                                 Back

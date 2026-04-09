@@ -49,11 +49,11 @@ export function AccountSettings({ loading }: AccountSettingsProps) {
             className="space-y-6"
         >
             <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <User className="h-4 w-4 text-primary" />
                     Account
                 </h3>
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-muted-foreground">
                     Manage your account details and preferences
                 </p>
             </div>
@@ -61,10 +61,10 @@ export function AccountSettings({ loading }: AccountSettingsProps) {
             {/* Email */}
             <div className="flex items-center justify-between p-4 bg-background/50 rounded-xl border border-border/50">
                 <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-text-secondary" />
+                    <Mail className="h-4 w-4 text-muted-foreground" />
                     <div>
-                        <p className="text-sm font-medium text-text-primary">Email</p>
-                        <p className="text-xs text-text-secondary font-mono">{maskedEmail}</p>
+                        <p className="text-sm font-medium text-foreground">Email</p>
+                        <p className="text-xs text-muted-foreground font-mono">{maskedEmail}</p>
                     </div>
                 </div>
                 <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
@@ -75,10 +75,10 @@ export function AccountSettings({ loading }: AccountSettingsProps) {
             {/* Change Password */}
             <div className="flex items-center justify-between p-4 bg-background/50 rounded-xl border border-border/50">
                 <div className="flex items-center gap-3">
-                    <Key className="h-4 w-4 text-text-secondary" />
+                    <Key className="h-4 w-4 text-muted-foreground" />
                     <div>
-                        <p className="text-sm font-medium text-text-primary">Password</p>
-                        <p className="text-xs text-text-secondary">Last changed: Unknown</p>
+                        <p className="text-sm font-medium text-foreground">Password</p>
+                        <p className="text-xs text-muted-foreground">Last changed: Unknown</p>
                     </div>
                 </div>
                 <Button
@@ -93,8 +93,8 @@ export function AccountSettings({ loading }: AccountSettingsProps) {
             {/* Linked Accounts */}
             <div className="p-4 bg-background/50 rounded-xl border border-border/50 space-y-3">
                 <div className="flex items-center gap-2">
-                    <Link2 className="h-4 w-4 text-text-secondary" />
-                    <p className="text-sm font-medium text-text-primary">Linked Accounts</p>
+                    <Link2 className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium text-foreground">Linked Accounts</p>
                 </div>
 
                 <div className="space-y-2">
@@ -108,7 +108,7 @@ export function AccountSettings({ loading }: AccountSettingsProps) {
                                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                                 </svg>
                             </div>
-                            <span className="text-sm text-text-primary">Google</span>
+                            <span className="text-sm text-foreground">Google</span>
                         </div>
                         <Badge
                             variant="secondary"
@@ -124,7 +124,7 @@ export function AccountSettings({ loading }: AccountSettingsProps) {
                     <div className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-2">
                             <div className="h-6 w-6 rounded bg-surface flex items-center justify-center text-xs">📱</div>
-                            <span className="text-sm text-text-primary">Phone</span>
+                            <span className="text-sm text-foreground">Phone</span>
                         </div>
                         <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs">
                             Not linked
@@ -138,8 +138,8 @@ export function AccountSettings({ loading }: AccountSettingsProps) {
                 <div className="flex items-center gap-3">
                     <Crown className="h-4 w-4 text-warning" />
                     <div>
-                        <p className="text-sm font-medium text-text-primary">Subscription Plan</p>
-                        <p className="text-xs text-text-secondary">Access level and features</p>
+                        <p className="text-sm font-medium text-foreground">Subscription Plan</p>
+                        <p className="text-xs text-muted-foreground">Access level and features</p>
                     </div>
                 </div>
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">

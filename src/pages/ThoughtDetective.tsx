@@ -355,7 +355,7 @@ const ThoughtDetective = () => {
       case 'easy': return { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', label: 'EASY', xp: '5' };
       case 'medium': return { color: 'text-amber-700 bg-amber-50 border-amber-200', label: 'MEDIUM', xp: '10' };
       case 'hard': return { color: 'text-rose-700 bg-rose-50 border-rose-200', label: 'HARD', xp: '20' };
-      default: return { color: 'text-text-secondary bg-surface', label: '', xp: '0' };
+      default: return { color: 'text-muted-foreground bg-surface', label: '', xp: '0' };
     }
   };
 
@@ -375,7 +375,7 @@ const ThoughtDetective = () => {
   const isReady = selectedDistortions.length > 0 && selectedAlternative;
 
   return (
-    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <motion.div
         className="container mx-auto px-4 py-6 max-w-6xl"
         initial={{ opacity: 0, y: 12 }}
@@ -398,7 +398,7 @@ const ThoughtDetective = () => {
               }
               navigate('/games');
             }}
-            className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-all duration-200"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200"
           >
             <ArrowLeft className="h-5 w-5" />
             Back
@@ -407,7 +407,7 @@ const ThoughtDetective = () => {
           <div className="flex items-center gap-3">
             {/* Live timer */}
             {!showResults && (
-              <div className="flex items-center gap-1.5 rounded-full bg-surface/80 px-3 py-1.5 text-xs font-mono font-semibold text-text-secondary backdrop-blur-sm">
+              <div className="flex items-center gap-1.5 rounded-full bg-surface/80 px-3 py-1.5 text-xs font-mono font-semibold text-muted-foreground backdrop-blur-sm">
                 <Clock className="h-3.5 w-3.5" />
                 {formatTime(elapsedSeconds)}
               </div>
@@ -446,7 +446,7 @@ const ThoughtDetective = () => {
             <motion.div variants={itemVariants} className="grid grid-cols-4 gap-3 mb-5">
               {[
                 { icon: Target, label: 'Score', value: score, color: 'text-primary', extra: peakScore > score ? `Peak: ${peakScore}` : null },
-                { icon: Flame, label: 'Streak', value: `${streak}x`, color: streak >= 2 ? 'text-orange-500' : 'text-text-secondary', extra: streak >= 2 ? `+${streak * 5} bonus` : null },
+                { icon: Flame, label: 'Streak', value: `${streak}x`, color: streak >= 2 ? 'text-orange-500' : 'text-muted-foreground', extra: streak >= 2 ? `+${streak * 5} bonus` : null },
                 { icon: Brain, label: 'Level', value: level, color: 'text-purple-600', extra: null },
                 { icon: Shield, label: 'Solved', value: `${solvedCases}/5`, color: 'text-emerald-600', extra: null },
               ].map((stat) => (
@@ -461,9 +461,9 @@ const ThoughtDetective = () => {
                   >
                     {stat.value}
                   </motion.p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mt-0.5">{stat.label}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">{stat.label}</p>
                   {stat.extra && (
-                    <p className="text-[10px] text-text-secondary mt-0.5">{stat.extra}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{stat.extra}</p>
                   )}
                 </div>
               ))}
@@ -473,12 +473,12 @@ const ThoughtDetective = () => {
             <motion.div variants={itemVariants} className="mb-6">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Case Progress</span>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Case Progress</span>
                   <Badge className={`text-[10px] border ${getDifficultyConfig(currentCase.difficulty).color}`}>
                     {getDifficultyConfig(currentCase.difficulty).label} +{getDifficultyConfig(currentCase.difficulty).xp}xp
                   </Badge>
                 </div>
-                <span className="text-xs text-text-secondary">{5 - solvedCases} cases left</span>
+                <span className="text-xs text-muted-foreground">{5 - solvedCases} cases left</span>
               </div>
               <div className="h-2.5 w-full rounded-full bg-surface overflow-hidden">
                 <motion.div
@@ -510,7 +510,7 @@ const ThoughtDetective = () => {
               <motion.div variants={itemVariants}>
                 <Card className="bg-surface/50 backdrop-blur-sm border border-border/60 shadow-lg">
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center justify-between text-text-primary">
+                    <CardTitle className="flex items-center justify-between text-foreground">
                       <div className="flex items-center gap-2">
                         <Search className="h-5 w-5" />
                         Case #{currentCase.id.split('-')[1]}
@@ -523,13 +523,13 @@ const ThoughtDetective = () => {
                       <div className="absolute -top-2 left-4 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
                         Negative thought
                       </div>
-                      <p className="text-text-primary text-[15px] leading-relaxed italic mt-1">
+                      <p className="text-foreground text-[15px] leading-relaxed italic mt-1">
                         "{currentCase.thought}"
                       </p>
                     </div>
 
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-sm text-text-primary">
+                      <h4 className="font-semibold text-sm text-foreground">
                         Identify the distortions:
                       </h4>
                       {/* Optional hint */}
@@ -561,17 +561,17 @@ const ThoughtDetective = () => {
                       {DISTORTIONS.map((distortion, index) => {
                         const isSelected = selectedDistortions.includes(distortion.id);
                         const isCorrect = currentCase.distortions.includes(distortion.id);
-                        let buttonClasses = 'bg-surface/60 hover:bg-crushed-silk border-border/40 text-text-primary';
+                        let buttonClasses = 'bg-surface/60 hover:bg-crushed-silk border-border/40 text-foreground';
 
                         if (showCaseFeedback) {
                           if (isCorrect && isSelected) {
                             buttonClasses = 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-transparent shadow-md';
                           } else if (isCorrect && !isSelected) {
-                            buttonClasses = 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-text-primary border-dashed';
+                            buttonClasses = 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-foreground border-dashed';
                           } else if (!isCorrect && isSelected) {
-                            buttonClasses = 'bg-rose-50 dark:bg-rose-900/20 border-rose-300 dark:border-rose-700 text-text-primary';
+                            buttonClasses = 'bg-rose-50 dark:bg-rose-900/20 border-rose-300 dark:border-rose-700 text-foreground';
                           } else {
-                            buttonClasses = 'bg-surface/30 border-border/20 text-text-secondary opacity-50';
+                            buttonClasses = 'bg-surface/30 border-border/20 text-muted-foreground opacity-50';
                           }
                         } else if (isSelected) {
                           buttonClasses = 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-transparent shadow-md shadow-indigo-500/20';
@@ -592,7 +592,7 @@ const ThoughtDetective = () => {
                               <span className="text-base">{distortion.badge}</span>
                               <div className="min-w-0">
                                 <p className="font-medium text-sm">{distortion.name}</p>
-                                <p className={`text-[11px] leading-snug ${isSelected && !showCaseFeedback ? 'text-white/70' : showCaseFeedback && isCorrect && isSelected ? 'text-white/80' : 'text-text-secondary'}`}>{distortion.description}</p>
+                                <p className={`text-[11px] leading-snug ${isSelected && !showCaseFeedback ? 'text-white/70' : showCaseFeedback && isCorrect && isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>{distortion.description}</p>
                               </div>
                               {showCaseFeedback ? (
                                 isCorrect ? (
@@ -626,13 +626,13 @@ const ThoughtDetective = () => {
                     >
                       <Card className="bg-surface/50 backdrop-blur-sm border border-border/60 shadow-lg h-full">
                         <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-text-primary">
+                          <CardTitle className="flex items-center gap-2 text-foreground">
                             <Zap className="h-5 w-5" />
                             Choose a Healthier Alternative
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-xs text-text-secondary mb-4">
+                          <p className="text-xs text-muted-foreground mb-4">
                             Which reframe would help the most? Pick wisely — it's worth 30 points.
                           </p>
 
@@ -649,7 +649,7 @@ const ThoughtDetective = () => {
                                   onClick={() => handleAlternativeSelect(alternative)}
                                   className={`p-4 rounded-xl text-left w-full transition-all duration-200 border ${isSelected
                                     ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-transparent shadow-md shadow-emerald-500/20'
-                                    : 'bg-surface/60 hover:bg-crushed-silk border-border/40 text-text-primary'
+                                    : 'bg-surface/60 hover:bg-crushed-silk border-border/40 text-foreground'
                                     }`}
                                 >
                                   <div className="flex items-start gap-3">
@@ -684,7 +684,7 @@ const ThoughtDetective = () => {
                               disabled={!isReady}
                               className={`w-full py-3 text-white font-semibold transition-all duration-300 ${isReady
                                 ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.01]'
-                                : 'bg-surface text-text-secondary opacity-50 cursor-not-allowed'
+                                : 'bg-surface text-muted-foreground opacity-50 cursor-not-allowed'
                                 }`}
                             >
                               <CheckCircle className="h-4 w-4 mr-2" />
@@ -706,14 +706,14 @@ const ThoughtDetective = () => {
                           {/* Progress preview */}
                           {solvedCases < 4 && (
                             <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface/60 px-3 py-2.5 border border-border/30">
-                              <Lock className="h-3.5 w-3.5 text-text-secondary shrink-0" />
-                              <p className="text-[11px] text-text-secondary">
+                              <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <p className="text-[11px] text-muted-foreground">
                                 {solvedCases < 2
                                   ? `Solve ${2 - solvedCases} more to unlock Medium difficulty`
                                   : `Solve ${4 - solvedCases} more to unlock Hard difficulty`
                                 }
                               </p>
-                              <ChevronRight className="h-3 w-3 text-text-secondary ml-auto shrink-0" />
+                              <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
                             </div>
                           )}
                         </CardContent>
@@ -740,7 +740,7 @@ const ThoughtDetective = () => {
                           <div className="flex-1 space-y-5">
                             <div className="rounded-xl bg-white/60 dark:bg-black/20 p-4 border border-indigo-100/50 dark:border-indigo-900/30">
                               <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-800/70 dark:text-indigo-400 mb-2">Why This Works</h4>
-                              <p className="text-sm text-text-primary leading-relaxed">
+                              <p className="text-sm text-foreground leading-relaxed">
                                 {currentCase.explanation}
                               </p>
                             </div>
@@ -749,7 +749,7 @@ const ThoughtDetective = () => {
                               <h4 className="text-xs font-bold uppercase tracking-widest text-emerald-800/70 dark:text-emerald-400 mb-2">Your Reframe</h4>
                               <div className="flex items-start gap-2">
                                 <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-500 mt-0.5 shrink-0" />
-                                <p className="text-sm text-text-primary italic font-medium">"{selectedAlternative}"</p>
+                                <p className="text-sm text-foreground italic font-medium">"{selectedAlternative}"</p>
                               </div>
                             </div>
                           </div>
@@ -808,18 +808,18 @@ const ThoughtDetective = () => {
                   <Brain className="h-10 w-10 text-white" />
                 </motion.div>
 
-                <h2 className="text-2xl font-bold text-text-primary mb-2">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                   Mission Complete!
                 </h2>
-                <p className="text-sm text-text-secondary mb-6">
+                <p className="text-sm text-muted-foreground mb-6">
                   You analyzed 5 thought patterns in {formatTime(elapsedSeconds)}
                 </p>
 
                 {/* Score */}
                 <div className="mb-6">
                   <p className="text-5xl font-bold text-primary mb-1">{score}</p>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Total Points</p>
-                  <p className="text-sm mt-2 font-medium text-text-secondary">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Points</p>
+                  <p className="text-sm mt-2 font-medium text-muted-foreground">
                     {score >= 400 ? 'Expert Analyst' : score >= 300 ? 'Skilled Detective' : score >= 200 ? 'Rising Analyst' : 'Rookie Detective - Keep practicing'}
                   </p>
                 </div>
@@ -827,21 +827,21 @@ const ThoughtDetective = () => {
                 <div className="grid grid-cols-3 gap-3 mb-6">
                   <div className="rounded-2xl bg-surface p-3">
                     <p className="text-lg font-bold text-emerald-600">{solvedCases}</p>
-                    <p className="text-[10px] font-semibold uppercase text-text-secondary">Cases</p>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Cases</p>
                   </div>
                   <div className="rounded-2xl bg-surface p-3">
                     <p className="text-lg font-bold text-purple-600">Lv.{level}</p>
-                    <p className="text-[10px] font-semibold uppercase text-text-secondary">Level</p>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Level</p>
                   </div>
                   <div className="rounded-2xl bg-surface p-3">
                     <p className="text-lg font-bold text-orange-500">{streak}x</p>
-                    <p className="text-[10px] font-semibold uppercase text-text-secondary">Best Streak</p>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Best Streak</p>
                   </div>
                 </div>
 
                 {earnedBadges.length > 0 && (
                   <div className="mb-6">
-                    <p className="text-xs font-semibold text-text-secondary mb-2 uppercase tracking-wider">Badges Earned</p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Badges Earned</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {earnedBadges.map((badge, index) => (
                         <motion.div
@@ -867,7 +867,7 @@ const ThoughtDetective = () => {
                   <p className="text-xs font-semibold text-primary mb-1">
                     Your mental shield is getting stronger
                   </p>
-                  <p className="text-[11px] text-text-secondary leading-relaxed">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
                     You can now recognize {allIdentifiedDistortions.length} distortion types. Regular reflection helps you notice negative spirals earlier and respond with more balanced thoughts.
                   </p>
                 </div>
@@ -898,7 +898,7 @@ const ThoughtDetective = () => {
               transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
               className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"
             />
-            <p className="mt-3 text-sm text-text-secondary">Loading case file...</p>
+            <p className="mt-3 text-sm text-muted-foreground">Loading case file...</p>
           </div>
         )}
       </motion.div>

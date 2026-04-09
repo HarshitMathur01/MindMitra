@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
 	darkMode: ["class", '[data-theme="dark"]'],
@@ -76,6 +77,9 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
+			spacing: {
+				header: 'var(--header-height)',
+			},
 			keyframes: {
 				'accordion-down': {
 					from: {
@@ -99,10 +103,17 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out'
 			},
 			boxShadow: {
+				// Design-system elevation scale (E0–E3)
+				// Use shadow-card for resting cards, shadow-card-hover on hover,
+				// shadow-overlay for dialogs/popovers
 				theme: '0 4px 24px var(--shadow)',
-				'theme-lg': '0 8px 40px var(--shadow)'
+				'theme-lg': '0 8px 40px var(--shadow)',
+				card: '0 1px 4px var(--shadow), 0 0 0 1px hsl(var(--border) / 0.5)',
+				'card-hover': '0 4px 16px var(--shadow)',
+				overlay: '0 8px 32px var(--shadow), 0 0 0 1px hsl(var(--border) / 0.5)',
+				xs: '0 1px 2px var(--shadow)',
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [tailwindcssAnimate],
 } satisfies Config;

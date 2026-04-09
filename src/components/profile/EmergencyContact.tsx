@@ -65,11 +65,11 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
         >
             <Card className="bg-surface border-danger/20 shadow-sm rounded-2xl ring-1 ring-danger/10">
                 <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                    <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                         <ShieldAlert className="h-5 w-5 text-danger" />
                         Emergency Contact
                     </CardTitle>
-                    <p className="text-sm text-text-secondary flex items-center gap-1.5">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                         <Heart className="h-3.5 w-3.5 text-danger/60" />
                         This helps us keep you safe — yeh aapki suraksha ke liye hai
                     </p>
@@ -78,12 +78,12 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
                 <CardContent className="space-y-5">
                     {/* Trusted Contact Form */}
                     <div className="bg-danger/5 rounded-xl p-4 border border-danger/10 space-y-4">
-                        <p className="text-sm font-medium text-text-primary">
+                        <p className="text-sm font-medium text-foreground">
                             Who should we contact if you're in crisis?
                         </p>
 
                         <div className="space-y-2">
-                            <Label className="text-sm text-text-secondary flex items-center gap-2">
+                            <Label className="text-sm text-muted-foreground flex items-center gap-2">
                                 <User className="h-3.5 w-3.5" />
                                 Contact Name
                             </Label>
@@ -96,7 +96,7 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-sm text-text-secondary flex items-center gap-2">
+                            <Label className="text-sm text-muted-foreground flex items-center gap-2">
                                 <Phone className="h-3.5 w-3.5" />
                                 Phone Number
                             </Label>
@@ -112,7 +112,7 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
 
                     {/* Helplines */}
                     <div className="space-y-3">
-                        <p className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             24/7 Helplines (always available)
                         </p>
                         {HELPLINE_CONTACTS.map(contact => (
@@ -125,8 +125,8 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
                                     <Phone className="h-4 w-4 text-primary" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-sm font-semibold text-text-primary">{contact.name}</p>
-                                    <p className="text-xs text-text-secondary">{contact.description}</p>
+                                    <p className="text-sm font-semibold text-foreground">{contact.name}</p>
+                                    <p className="text-xs text-muted-foreground">{contact.description}</p>
                                 </div>
                                 <span className="text-xs font-mono text-primary">{contact.phone}</span>
                             </a>

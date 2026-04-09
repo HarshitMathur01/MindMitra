@@ -1,110 +1,119 @@
-"""
-Centralized logging configuration — import once at startup to configure all loggers.
-
-Format: HH:MM:SS L <message>  (L = single-char level: D/I/W/E/C)
-Third-party HTTP, LLM SDK, and vector-store loggers are silenced to WARNING+
-so the terminal only shows application-level logs.
-"""
 import logging
+import sys
 import os
+import json
+import time
+from datetime import datetime, timezone
+from contextvars import ContextVar
+from contextlib import contextmanager
 
+# State for request tracing
+request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
 
-# ── Third-party loggers to silence (set to WARNING) ──────────────────────────
-_NOISY_LOGGERS = [
-    # HTTP clients
-    "httpx",
-    "httpcore",
-    "httpcore.http11",
-    "httpcore.http2",
-    "httpcore.connection",
-    "urllib3",
-    "urllib3.connectionpool",
-    # gRPC / h2
-    "hpack",
-    "h2",
-    "grpc",
-    # LLM SDKs
-    "groq",
-    "groq._base_client",
-    "openai",
-    "openai._base_client",
-    "openai.http_client",
-    "zhipuai",
-    "zhipuai.api_resource.chat.completions",
-    # Vector store & memory
-    "qdrant_client",
-    "qdrant_client.http",
-    "qdrant_client.async_qdrant_client",
-    "mem0",
-    "mem0.memory",
-    "mem0.utils",
-    # Google / cloud
-    "google",
-    "google.auth",
-    "google.auth.transport",
-    "google.generativeai",
-    # Async infrastructure
-    "asyncio",
-    "multipart",
-    "multipart.multipart",
-    "watchfiles",
-    "watchfiles.main",
-]
-
-
-# Use a flag instead of checking handlers — handlers check is unreliable
-_LOGGING_CONFIGURED = False
-
-def configure_logging() -> None:
-    global _LOGGING_CONFIGURED
-    if _LOGGING_CONFIGURED:
-        return                    # ← hard exit, no duplicate runs ever
-    _LOGGING_CONFIGURED = True
-
-    # 1. Try config.yaml
-    level_name = None
-    try:
-        from app.core.config import config as _cfg
-        level_name = _cfg.get("logging.level", None)
-    except Exception:
-        pass
-
-    # 2. Env var overrides
-    env_level = os.getenv("LOG_LEVEL")
-    if env_level:
-        level_name = env_level.strip().strip('"').strip("'")  # strip quotes if any
-
-    # 3. Fallback
-    if not level_name:
-        level_name = "INFO"
-
-    level_name = str(level_name).upper()
-    level = getattr(logging, level_name, logging.INFO)
-
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname).1s %(message)s",
-        datefmt="%H:%M:%S",
-        force=True,
-    )
-
-    # Keep request access logs off by default, but allow opt-in for debugging.
-    show_access_logs = os.getenv("SHOW_ACCESS_LOGS", "true").strip().lower() in {
-        "1", "true", "yes", "on"
+class CustomFormatter(logging.Formatter):
+    """
+    Production-grade JSON and Colored console formatter using pure Python.
+    Features correlation IDs, microsecond precision, and aligned outputs.
+    """
+    COLORS = {
+        "DEBUG": "\033[36m",      # Cyan
+        "INFO": "\033[32m",       # Green
+        "WARNING": "\033[33m",    # Yellow
+        "ERROR": "\033[31m",      # Red
+        "CRITICAL": "\033[41;37m",# White on Red
     }
+    RESET = "\033[0m"
+    DIM = "\033[90m"
 
-    for name in _NOISY_LOGGERS:
-        logging.getLogger(name).setLevel(logging.WARNING)
+    def __init__(self, use_json: bool = False):
+        super().__init__()
+        self.use_json = use_json
 
-    if show_access_logs:
-        logging.getLogger("uvicorn.access").setLevel(level)
-    else:
-        logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    def format(self, record: logging.LogRecord) -> str:
+        req_id = request_id_var.get()
+        
+        # Pull any extra dict kwargs
+        extra = getattr(record, "metrics", {})
 
-    logging.getLogger(__name__).info(
-        f"✅ [LOGGING] Level={level_name} | Third-party loggers suppressed | access_logs={'on' if show_access_logs else 'off'}"
-    )
+        if self.use_json:
+            log_data = {
+                "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+                "level": record.levelname,
+                "logger": record.name,
+                "msg": record.getMessage(),
+                "request_id": req_id,
+                "file": f"{record.filename}:{record.lineno}",
+            }
+            if extra:
+                log_data.update(extra)
+            if record.exc_info:
+                log_data["exception"] = self.formatException(record.exc_info)
+            return json.dumps(log_data)
+        else:
+            # Colored / readable console output
+            color = self.COLORS.get(record.levelname, self.RESET)
+            dt = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+            
+            req_prefix = f"[{req_id[:8]}] " if req_id != "-" else ""
+            caller = f"{record.filename}:{record.lineno}"
+            
+            extras_str = ""
+            if extra:
+                pairs = [f"{k}={v}" for k, v in extra.items()]
+                extras_str = f" {self.DIM}({' | '.join(pairs)}){self.RESET}"
 
+            msg = f"{self.DIM}{dt}{self.RESET} | {color}{record.levelname:<8}{self.RESET} | {req_prefix}{self.DIM}{caller:<20}{self.RESET} - {color}{record.getMessage()}{self.RESET}{extras_str}"
+            
+            if record.exc_info:
+                msg += f"\n{color}{self.formatException(record.exc_info)}{self.RESET}"
+                
+            return msg
 
-# Auto-configure on import
-configure_logging()
+def configure_logging():
+    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, log_level_str, logging.INFO)
+    use_json = os.getenv("LOG_FORMAT", "colored").lower() == "json"
+
+    # Reset root handlers
+    root = logging.getLogger()
+    if root.handlers:
+        root.handlers.clear()
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(CustomFormatter(use_json=use_json))
+    root.addHandler(handler)
+    root.setLevel(level)
+
+    # Silence noisy loggers
+    noisy = [
+        "httpx", "httpcore", "urllib3", "qdrant_client", "mem0", 
+        "openai", "watchfiles", "uvicorn.access", "uvicorn.error", "fsevents"
+    ]
+    for n in noisy:
+        logging.getLogger(n).setLevel(logging.WARNING)
+        logging.getLogger(n).handlers.clear()
+
+    logging.info("✅ [LOGGING] Pure Python Logging Initialized (Production Grade)", extra={"metrics": {"json": use_json, "level": log_level_str}})
+
+@contextmanager
+def log_timing(action: str, **kwargs):
+    """
+    Context manager to easily profile and log background/foreground tasks.
+    Usage:
+        with log_timing("Fetching memories", model="llama-3.1-8b"):
+            ...
+    """
+    logger = logging.getLogger("timing")
+    start = time.perf_counter()
+    logger.debug(f"▶ START: {action}", extra={"metrics": kwargs})
+    try:
+        yield
+        duration_ms = (time.perf_counter() - start) * 1000
+        kwargs["duration_ms"] = round(duration_ms, 2)
+        logger.info(f"⏭ END: {action} (took {duration_ms:.1f}ms)", extra={"metrics": kwargs})
+    except Exception as e:
+        duration_ms = (time.perf_counter() - start) * 1000
+        kwargs["duration_ms"] = round(duration_ms, 2)
+        logger.exception(f"❌ FAIL: {action} (failed after {duration_ms:.1f}ms)", extra={"metrics": kwargs})
+        raise
+

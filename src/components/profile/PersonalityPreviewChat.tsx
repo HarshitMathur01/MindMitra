@@ -61,7 +61,7 @@ export function PersonalityPreviewChat({ personality, customName }: PersonalityP
         style={{ backgroundColor: `${personality.colorAccent}10` }}
       >
         <span className="text-base">{personality.emoji}</span>
-        <span className="text-text-primary">
+        <span className="text-foreground">
           This is how {displayName} will talk to you
         </span>
       </div>
@@ -84,8 +84,8 @@ export function PersonalityPreviewChat({ personality, customName }: PersonalityP
               <div
                 className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                   msg.role === 'user'
-                    ? 'bg-primary/10 text-text-primary rounded-br-md'
-                    : 'rounded-bl-md text-text-primary'
+                    ? 'bg-primary/10 text-foreground rounded-br-md'
+                    : 'rounded-bl-md text-foreground'
                 }`}
                 style={
                   msg.role === 'bot'
@@ -106,7 +106,7 @@ export function PersonalityPreviewChat({ personality, customName }: PersonalityP
             className="flex justify-start"
           >
             <div
-              className="rounded-2xl rounded-bl-md px-3.5 py-2.5 text-sm text-text-secondary"
+              className="rounded-2xl rounded-bl-md px-3.5 py-2.5 text-sm text-muted-foreground"
               style={{ backgroundColor: `${personality.colorAccent}08` }}
             >
               <span className="inline-flex gap-1">
@@ -128,7 +128,7 @@ export function PersonalityPreviewChat({ personality, customName }: PersonalityP
             onChange={e => setUserInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
             placeholder="Try saying something..."
-            className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 transition-shadow"
+            className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 transition-shadow"
             style={{ focusRingColor: personality.colorAccent } as any}
             aria-label="Type a test message"
           />
@@ -142,7 +142,7 @@ export function PersonalityPreviewChat({ personality, customName }: PersonalityP
             Send
           </button>
         </div>
-        <p className="text-xs text-text-secondary/60 mt-1.5 ml-1">
+        <p className="text-xs text-muted-foreground/60 mt-1.5 ml-1">
           Preview only — no data is saved
         </p>
       </div>

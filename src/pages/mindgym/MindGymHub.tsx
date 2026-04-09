@@ -29,7 +29,7 @@ export default function MindGymHub() {
   const recommendedTool = MINDGYM_TOOLS.find((t) => t.id === recommended);
 
   return (
-    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex flex-col">
       <Header />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-8 pb-20">
@@ -40,10 +40,10 @@ export default function MindGymHub() {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="mb-8"
         >
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text-primary mb-2">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-2">
             MindGym
           </h1>
-          <p className="text-text-secondary text-base sm:text-lg max-w-2xl">
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl">
             Evidence-based offline practices to build resilience, track your emotional state, and calm your mind.
           </p>
         </motion.div>
@@ -59,7 +59,7 @@ export default function MindGymHub() {
           {recommendedTool && (
             <motion.div
               onClick={() => navigate(`/mindgym/${recommendedTool.id}`)}
-              className="bg-surface p-5 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between"
+              className="bg-card p-5 rounded-2xl border border-border/50 shadow-card cursor-pointer hover:shadow-card-hover transition-all group flex flex-col justify-between"
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
             >
@@ -68,7 +68,7 @@ export default function MindGymHub() {
                   Recommended Today
                 </p>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-text-primary group-hover:text-primary transition-colors">
+                  <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                     {recommendedTool.title}
                   </h3>
                   <div
@@ -80,12 +80,12 @@ export default function MindGymHub() {
                     <recommendedTool.icon className="w-5 h-5 text-white" />
                   </div>
                 </div>
-                <p className="text-sm text-text-secondary">
+                <p className="text-sm text-muted-foreground">
                   {recommendedTool.shortDesc}
                 </p>
               </div>
-              <div className="mt-4 flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/10">
-                <span className="text-xs font-medium text-text-secondary line-clamp-1">{recommendedTool.clinicalTag}</span>
+              <div className="mt-4 flex items-center justify-between pt-4 border-t border-border/40">
+                <span className="text-xs font-medium text-muted-foreground line-clamp-1">{recommendedTool.clinicalTag}</span>
                 <span className="flex items-center text-xs font-medium text-primary group-hover:translate-x-1 transition-transform">
                   Start Practice <ArrowRight className="w-3 h-3 ml-1" />
                 </span>
@@ -94,9 +94,9 @@ export default function MindGymHub() {
           )}
 
           {/* Stats Summary Card */}
-          <div className="bg-surface p-5 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm flex flex-col justify-between">
+          <div className="bg-card p-5 rounded-2xl border border-border/50 shadow-card flex flex-col justify-between">
             <div>
-              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                 Your Progress
               </p>
               <div className="flex flex-wrap gap-4 items-center mb-6">
@@ -130,7 +130,7 @@ export default function MindGymHub() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="flex flex-wrap gap-2 pt-3 border-t border-black/5 dark:border-white/10">
+                  <div className="flex flex-wrap gap-2 pt-3 border-t border-border/40">
                     {BADGES.map((b) => {
                       const earned = progress.badges.includes(b.id);
                       return (
@@ -140,7 +140,7 @@ export default function MindGymHub() {
                           className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs border ${
                             earned
                               ? "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300"
-                              : "bg-black/5 dark:bg-white/5 border-transparent text-text-secondary/60 grayscale"
+                              : "bg-muted/60 border-transparent text-muted-foreground/60 grayscale"
                           }`}
                         >
                           <span className="text-sm">{earned ? b.icon : "🔒"}</span>
@@ -155,7 +155,7 @@ export default function MindGymHub() {
         </motion.div>
 
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl sm:text-2xl font-bold text-text-primary">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
             Practices Library
           </h2>
         </div>
@@ -176,7 +176,7 @@ export default function MindGymHub() {
                 key={tool.id}
                 variants={cardVariants}
                 onClick={() => navigate(`/mindgym/${tool.id}`)}
-                className="group relative flex flex-col p-5 rounded-2xl bg-surface border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md text-left transition-all duration-200 overflow-hidden"
+                className="group relative flex flex-col p-5 rounded-2xl bg-card border border-border/50 shadow-card hover:shadow-card-hover text-left transition-all duration-200 overflow-hidden"
                 whileHover={{ y: -4 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -200,25 +200,25 @@ export default function MindGymHub() {
                       style={{ color: tool.gradient[0] }}
                     />
                   </div>
-                  <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-black/5 dark:bg-white/5 text-text-secondary">
+                  <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-muted/60 text-muted-foreground">
                     {tool.clinicalTag}
                   </span>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 relative z-10">
-                  <h3 className="text-base font-bold text-text-primary mb-1.5 group-hover:text-primary transition-colors">
+                  <h3 className="text-base font-bold text-foreground mb-1.5 group-hover:text-primary transition-colors">
                     {tool.title}
                   </h3>
-                  <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
                     {tool.shortDesc}
                   </p>
                 </div>
 
                 {/* Footer Footer */}
-                <div className="mt-5 flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/10 relative z-10">
+                <div className="mt-5 flex items-center justify-between pt-4 border-t border-border/40 relative z-10">
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-medium text-text-secondary bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-md">
+                    <span className="text-[11px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
                       {tool.minutes} min
                     </span>
                     <span className="text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">

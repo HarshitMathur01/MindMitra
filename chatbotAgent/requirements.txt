@@ -70,4 +70,5 @@ regex>=2024.7
 # ──────────────────────────────────────────────────────────────
 # Voice Prosody Analysis (Praat)
 # ──────────────────────────────────────────────────────────────
-praat-parselmouth==0.4.7    # Praat bindings — pitch, jitter, shimmer, HNR
+praat-parselmouth==0.4.7    # Praat bindings — pitch, jitter, shimmer, HNRloguru
+asgi-correlation-id

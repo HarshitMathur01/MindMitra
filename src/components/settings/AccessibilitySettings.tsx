@@ -71,25 +71,25 @@ export function AccessibilitySettings({ settings, loading, saving, onSave }: Acc
             key: 'high_contrast' as const,
             label: 'High contrast mode',
             description: 'Increase contrast for better readability',
-            icon: <Eye className="h-4 w-4 text-text-secondary" />,
+            icon: <Eye className="h-4 w-4 text-muted-foreground" />,
         },
         {
             key: 'reduce_animations' as const,
             label: 'Reduce animations',
             description: 'Minimize motion for a calmer experience — especially helpful for anxiety',
-            icon: <Zap className="h-4 w-4 text-text-secondary" />,
+            icon: <Zap className="h-4 w-4 text-muted-foreground" />,
         },
         {
             key: 'screen_reader' as const,
             label: 'Screen reader optimization',
             description: 'Improve compatibility with screen reading software',
-            icon: <Monitor className="h-4 w-4 text-text-secondary" />,
+            icon: <Monitor className="h-4 w-4 text-muted-foreground" />,
         },
         {
             key: 'text_to_speech' as const,
             label: 'Text-to-speech for AI responses',
             description: 'Listen to MindMitra\'s responses instead of reading — sunein, padhein nahi',
-            icon: <Volume2 className="h-4 w-4 text-text-secondary" />,
+            icon: <Volume2 className="h-4 w-4 text-muted-foreground" />,
         },
     ];
 
@@ -101,18 +101,18 @@ export function AccessibilitySettings({ settings, loading, saving, onSave }: Acc
             className="space-y-6"
         >
             <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Accessibility className="h-4 w-4 text-primary" />
                     Accessibility
                 </h3>
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-muted-foreground">
                     Make MindMitra work best for you — Aapke hisaab se adjust karein
                 </p>
             </div>
 
             {/* Font Size */}
             <div className="space-y-3">
-                <Label className="text-sm font-medium text-text-primary flex items-center gap-2">
+                <Label className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Type className="h-4 w-4 text-primary" />
                     Font Size
                 </Label>
@@ -126,10 +126,10 @@ export function AccessibilitySettings({ settings, loading, saving, onSave }: Acc
                                     : 'border-border hover:border-primary/30'
                                 }`}
                         >
-                            <span className={`${size.preview} font-medium text-text-primary`}>
+                            <span className={`${size.preview} font-medium text-foreground`}>
                                 {size.label}
                             </span>
-                            <p className={`${size.preview} text-text-secondary mt-0.5`}>Aa</p>
+                            <p className={`${size.preview} text-muted-foreground mt-0.5`}>Aa</p>
                         </button>
                     ))}
                 </div>
@@ -145,10 +145,10 @@ export function AccessibilitySettings({ settings, loading, saving, onSave }: Acc
                         <div className="flex items-start gap-3 flex-1">
                             <div className="mt-0.5">{setting.icon}</div>
                             <div>
-                                <Label className="text-sm font-medium text-text-primary">
+                                <Label className="text-sm font-medium text-foreground">
                                     {setting.label}
                                 </Label>
-                                <p className="text-xs text-text-secondary mt-0.5">{setting.description}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{setting.description}</p>
                             </div>
                         </div>
                         <Switch

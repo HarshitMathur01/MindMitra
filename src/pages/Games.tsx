@@ -111,7 +111,7 @@ const Games = () => {
           icon: Star,
           gradient: "from-secondary to-accent",
           shadow: "shadow-theme",
-          text: "text-text-primary",
+          text: "text-foreground",
           bg: "bg-surface"
         };
       case "Medium":
@@ -119,7 +119,7 @@ const Games = () => {
           icon: Zap,
           gradient: "from-primary to-secondary",
           shadow: "shadow-theme",
-          text: "text-text-primary",
+          text: "text-foreground",
           bg: "bg-surface"
         };
       case "Hard":
@@ -135,7 +135,7 @@ const Games = () => {
           icon: Star,
           gradient: "from-secondary to-secondary",
           shadow: "shadow-theme",
-          text: "text-text-secondary",
+          text: "text-muted-foreground",
           bg: "bg-surface"
         };
     }
@@ -145,7 +145,7 @@ const Games = () => {
   const comingSoonGames = games.filter(g => !g.available);
 
   return (
-    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <Header />
 
       {/* Animated Hero Section */}
@@ -184,14 +184,14 @@ const Games = () => {
                 className="inline-flex items-center gap-2 bg-surface/60 backdrop-blur-sm rounded-full px-4 py-2 mb-4 border border-border"
               >
                 <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-text-primary">Interactive Psychology Games</span>
+                <span className="text-sm font-medium text-foreground">Interactive Psychology Games</span>
               </motion.div>
 
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-5xl font-bold mb-4 text-text-primary"
+                className="text-5xl font-bold mb-4 text-foreground"
               >
                 Psychological Games
               </motion.h1>
@@ -200,7 +200,7 @@ const Games = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="text-lg text-text-secondary max-w-2xl mb-6"
+                className="text-lg text-muted-foreground max-w-2xl mb-6"
               >
                 Engage with interactive games designed to provide insights into your cognitive
                 abilities, behavior patterns, and decision-making processes.
@@ -215,11 +215,11 @@ const Games = () => {
               >
                 <div className="flex items-center gap-2 bg-surface/80 rounded-lg px-4 py-2 border border-border">
                   <TrendingUp className="h-4 w-4 text-success" />
-                  <span className="font-semibold text-text-primary">{availableGames.length} Games Available</span>
+                  <span className="font-semibold text-foreground">{availableGames.length} Games Available</span>
                 </div>
                 <div className="flex items-center gap-2 bg-surface/80 rounded-lg px-4 py-2 border border-border">
-                  <Lock className="h-4 w-4 text-text-secondary" />
-                  <span className="font-semibold text-text-primary">{comingSoonGames.length} Coming Soon</span>
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-semibold text-foreground">{comingSoonGames.length} Coming Soon</span>
                 </div>
               </motion.div>
             </div>
@@ -235,7 +235,7 @@ const Games = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.5 }}
         >
-          <h2 className="text-2xl font-bold mb-6 text-text-primary">Available Now</h2>
+          <h2 className="text-2xl font-bold mb-6 text-foreground">Available Now</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12">
             {availableGames.map((game, index) => {
               const Icon = game.icon;
@@ -289,10 +289,10 @@ const Games = () => {
                         </motion.div>
 
                         <div className="flex-1">
-                          <h3 className="font-bold text-lg mb-2 text-text-primary group-hover:text-primary transition-colors">
+                          <h3 className="font-bold text-lg mb-2 text-foreground group-hover:text-primary transition-colors">
                             {game.title}
                           </h3>
-                          <p className="text-text-secondary text-sm mb-3 line-clamp-2">
+                          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
                             {game.description}
                           </p>
                         </div>
@@ -315,7 +315,7 @@ const Games = () => {
                           </span>
                         </motion.div>
 
-                        <div className="flex items-center gap-1.5 text-text-secondary">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Clock className="h-3.5 w-3.5" />
                           <span className="text-xs font-medium">{game.duration}</span>
                         </div>
@@ -353,7 +353,7 @@ const Games = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 1 }}
           >
-            <h2 className="text-2xl font-bold mb-6 text-text-primary">Coming Soon</h2>
+            <h2 className="text-2xl font-bold mb-6 text-foreground">Coming Soon</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {comingSoonGames.map((game, index) => {
                 const Icon = game.icon;
@@ -381,7 +381,7 @@ const Games = () => {
                           transition={{ duration: 2, repeat: Infinity }}
                           className="bg-crushed-silk/90 p-4 rounded-full shadow-lg"
                         >
-                          <Lock className="h-8 w-8 text-text-secondary" />
+                          <Lock className="h-8 w-8 text-muted-foreground" />
                         </motion.div>
                       </div>
 
@@ -393,12 +393,12 @@ const Games = () => {
 
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-bold text-lg text-text-primary">{game.title}</h3>
+                              <h3 className="font-bold text-lg text-foreground">{game.title}</h3>
                               <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 text-xs px-2 py-1 rounded-full font-medium">
                                 Soon
                               </span>
                             </div>
-                            <p className="text-text-secondary text-sm mb-3">
+                            <p className="text-muted-foreground text-sm mb-3">
                               {game.description}
                             </p>
                           </div>
@@ -411,7 +411,7 @@ const Games = () => {
                               {game.difficulty}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-text-secondary">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Clock className="h-3.5 w-3.5" />
                             <span className="text-xs font-medium">{game.duration}</span>
                           </div>

@@ -16,7 +16,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-text-primary transition-colors duration-300 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background text-foreground transition-colors duration-300 relative overflow-hidden">
       {/* Soft background orbs */}
       <div className="absolute top-20 left-20 w-64 h-64 bg-primary/15 rounded-full blur-3xl" />
       <div className="absolute bottom-20 right-20 w-48 h-48 bg-amber-200/20 rounded-full blur-3xl" />
@@ -49,7 +49,7 @@ const NotFound = () => {
 
         {/* Main text */}
         <h1 className="text-6xl font-bold text-gradient mb-3">404</h1>
-        <h2 className="text-2xl font-semibold text-text-primary mb-3">
+        <h2 className="text-2xl font-semibold text-foreground mb-3">
           It's okay to feel lost sometimes
         </h2>
         <p className="text-muted-foreground leading-relaxed mb-8">
@@ -86,7 +86,7 @@ const NotFound = () => {
         >
           <div className="flex items-center justify-center gap-2 mb-2">
             <Brain className="h-4 w-4 text-primary" />
-            <span className="font-medium text-text-primary">While you're here...</span>
+            <span className="font-medium text-foreground">While you're here...</span>
           </div>
           <p>
             Take a deep breath in for 4 seconds, hold for 4, and exhale for 6.

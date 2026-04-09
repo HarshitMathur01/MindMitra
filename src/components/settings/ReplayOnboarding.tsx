@@ -63,10 +63,10 @@ export function ReplayOnboarding() {
                         <RotateCcw className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                        <Label className="text-sm font-medium text-text-primary cursor-pointer">
+                        <Label className="text-sm font-medium text-foreground cursor-pointer">
                             Replay Onboarding
                         </Label>
-                        <p className="text-xs text-text-secondary mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             Re-experience the introduction and update your companion match —
                             Introduction dubara dekhein aur apna companion chunein
                         </p>
@@ -100,10 +100,10 @@ export function ReplayOnboarding() {
                             exit={{ scale: 0.95, opacity: 0 }}
                             transition={{ duration: 0.2 }}
                         >
-                            <h3 className="text-text-primary text-lg font-semibold">
+                            <h3 className="text-foreground text-lg font-semibold">
                                 Replay onboarding?
                             </h3>
-                            <p className="text-text-secondary text-sm leading-relaxed">
+                            <p className="text-muted-foreground text-sm leading-relaxed">
                                 This will restart the introduction from the beginning. Your existing
                                 companion and preferences will be updated based on your new choices.
                             </p>

@@ -113,11 +113,11 @@ export function NotificationSettings({ settings, loading, saving, onSave }: Noti
             className="space-y-6"
         >
             <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Bell className="h-4 w-4 text-primary" />
                     Notification Preferences
                 </h3>
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-muted-foreground">
                     Choose how and when MindMitra reaches out to you
                 </p>
             </div>
@@ -132,13 +132,13 @@ export function NotificationSettings({ settings, loading, saving, onSave }: Noti
                         <div className="flex items-start gap-3 flex-1">
                             <div className="mt-0.5">{notif.icon}</div>
                             <div>
-                                <Label className="text-sm font-medium text-text-primary">
+                                <Label className="text-sm font-medium text-foreground">
                                     {notif.label}
                                 </Label>
-                                <p className="text-xs text-text-secondary mt-0.5">{notif.description}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{notif.description}</p>
                                 {notif.hasTime && form.notif_daily && (
                                     <div className="mt-2 flex items-center gap-2">
-                                        <Clock className="h-3.5 w-3.5 text-text-secondary" />
+                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                                         <Input
                                             type="time"
                                             value={form.notif_daily_time}
@@ -159,7 +159,7 @@ export function NotificationSettings({ settings, loading, saving, onSave }: Noti
 
             {/* Notification Channels */}
             <div className="space-y-3">
-                <Label className="text-sm font-medium text-text-primary">
+                <Label className="text-sm font-medium text-foreground">
                     Notification Channels
                 </Label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -175,8 +175,8 @@ export function NotificationSettings({ settings, loading, saving, onSave }: Noti
                                 checked={form.notif_channels.includes(channel.value)}
                                 onCheckedChange={() => toggleChannel(channel.value)}
                             />
-                            <channel.icon className="h-4 w-4 text-text-secondary" />
-                            <span className="text-sm text-text-primary">{channel.label}</span>
+                            <channel.icon className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-foreground">{channel.label}</span>
                         </label>
                     ))}
                 </div>

@@ -90,10 +90,10 @@ export function PrivacySettings({ settings, loading, saving, onSave }: PrivacySe
             <div className="flex items-start gap-3 flex-1">
                 <div className="mt-0.5">{icon}</div>
                 <div>
-                    <Label className="text-sm font-medium text-text-primary cursor-pointer">
+                    <Label className="text-sm font-medium text-foreground cursor-pointer">
                         {label}
                     </Label>
-                    <p className="text-xs text-text-secondary mt-0.5">{description}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
                 </div>
             </div>
             <Switch
@@ -111,11 +111,11 @@ export function PrivacySettings({ settings, loading, saving, onSave }: PrivacySe
             className="space-y-5"
         >
             <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Shield className="h-4 w-4 text-primary" />
                     Data & Privacy Controls
                 </h3>
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-muted-foreground">
                     You're in full control of your data — Aapka data, aapki marzi
                 </p>
             </div>
@@ -125,14 +125,14 @@ export function PrivacySettings({ settings, loading, saving, onSave }: PrivacySe
                     'privacy_data_sharing',
                     'Help improve MindMitra',
                     'Allow anonymized session data to make MindMitra better for everyone',
-                    <Shield className="h-4 w-4 text-text-secondary" />,
+                    <Shield className="h-4 w-4 text-muted-foreground" />,
                 )}
 
                 {privacyToggle(
                     'privacy_therapist_share',
                     'Share emotional profile with therapist',
                     'Your matched therapist can see your wellness summary to provide better support',
-                    <Shield className="h-4 w-4 text-text-secondary" />,
+                    <Shield className="h-4 w-4 text-muted-foreground" />,
                 )}
 
                 {privacyToggle(
@@ -146,10 +146,10 @@ export function PrivacySettings({ settings, loading, saving, onSave }: PrivacySe
             {/* Data Retention */}
             <div className="p-4 bg-background/50 rounded-xl border border-border/50 space-y-2">
                 <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-text-secondary" />
-                    <Label className="text-sm font-medium text-text-primary">Data Retention</Label>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-sm font-medium text-foreground">Data Retention</Label>
                 </div>
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-muted-foreground">
                     Your conversations are stored for <span className="font-semibold text-primary">{form.data_retention_days} days</span>.
                     After that, they are automatically deleted.
                 </p>
@@ -160,7 +160,7 @@ export function PrivacySettings({ settings, loading, saving, onSave }: PrivacySe
                             onClick={() => update('data_retention_days', days)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${form.data_retention_days === days
                                     ? 'bg-primary text-white'
-                                    : 'bg-surface text-text-secondary border border-border hover:border-primary/30'
+                                    : 'bg-surface text-muted-foreground border border-border hover:border-primary/30'
                                 }`}
                         >
                             {days} days

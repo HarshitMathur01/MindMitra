@@ -71,8 +71,8 @@ const AvatarImage = ({ avatar, className = '' }: { avatar: AvatarOption; classNa
                 <div className={`w-14 h-14 rounded-full bg-gradient-to-r ${avatar.gradient} flex items-center justify-center shadow-lg`}>
                     <Icon className="h-7 w-7 text-white" />
                 </div>
-                <p className="mt-3 text-sm font-bold text-text-primary">{avatar.name}</p>
-                <p className="text-xs text-text-secondary">{avatar.role}</p>
+                <p className="mt-3 text-sm font-bold text-foreground">{avatar.name}</p>
+                <p className="text-xs text-muted-foreground">{avatar.role}</p>
             </div>
         );
     }
@@ -156,7 +156,7 @@ const AvatarShowcase = () => {
 
                         {/* Avatar Cards - Left Column */}
                         <div className="lg:col-span-2 space-y-4">
-                            <p className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-2">Choose your companion</p>
+                            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Choose your companion</p>
                             {avatarOptions.map((avatar, i) => (
                                 <motion.div
                                     key={avatar.id}
@@ -190,13 +190,13 @@ const AvatarShowcase = () => {
 
                                         {/* Info */}
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-text-primary">{avatar.name}</h4>
+                                            <h4 className="font-bold text-foreground">{avatar.name}</h4>
                                             <p className={`text-xs font-medium bg-gradient-to-r ${avatar.gradient} bg-clip-text text-transparent`}>
                                                 {avatar.role}
                                             </p>
                                             <div className="flex flex-wrap gap-1 mt-1.5">
                                                 {avatar.speciality.map((s, j) => (
-                                                    <span key={j} className="text-[10px] bg-crushed-silk/85 border border-border/60 text-text-secondary px-2 py-0.5 rounded-full">
+                                                    <span key={j} className="text-[10px] bg-crushed-silk/85 border border-border/60 text-muted-foreground px-2 py-0.5 rounded-full">
                                                         {s}
                                                     </span>
                                                 ))}
@@ -335,7 +335,7 @@ const AvatarShowcase = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.2 }}
                                     >
-                                        <p className="text-text-secondary leading-relaxed mb-4">{selected.description}</p>
+                                        <p className="text-muted-foreground leading-relaxed mb-4">{selected.description}</p>
 
                                         <div className="flex flex-col sm:flex-row gap-3">
                                             <Button

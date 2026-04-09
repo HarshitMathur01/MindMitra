@@ -51,13 +51,13 @@ export function PersonalityChangeModal({
               <div>
                 <h3
                   id="personality-change-title"
-                  className="text-lg font-semibold text-text-primary"
+                  className="text-lg font-semibold text-foreground"
                 >
                   Switch companion mid-session?
                 </h3>
                 <p
                   id="personality-change-desc"
-                  className="text-sm text-text-secondary mt-1 leading-relaxed"
+                  className="text-sm text-muted-foreground mt-1 leading-relaxed"
                 >
                   Switching from{' '}
                   <span className="font-medium" style={{ color: currentPersonality.colorAccent }}>

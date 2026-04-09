@@ -110,7 +110,7 @@ const WelcomeHero = () => {
               transition={{ duration: 0.8, delay: 0.5, type: "spring", stiffness: 100 }}
             >
               <span className="text-lg">🇮🇳</span>
-              <span className="text-sm font-medium text-orange-800 dark:text-text-secondary">Built for Indian students who understand the pressure</span>
+              <span className="text-sm font-medium text-orange-800 dark:text-muted-foreground">Built for Indian students who understand the pressure</span>
             </motion.div>
 
             {/* Dynamic Title */}
@@ -142,7 +142,7 @@ const WelcomeHero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
             >
-              <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-surface border border-amber-200 dark:border-border rounded-full px-3 py-1.5 text-xs font-medium text-amber-800 dark:text-text-secondary">
+              <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-surface border border-amber-200 dark:border-border rounded-full px-3 py-1.5 text-xs font-medium text-amber-800 dark:text-muted-foreground">
                 <Stethoscope className="h-3 w-3" />
                 Backed by Licensed Therapists
               </div>
@@ -150,7 +150,7 @@ const WelcomeHero = () => {
                 <Lock className="h-3 w-3" />
                 100% Confidential
               </div>
-              <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-surface border border-rose-200 dark:border-border rounded-full px-3 py-1.5 text-xs font-medium text-rose-700 dark:text-text-secondary">
+              <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-surface border border-rose-200 dark:border-border rounded-full px-3 py-1.5 text-xs font-medium text-rose-700 dark:text-muted-foreground">
                 <GraduationCap className="h-3 w-3" />
                 Clinically Validated
               </div>
@@ -246,7 +246,7 @@ const WelcomeHero = () => {
                       >
                         <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${msg.role === 'user'
                           ? 'bg-primary text-white rounded-br-sm'
-                          : 'bg-crushed-silk dark:bg-surface border border-gray-200 dark:border-border text-gray-700 dark:text-text-primary rounded-bl-sm shadow-sm'
+                          : 'bg-crushed-silk dark:bg-surface border border-gray-200 dark:border-border text-gray-700 dark:text-foreground rounded-bl-sm shadow-sm'
                           }`}>
                           {msg.text}
                         </div>
@@ -263,7 +263,7 @@ const WelcomeHero = () => {
                     >
                       <div className="bg-crushed-silk dark:bg-surface rounded-2xl px-3 py-1.5 border border-gray-200 dark:border-border flex items-center gap-1.5">
                         <Heart className="h-2.5 w-2.5 text-pink-400 animate-pulse" />
-                        <span className="text-[10px] text-gray-400 dark:text-text-secondary italic">
+                        <span className="text-[10px] text-gray-400 dark:text-muted-foreground italic">
                           {miniDemoMessages[demoMsgIndex]?.role === 'ai' ? 'MindMitra is listening carefully...' : 'typing...'}
                         </span>
                         <div className="flex gap-0.5">
@@ -279,11 +279,11 @@ const WelcomeHero = () => {
                 {/* Input Bar */}
                 <div className="p-2.5 border-t border-gray-100 dark:border-border bg-crushed-silk dark:bg-surface">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-crushed-silk/85 dark:bg-crushed-silk rounded-full px-3 py-2 text-[11px] text-gray-400 dark:text-text-secondary border border-border/60">
+                    <div className="flex-1 bg-crushed-silk/85 dark:bg-crushed-silk rounded-full px-3 py-2 text-[11px] text-gray-400 dark:text-muted-foreground border border-border/60">
                       Type how you're feeling...
                     </div>
                     <div className="w-7 h-7 bg-crushed-silk/85 dark:bg-crushed-silk rounded-full flex items-center justify-center border border-border/60">
-                      <Mic className="h-3 w-3 text-gray-400 dark:text-text-secondary" />
+                      <Mic className="h-3 w-3 text-gray-400 dark:text-muted-foreground" />
                     </div>
                     <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center">
                       <Send className="h-3 w-3 text-white" />

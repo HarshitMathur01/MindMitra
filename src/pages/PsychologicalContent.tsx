@@ -455,7 +455,7 @@ const RatingStars = ({ rating }: { rating: number }) => {
             {Array.from({ length: full }).map((_, i) => (
                 <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
             ))}
-            <span className="text-xs ml-1 text-text-secondary font-medium">{rating}</span>
+            <span className="text-xs ml-1 text-muted-foreground font-medium">{rating}</span>
         </span>
     );
 };
@@ -509,21 +509,21 @@ const ContentCard = ({
                                     {item.difficulty}
                                 </span>
                             </div>
-                            <h3 className="font-bold text-text-primary text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                            <h3 className="font-bold text-foreground text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
                                 {item.title}
                             </h3>
                         </div>
                     </div>
 
                     {/* Description */}
-                    <p className="text-sm text-text-secondary leading-relaxed line-clamp-2 mb-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-4">
                         {item.description}
                     </p>
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-1.5 mb-4">
                         {item.tags.slice(0, 3).map((tag) => (
-                            <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-background text-text-secondary/80 border border-border/40">
+                            <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-background text-muted-foreground/80 border border-border/40">
                                 #{tag}
                             </span>
                         ))}
@@ -531,7 +531,7 @@ const ContentCard = ({
 
                     {/* Footer */}
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-xs text-text-secondary">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {item.duration}
@@ -542,7 +542,7 @@ const ContentCard = ({
 
                         <button
                             onClick={(e) => { e.stopPropagation(); onToggleBookmark(item.id); }}
-                            className={`p-1.5 rounded-lg transition-colors ${bookmarked ? "text-primary" : "text-text-secondary/40 hover:text-primary"
+                            className={`p-1.5 rounded-lg transition-colors ${bookmarked ? "text-primary" : "text-muted-foreground/40 hover:text-primary"
                                 }`}
                         >
                             {bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
@@ -579,11 +579,11 @@ const FeaturedHeroCard = ({ item, onOpen }: { item: ContentItem; onOpen: (item: 
                         </span>
                         <ContentTypeChip type={item.type} />
                     </div>
-                    <h2 className="text-xl md:text-2xl font-bold text-text-primary mb-2 group-hover:text-primary transition-colors">
+                    <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
                         {item.title}
                     </h2>
-                    <p className="text-text-secondary leading-relaxed mb-4 line-clamp-2">{item.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-text-secondary">
+                    <p className="text-muted-foreground leading-relaxed mb-4 line-clamp-2">{item.description}</p>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                             <Clock className="h-4 w-4" />
                             {item.duration}
@@ -631,13 +631,13 @@ const ContentDetailModal = ({
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${difficultyColors[item.difficulty]} capitalize`}>
                                     {item.difficulty}
                                 </span>
-                                <span className="flex items-center gap-1 text-xs text-text-secondary">
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
                                     <Clock className="h-3 w-3" /> {item.duration}
                                 </span>
                             </div>
-                            <h2 className="text-xl font-bold text-text-primary leading-snug">{item.title}</h2>
-                            <p className="text-sm text-text-secondary mt-1.5">
-                                by <span className="font-medium text-text-primary">{item.author}</span> — {item.authorCredential}
+                            <h2 className="text-xl font-bold text-foreground leading-snug">{item.title}</h2>
+                            <p className="text-sm text-muted-foreground mt-1.5">
+                                by <span className="font-medium text-foreground">{item.author}</span> — {item.authorCredential}
                             </p>
                         </div>
                     </div>
@@ -646,7 +646,7 @@ const ContentDetailModal = ({
                 {/* Body */}
                 <div className="p-6 space-y-6">
                     {/* Long description – render with line breaks and basic formatting */}
-                    <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed">
+                    <div className="prose prose-sm max-w-none text-muted-foreground leading-relaxed">
                         {item.longDescription.split("\n\n").map((paragraph, idx) => (
                             <p key={idx} className="mb-4 last:mb-0 whitespace-pre-line">{paragraph}</p>
                         ))}
@@ -654,13 +654,13 @@ const ContentDetailModal = ({
 
                     {/* Key takeaways */}
                     <div className="bg-primary/5 rounded-2xl p-5 border border-primary/15">
-                        <h3 className="font-bold text-text-primary flex items-center gap-2 mb-3">
+                        <h3 className="font-bold text-foreground flex items-center gap-2 mb-3">
                             <Lightbulb className="h-5 w-5 text-primary" />
                             Key Takeaways
                         </h3>
                         <ul className="space-y-2">
                             {item.keyTakeaways.map((takeaway, idx) => (
-                                <li key={idx} className="flex items-start gap-2 text-sm text-text-secondary">
+                                <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
                                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                                     <span>{takeaway}</span>
                                 </li>
@@ -671,14 +671,14 @@ const ContentDetailModal = ({
                     {/* Tags */}
                     <div className="flex flex-wrap gap-2">
                         {item.tags.map((tag) => (
-                            <span key={tag} className="text-xs px-2.5 py-1 rounded-full bg-background text-text-secondary border border-border/40">
+                            <span key={tag} className="text-xs px-2.5 py-1 rounded-full bg-background text-muted-foreground border border-border/40">
                                 #{tag}
                             </span>
                         ))}
                     </div>
 
                     {/* Stats bar */}
-                    <div className="flex items-center gap-4 text-sm text-text-secondary pt-2 border-t border-border/30">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t border-border/30">
                         <RatingStars rating={item.rating} />
                         <span>{formatCount(item.readCount)} reads</span>
                     </div>
@@ -730,7 +730,7 @@ const PsychologicalContent = () => {
     const currentFeatured = featuredItems[0]; // top featured
 
     return (
-        <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
             <Header />
 
             {/* ─── HERO SECTION ──────────────────────────────────────────── */}
@@ -750,10 +750,10 @@ const PsychologicalContent = () => {
                             <BookOpen className="h-4 w-4" />
                             Curated by Mental Health Professionals
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 leading-tight">
+                        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
                             Learn. Understand. Heal.
                         </h1>
-                        <p className="text-lg text-text-secondary leading-relaxed">
+                        <p className="text-lg text-muted-foreground leading-relaxed">
                             Psychology-backed articles, exercises, and guides — written for Indian students, by Indian experts.
                         </p>
                     </motion.div>
@@ -767,7 +767,7 @@ const PsychologicalContent = () => {
 
             {/* ─── CATEGORY BROWSE CARDS ─────────────────────────────────── */}
             <section className="container mx-auto px-4 py-8">
-                <h2 className="text-xl font-bold text-text-primary mb-5 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-foreground mb-5 flex items-center gap-2">
                     <Brain className="h-5 w-5 text-primary" />
                     Browse by Topic
                 </h2>
@@ -791,10 +791,10 @@ const PsychologicalContent = () => {
                                     <Icon className="h-5 w-5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <div className={`text-sm font-semibold leading-tight ${isActive ? "" : "text-text-primary"}`}>
+                                    <div className={`text-sm font-semibold leading-tight ${isActive ? "" : "text-foreground"}`}>
                                         {cat.label}
                                     </div>
-                                    <div className={`text-xs leading-tight mt-0.5 ${isActive ? "opacity-80" : "text-text-secondary"}`}>
+                                    <div className={`text-xs leading-tight mt-0.5 ${isActive ? "opacity-80" : "text-muted-foreground"}`}>
                                         {cat.description}
                                     </div>
                                 </div>
@@ -816,7 +816,7 @@ const PsychologicalContent = () => {
                                     onClick={() => setActiveType(tf.id)}
                                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeType === tf.id
                                         ? "bg-primary/15 text-primary"
-                                        : "text-text-secondary hover:bg-primary/5"
+                                        : "text-muted-foreground hover:bg-primary/5"
                                         }`}
                                 >
                                     <tf.icon className="h-3.5 w-3.5" />
@@ -827,7 +827,7 @@ const PsychologicalContent = () => {
 
                         {/* Search */}
                         <div className="relative flex-1 max-w-xs ml-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary/60" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                             <Input
                                 placeholder="Search topics, tags..."
                                 value={searchQuery}
@@ -843,7 +843,7 @@ const PsychologicalContent = () => {
             <section className="container mx-auto px-4 py-8">
                 {/* Results count */}
                 <div className="flex items-center justify-between mb-6">
-                    <p className="text-sm text-text-secondary">
+                    <p className="text-sm text-muted-foreground">
                         {filteredContent.length} resource{filteredContent.length !== 1 ? "s" : ""} found
                     </p>
                 </div>
@@ -864,9 +864,9 @@ const PsychologicalContent = () => {
 
                 {filteredContent.length === 0 && (
                     <div className="text-center py-16">
-                        <BookOpen className="h-12 w-12 text-text-secondary/30 mx-auto mb-3" />
-                        <p className="text-text-secondary text-lg mb-1">No resources found</p>
-                        <p className="text-text-secondary/70 text-sm">Try adjusting your filters or search term.</p>
+                        <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                        <p className="text-muted-foreground text-lg mb-1">No resources found</p>
+                        <p className="text-muted-foreground/70 text-sm">Try adjusting your filters or search term.</p>
                     </div>
                 )}
             </section>
@@ -882,15 +882,15 @@ const PsychologicalContent = () => {
                             🆘
                         </div>
                         <div className="flex-1 text-center md:text-left">
-                            <h3 className="text-lg font-bold text-text-primary mb-1">Need immediate help?</h3>
-                            <p className="text-sm text-text-secondary leading-relaxed">
+                            <h3 className="text-lg font-bold text-foreground mb-1">Need immediate help?</h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
                                 If you or someone you know is in crisis, please reach out to these helplines. They're free, confidential, and available 24/7.
                             </p>
                             <div className="flex flex-wrap gap-3 mt-3 justify-center md:justify-start">
                                 <span className="text-sm font-medium text-primary">KIRAN: 1800-599-0019</span>
-                                <span className="text-text-secondary/30">|</span>
+                                <span className="text-muted-foreground/30">|</span>
                                 <span className="text-sm font-medium text-primary">iCall: 9152987821</span>
-                                <span className="text-text-secondary/30">|</span>
+                                <span className="text-muted-foreground/30">|</span>
                                 <span className="text-sm font-medium text-primary">Vandrevala: 1860-2662-345</span>
                             </div>
                         </div>

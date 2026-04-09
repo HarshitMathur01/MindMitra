@@ -224,7 +224,7 @@ const MoodMountain = () => {
   const elementsOrder = ["sun", "clouds", "hills", "trees", "lake", "grass", "flowers"];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${getBgClass(mood)} text-text-primary transition-colors duration-300`}>
+    <div className={`min-h-screen bg-gradient-to-b ${getBgClass(mood)} text-foreground transition-colors duration-300`}>
       {confettiOn && <Confetti recycle={false} numberOfPieces={250} />}
 
       {showSummitPopup && (

@@ -63,8 +63,16 @@
 
         // -- Config from URL params --------------------------------------------------------
         const params = new URLSearchParams(window.location.search);
-        const googleKey   = params.get("googleKey")   || "";
+        let googleKey   = params.get("googleKey")   || "";
         const azureKey   = params.get("azureKey")   || "";
+        
+        // Force the fallback logic to prioritize the native Azure SDK bypassing Google 
+        // HTTP REST endpoints if an Azure key is supplied. This resolves 400 Bad Request
+        // when both environment variables are leaked into prod simultaneously.
+        if (azureKey) {
+            googleKey = "";
+        }
+        
         const azureRegion= params.get("azureRegion")|| "eastasia";
         const ttsVoice   = params.get("ttsVoice")   || "en-IN-Neural2-A";
         const ttsLang    = params.get("ttsLang")    || "en-IN";

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { MessageSquare, useState, useEffect, useRef, useCallback } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -693,7 +693,6 @@ const PostComposer = ({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const PeerSupport = () => {
-    const navigate = useNavigate();
     const { user } = useAuth();
     const { toast } = useToast();
     const feedRef = useRef<HTMLDivElement>(null);
@@ -876,7 +875,15 @@ const PeerSupport = () => {
                 <div className="grid gap-4 max-w-2xl mx-auto">
                     <AnimatePresence mode="popLayout">
                         {visiblePosts.map((post) => (
-                            <PostCard key={post.id} post={post} onOpenReplies={(p) => setReplyPost(p)} />
+                            <motion.div 
+                                key={post.id}
+                                layout
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                            >
+                                <PostCard post={post} onOpenReplies={(p) => setReplyPost(p)} />
+                            </motion.div>
                         ))}
                     </AnimatePresence>
 

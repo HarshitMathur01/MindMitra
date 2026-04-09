@@ -692,223 +692,266 @@ const ContentDetailModal = ({
 
 const PsychologicalContent = () => {
     const { toast } = useToast();
-    const [activeCategory, setActiveCategory] = useState("all");
-    const [activeType, setActiveType] = useState<ContentType | "all">("all");
     const [searchQuery, setSearchQuery] = useState("");
+    const [activeTab, setActiveTab] = useState<string>("all");
     const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
-    const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+    const [savedItems, setSavedItems] = useState<string[]>([]);
+    const [showBookmarks, setShowBookmarks] = useState(false);
 
-    const toggleBookmark = (id: string) => {
-        setBookmarks((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-                toast({ title: "Removed from bookmarks" });
-            } else {
-                next.add(id);
-                toast({ title: "Saved to bookmarks", description: "You can find this in your saved resources." });
-            }
-            return next;
+    // Categories setup
+    const allCategories = contentCategories;
+
+    // Filter logic
+    const filteredContent = useMemo(() => {
+        return allContent.filter(item => {
+            const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                  item.description.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesTab = activeTab === "all" || item.category === activeTab;
+            const matchesSaved = !showBookmarks || savedItems.includes(item.id);
+            return matchesSearch && matchesTab && matchesSaved;
         });
+    }, [searchQuery, activeTab, showBookmarks, savedItems]);
+
+    const toggleBookmark = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (savedItems.includes(id)) {
+            setSavedItems(prev => prev.filter(i => i !== id));
+            toast({ title: "Removed from saved items", description: "This resource has been removed from your bookmarks." });
+        } else {
+            setSavedItems(prev => [...prev, id]);
+            toast({ title: "Saved for later", description: "You can find this resource in your bookmarks." });
+        }
     };
 
-    // Filter content
-    const filteredContent = useMemo(() => {
-        return allContent
-            .filter((item) => activeCategory === "all" || item.category === activeCategory)
-            .filter((item) => activeType === "all" || item.type === activeType)
-            .filter((item) =>
-                searchQuery
-                    ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    item.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
-                    : true
-            );
-    }, [activeCategory, activeType, searchQuery]);
-
-    const featuredItems = allContent.filter((i) => i.featured);
-    const currentFeatured = featuredItems[0]; // top featured
-
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+        <div className="min-h-screen bg-background flex flex-col font-sans">
             <Header />
 
-            {/* ─── HERO SECTION ──────────────────────────────────────────── */}
-            <section className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-primary/2 to-transparent" />
-                <div className="absolute top-16 right-1/4 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-accent/5 rounded-full blur-3xl" />
-
-                <div className="container mx-auto px-4 pt-16 pb-10 relative z-10">
-                    <motion.div
-                        className="text-center max-w-2xl mx-auto mb-10"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-                            <BookOpen className="h-4 w-4" />
-                            Curated by Mental Health Professionals
-                        </div>
-                        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
-                            Learn. Understand. Heal.
+            <main className="flex-1">
+                {/* HERO SECTION */}
+                <section className="pt-24 pb-12 px-6 lg:px-12 max-w-5xl mx-auto text-center space-y-6">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                        <Badge variant="outline" className="mb-4 px-4 py-1.5 text-sm font-medium border-primary/20 text-primary bg-primary/5 rounded-full">
+                            <Sparkles className="h-4 w-4 mr-2" /> Mindful Resources
+                        </Badge>
+                        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
+                            Discover peace of mind.
                         </h1>
-                        <p className="text-lg text-muted-foreground leading-relaxed">
-                            Psychology-backed articles, exercises, and guides — written for Indian students, by Indian experts.
+                        <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                            Curated articles, guided audio, and exercises designed to support your journey toward mental clarity and well-being.
                         </p>
                     </motion.div>
 
-                    {/* Featured Hero Card */}
-                    {currentFeatured && (
-                        <FeaturedHeroCard item={currentFeatured} onOpen={setSelectedItem} />
-                    )}
-                </div>
-            </section>
-
-            {/* ─── CATEGORY BROWSE CARDS ─────────────────────────────────── */}
-            <section className="container mx-auto px-4 py-8">
-                <h2 className="text-xl font-bold text-foreground mb-5 flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-primary" />
-                    Browse by Topic
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {contentCategories.map((cat) => {
-                        const isActive = activeCategory === cat.id;
-                        const Icon = cat.icon;
-                        return (
-                            <button
-                                key={cat.id}
-                                onClick={() => setActiveCategory(cat.id)}
-                                className={`flex items-center gap-3 p-4 rounded-2xl text-left transition-all duration-200 border ${isActive
-                                    ? `${activeCatColorMap[cat.color] ?? "bg-primary text-white"} border-transparent shadow-md`
-                                    : `bg-surface border-border/50 hover:border-primary/30 hover:bg-primary/5`
-                                    }`}
-                            >
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isActive
-                                    ? "bg-crushed-silk/20"
-                                    : `${categoryColorMap[cat.color] ?? "bg-primary/10 text-primary"}`
-                                    }`}>
-                                    <Icon className="h-5 w-5" />
-                                </div>
-                                <div className="min-w-0">
-                                    <div className={`text-sm font-semibold leading-tight ${isActive ? "" : "text-foreground"}`}>
-                                        {cat.label}
-                                    </div>
-                                    <div className={`text-xs leading-tight mt-0.5 ${isActive ? "opacity-80" : "text-muted-foreground"}`}>
-                                        {cat.description}
-                                    </div>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-            </section>
-
-            {/* ─── FILTERS & SEARCH ──────────────────────────────────────── */}
-            <section className="sticky top-[73px] z-40 bg-background/95 backdrop-blur-md border-y border-border/40 py-3">
-                <div className="container mx-auto px-4">
-                    <div className="flex items-center gap-3 flex-wrap">
-                        {/* Type filters */}
-                        <div className="flex items-center gap-1 bg-surface rounded-xl border border-border/50 p-1">
-                            {typeFilters.map((tf) => (
-                                <button
-                                    key={tf.id}
-                                    onClick={() => setActiveType(tf.id)}
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeType === tf.id
-                                        ? "bg-primary/15 text-primary"
-                                        : "text-muted-foreground hover:bg-primary/5"
-                                        }`}
-                                >
-                                    <tf.icon className="h-3.5 w-3.5" />
-                                    {tf.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Search */}
-                        <div className="relative flex-1 max-w-xs ml-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                            <Input
-                                placeholder="Search topics, tags..."
+                    {/* SEARCH & FILTERS */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        transition={{ duration: 0.4, delay: 0.1 }}
+                        className="max-w-2xl mx-auto pt-6 flex flex-col sm:flex-row gap-4"
+                    >
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search 'anxiety', 'sleep', 'focus'..." 
+                                className="w-full pl-11 pr-4 py-6 rounded-2xl bg-card border-border shadow-sm text-base focus-visible:ring-1 focus-visible:ring-primary"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9 rounded-xl bg-surface border-border/50 text-sm h-9"
                             />
                         </div>
-                    </div>
-                </div>
-            </section>
+                        <Button 
+                            variant={showBookmarks ? "default" : "outline"}
+                            className="py-6 px-6 rounded-2xl gap-2 font-medium"
+                            onClick={() => setShowBookmarks(!showBookmarks)}
+                        >
+                            {showBookmarks ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
+                            {showBookmarks ? "Saved" : "Saved"}
+                        </Button>
+                    </motion.div>
 
-            {/* ─── CONTENT GRID ──────────────────────────────────────────── */}
-            <section className="container mx-auto px-4 py-8">
-                {/* Results count */}
-                <div className="flex items-center justify-between mb-6">
-                    <p className="text-sm text-muted-foreground">
-                        {filteredContent.length} resource{filteredContent.length !== 1 ? "s" : ""} found
-                    </p>
-                </div>
+                    {/* CATEGORY PILLS */}
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="flex flex-wrap items-center justify-center gap-2 pt-8"
+                    >
+                        {allCategories.map(cat => {
+                            const Icon = cat.icon;
+                            const isActive = activeTab === cat.id;
+                            return (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => setActiveTab(cat.id)}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                                        isActive 
+                                            ? "bg-foreground text-background shadow-md" 
+                                            : "bg-secondary/50 text-secondary-foreground hover:bg-secondary border border-transparent hover:border-border"
+                                    }`}
+                                >
+                                    {Icon && <Icon className="h-4 w-4" />}
+                                    {cat.label}
+                                </button>
+                            );
+                        })}
+                    </motion.div>
+                </section>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* CONTENT GRID */}
+                <section className="max-w-7xl mx-auto px-6 lg:px-12 pb-24">
                     <AnimatePresence mode="popLayout">
-                        {filteredContent.map((item) => (
-                            <ContentCard
-                                key={item.id}
-                                item={item}
-                                onOpen={setSelectedItem}
-                                bookmarked={bookmarks.has(item.id)}
-                                onToggleBookmark={toggleBookmark}
-                            />
-                        ))}
+                        {filteredContent.length > 0 ? (
+                            <motion.div 
+                                layout
+                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                            >
+                                {filteredContent.map((item, i) => (
+                                    <motion.div
+                                        key={item.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ duration: 0.25, delay: i * 0.05 }}
+                                    >
+                                        <Card 
+                                            className="group h-full flex flex-col bg-card border border-border hover:border-primary/30 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                                            onClick={() => setSelectedItem(item)}
+                                        >
+                                            {/* Card Image Area (Simulated abstract colored header) */}
+                                            <div className={`h-32 bg-gradient-to-br from-primary/10 to-transparent relative p-5 flex flex-col justify-between`}>
+                                                <div className="flex justify-between items-start">
+                                                    <Badge variant="secondary" className="bg-background/80 backdrop-blur border-none font-medium capitalize flex gap-1.5 items-center shadow-sm">
+                                                        {item.type === 'video' ? <Play className="h-3 w-3" /> : item.type === 'audio' ? <Headphones className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                                                        {item.type}
+                                                    </Badge>
+                                                    <button 
+                                                        onClick={(e) => toggleBookmark(item.id, e)}
+                                                        className="p-2 rounded-full bg-background/50 hover:bg-background/80 backdrop-blur transition-colors text-foreground"
+                                                    >
+                                                        {savedItems.includes(item.id) ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Card Content */}
+                                            <div className="p-6 flex flex-col flex-1">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
+                                                    <span className="text-xs text-muted-foreground flex items-center"><Clock className="h-3 w-3 mr-1" /> {item.readTime}</span>
+                                                </div>
+                                                <h3 className="text-xl font-semibold leading-tight mb-2 text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                                                    {item.title}
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground line-clamp-3 mb-6 leading-relaxed flex-1">
+                                                    {item.description}
+                                                </p>
+                                                
+                                                {/* Author/Action Footer */}
+                                                <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                                                            {item.author.charAt(0)}
+                                                        </div>
+                                                        <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">{item.author}</span>
+                                                    </div>
+                                                    <div className="text-primary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                                                        <ArrowRight className="h-5 w-5" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </motion.div>
+                                ))}
+                            </motion.div>
+                        ) : (
+                            <motion.div 
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                className="py-24 text-center max-w-md mx-auto"
+                            >
+                                <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6">
+                                    <Search className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-foreground mb-2">No resources found</h3>
+                                <p className="text-muted-foreground mb-6">We couldn't track down anything for "{searchQuery}". Try a different keyword or category.</p>
+                                <Button onClick={() => { setSearchQuery(""); setActiveTab("all"); }} variant="outline" className="rounded-xl">
+                                    Clear Filters
+                                </Button>
+                            </motion.div>
+                        )}
                     </AnimatePresence>
-                </div>
+                </section>
 
-                {filteredContent.length === 0 && (
-                    <div className="text-center py-16">
-                        <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                        <p className="text-muted-foreground text-lg mb-1">No resources found</p>
-                        <p className="text-muted-foreground/70 text-sm">Try adjusting your filters or search term.</p>
-                    </div>
-                )}
-            </section>
-
-            {/* ─── QUICK HELP SECTION ────────────────────────────────────── */}
-            <section className="container mx-auto px-4 pb-12">
-                <Card
-                    className="rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-surface to-accent/5 p-6 md:p-8"
-                    style={{ boxShadow: "0 2px 16px var(--shadow)" }}
-                >
-                    <div className="flex flex-col md:flex-row items-center gap-6">
-                        <div className="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center text-4xl shrink-0">
-                            🆘
+                {/* BOTTOM CTA: NEED HELP? */}
+                <section className="bg-primary/5 py-16 border-t border-border">
+                    <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
+                        <Heart className="h-10 w-10 text-primary mx-auto opacity-80" />
+                        <h2 className="text-3xl font-semibold">Feeling overwhelmed right now?</h2>
+                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                            Sometimes an article isn't enough. Our AI companion is available 24/7 to listen, or you can instantly connect with our community or specialized crisis resources.
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                            <Button className="rounded-full px-8 py-6 text-base font-semibold shadow-xl shadow-primary/20" onClick={() => window.location.href = '/chat'}>
+                                Talk to MindMitra <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" className="rounded-full px-8 py-6 text-base font-semibold bg-background" onClick={() => window.location.href = '/peer-support'}>
+                                Join Peer Support <Users className="ml-2 h-4 w-4" />
+                            </Button>
                         </div>
-                        <div className="flex-1 text-center md:text-left">
-                            <h3 className="text-lg font-bold text-foreground mb-1">Need immediate help?</h3>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                                If you or someone you know is in crisis, please reach out to these helplines. They're free, confidential, and available 24/7.
-                            </p>
-                            <div className="flex flex-wrap gap-3 mt-3 justify-center md:justify-start">
-                                <span className="text-sm font-medium text-primary">KIRAN: 1800-599-0019</span>
-                                <span className="text-muted-foreground/30">|</span>
-                                <span className="text-sm font-medium text-primary">iCall: 9152987821</span>
-                                <span className="text-muted-foreground/30">|</span>
-                                <span className="text-sm font-medium text-primary">Vandrevala: 1860-2662-345</span>
+                    </div>
+                </section>
+
+            </main>
+
+            <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                    {selectedItem && (
+                        <>
+                            <DialogHeader>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="outline" className="capitalize">{selectedItem.type}</Badge>
+                                    <span className="text-sm text-muted-foreground"><Clock className="inline w-3 h-3 mr-1" />{selectedItem.duration}</span>
+                                </div>
+                                <DialogTitle className="text-2xl font-bold">{selectedItem.title}</DialogTitle>
+                            </DialogHeader>
+                            <div className="my-6">
+                                <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">{selectedItem.longDescription || selectedItem.description}</p>
                             </div>
-                        </div>
-                        <Shield className="h-8 w-8 text-primary/30 hidden md:block" />
-                    </div>
-                </Card>
-            </section>
+                            
+                            {selectedItem.keyTakeaways && selectedItem.keyTakeaways.length > 0 && (
+                                <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10">
+                                    <h4 className="font-semibold mb-3 flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary"/> Key Takeaways</h4>
+                                    <ul className="space-y-2 text-sm text-muted-foreground">
+                                        {selectedItem.keyTakeaways.map((takeaway: string, idx: number) => (
+                                            <li key={idx} className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                                <span>{takeaway}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
-            {/* ─── Detail Modal ──────────────────────────────────────────── */}
-            <ContentDetailModal
-                item={selectedItem}
-                open={!!selectedItem}
-                onClose={() => setSelectedItem(null)}
-            />
+                            <div className="flex justify-end gap-3 mt-6">
+                                {selectedItem.link && (
+                                    <Button onClick={() => window.open(selectedItem.link, "_blank")} className="rounded-full">
+                                        Open External Resource <ExternalLink className="w-4 h-4 ml-2" />
+                                    </Button>
+                                )}
+                                <Button variant="outline" onClick={() => setSelectedItem(null)} className="rounded-full">
+                                    Close
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             <Footer />
+
         </div>
     );
 };
 
 export default PsychologicalContent;
+

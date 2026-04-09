@@ -135,6 +135,7 @@ class AzureController:
                         isinstance(v, dict) and v.get("filtered")
                         for v in filter_results.values()
                     ):
+                        logger.warning(f"⚠️ [Azure] Content filter triggered: {filter_results}")
                         return (
                             "I want to support you safely. I can continue with grounding and emotional support "
                             "without details about harm."
@@ -213,7 +214,8 @@ class AzureController:
                     return joined
         except Exception as e:
             error_str = str(e).lower()
-            if "content_filter" in error_str:
+            if "content_filter" in error_str or "policy" in error_str:
+                logger.warning(f"⚠️ [Azure] Policy/Content filter triggered in responses API: {e}")
                 return (
                     "I want to support you safely. I can continue with grounding and emotional support "
                     "without details about harm."
@@ -352,6 +354,16 @@ class AzureController:
                     _released = True
                     time.sleep(getattr(self, "_base_backoff", 2.0))
                     continue
+
+                if "content_filter" in error_str or "policy" in error_str:
+                    logger.warning(f"⚠️ [Azure] Policy/Content filter triggered during main invoke: {e}")
+                    if not _released:
+                        self._semaphore.release()
+                        _released = True
+                    return GLMResponse(
+                        "I want to support you safely. I can continue with grounding and emotional support "
+                        "without details about harm."
+                    )
 
                 logger.error(f"❌ [Azure] Request failed: {e}")
                 if attempt < total_attempts - 1:

@@ -153,7 +153,7 @@ class PipelineOrchestrator:
         logger.info("💬 [PATH-A] ▶  EXECUTING: casual/light path (1 GLM call)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = int(config.get("azure_controller.max_tokens_path_a", 200))
+        ctx["_response_max_tokens"] = int(config.get("azure_controller.max_tokens_path_a", 1500))
         ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_a", 0.8))
         ctx["psychological_analysis"] = {
             "emotional_state": "casual",
@@ -175,8 +175,8 @@ class PipelineOrchestrator:
             "Say something that lands: specific, warm, a little unexpected. "
             "Show you actually heard what they said — not the category of thing, but the exact thing. "
             "1-3 sentences. Dense, real, no filler. "
-            "BANNED openers: 'Great!', 'Got it!', 'No worries!', 'Of course!', 'That's nice!', 'I understand that'. "
-            "BANNED closers: 'Feel free to share', 'Take care'. "
+            "Avoid openers like: 'Great!', 'Got it!', 'No worries!', 'Of course!', 'That's nice!', 'I understand that'. "
+            "Avoid closers like: 'Feel free to share', 'Take care'. "
             "Every sentence should earn its place. Zero clinical framing. Sound like a real person who is genuinely interested."
             + self._get_question_constraint(ctx)
         )

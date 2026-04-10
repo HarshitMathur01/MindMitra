@@ -57,41 +57,33 @@ class PipelineOrchestrator:
 
     _TECHNIQUE_DIRECTIVES: Dict[str, str] = {
         "validate": (
-            "Focus entirely on making this person feel deeply understood. "
-            "Do not offer advice or reframes — just be present with what they shared. "
-            "Name the specific feeling, not the category: 'That kind of exhaustion that doesn't go away with sleep' "
-            "hits harder than 'you seem tired'. Reflect back the weight of what they said, not just the content."
+            "Be fully present — no advice, no reframes. "
+            "Name the specific feeling beneath their words ('that exhaustion that sleep doesn't fix' > 'you seem tired'). "
+            "Reflect the weight of what they said, not just its surface."
         ),
         "reframe": (
-            "Gently offer one alternative way to look at this situation. "
-            "Don't push — plant it like a seed: 'I wonder if there's another way to read that...' "
-            "Frame it as a possibility, not a correction. "
-            "Example tone: 'What if the fact that this hurts so much means you actually care deeply about getting it right.'"
+            "Plant one gentle alternative perspective as a seed, not a correction. "
+            "Tone: 'I wonder if there's another way to read that...' / "
+            "'What if the fact this hurts so much means you actually care deeply about getting it right.'"
         ),
         "ground": (
-            "Naturally bring their attention to the present moment — "
-            "their body, breath, or what they can see and feel right now. "
-            "Weave it into the conversation: 'Take a breath with me for a second' or "
-            "'Notice your feet on the floor right now — that's real, that's steady.' "
-            "Make grounding feel like a shared moment, not an exercise."
+            "Bring their attention to the present moment — body, breath, or what they can sense right now. "
+            "Weave it naturally: 'Take a breath with me' / 'Notice your feet on the floor — that's real.' "
+            "Make it a shared moment, not a prescribed exercise."
         ),
         "problem-solve": (
-            "Help identify one small, concrete next step they can actually take right now. "
-            "Make it feel achievable, not overwhelming: 'What if you just did the first five minutes of that.' "
-            "Acknowledge the size of the problem before suggesting the small step. "
-            "The goal is agency, not a plan."
+            "Acknowledge the size of the problem first, then name one small, achievable step they can take right now. "
+            "'What if you just did the first five minutes.' Goal is agency, not a full plan."
         ),
         "refer": (
-            "Warmly acknowledge this is bigger than a chat can hold. "
-            "Honor their courage in sharing. Frame professional support as strength: "
-            "'Talking to someone trained in this isn't giving up — it's taking yourself seriously.' "
-            "Maintain connection: you're not handing them off, you're walking alongside them toward more support."
+            "Acknowledge warmly that this is bigger than a chat can hold. "
+            "Frame professional support as strength: 'Reaching out to someone trained in this is taking yourself seriously.' "
+            "Stay connected — walk alongside them toward more support, don't hand them off."
         ),
         "psychoeducation": (
-            "Share one simple, relatable insight about what they're experiencing — "
-            "something that normalizes it. Use analogy: 'Your brain is basically running a fire drill right now — "
-            "that anxious feeling is your alarm system doing its job, just a bit too enthusiastically.' "
-            "Keep it conversational. The insight should feel like a gift, not a lecture."
+            "Share one normalizing insight using a relatable analogy "
+            "('Your brain is running a fire drill — that anxious feeling is your alarm doing its job, just a bit too enthusiastically.'). "
+            "Conversational and concise — a gift, not a lecture."
         ),
     }
 
@@ -194,13 +186,10 @@ class PipelineOrchestrator:
             "rationale": "light conversation",
         }
         ctx["intervention_directive"] = (
-            "CASUAL MODE — let your personality lead. "
-            "Say something that lands: specific, warm, a little unexpected. "
-            "Show you actually heard what they said — not the category of thing, but the exact thing. "
-            "1-3 sentences. Dense, real, no filler. "
-            "Avoid openers like: 'Great!', 'Got it!', 'No worries!', 'Of course!', 'That's nice!', 'I understand that'. "
-            "Avoid closers like: 'Feel free to share', 'Take care'. "
-            "Every sentence should earn its place. Zero clinical framing. Sound like a real person who is genuinely interested."
+            "CASUAL — light conversation, no therapeutic depth. "
+            "1-3 sentences, warm and specific to exactly what they just said. "
+            "Memory is available but don't force callbacks on a casual turn — use only if it fits naturally. "
+            "Sound like a real person who is genuinely interested, not a support bot."
             + self._get_question_constraint(ctx)
         )
         logger.info(f"  📞 [PATH-A] Calling GLM response-gen (model={getattr(self.glm, 'model_name', '?')})...")

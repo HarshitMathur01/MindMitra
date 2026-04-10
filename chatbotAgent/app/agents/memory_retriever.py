@@ -380,7 +380,7 @@ class MemoryRetriever:
         sections = []
 
         if semantic:
-            lines = ["THINGS YOU REMEMBER ABOUT THEM (reference naturally, like a friend who remembers):"]
+            lines = ["ABOUT THEM:"]
             for m in semantic:
                 text = m.get("memory", "")
                 if text:
@@ -388,7 +388,7 @@ class MemoryRetriever:
             sections.append("\n".join(lines))
 
         if procedural:
-            lines = ["WHAT HAS HELPED THEM BEFORE (weave in naturally if relevant):"]
+            lines = ["WHAT HAS HELPED:"]
             for m in procedural:
                 text = m.get("memory", "")
                 if text:
@@ -396,7 +396,7 @@ class MemoryRetriever:
             sections.append("\n".join(lines))
 
         if reflections:
-            lines = ["PATTERNS YOU'VE NOTICED (share as gentle observations, not diagnoses):"]
+            lines = ["PATTERNS NOTICED:"]
             for m in reflections:
                 text = m.get("memory", "")
                 if text:

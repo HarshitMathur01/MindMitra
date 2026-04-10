@@ -641,37 +641,38 @@ def _crisis_fast_path(self, ctx):
 
 ## 8. Response Generation & CoE Reasoning
 
-**File**: `agents/response_agent.py` (442 lines)
+**File**: `agents/response_agent.py`
 
 ### `ResponseGenerator`
 
-**Constructor**: Takes a `GLMController` instance. Loads system prompt template from `config.yaml`.
+**Constructor**: Takes a `GLMController` (or `AzureController`) instance. System prompt template is defined inline in `response_agent.py`; `config.yaml` key `response_generator.system_prompt` acts as an override if set.
 
 ### System Prompt Template
 
-The system prompt is assembled from 6 components via `_build_system_prompt()`:
+The system prompt is assembled from 7 slots via `_build_system_prompt()`:
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  CORE IDENTITY                                    │
-│  "You are {companion_name} — not a chatbot..."    │
+│  IDENTITY + RESPONSE RULES  (compact, 10 bullets) │
+│  "You are {companion_name} — a real companion..."  │
 │                                                    │
-│  RELATIONSHIP PHILOSOPHY                          │
-│  "You HEAR before you help..."                    │
-│                                                    │
-│  HOW TO RESPOND                                    │
-│  "Mirror their language style naturally..."        │
-│                                                    │
-│  ABSOLUTE RULES                                    │
-│  "NEVER use technique labels..."                  │
+│  {stage_directive}    ← trust_window / deepening  │
+│                         / insight / companion      │
 │                                                    │
 │  {personality_instruction}   ← per companion      │
-│  {language_instruction}      ← en/hi/hinglish    │
+│  {language_instruction}      ← en/hi/hinglish/... │
 │  {intervention_directive}    ← from pipeline path │
-│  {coe_reasoning}            ← CoE think blocks    │
-│  {memory_context}           ← from MemoryManager  │
+│  {coe_reasoning}             ← therapeutic lens   │
+│                                                    │
+│  MEMORY CONTRACT (4 rules: use only listed facts,  │
+│   one callback per turn, trust message over memory)│
+│  {memory_context}            ← from MemoryManager  │
 └──────────────────────────────────────────────────┘
 ```
+
+**Prompt philosophy**: The BASE layer is intentionally compact — global rules that apply to every path. Depth and style variation come from `{intervention_directive}` (set per path by the orchestrator) and `{personality_instruction}` (set per companion). This hierarchy avoids conflicting instructions and reduces fixed token cost on Path A (casual) and Path D (crisis, which uses templates, not this prompt).
+
+**Memory contract** (embedded before `{memory_context}`): The model is instructed to reference only facts present in the block, use at most one callback per turn, and trust the current message if it conflicts with stored memory. This prevents hallucinated "memories" and overfitting to old RAG context.
 
 ### Personality Instructions (5 companions + 3 legacy aliases)
 
@@ -694,63 +695,51 @@ The system prompt is assembled from 6 components via `_build_system_prompt()`:
 "hinglish": "LANGUAGE: Respond in Hinglish — a natural mix of Hindi and English, like urban Indian youth speak..."
 ```
 
-### Chain-of-Experts (CoE) Reasoning
+### Chain-of-Empathy (CoE) Lens
 
-6 intervention-mapped `<think>` block templates. The IntentRouter or psych analysis determines the `therapeutic_approach`, which maps to a specific CoE block injected into the system prompt.
+6 intervention-mapped one-line labels. The orchestrator determines `therapeutic_approach` from psych analysis, which maps to a short "Lens: …" directive injected into the system prompt. These labels activate the right framing in the model's internal reasoning without naming clinical frameworks (CBT/DBT) in the response text.
 
-| Intervention | CoE Think Block | Therapeutic Framework |
+| Intervention | Lens label | Intent |
 |---|---|---|
-| `validate` | "What specific emotion? What's the unspoken need? How to reflect their feeling?" | Person-Centered (unconditional positive regard) |
-| `reframe` | "What cognitive distortion? What alternative perspective? How to offer gently?" | CBT (thoughts are not facts) |
-| `ground` | "Is user in distress/spiraling? What sensory anchor? How to weave naturally?" | DBT distress tolerance |
-| `problem-solve` | "What specific stressor? What ONE small step? How to build agency?" | Reality Therapy (focus on controllables) |
-| `refer` | "Why beyond my scope? How to acknowledge courage? Frame help as strength?" | Warm handoff |
-| `psychoeducation` | "What concept is relevant? What simple analogy? How to not be preachy?" | Normalize experience |
+| `validate` | "pure presence — reflect the exact emotion felt, no advice" | Person-Centered |
+| `reframe` | "gentle reframe — one alternative perspective as an invitation" | Cognitive reframe |
+| `ground` | "grounding — weave a sensory anchor naturally" | Distress tolerance |
+| `problem-solve` | "agency — one small, concrete, achievable step" | Practical agency |
+| `refer` | "warm handoff — honour courage, frame support as strength" | Safe escalation |
+| `psychoeducation` | "normalize — one insight via relatable analogy" | Psychoeducation |
 
-Each CoE block instructs the model to reason inside `<think></think>` tags (which are stripped from the final response by `_clean()`).
+These replaced the old verbose `<think>...</think>` blocks. `_clean()` in `response_agent.py` still strips any `<think>` tags if a reasoning model emits them.
 
 ### `_build_context()` — User Message Assembly
 
-This builds the **user-role message** sent alongside the system prompt to GLM:
+This builds the **user-role message** sent alongside the system prompt to the response LLM:
 
 ```
-PSYCHOLOGICAL ASSESSMENT:
-  State: {emotional_state}
-  Stress: {stress_categories}
-  Priority: {intervention_priority}
-  Insights: {psychological_insights}
-  Cultural pressures: {cultural_pressures}
+CONTEXT (use to inform response — do not cite these labels in your text):
+State: {emotional_state} | Stressors: [...] | Needs: {intervention_priority}
+Insights: [...] | Cultural: {cultural_pressures}
+Approach: {primary_technique} — {therapeutic_approach}
+Emotion: {primary_emotion} (intensity N.N) | Input style: {language_style} | Cultural flags: [...]
 
-TECHNIQUE:
-  Approach: {primary_technique} — {therapeutic_approach}
-  Activities: {activity_recommendations}
+VOICE ANALYSIS (raw metrics — interpret in context):    (if voice data present)
+  ...
 
-EMOTION: {primary_emotion} (intensity {intensity}), sentiment={sentiment_label}
-LANGUAGE STYLE: {language_style}, formality={formality_level}
-CULTURAL FLAGS: {cultural_sensitivity_flags}
-
-VOICE ANALYSIS:    (if voice data available)
-  Emotional tone: {emotional_tone}
-  Stress level: {stress_level}
-  Speech pace: {speech_pace}
-
-RECENT GAME & ASSESSMENT INSIGHTS (last 24h):    (if activities exist)
+RECENT ACTIVITIES (last 24h):    (if activities exist; skip if not relevant to this turn)
 {_summarize_activities output}
-Use these insights naturally — if relevant, reference their game performance...
 
-PREVIOUS SESSION CONTEXT:    (if previous session summary exists)
+PREVIOUS SESSION:    (if previous session summary exists; only reference if it connects)
   Summary: {summary}
-  Key themes: {themes}
-  Emotional journey: {arc}
-  Reference this naturally if it connects...
+  Themes: [...]  |  Emotional arc: [...]
 
 CONVERSATION:
-{last 5 messages, 200 chars each}
+{last 3 messages, 200 chars each}
 
 USER'S CURRENT MESSAGE: "{user_message}"
 
-Respond naturally as MindMitra:
+Respond as {companion_name} — warm, real, and specific to what they just said:
 ```
+
+The context header explicitly says "do not cite these labels in your text" to prevent the model from outputting meta-references like "Based on your emotional state of 'anxious'…".
 
 ### `_summarize_activities()` — Game Data Formatting
 

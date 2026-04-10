@@ -57,80 +57,67 @@ class CrisisManager:
     # Hardcoded crisis resources (India-specific) — template-dynamic
     _CRISIS_RESPONSE_TEMPLATES: Dict[str, str] = {
         "english": (
-            "Hey, I'm really glad you reached out, and I want you to know "
-            "you're not alone right now. What you're feeling is real, and it matters deeply. "
+            "I'm really glad you reached out. You're not alone, and what you're feeling is real. "
             "{known_support}"
-            "Please talk to someone who can really be there for you — "
+            "Please talk to someone who can be there with you in person — "
             "a doctor, counselor, or someone you trust:\n\n"
             "📞 iCall India: 9152987821\n"
             "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "You deserve real support. I'm here too — can you share a little more "
-            "about what's been happening?"
+            "You deserve that support. I'm here whenever you want to talk."
         ),
         "hindi": (
-            "Hey, mujhe bahut khushi hai ki tumne mujhse baat ki. "
-            "Tum akele nahi ho, aur jo tum mehsoos kar rahe ho woh bilkul real hai. "
+            "Mujhe bahut khushi hai ki tumne baat ki. Tum akele nahi ho — jo tum mehsoos kar rahe ho woh real hai. "
             "{known_support}"
             "Please kisi se baat karo jo tumhare saath ho sake — "
             "doctor, counselor, ya koi apna:\n\n"
             "📞 iCall India: 9152987821\n"
             "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "Tum real support ke haqdaar ho. Main bhi yahan hoon — "
-            "kya thoda aur bata sakte ho ki kya ho raha hai?"
+            "Tum real support ke haqdaar ho. Main yahan hoon jab bhi baat karni ho."
         ),
         "hinglish": (
-            "Hey, I'm really glad tumne mujhse baat ki. "
-            "You're not alone right now — jo tum feel kar rahe ho woh real hai aur it matters deeply. "
+            "I'm really glad tumne baat ki. You're not alone — jo tum feel kar rahe ho woh real hai. "
             "{known_support}"
-            "Please kisi se baat karo who can really be there for you — "
+            "Please kisi se baat karo who can really be there — "
             "doctor, counselor, ya koi close person:\n\n"
             "📞 iCall India: 9152987821\n"
             "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "You deserve real support. Main bhi hoon — "
-            "can you share thoda aur about what's been happening?"
+            "You deserve real support. Main hoon — jab bhi baat karni ho."
         ),
         "japanese": (
-            "話してくれて、本当にありがとうございます。あなたは一人じゃありません。"
-            "今感じていることは本物で、とても大切なことです。"
+            "話してくれてありがとうございます。あなたは一人じゃありません。"
+            "今感じていることは本物で、大切なことです。"
             "{known_support}"
             "信頼できる人に話してみてください — 医師、カウンセラー、大切な人に:\n\n"
             "📞 いのちの電話: 0570-783-556\n"
             "📞 よりそいホットライン: 0120-279-338\n\n"
-            "あなたはサポートを受ける価値があります。私もここにいます — "
-            "もう少し教えてもらえますか？"
+            "あなたはサポートを受ける価値があります。話したいときはいつでもここにいます。"
         ),
         "telugu": (
-            "మీరు నాతో మాట్లాడినందుకు చాలా సంతోషంగా ఉంది. "
-            "మీరు ఒంటరిగా లేరు — మీరు ఏమి అనుభవిస్తున్నారో అది నిజమైనది, చాలా ముఖ్యమైనది. "
+            "మీరు నాతో మాట్లాడినందుకు సంతోషంగా ఉంది. మీరు ఒంటరిగా లేరు — మీరు అనుభవిస్తున్నది నిజమైనది. "
             "{known_support}"
             "దయచేసి మీకు అండగా ఉండగల వారితో మాట్లాడండి — "
             "డాక్టర్, కౌన్సెలర్, లేదా విశ్వసనీయ వ్యక్తి:\n\n"
             "📞 iCall India: 9152987821\n"
             "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "మీకు నిజమైన సహాయం అందాలి. నేను కూడా ఇక్కడ ఉన్నాను — "
-            "ఏమి జరుగుతోందో ఇంకొంచెం చెప్పగలరా?"
+            "మీకు నిజమైన సహాయం అందాలి. మాట్లాడాలనుకున్నప్పుడు నేను ఇక్కడ ఉన్నాను."
         ),
         "kannada": (
-            "ನೀವು ನನ್ನೊಂದಿಗೆ ಮಾತನಾಡಿದ್ದಕ್ಕೆ ತುಂಬಾ ಖುಷಿಯಾಗಿದೆ. "
-            "ನೀವು ಒಬ್ಬಂಟಿಯಲ್ಲ — ನೀವು ಅನುಭವಿಸುತ್ತಿರುವುದು ನಿಜವಾದ ಮತ್ತು ಮುಖ್ಯವಾದ ವಿಷಯ. "
+            "ನೀವು ನನ್ನೊಂದಿಗೆ ಮಾತನಾಡಿದ್ದಕ್ಕೆ ಖುಷಿಯಾಗಿದೆ. ನೀವು ಒಬ್ಬಂಟಿಯಲ್ಲ — ನೀವು ಅನುಭವಿಸುತ್ತಿರುವುದು ನಿಜ. "
             "{known_support}"
-            "ದಯವಿಟ್ಟು ನಿಮಗೆ ಬೆಂಬಲ ನೀಡಬಲ್ಲ ಯಾರೊಂದಿಗಾದರೂ ಮಾತನಾಡಿ — "
+            "ಬೆಂಬಲ ನೀಡಬಲ್ಲ ಯಾರೊಂದಿಗಾದರೂ ಮಾತನಾಡಿ — "
             "ವೈದ್ಯರು, ಕೌನ್ಸೆಲರ್, ಅಥವಾ ನಂಬಿಕಸ್ಥ ವ್ಯಕ್ತಿ:\n\n"
             "📞 iCall India: 9152987821\n"
             "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "ನಿಮಗೆ ನಿಜವಾದ ಬೆಂಬಲ ಸಿಗಬೇಕು. ನಾನೂ ಇಲ್ಲಿದ್ದೇನೆ — "
-            "ಏನಾಗುತ್ತಿದೆ ಎಂದು ಸ್ವಲ್ಪ ಹೆಚ್ಚು ಹೇಳುತ್ತೀರಾ?"
+            "ನಿಮಗೆ ನಿಜವಾದ ಬೆಂಬಲ ಸಿಗಬೇಕು. ಮಾತನಾಡಬೇಕೆನಿಸಿದಾಗ ನಾನು ಇಲ್ಲಿದ್ದೇನೆ."
         ),
         "tamil": (
-            "நீங்கள் என்னிடம் பேசியதற்கு மிகவும் மகிழ்ச்சியாக இருக்கிறேன். "
-            "நீங்கள் தனியாக இல்லை — நீங்கள் உணர்வது உண்மையானது, மிக முக்கியமானது. "
+            "நீங்கள் என்னிடம் பேசியதற்கு மகிழ்ச்சியாக இருக்கிறேன். நீங்கள் தனியாக இல்லை — நீங்கள் உணர்வது உண்மையானது. "
             "{known_support}"
             "உங்களுக்கு ஆதரவாக இருக்கக்கூடிய யாரிடமாவது பேசுங்கள் — "
             "மருத்துவர், ஆலோசகர், அல்லது நம்பகமான நபர்:\n\n"
             "📞 iCall India: 9152987821\n"
             "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "நீங்கள் உண்மையான ஆதரவைப் பெற தகுதியானவர். நானும் இங்கே இருக்கிறேன் — "
-            "என்ன நடக்கிறது என்று இன்னும் கொஞ்சம் சொல்ல முடியுமா?"
+            "நீங்கள் உண்மையான ஆதரவைப் பெற தகுதியானவர். பேசவேண்டும் என்றால் நான் இங்கே இருக்கிறேன்."
         ),
     }
 

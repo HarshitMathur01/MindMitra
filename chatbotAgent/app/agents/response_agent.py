@@ -2,6 +2,7 @@
 ResponseGenerator — GLM Agent 3: final therapeutic response generation.
 """
 import json
+from ..core.prompts import RESPONSE_BASE_SYSTEM_PROMPT, RESPONSE_STAGE_DIRECTIVE_TRUST_WINDOW, RESPONSE_STAGE_DIRECTIVE_DEEPENING, RESPONSE_STAGE_DIRECTIVE_INSIGHT, RESPONSE_STAGE_DIRECTIVE_COMPANION
 import logging
 import os
 import re

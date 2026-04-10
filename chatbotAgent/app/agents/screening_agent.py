@@ -5,6 +5,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from ..core.prompts import SCREENING_ASSESSMENT_MESSAGE_PROMPT, SCREENING_ASSESSMENT_SESSION_PROMPT
 
 from ..core.config import config
 from ..utils.json_utils import parse_json_from_llm_output
@@ -42,28 +43,13 @@ class ScreeningAssessmentAgent:
         history_snippet = "\n".join(
             f"{m.get('role','user')}: {m.get('content','')[:140]}" for m in recent
         )
-        prompt = f"""Estimate screening scores for PHQ-9 and GAD-7 from the text context below.
-Return ONLY valid JSON with exactly this structure:
-{{
-  "phq9": {{"responses": [<9 integers 0-3>], "score": <0-27 integer>, "severity": "<minimal|mild|moderate|moderately_severe|severe>"}},
-  "gad7": {{"responses": [<7 integers 0-3>], "score": <0-21 integer>, "severity": "<minimal|mild|moderate|severe>"}}
-}}
-
-Rules:
-- Infer cautiously from available data; do not exaggerate risk.
-- If evidence is weak, keep scores low and conservative.
-- No markdown, no extra keys.
-
-Current message: "{user_message[:1200]}"
-Recent conversation:
-{history_snippet[:1000]}
-
+        context_block = f"""Current message: "{message[:400]}"
+Recent conversation: {history_snippet}
 Signals:
 - NLP primary emotion: {nlp.get('primary_emotion','unknown')}
-- NLP intensity: {nlp.get('intensity',0)}
-- Psychological state: {psych.get('emotional_state','')}
-
-JSON:"""
+- NLP intensity: {nlp.get('intensity',0.0)}
+- Psychological state: {psych.get('emotional_state','unknown')}"""
+        prompt = SCREENING_ASSESSMENT_MESSAGE_PROMPT.format(context=context_block)
 
         parsed = self._call_groq(prompt) or self._call_glm(prompt)
         if not parsed:
@@ -90,27 +76,7 @@ JSON:"""
             for m in messages[-30:]
         )
 
-        prompt = f"""Based on the FULL conversation below, estimate screening scores for PHQ-9 and GAD-7.
-This is a session-level assessment — consider the overall emotional tone, recurring themes,
-and severity of distress across the entire conversation, not just a single message.
-
-Return ONLY valid JSON with exactly this structure:
-{{
-  "phq9": {{"responses": [<9 integers 0-3>], "score": <0-27 integer>, "severity": "<minimal|mild|moderate|moderately_severe|severe>"}},
-  "gad7": {{"responses": [<7 integers 0-3>], "score": <0-21 integer>, "severity": "<minimal|mild|moderate|severe>"}}
-}}
-
-Rules:
-- Assess based on patterns across the FULL conversation, not individual messages.
-- Infer cautiously from available data; do not exaggerate risk.
-- If user seems generally well with minor stress, keep scores low.
-- If user shows persistent sadness, hopelessness, or anxiety themes, score accordingly.
-- No markdown, no extra keys.
-
-Full conversation:
-{transcript[:3000]}
-
-JSON:"""
+        prompt = SCREENING_ASSESSMENT_SESSION_PROMPT.format(transcript=transcript)
 
         parsed = self._call_groq(prompt) or self._call_glm(prompt)
         if not parsed:

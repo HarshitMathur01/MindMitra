@@ -271,6 +271,22 @@ class MemoryRetriever:
                 f"(semantic={len(semantic_memories)}, procedural={len(procedural_memories)}, "
                 f"reflections={len(reflection_memories)}, intent={intent})"
             )
+            
+            if total > 0:
+                logger.info("   🧠 --- RETRIEVED MEMORY PAYLOAD ---")
+                
+                for cat_name, cat_list in [
+                    ("SEMANTIC", semantic_memories),
+                    ("PROCEDURAL", procedural_memories),
+                    ("REFLECTION", reflection_memories),
+                ]:
+                    for idx, m in enumerate(cat_list, 1):
+                        content_str = str(m.get("memory", "n/a")).replace("\n", " ")[:150]
+                        score = m.get("composite_score", 0.0)
+                        logger.info(
+                            f"   {cat_name}[{idx}]: (score={score:.3f}) {content_str}..."
+                        )
+                logger.info("   🧠 --------------------------------")
 
             if total == 0:
                 if _memory_trace_enabled():

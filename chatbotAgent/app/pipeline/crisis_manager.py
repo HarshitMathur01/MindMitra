@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 from typing import Dict, Any, Optional
+from ..core.prompts import CRISIS_LLM_CHECK_PROMPT, CRISIS_RESPONSE_TEMPLATES
 
 from ..agents.memory_manager import memory_manager
 from ..agents.analysis_agent import AnalysisAgent
@@ -154,10 +155,7 @@ class CrisisManager:
                 model=self.groq_nlp.model,
                 messages=[{
                     "role": "user",
-                    "content": (
-                        "Does this message express intent to harm oneself or end one's life? "
-                        f'Answer only "yes" or "no".\nMessage: "{text[:300]}"'
-                    ),
+                    "content": CRISIS_LLM_CHECK_PROMPT.format(message=text[:300]),
                 }],
                 temperature=0.0,
                 max_tokens=5,

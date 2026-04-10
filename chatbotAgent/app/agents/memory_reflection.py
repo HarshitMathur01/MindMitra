@@ -7,6 +7,7 @@ import time
 from tenacity import retry, stop_after_attempt, wait_random_exponential, before_sleep_log
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
+from ..core.prompts import MEMORY_EXTRACTION_PROMPT, MEMORY_EXTRACTION_SYSTEM_PROMPT, MEMORY_REFLECTION_PROMPT, MEMORY_REFLECTION_SYSTEM_PROMPT, EMOTIONAL_TREND_ANALYSIS_PROMPT, EMOTIONAL_TREND_ANALYSIS_SYSTEM_PROMPT
 
 import google.generativeai as genai
 
@@ -211,17 +212,10 @@ class MemoryReflection:
                 for m in messages[-10:]
             )
 
-            prompt = (
-                "Extract a concise procedural memory from this therapy conversation. "
-                "Focus on coping strategies, techniques, or action plans discussed. "
-                f"Topic: {topic}\n\n"
-                f"Conversation:\n{conv_text}\n\n"
-                "Return ONLY the procedural memory as a single paragraph (2-3 sentences). "
-                "Start with an action verb."
-            )
+            prompt = MEMORY_EXTRACTION_PROMPT.format(topic=topic, conversation=conv_text)
 
             resp = self._glm.invoke([
-                {"role": "system", "content": "You are a memory extraction assistant."},
+                {"role": "system", "content": MEMORY_EXTRACTION_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
             ])
 
@@ -324,7 +318,7 @@ class MemoryReflection:
             response = self._groq_client.chat.completions.create(
                 model="llama-3.1-8b-instant",  # Insight sentences from memories — 8b is sufficient, 88% cheaper
                 messages=[
-                    {"role": "system", "content": "You are a reflective memory synthesis agent. Return only a JSON array of insight strings."},
+                    {"role": "system", "content": MEMORY_REFLECTION_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
@@ -523,7 +517,7 @@ class MemoryReflection:
             response = self._groq_client.chat.completions.create(
                 model="llama-3.1-8b-instant",  # 1-sentence summary — 8b is sufficient, 88% cheaper
                 messages=[
-                    {"role": "system", "content": "You are an empathetic companion analyzing emotional patterns. Return only a single sentence."},
+                    {"role": "system", "content": EMOTIONAL_TREND_ANALYSIS_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.2,

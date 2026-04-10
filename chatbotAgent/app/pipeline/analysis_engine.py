@@ -10,6 +10,7 @@ that takes its required dependencies (like LLM clients) explicitly.
 import time
 import logging
 from typing import Dict, Any
+from ..core.prompts import COMBINED_EMOTION_ANALYSIS_PROMPT, PSYCH_ANALYSIS_PROMPT
 
 from ..utils.json_utils import parse_json_from_llm_output
 

@@ -144,7 +144,7 @@ def evaluate_one(
     full_assist_transcript = []
     turn_eval_stats: List[Dict[str, Any]] = []
 
-    total_latency_ms = 0.0
+    turn_latencies = []
     r = None
     error_msg = None
     last_eval_trace = None
@@ -174,7 +174,7 @@ def evaluate_one(
             break
             
         latency_ms = round((time.perf_counter() - t0) * 1000, 2)
-        total_latency_ms += latency_ms
+        turn_latencies.append(latency_ms)
         
         if r.status_code != 200:
             break
@@ -228,7 +228,7 @@ def evaluate_one(
             "id": cid,
             "category": case.get("category"),
             "http_status": r.status_code,
-            "latency_ms": round(total_latency_ms, 2),
+            "latency_ms": round(sum(turn_latencies) / len(turn_latencies), 2) if turn_latencies else None,
             "message_preview": "",
             "eval_trace": None,
             "rule_checks_passed": True,
@@ -245,7 +245,7 @@ def evaluate_one(
             "id": cid,
             "category": case.get("category"),
             "http_status": r.status_code,
-            "latency_ms": round(total_latency_ms, 2),
+            "latency_ms": round(sum(turn_latencies) / len(turn_latencies), 2) if turn_latencies else None,
             "rule_checks_passed": False,
             "crisis_expected": case.get("crisis_expected", False),
             "crisis_checks_passed": not case.get("crisis_expected", False),
@@ -300,7 +300,7 @@ def evaluate_one(
         "id": cid,
         "category": case.get("category"),
         "http_status": r.status_code,
-        "latency_ms": round(total_latency_ms, 2),
+        "latency_ms": round(sum(turn_latencies) / len(turn_latencies), 2) if turn_latencies else None,
         "message_preview": message[:500],
         "eval_trace": last_eval_trace,
         "memory_metrics": memory_metrics,

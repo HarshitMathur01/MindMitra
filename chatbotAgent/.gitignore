@@ -21,3 +21,5 @@ docker-compose.override.yml
 *.tar
 chatbotAgent/.venv_depcheck
 .venv_depcheck
+evaluations/history/runs.jsonl
+chatbotAgent/rag_evaluation_report.json

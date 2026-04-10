@@ -175,4 +175,5 @@ chatbotAgent/test_rag_pipeline.py
 # Test files (optional - uncomment to ignore)
 # chatbotAgent/test_*.py
 # *_test.py
-
+chatbotAgent/evaluations/history/runs.jsonl
+chatbotAgent/rag_evaluation_report.json

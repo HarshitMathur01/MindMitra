@@ -312,6 +312,11 @@ ABSOLUTE RULES:
 
         intervention_directive = user_context.get("intervention_directive", "")
         memory_context = user_context.get("memory_context", "")
+        if os.getenv("MM_MEMORY_TRACE", "").lower() in ("1", "true", "yes"):
+            logger.info(
+                "[MM_MEMORY_TRACE] response_gen: memory_context chars in system prompt=%s",
+                len(memory_context or ""),
+            )
 
         stage = user_context.get("_conversation_stage", "companion")
         stage_directive = self._get_stage_directive(stage)
@@ -355,7 +360,7 @@ ABSOLUTE RULES:
                     um[:600].replace("\n", " "),
                 )
 
-            # Per-path max_tokens override (Path A=150, B=300, C=500)
+            # Per-path max_tokens from ctx (see config azure_controller.max_tokens_path_* / orchestrator)
             invoke_kwargs: Dict[str, Any] = {}
             if "chunk_callback" in user_context:
                 invoke_kwargs["chunk_callback"] = user_context["chunk_callback"]

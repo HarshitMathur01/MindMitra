@@ -51,6 +51,11 @@ glm_controller:
   # max_tokens: 1000  # Commented out to let model decide
   temperature_path_a: 0.75  # Path A casual — more creative, personality-forward
   temperature_path_b: 0.62  # Path B emotional — warmer and natural, not clinical
+  temperature_path_c: 0.55
+  # Mirrored from azure_controller when using glm as response_generator.llm_provider
+  max_tokens_path_a: 384
+  max_tokens_path_b: 720
+  max_tokens_path_c: 1024
   # Path C/D use default temperature: 0.55
 
   # Enable Groq fallback for GLM failures
@@ -67,11 +72,19 @@ azure_controller:
   max_concurrent: 3
   max_retries: 2
   base_backoff: 2.0
-  max_tokens: 3000          # gpt-5-mini is a reasoning model — needs 1500+ tokens for reasoning before output
+  # Ceiling for calls that do not set a per-path override. Keep moderate: high values
+  # directly increase latency on reasoning models (internal reasoning + output).
+  max_tokens: 1200
+  # Per-path output caps (used by pipeline_orchestrator → ResponseGenerator). Lower Path A
+  # aggressively: the prompt asks for 1–3 sentences; large limits only slow TTFT/TTFTotal.
+  max_tokens_path_a: 384
+  max_tokens_path_b: 720
+  max_tokens_path_c: 1024
   temperature: 0.55        # Default / Path C (therapeutic) — warm but coherent
   top_p: 0.85
   temperature_path_a: 0.75  # Path A casual — more creative, personality-forward
   temperature_path_b: 0.62  # Path B emotional — warmer and natural, not clinical
+  temperature_path_c: 0.55
 
 # ──────────────────────────────────────────────────────────────
 # 6. SCREENING ASSESSMENTS (PHQ-9 / GAD-7)
@@ -159,6 +172,9 @@ performance:
   groq_timeout: 30
   glm_timeout: 60
   memory_retrieval_timeout: 10
+  # Parallel futures in pipeline_orchestrator for retrieve_memories + get_emotional_trend.
+  # Fail-open (continue without memory/trend) after this — protects p95 when Qdrant/embed is slow.
+  pipeline_memory_parallel_timeout_seconds: 5.0
   
   # Rate limiting
   requests_per_minute: 60

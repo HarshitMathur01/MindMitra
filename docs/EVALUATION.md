@@ -7,7 +7,7 @@ Production-oriented test and evaluation tooling for the **chatbotAgent** FastAPI
 | Artifact | Purpose |
 |----------|---------|
 | `docs/backend_system_map.md` | Route + pipeline map for reviewers |
-| `tests/fixtures/test-dataset.json` | Labeled scenarios (normal, memory, unknown, crisis, edge) |
+| `tests/fixtures/test-dataset.json` | **v2:** Few deep **multi-turn** cases (memory recall, clinical boundary + code-mix, crisis pivot, adversarial memory-poison) + 2 edge singles; see `evaluation_design` in JSON |
 | `pytest` under `chatbotAgent/tests/` | API contracts, crisis keywords, mocked `/chat` |
 | `tests/rag_evaluator.py` | HTTP runner + metrics + `rag_evaluation_report.json` |
 | `tests/llm_judge.py` | Optional Groq-based LLM-as-judge |
@@ -17,7 +17,7 @@ Production-oriented test and evaluation tooling for the **chatbotAgent** FastAPI
 
 ```bash
 cd chatbotAgent
-pip install -r requirements.txt -r requirements-eval.txt
+pip install -r requirements.txt
 ```
 
 ## Environment for tests
@@ -105,6 +105,88 @@ python -m tests.rag_evaluator
 | `EVAL_CI_FAIL_ON_CRISIS` | `1` — exit 2 when `crisis_failure_count` > 0 |
 | `EVAL_CI_MIN_AVG_SAFETY` | If set, exit 2 when avg safety score is below this |
 | `EVAL_EXIT_ON_CRITICAL` | `1` — exit 3 when any critical failure (after successful eval) |
+| `MM_MEMORY_TRACE` | Server: log retrieval query, mem0 raw hits, rerank drops, prompt injection size (`1`/`true`) |
+| `MM_DISABLE_MEMORY_FAST_PATH` | **Dev only:** run Qdrant search even when `memory_metadata` is empty (debug drift); never use in production |
+| `EVAL_SEED_USER_ID` | Optional UUID for `seed_eval_memory.py` (and set `DEV_USER_ID` to match for a **clean** memory-eval namespace) |
+
+## Why `eval_trace.memory_injected` is often false on localhost
+
+Retrieval is **scoped by `user_id`**, not `session_id`. Two common causes:
+
+1. **Empty `memory_metadata` for your dev user**  
+   With `SKIP_AUTH=true`, `/chat` uses `DEV_USER_ID`. If that UUID has **no rows** in Supabase `memory_metadata`, `retrieve_memories` **returns immediately** without hitting Qdrant (fast path). Then `memory_context` is empty → `memory_injected=false`.
+
+2. **Short eval conversations never call `mem0.add`**  
+   Fact extraction runs every **`MEMORY_TRIGGER_INTERVAL`** messages (default **12**). Multi-turn eval cases with 3–4 turns **do not** persist new long-term memories during the run.
+
+**Fix for local HTTP eval:** seed once, same env as the API:
+
+```bash
+cd chatbotAgent
+set -a && source .env && set +a
+python scripts/seed_eval_memory.py
+```
+
+Then restart or continue the API and run `python -m tests.rag_evaluator`.  
+Optional: `export MM_MEMORY_TRACE=1` on the server to log the retrieval query, raw hits, and injected character count.
+
+### Clean memory eval (avoid polluted retrieval)
+
+If your seed **probe** shows unrelated crisis or Hindi ideation lines, **`DEV_USER_ID` shares one mem0 profile** with crisis HTTP eval cases — semantic search correctly returns them. That is **not** a broken retriever; it is **mixed write traffic** under one `user_id`.
+
+**Production-hygienic dev pattern:** use a **dedicated UUID** for memory/RAG eval only:
+
+1. Generate a UUID; put in `.env`: `EVAL_SEED_USER_ID=<uuid>` and **`DEV_USER_ID=<same uuid>`** while you run “memory quality” sessions (so `/chat` and seed script share one clean namespace).
+2. Run `python scripts/seed_eval_memory.py` (it prefers `EVAL_SEED_USER_ID`).
+3. Run `rag_evaluator` against that API. Use a **different** `DEV_USER_ID` when running heavy **crisis** dataset sweeps so you do not contaminate the memory-test user.
+
+`scripts/seed_eval_memory.py` prints a warning if the probe preview looks like crisis leakage.
+
+## Phase 2 — Component health (what “working” means)
+
+Use this as a **smoke matrix**, not a guarantee of clinical safety. One failing row means that **slice** is broken, not necessarily the whole product.
+
+| Component | Quick check | Pass criterion |
+|-----------|-------------|----------------|
+| **API** | `GET /health` | 200, memory readiness if you depend on mem0 |
+| **Auth** | `/chat` with real JWT OR `SKIP_AUTH` dev | Stable `user_id`; prod must verify JWT |
+| **Pipeline / routing** | `ALLOW_EVAL_TRACE` + evaluator | `pipeline_path` matches intent class (A/B/C/D) on fixture cases |
+| **Crisis path** | Integration or fixture crisis turn | Template / helpline behavior; `crisis_events` if configured |
+| **mem0 + Qdrant** | `memory_manager.is_ready`; seed probe | Non-empty `retrieve_memories` for seeded user |
+| **Supabase `memory_metadata`** | Row count for `user_id` after seed | Inserts after `add_memories` (importance thread) |
+| **Retrieval fast path** | New user with zero metadata | Empty memory without error (by design) |
+| **Write path** | 12+ messages in session or `seed_eval_memory` | New vectors + metadata over time |
+| **GLM / chat model** | `/chat` latency & body | Coherent reply; monitor provider errors |
+| **Eval runner** | `pytest` + `rag_evaluator` | Contracts green; report JSON generated |
+
+**Deep analysis in one line:** your architecture splits **read** (retrieve → system prompt) and **write** (batched mem0.add). Failing “memory in eval” is usually **empty metadata + short session**, or **one user_id used for both crisis traffic and recall tests**.
+
+## Phase 3 — RAG / memory architecture checks (clean, layered)
+
+Do **not** ask one HTTP fixture to prove everything. Separate **concerns**:
+
+### Layer A — Latency & availability (cheap)
+
+- Log or metrics: p50/p95 **`retrieve_memories`** wall time (you already have orchestration timeout ~7s).
+- Alert on: mem0 not ready, Qdrant errors, systematic empty retrieval for users **with** `memory_metadata` rows.
+
+### Layer B — Retrieval quality (controlled user)
+
+- **Staging user** with **known** seeded facts (dedicated `EVAL_SEED_USER_ID` / clean namespace).
+- Assertions: **non-zero** `memory_injected`, **`turn_eval_stats`** show injection on later turns, probe query overlap with seeded entities (Priya, Mumbai, etc.).
+- **Not** judged solely by `test-dataset.json` when that user has never been seeded — that tests **routing + safety**, not “RAG recall”.
+
+### Layer C — Hallucination / grounding (judge + rules)
+
+- Keep **`EVAL_USE_JUDGE`** for **trend** scoring on staging, not as legal truth.
+- Rule checks (`must_not_contain_regex`, crisis globals) for **deterministic** safety regression.
+- Optionally cap judge cost: run judge on a **subset** of cases in CI (`EVAL_JUDGE_SAMPLE_RATE` future) — omit unless you add it.
+
+### Layer D — End-product conversation quality
+
+- Multi-turn **golden** dialogs (small N) with human spot-check quarterly; automate only what is stable.
+
+**Why this stays production-grade:** production keeps **strict user isolation** and **no eval-only hacks** in the request path; **staging** uses **separate identities** and optional `MM_MEMORY_TRACE` / seed scripts. You validate **each component** in the layer where it belongs, instead of piling flags into one messy “mega eval.”
 
 ## Security notes
 

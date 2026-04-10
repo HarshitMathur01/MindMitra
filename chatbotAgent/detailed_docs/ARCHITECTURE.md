@@ -6,7 +6,7 @@
 > **Total backend**: ~6,000 lines across 24 Python files
 > **Last updated**: March 2026
 
-This document is the technical reference for the MindMitra chatbot backend. Every function, every LLM call, every constant, every database table is documented here. If you need memory-system specifics, see [`docs/MEMORY_ARCHITECTURE.md`](docs/MEMORY_ARCHITECTURE.md).
+This document is the technical reference for the MindMitra chatbot backend. Every function, every LLM call, every constant, every database table is documented here. If you need memory-system specifics, see [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md).
 
 ---
 
@@ -62,10 +62,10 @@ MindMitra is a culturally-aware AI mental health companion for Indian youth (16�
          ├── Memory retrieval (mem0 + Qdrant)  — fetch user memories
          ├── Emotional trend (Groq)            — cross-session continuity
          │
-         ├── Path A: Casual       — 1 GLM call, max_tokens=150
-         ├── Path B: Emotional    — 1 Groq + 1 GLM, max_tokens=300
-         ├── Path C: Therapeutic  — 1–2 GLM + optional Groq, max_tokens=500
-         └── Path D: Crisis       — 0 LLM (template response)
+         ├── Path A: Casual       — 1 response LLM call (GLM or Azure per config), `max_tokens_path_a` (~384)
+         ├── Path B: Emotional    — 1 Groq + 1 response LLM, `max_tokens_path_b` (~720)
+         ├── Path C: Therapeutic  — 1 psych LLM + optional parallel Groq crisis check + 1 response LLM, `max_tokens_path_c` (~1024)
+         └── Path D: Crisis       — 0 response LLM (templated `crisis_fast_path`)
                 │
                 ├── TTS (ElevenLabs → Google Cloud → gTTS)
                 ├── Lipsync (Rhubarb CLI → text fallback)
@@ -171,28 +171,24 @@ POST /chat (ChatRequest)
     │
     ├─ 1. validate_user_token(authorization)  → user_id (or SKIP_AUTH dev bypass)
     │
-    ├─ 2. fetch_user_context(user_id, session_id)   [Supabase]
-    │       ├─ user_activities (last 24h, up to 50)
-    │       ├─ recent_messages (last 10, chronological)
-    │       └─ conversation_summary: {}
+    ├─ 2. Optional: prewarm thread `get_emotional_trend(user_id)` (daemon) — aligns with /chat/stream behavior
     │
-    ├─ 3. memory_manager.load_session_summary(session_id)   [Supabase]
-    │       └─ {summary, themes[], emotional_arc[]}
+    ├─ 3. asyncio.gather (parallel I/O):
+    │       ├─ fetch_user_context(user_id, session_id)   [Supabase — activities + recent messages]
+    │       ├─ memory_manager.load_session_summary(session_id)   [Supabase session_summaries]
+    │       └─ fetch_previous_session_summary(user_id, session_id)   [cross-session continuity]
     │
-    ├─ 4. fetch_previous_session_summary(user_id, session_id)   [Supabase]
-    │       └─ For cross-session continuity (skips current session)
-    │
-    ├─ 5. process_user_chat(...)   ← THE MAIN PIPELINE
+    ├─ 4. process_user_chat(...)   ← THE MAIN PIPELINE
     │       └─ Returns: {message, modality, confidence, processing_time, session_insights}
     │
-    ├─ 6. _build_avatar_package(ai_text, result, avatar_visible, personality)
+    ├─ 5. _build_avatar_package(ai_text, result, avatar_visible, personality)
     │       ├─ Skip TTS if avatar_visible=false (latency optimization)
     │       ├─ _detect_emotion(ai_text) → {emotion, facial_expression}
     │       ├─ generate_tts_audio_v2(text, emotion, lang, personality)
     │       ├─ generate_lipsync_from_audio(audio, text)  or  _from_text(text)
     │       └─ Returns: {audio, lipsync, animation, facial_expression}
     │
-    ├─ 7. Background triggers:
+    ├─ 6. Background triggers:
     │       ├─ _maybe_trigger_memory(session_id, user_id)
     │       │     └─ Every 12 messages → fetch last 12 msgs → memory_manager.add_memories()
     │       ├─ Session-end jobs (every 36 messages):
@@ -200,14 +196,18 @@ POST /chat (ChatRequest)
     │       └─ Game→mem0 bridge:
     │             └─ _extract_game_insights_for_memory(activities, user_id)
     │
-    └─ 8. Return ChatResponse
+    └─ 7. Return ChatResponse
 ```
+
+### Latency notes (production tuning)
+
+Dominant factors on the hot path: **intent router (Groq)**, **memory retrieve + emotional trend** (parallel, bounded by `performance.pipeline_memory_parallel_timeout_seconds`), **path-specific LLM stack** (Path B = Groq + response model; Path C = psych + response), and **`response_generator.llm_provider`** (`glm` vs `azure`). With Azure **gpt-5**-class models, **`max_tokens` and `reasoning.effort`** strongly affect time-to-last-token; per-path caps live under `azure_controller.max_tokens_path_*`. Streaming clients should prefer **`POST /chat/stream`** for earlier first token; `/chat` returns full body only after the pipeline completes.
 
 ---
 
 ## 4. The Pipeline Orchestrator
 
-**File**: `pipeline/workflow.py` (1,092 lines) — the largest and most important file.
+**Files**: `pipeline/pipeline_orchestrator.py` (routing, paths A–D, parallel memory/trend) and `pipeline/workflow.py` (`MindMitraWorkflow`, context assembly, orchestrator invocation).
 
 ### `MindMitraWorkflow` (singleton via `get_workflow_instance()`)
 
@@ -470,7 +470,7 @@ ctx["intervention_directive"] = (
 self.response_gen.generate(ctx)  # → GLM call
 ```
 
-No NLP analysis, no psych analysis — just a direct GLM call with a casual directive. The `_response_max_tokens=150` is passed to GLM, keeping responses short and fast.
+No NLP analysis, no psych analysis — just a direct response-model call with a casual directive. `_response_max_tokens` comes from `azure_controller.max_tokens_path_a` (default ~384), keeping Path A short and fast.
 
 ---
 
@@ -1694,8 +1694,9 @@ chatbotAgent/                           # Python backend root
 │   │   ├── request_models.py                        Pydantic ChatRequest
 │   │   └── response_models.py                       Pydantic ChatResponse
 │   ├── pipeline/
-│   │   ├── workflow.py                (1092 lines)  THE BRAIN — MindMitraWorkflow orchestrator
-│   │   └── context.py                   (93 lines)  create_empty_user_context()
+│   │   ├── workflow.py                  (~380 lines)  MindMitraWorkflow + process_chat entry
+│   │   ├── pipeline_orchestrator.py    (~560 lines)  Intent route, safety, memory/trend, paths A–D
+│   │   └── context.py                   create_empty_user_context()
 │   ├── services/
 │   │   ├── supabase_service.py         (233 lines)  All DB operations
 │   │   ├── tts_service.py              (207 lines)  ElevenLabs→GCP→gTTS fallback
@@ -1705,10 +1706,11 @@ chatbotAgent/                           # Python backend root
 │       ├── json_utils.py               (136 lines)  4-tier LLM JSON parser
 │       └── constants.py                 (80 lines)  All magic numbers
 ├── config.yaml                         (193 lines)  All runtime configuration
-├── docs/
-│   └── MEMORY_ARCHITECTURE.md                       Deep memory system reference
-├── ARCHITECTURE.md                                  This file
-├── CITATIONS.md                                     Research paper references
+├── detailed_docs/
+│   ├── ARCHITECTURE.md                              This file
+│   ├── MEMORY_ARCHITECTURE.md                       Deep memory system reference
+│   ├── CITATIONS.md                                 Research paper references
+│   └── QDRANT_SETUP.md                              Vector DB setup
 ├── Dockerfile                                       Multi-stage (PyTorch CPU + HuggingFace)
 ├── Procfile                                         web: uvicorn app.main:app ...
 ├── requirements.txt                                 All Python deps with version pins

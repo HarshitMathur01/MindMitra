@@ -49,9 +49,14 @@ CRISIS_HELP_HINT_REGEX = re.compile(
 )
 
 
-def _expand_query(case: Dict[str, Any], query_override: str = None) -> str:
+def _expand_query(
+    case: Dict[str, Any],
+    query_override: str = None,
+    *,
+    allow_repeat: bool = True,
+) -> str:
     q = query_override if query_override is not None else (case.get("query") or "")
-    target = case.get("repeat_query_to_chars")
+    target = case.get("repeat_query_to_chars") if allow_repeat else None
     if not target:
         return q
     base = q or "x "
@@ -130,23 +135,27 @@ def evaluate_one(
 ) -> Dict[str, Any]:
     cid = case["id"]
     sid = str(uuid.uuid4())
-    
+
     turns = case.get("turns")
     if not turns:
         turns = [case.get("query") or ""]
-        
+
     full_user_transcript = []
     full_assist_transcript = []
-    
+    turn_eval_stats: List[Dict[str, Any]] = []
+
     total_latency_ms = 0.0
     r = None
     error_msg = None
     last_eval_trace = None
     message = ""
-    
+    last_user_plain = ""
+
+    multi = len(turns) > 1
     for i, t in enumerate(turns):
         t_query = t if isinstance(t, str) else t.get("query", "")
-        query = _expand_query(case, t_query)
+        query = _expand_query(case, t_query, allow_repeat=not multi)
+        last_user_plain = query
         full_user_transcript.append(f"Turn {i+1} User: {query}")
         
         body = {
@@ -172,12 +181,26 @@ def evaluate_one(
             
         data = r.json()
         message = data.get("message") or ""
-        last_eval_trace = data.get("eval_trace")
-        
+        et = data.get("eval_trace")
+        last_eval_trace = et
         full_assist_transcript.append(f"Turn {i+1} Assistant: {message}")
+        turn_eval_stats.append(
+            {
+                "turn": i + 1,
+                "latency_ms": latency_ms,
+                "memory_injected": bool((et or {}).get("memory_injected")),
+                "memory_char_len": (et or {}).get("memory_char_len"),
+                "pipeline_path": (et or {}).get("pipeline_path"),
+            }
+        )
 
     full_user_text = "\n".join(full_user_transcript)
     full_assist_text = "\n".join(full_assist_transcript)
+    rule_scope = case.get("rule_scope", "full_dialogue")
+    if rule_scope == "final_assistant_message":
+        text_for_rules = message
+    else:
+        text_for_rules = full_assist_text
 
     if error_msg:
         return {
@@ -238,16 +261,17 @@ def evaluate_one(
             ),
         }
 
-    rule_failures = _rule_check(case, full_assist_text, last_eval_trace)
-    crisis_ok = _crisis_check(case, full_assist_text, rule_failures)
+    rule_failures = _rule_check(case, text_for_rules, last_eval_trace)
+    crisis_ok = _crisis_check(case, text_for_rules, rule_failures)
 
     mem_prev = (last_eval_trace or {}).get("memory_context_preview") or ""
-    # Only compute based on the final turn's trace to avoid averaging over short interactions
     memory_metrics = compute_memory_metrics(
         category=str(case.get("category", "")),
         user_query=full_user_text,
         assistant_reply=full_assist_text,
         eval_trace=last_eval_trace,
+        assistant_reply_final=message,
+        user_query_final=last_user_plain,
     )
 
     if use_judge:
@@ -280,6 +304,9 @@ def evaluate_one(
         "message_preview": message[:500],
         "eval_trace": last_eval_trace,
         "memory_metrics": memory_metrics,
+        "turn_eval_stats": turn_eval_stats,
+        "evaluation_focus": case.get("evaluation_focus"),
+        "rule_scope": rule_scope,
         "rule_checks_passed": len(rule_failures) == 0,
         "crisis_expected": bool(case.get("crisis_expected")),
         "crisis_checks_passed": crisis_ok,
@@ -337,6 +364,7 @@ def run_evaluation() -> Tuple[Path, Dict[str, Any]]:
             "fixture": str(FIXTURE),
             "use_judge": use_judge,
             "dataset_version": dataset.get("version"),
+            "evaluation_design": dataset.get("evaluation_design"),
         },
         thresholds=thresholds,
     )

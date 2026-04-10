@@ -442,26 +442,39 @@ async def process_chat(
         user_id = await validate_user_token(authorization, supabase_client)
         logger.info(f"👤 [CHAT] user={user_id} session={request.session_id}")
 
-        context = await fetch_user_context(user_id, request.session_id)
+        # Prewarm emotional trend cache (same pattern as /chat/stream) so orchestrator often hits cache.
+        threading.Thread(
+            target=memory_manager.get_emotional_trend,
+            args=(user_id,),
+            daemon=True,
+            name="trend-prewarm-chat",
+        ).start()
 
-        # Load session summary from mem0 system (non-blocking)
-        session_summary = {}
-        try:
-            session_summary = memory_manager.load_session_summary(request.session_id) if request.session_id else {}
-        except Exception as sum_exc:
-            logger.warning(f"⚠️ [CHAT] Session summary load failed: {sum_exc}")
+        def _load_session_summary_safe(sid: Optional[str]) -> Dict[str, Any]:
+            if not sid:
+                return {}
+            try:
+                return memory_manager.load_session_summary(sid)
+            except Exception as sum_exc:
+                logger.warning(f"⚠️ [CHAT] Session summary load failed: {sum_exc}")
+                return {}
 
-        # Merge mem0 session summary with DB conversation summary
+        def _prev_summary_safe(uid: str, sid: Optional[str]) -> Dict[str, Any]:
+            try:
+                return fetch_previous_session_summary(uid, sid)
+            except Exception as prev_exc:
+                logger.warning(f"\u26a0\ufe0f [CHAT] Previous session summary load failed: {prev_exc}")
+                return {}
+
+        context, session_summary, prev_session_summary = await asyncio.gather(
+            fetch_user_context(user_id, request.session_id),
+            asyncio.to_thread(_load_session_summary_safe, request.session_id),
+            asyncio.to_thread(_prev_summary_safe, user_id, request.session_id),
+        )
+
         conv_summary = context["conversation_summary"]
         if session_summary:
             conv_summary = {**conv_summary, **session_summary}
-
-        # Load previous session summary for cross-session continuity
-        prev_session_summary = {}
-        try:
-            prev_session_summary = fetch_previous_session_summary(user_id, request.session_id)
-        except Exception as prev_exc:
-            logger.warning(f"\u26a0\ufe0f [CHAT] Previous session summary load failed: {prev_exc}")
 
         # ── Prosodic analysis: enrich voice_analysis with Praat features ──
         voice_analysis = dict(request.voice_analysis or {})

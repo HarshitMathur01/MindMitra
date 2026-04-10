@@ -26,6 +26,28 @@ from supabase import Client
 
 logger = logging.getLogger(__name__)
 
+
+def _path_generation_int(azure_subkey: str, default: int) -> int:
+    """Read per-path limit from azure_controller, then glm_controller (same keys for both providers)."""
+    v = config.get(f"azure_controller.{azure_subkey}")
+    if v is not None:
+        return int(v)
+    v2 = config.get(f"glm_controller.{azure_subkey}")
+    if v2 is not None:
+        return int(v2)
+    return default
+
+
+def _path_generation_float(azure_subkey: str, glm_subkey: str, default: float) -> float:
+    v = config.get(f"azure_controller.{azure_subkey}")
+    if v is not None:
+        return float(v)
+    v2 = config.get(f"glm_controller.{glm_subkey}")
+    if v2 is not None:
+        return float(v2)
+    return default
+
+
 class PipelineOrchestrator:
     """
     Orchestrates the intent-routed execution paths (A/B/C/D).
@@ -154,8 +176,8 @@ class PipelineOrchestrator:
         logger.info("💬 [PATH-A] ▶  EXECUTING: casual/light path (1 GLM call)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = int(config.get("azure_controller.max_tokens_path_a", 1500))
-        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_a", 0.8))
+        ctx["_response_max_tokens"] = _path_generation_int("max_tokens_path_a", 384)
+        ctx["_response_temperature"] = _path_generation_float("temperature_path_a", "temperature_path_a", 0.8)
         ctx["psychological_analysis"] = {
             "emotional_state": "casual",
             "stress_categories": [],
@@ -198,8 +220,8 @@ class PipelineOrchestrator:
         logger.info("❤️  [PATH-B] ▶  EXECUTING: emotional/standard path (1 Groq + 1 GLM)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = int(config.get("azure_controller.max_tokens_path_b", 800))
-        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_b", 0.6))
+        ctx["_response_max_tokens"] = _path_generation_int("max_tokens_path_b", 720)
+        ctx["_response_temperature"] = _path_generation_float("temperature_path_b", "temperature_path_b", 0.6)
 
         logger.info(f"  📞 [PATH-B] Calling Groq combined-analysis (model={getattr(getattr(self, 'groq_nlp', None), 'model', '?')})...")
         _t_combined = time.monotonic()
@@ -283,8 +305,8 @@ class PipelineOrchestrator:
         logger.info("🧠 [PATH-C] ▶  EXECUTING: therapeutic/rich path (1 GLM psych + 1 GLM response)")
         logger.info("━" * 50)
 
-        ctx["_response_max_tokens"] = int(config.get("azure_controller.max_tokens_path_c", 1200))
-        ctx["_response_temperature"] = float(config.get("azure_controller.temperature_path_c", 0.5))
+        ctx["_response_max_tokens"] = _path_generation_int("max_tokens_path_c", 1024)
+        ctx["_response_temperature"] = _path_generation_float("temperature_path_c", "temperature_path_c", 0.55)
 
         # Fast keyword check first (0 ms)
         crisis_level = self.crisis_manager.check_crisis_keywords(ctx["user_message"])
@@ -477,7 +499,9 @@ class PipelineOrchestrator:
         # on timeout we continue without memory context rather than block the
         # entire response.
         _user_id = ctx.get("user_id", "anonymous")
-        _MEMORY_TIMEOUT = 7.0  # seconds
+        _MEMORY_TIMEOUT = float(
+            config.get("performance.pipeline_memory_parallel_timeout_seconds", 5.0)
+        )
 
         with ThreadPoolExecutor(max_workers=2) as _mem_ex:
             fut_mem   = _mem_ex.submit(
@@ -516,6 +540,16 @@ class PipelineOrchestrator:
                 logger.warning(f"⏱️ [TREND] get_emotional_trend timed out ({_MEMORY_TIMEOUT}s) — skipping")
             except Exception as trend_exc:
                 logger.error(f"❌ [TREND] get_emotional_trend failed: {trend_exc}")
+
+        if os.getenv("MM_MEMORY_TRACE", "").lower() in ("1", "true", "yes"):
+            _mem_final = ctx.get("memory_context") or ""
+            logger.info(
+                "[MM_MEMORY_TRACE] orchestrator after_memory+trend: user=%s... last_user_query=%r "
+                "memory_context_chars=%s",
+                str(_user_id)[:14],
+                (text or "")[:240],
+                len(_mem_final),
+            )
 
         # ── Conversation stage (for question budget) ─────────────────────
         # session_msg_count already computed above (pre-fetched from outer scope or DB)

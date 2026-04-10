@@ -330,6 +330,10 @@ Goals: richer **semantic** availability (“how to talk to this user”), fewer 
 
 **Bottom line:** Storage is **mem0 + Qdrant + Supabase metadata**; retrieval is **semantic search + your composite score + intent caps**; the companion “feels” memory because **formatted bullets** sit in the **system** prompt every turn when the pipeline stays within timeout and the user has metadata-backed memories.
 
+### Localhost / HTTP eval note
+
+If **`eval_trace.memory_injected`** is always false while the API runs with **`SKIP_AUTH`**, the resolved **`DEV_USER_ID`** likely has **no `memory_metadata` rows**, so the retrieval **fast path** never queries Qdrant. Short eval chats also stay **below `MEMORY_TRIGGER_INTERVAL`**, so they do not create new memories. Use **`scripts/seed_eval_memory.py`** once (see `docs/EVALUATION.md`) and/or enable **`MM_MEMORY_TRACE=1`** to confirm query → hits → prompt injection.
+
 ---
 
 *Document generated from codebase audit. For test/eval behavior see `docs/EVALUATION.md`.*

@@ -34,6 +34,12 @@ from ..utils.constants import (
 
 logger = logging.getLogger(__name__)
 
+
+def _memory_trace_enabled() -> bool:
+    """Verbose memory pipeline logging (retrieval query, hits, injection size)."""
+    return os.getenv("MM_MEMORY_TRACE", "").lower() in ("1", "true", "yes")
+
+
 class MemoryRetriever:
     _INTENT_LIMITS = {
         'casual': MEMORY_LIMIT_CASUAL,
@@ -123,12 +129,33 @@ class MemoryRetriever:
             recency    = 0.999^hours_since_last_access (exponential decay)
         """
         if not self._ready or not self._mem0:
+            if _memory_trace_enabled():
+                logger.info("[MM_MEMORY_TRACE] retrieve_memories skipped: mem0 not ready (_ready=%s)", self._ready)
             return ""
 
-        # Fast-path: skip the expensive local embedding + Qdrant round-trip
-        # when the user has no stored memories at all (saves ~4–5 s for new users).
-        if not self._has_any_memories(user_id):
-            logger.info(f"✅ [MEMORY] retrieve_memories: 0 results (no memories stored for user)")
+        skip_fast_path = os.getenv("MM_DISABLE_MEMORY_FAST_PATH", "").lower() in ("1", "true", "yes")
+        if skip_fast_path:
+            logger.warning(
+                "[MEMORY] MM_DISABLE_MEMORY_FAST_PATH=1 — running Qdrant search even when "
+                "memory_metadata is empty (local debugging only; never enable in production)"
+            )
+
+        # Fast-path: skip Qdrant when Supabase has no memory_metadata rows for this user.
+        # Common reason memory_injected stays false on localhost: SKIP_AUTH uses DEV_USER_ID
+        # with no seeded rows, and MEMORY_TRIGGER_INTERVAL=12 so short eval chats never mem0.add.
+        has_rows = self._has_any_memories(user_id) if not skip_fast_path else True
+        if _memory_trace_enabled():
+            logger.info(
+                "[MM_MEMORY_TRACE] retrieve query=%r intent=%s user_prefix=%s metadata_fastpath_bypass=%s "
+                "has_memory_metadata_hint=%s",
+                (query or "")[:280],
+                intent,
+                (user_id or "")[:14],
+                skip_fast_path,
+                has_rows if not skip_fast_path else "n/a_forced_search",
+            )
+        if not skip_fast_path and not has_rows:
+            logger.info("✅ [MEMORY] retrieve_memories: 0 results (no memory_metadata rows for user — seed memories or use real user with history)")
             return ""
 
         try:
@@ -146,6 +173,18 @@ class MemoryRetriever:
                 metadata_map = fut_meta.result()
 
             raw_memories = results.get("results", [])
+
+            if _memory_trace_enabled():
+                logger.info("[MM_MEMORY_TRACE] mem0.search raw_count=%s", len(raw_memories))
+                for i, m in enumerate(raw_memories[:8]):
+                    snippet = (m.get("memory") or "")[:180].replace("\n", " ")
+                    logger.info(
+                        "[MM_MEMORY_TRACE]   hit[%s] id=%s sim=%s text=%s",
+                        i,
+                        str(m.get("id", ""))[:20],
+                        m.get("score"),
+                        snippet,
+                    )
 
             if not raw_memories:
                 logger.info(f"✅ [MEMORY] retrieve_memories: 0 results (intent={intent})")
@@ -234,6 +273,13 @@ class MemoryRetriever:
             )
 
             if total == 0:
+                if _memory_trace_enabled():
+                    logger.info(
+                        "[MM_MEMORY_TRACE] no memories passed composite>=%s after rerank "
+                        "(had %s raw hits)",
+                        MEMORY_RELEVANCE_THRESHOLD,
+                        len(raw_memories),
+                    )
                 return ""
 
             # ── Step 5: Update last_accessed_at for retrieved memories ────
@@ -250,9 +296,13 @@ class MemoryRetriever:
                 ).start()
 
             # ── Step 6: Format into structured sections ──────────────────
-            return self._format_structured_memory_context(
+            formatted = self._format_structured_memory_context(
                 semantic_memories, procedural_memories, reflection_memories
             )
+            if _memory_trace_enabled():
+                prev = formatted[:400].replace("\n", " ")
+                logger.info("[MM_MEMORY_TRACE] prompt_injection_chars=%s preview=%s", len(formatted), prev)
+            return formatted
 
         except Exception as exc:
             logger.error(f"❌ [MEMORY] retrieve_memories failed: {exc}")

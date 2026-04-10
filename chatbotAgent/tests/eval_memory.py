@@ -27,6 +27,8 @@ def compute_memory_metrics(
     user_query: str,
     assistant_reply: str,
     eval_trace: Dict[str, Any] | None,
+    assistant_reply_final: str | None = None,
+    user_query_final: str | None = None,
 ) -> Dict[str, Any]:
     """
     memory_relevance_score (0-5):
@@ -39,10 +41,12 @@ def compute_memory_metrics(
 
     reply = assistant_reply or ""
     q = user_query or ""
+    r_scope = (assistant_reply_final if assistant_reply_final is not None else reply) or ""
+    q_scope = (user_query_final if user_query_final is not None else q) or ""
     misuse_flags: List[str] = []
 
     mem_toks = _tokens(preview)
-    reply_toks = _tokens(reply)
+    reply_toks = _tokens(r_scope)
     overlap = _overlap(mem_toks, reply_toks)
 
     # Obvious misuse: long memory injected but zero token overlap with reply (weak signal)
@@ -54,8 +58,8 @@ def compute_memory_metrics(
         "you mentioned", "you told me", "last time you", "you said", "you shared",
         "remember when you", "we talked about",
     )
-    q_lower = q.lower()
-    r_lower = reply.lower()
+    q_lower = q_scope.lower()
+    r_lower = r_scope.lower()
     asks_recall = any(p in q_lower for p in ("remember", "last time", "told you", "we talk"))
     claims_recall = any(p in r_lower for p in recall_phrases)
     if asks_recall and claims_recall and not injected and category == "memory_dependent":

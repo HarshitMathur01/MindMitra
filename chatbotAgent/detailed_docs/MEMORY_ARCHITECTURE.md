@@ -1,7 +1,7 @@
 # MindMitra Memory Architecture — Deep Technical & Operational Reference
 
 > **File**: `chatbotAgent/detailed_docs/MEMORY_ARCHITECTURE.md`
-> **Primary source**: `app/agents/memory_manager.py` (1,321 lines), `app/agents/memory_retriever.py`
+> **Primary source**: `app/agents/memory_manager.py` (facade interface, 62 lines) wrapping `memory_store.py`, `memory_retriever.py`, and `memory_reflection.py`.
 > **Last updated**: Phase 3 Unified Audit (April 2026)
 
 This document is the ultimate source of truth for the MindMitra memory architecture. It is written to provide 100% context to anyone (founder, engineer, or new hire) evaluating the system. MindMitra is a culturally-aware AI mental health companion, and its memory system is its core engine for building a long-term **therapeutic alliance** with users.
@@ -48,9 +48,10 @@ The memory system requires a specialized, multi-provider stack ensuring fast ret
 | **Managed Memory Layer** | `mem0` (v1.1) | Off-the-shelf fact extraction, text-chunking, and deduplication. |
 | **Vector Store** | **Qdrant** | Hosts the `companion_memories` collection (384-dimensional space). Very fast vector nearest-neighbor search. |
 | **Embeddings** | `all-MiniLM-L6-v2` | HuggingFace Local CPU model. Zero API cost, extremely fast text-to-vector conversion. |
-| **Fact Extraction LLM** | Groq `llama-3.3-70b-versatile` | Ultra-fast Llama-3 extraction invoked natively by mem0. |
-| **Importance Scorer** | Groq `llama-3.3-70b-versatile` | Runs asynchronously to rate how "important" a new memory is from 1 to 10. |
-| **Session Summaries** | Google `gemini-2.5-flash-lite` | Capable of massive context token ingestion (1M tokens) cheaply for end-of-session summaries. |
+| **Fact Extraction LLM** | Groq `llama-3.1-8b-instant` | High-speed, low-cost (88% reduction) Llama-3.1 extraction invoked natively by mem0. |
+| **Importance Scorer** | Groq `llama-3.1-8b-instant` | Runs asynchronously to rate how "important" a new memory is from 1 to 10. |
+| **Session Summaries** | Google `gemini-2.5-flash-lite` | Capable of massive context token ingestion cheaply for end-of-session summaries. |
+| **Reflection Generator** | Groq `llama-3.1-8b-instant` | Synthesizes therapeutic insights from raw semantic extractions across sessions. |
 | **Relational DB** | Supabase (PostgreSQL) | Stores relational metadata (`memory_metadata`, `user_memory_stats`, `session_summaries`, timestamps). |
 
 ---
@@ -116,8 +117,10 @@ Memory recording is strictly asynchronous (background daemon) so the user never 
 2. **Batch Importance Scoring**:
    * A queue of new memories is sent to Groq. Groq rates them 1-10. This dictates their future retrieval weight.
 3. **Modulo 36 Rule (Session Synthesis & Reflections)**:
-   Every 36th message (or at interval):
-   * Gemini 2.5 Flash compiles the entire conversational script into a clean 5-paragraph summary, extracting major themes and emotional arcs, saved to `session_summaries`.
+   Triggered at the 36th message mark (`count % 36 == 0`), runs in a background daemon:
+   * **Summaries**: Gemini 2.5 Flash Lite compiles the entire conversational script into a clean 5-paragraph summary, extracting major themes and emotional arcs, saved to `session_summaries`.
+   * **Coping Synthesis**: Extracts procedural memories of user coping strategies.
+   * **Reflections Gate**: Checks `session_count % REFLECTION_INTERVAL_SESSIONS == 0` (where interval is 5). **So true Reflections only generate every 5th session**, utilizing Groq `llama-3.1-8b-instant`.
 4. **Emotional Trend Caching**:
    * Analyzes the progression of the user's emotions over the session. 
 
@@ -136,9 +139,9 @@ Because session summaries only fire via `count % 36 == 0`, if a user writes 34 m
 * **Fix needed**: We need an explicit `/chat/end-session` hook that the React frontend calls when the browser window closes (`beforeunload` event) to force the background thread to run the residual summary extraction.
 
 ### 6.3 Emotional Trend TTL (Efficiency Bug)
-The `EMOTIONAL_TREND_CACHE_TTL_S` is set to `600` seconds (10 minutes) internally.
+The `EMOTIONAL_TREND_CACHE_TTL_S` is set to `600` seconds (10 minutes) internally inside `memory_reflection.py` (which overrides `memory_store.py`'s `3600.0s`).
 * **Impact**: In a 45-minute therapeutic session, the bot constantly re-evaluates the "emotional trend" 4-5 times, wasting Groq tokens. 
-* **Fix needed**: Increase TTL back to `3600.0` (1 hour) as initially designed. 
+* **Fix needed**: Ensure `memory_reflection.py` honors `3600.0` (1 hour) as initially designed. 
 
 ---
 

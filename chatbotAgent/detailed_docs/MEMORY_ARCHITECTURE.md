@@ -19,22 +19,48 @@ This system is not a standard "RAG" (Retrieval-Augmented Generation) over PDF do
 3. **CoALA Framework (Weng, 2023)**: Categorizes memory structurally into Semantic, Procedural, and Episodic/Reflection components.
 
 ### 1.2 High-Level Flowchart
-```text
-[ USER MESSAGE ] ──▶ POST /chat
-                          │
-         ┌────────────────┴─────────────────┐
-         ▼                                  ▼
-[ SYNC: RETRIEVAL PIPELINE ]       [ ASYNC: STORAGE PIPELINE ]
-(Runs before LLM generates)        (Runs after response is sent)
-         │                                  │
-  1. mem0.search(query) Qdrant       1. Message Counter Thresholds (Modulo 12 & 36)
-  2. Fetch DB Metadata               2. Modulo 12: Extract new facts -> mem0 -> Qdrant
-  3. Formula: Rel + Imp + Rec        3. Modulo 12: Groq batch-scores Importance (1-10)
-  4. Filter Intent Thresholds        4. Modulo 36: Gemini 2.5 Flash Lite generates Summary
-  5. Inject structured context       5. Procedural memory synthesis on coping keywords
-         │                                  │
-         ▼                                  ▼
-[ INJECTED INTO RESPONSE LLM ]     [ PERSISTED TO SUPABASE & QDRANT ]
+```mermaid
+graph TD
+    User((User Input)) --> |POST /chat| API[API Orchestrator]
+
+    %% Retrieving memory before replying (Sync)
+    subgraph Sync [Synchronous Retrieval Pipeline]
+        API --> Intent[Intent Router A/B/C/D]
+        Intent --> Qdrant[(Qdrant Vector DB)]
+        Qdrant --> |Retrieve Vectors| Metadata[(Supabase Metadata)]
+        Metadata --> Formula{Score Calculation<br/>Relevance<br/>+ Importance<br/>+ Recency}
+        Formula --> Filter[Apply Intent Limits<br/>3/5/7/4]
+        Filter --> Context[Inject <MEMORY_CONTEXT>]
+        Context --> LLM[Response Agent Generation]
+    end
+
+    %% Writing memory after reply (Async)
+    LLM --> |Returns Text/Avatar Data| User
+    LLM -.-> |Daemon Thread Detaches| Cache[Memory Manager Facade]
+
+    subgraph Async [Asynchronous Storage Pipeline]
+        Cache --> Counter{Modulo Counter}
+
+        Counter --> |% 12 == 0| Extract[Fact Extraction / mem0<br/>llama-3.1-8b]
+        Extract --> ImpScore[Importance Scoring<br/>1 to 10]
+        ImpScore --> Write1[(Write to Qdrant & Supabase)]
+
+        Counter --> |% 36 == 0| Summary[Session Summaries<br/>Gemini 2.5 Flash]
+        Summary --> Write2[(Write to Supabase)]
+
+        Counter --> |% 36 + 5 Interval| Reflect[Reflection / Procedural Synthesis<br/>llama-3.1-8b]
+        Reflect --> Write3[(Write to Supabase)]
+    end
+
+    classDef database fill:#2b6cb0,stroke:#2b6cb0,stroke-width:2px,color:#fff
+    classDef sync_node fill:#2d3748,stroke:#4fd1c5,stroke-width:2px,color:#fff
+    classDef async_node fill:#276749,stroke:#68d391,stroke-width:2px,color:#fff
+    classDef core fill:#e53e3e,stroke:#c53030,color:#fff
+
+    class Qdrant,Metadata,Write1,Write2,Write3 database
+    class Intent,Formula,Filter,Context sync_node
+    class Counter,Extract,ImpScore,Summary,Reflect async_node
+    class User,API,LLM core
 ```
 
 ---

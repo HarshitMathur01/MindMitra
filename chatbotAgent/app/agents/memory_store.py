@@ -357,8 +357,19 @@ class MemoryStore:
         except Exception as exc:
             logger.error(f"❌ [MEMORY] _score_and_save_metadata failed: {exc}")
 
-
     @staticmethod
+    def _score_to_label(score: int) -> str:
+        """Map numeric importance_score (1–10) to a coarse label for Supabase."""
+        s = int(score)
+        if s >= 9:
+            return "critical"
+        if s >= 7:
+            return "high"
+        if s >= 5:
+            return "medium"
+        if s >= 3:
+            return "low"
+        return "trivial"
 
     def get_user_memory_stats(self, user_id: str) -> Dict[str, Any]:
         """

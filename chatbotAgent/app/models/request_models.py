@@ -17,3 +17,8 @@ class ChatRequest(BaseModel):
     personality: Optional[str] = None
     companion_name: Optional[str] = None
     language: Optional[SupportedLanguage] = None
+
+
+class EndSessionRequest(BaseModel):
+    session_id: str
+    user_id: Optional[str] = None

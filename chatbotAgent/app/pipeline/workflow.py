@@ -204,6 +204,7 @@ class MindMitraWorkflow:
         previous_session_summary: Optional[Dict] = None,
         chunk_callback=None,
         message_count: int = 0,
+        eval_trace: bool = False,
     ) -> Dict[str, Any]:
         """Main processing pipeline — same signature & return format as original."""
         start_time = datetime.now()
@@ -220,6 +221,7 @@ class MindMitraWorkflow:
 
         # Step 1: build context envelope
         ctx = create_empty_user_context(user_id, session_id, user_message.strip())
+        ctx["_eval_trace_requested"] = bool(eval_trace)
         ctx["voice_analysis"] = voice_analysis or {}
         ctx["session_context"]["recent_messages"] = recent_messages or []
         ctx["session_context"]["conversation_summary"] = conversation_summary or {}
@@ -276,7 +278,21 @@ class MindMitraWorkflow:
             + "═" * 60
         )
 
-        return {
+        eval_trace_payload: Optional[Dict[str, Any]] = None
+        if ctx.get("_eval_trace_requested"):
+            mem = ctx.get("memory_context") or ""
+            eval_trace_payload = {
+                "pipeline_path": ctx.get("_pipeline_path"),
+                "router_intent_raw": ctx.get("_eval_router_intent_raw"),
+                "routed_intent": ctx.get("_eval_routed_intent"),
+                "memory_injected": bool(mem.strip()),
+                "memory_context_preview": mem[:8000],
+                "memory_char_len": len(mem),
+                "risk_assessment": psych.get("risk_assessment"),
+                "emotional_state": psych.get("emotional_state"),
+            }
+
+        out: Dict[str, Any] = {
             "message": ctx["ai_response"],
             "modality": technique.get("primary_technique", "Person-Centered"),
             "confidence": 0.9,
@@ -303,6 +319,9 @@ class MindMitraWorkflow:
                 },
             },
         }
+        if eval_trace_payload is not None:
+            out["eval_trace"] = eval_trace_payload
+        return out
 
 
 # ── global singleton ────────────────────────────────────────────────────────
@@ -331,6 +350,7 @@ def process_user_chat(
     previous_session_summary: Optional[Dict] = None,
     chunk_callback=None,
     message_count: int = 0,
+    eval_trace: bool = False,
 ) -> Dict[str, Any]:
     """Public entry point — identical signature to original v1."""
     logger.info(f"🚀 [ENTRY] MindMitra v2 — user={user_id}, session={session_id}")
@@ -347,6 +367,7 @@ def process_user_chat(
             previous_session_summary=previous_session_summary,
             chunk_callback=chunk_callback,
             message_count=message_count,
+            eval_trace=eval_trace,
         )
         result["processing_time"] = round(time.time() - start, 2)
         result["voice_aware"] = bool(voice_analysis)

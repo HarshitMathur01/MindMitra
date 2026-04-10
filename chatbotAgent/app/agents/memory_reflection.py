@@ -37,7 +37,7 @@ class MemoryReflection:
         self.store = store
         self.retriever = retriever
         self._emotional_trend_cache = {}
-        self._EMOTIONAL_TREND_CACHE_TTL_S = 600.0  # 10-minute TTL (was 1 hour)
+        self._EMOTIONAL_TREND_CACHE_TTL_S = 3600.0  # 1-hour TTL
         
     @property
     def _ready(self): return self.store._ready

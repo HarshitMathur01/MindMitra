@@ -46,9 +46,12 @@ Single-turn chat response.
   "facial_expression": "string",
   "modality": "string",
   "confidence": 0.0,
-  "session_insights": {"any": "json"}
+  "session_insights": {"any": "json"},
+  "eval_trace": null
 }
 ```
+
+Optional **`eval_trace`** (pipeline path, routed intent, memory preview) is returned only when the server has **`ALLOW_EVAL_TRACE=true`** and the client sends header **`X-MindMitra-Eval-Trace: 1`**. See `docs/EVALUATION.md` and `docs/backend_system_map.md`. Do not enable trace in production without strict access control.
 
 ---
 

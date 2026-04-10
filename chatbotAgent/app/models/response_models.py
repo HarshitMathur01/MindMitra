@@ -10,3 +10,5 @@ class ChatResponse(BaseModel):
     modality: str
     confidence: float
     session_insights: Optional[Dict[str, Any]] = None
+    # Populated only when ALLOW_EVAL_TRACE=true and X-MindMitra-Eval-Trace: 1 (non-prod evaluation)
+    eval_trace: Optional[Dict[str, Any]] = None

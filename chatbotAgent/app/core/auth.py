@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Development auth bypass (SKIP_AUTH=true skips token validation locally)
 SKIP_AUTH: bool = os.getenv("SKIP_AUTH", "false").lower() in ("1", "true", "yes")
-DEV_USER_ID: str = os.getenv("DEV_USER_ID", "dev-user")
+DEV_USER_ID: str = os.getenv("DEV_USER_ID", "a0778b19-548f-47df-8413-296307566d0f")
 
 
 async def validate_user_token(

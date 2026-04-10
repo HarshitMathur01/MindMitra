@@ -7,6 +7,7 @@ are invoked, how context blocks max_tokens are managed, and explicitly handles
 the invocation logic separating the main flow into manageable atomic actions.
 """
 import logging
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -433,6 +434,7 @@ class PipelineOrchestrator:
         
         intent = intent_result.get("intent", "emotional")
         confidence = intent_result.get("confidence", 0.0)
+        ctx["_eval_router_intent_raw"] = intent
         logger.info(
             f"🤖 [ROUTER] IntentRouter → intent='{intent}' confidence={confidence:.2f} "
             f"(Groq {getattr(self.groq_nlp, 'model', '?') if self.groq_nlp else '?'})"
@@ -467,6 +469,7 @@ class PipelineOrchestrator:
             f"🗺️  [ROUTER] DISPATCH → path={'D (crisis)' if intent=='crisis' else 'A (casual)' if intent=='casual' else 'B (emotional)' if intent=='emotional' else 'C (therapeutic)'} "
             f"[router_time={(time.monotonic()-_t_router)*1000:.0f}ms]"
         )
+        ctx["_eval_routed_intent"] = intent
 
         # ── Memory retrieval + emotional trend (parallel) ────────────────
         # Both calls are independent — run concurrently.
@@ -492,6 +495,9 @@ class PipelineOrchestrator:
                 if mem_ctx:
                     ctx["memory_context"] = mem_ctx
                     logger.info(f"🧠 [MEMORY] Injected memory context ({len(mem_ctx)} chars)")
+                    if os.getenv("MM_PIPELINE_DEBUG", "").lower() in ("1", "true", "yes"):
+                        preview = mem_ctx[:1200].replace("\n", " ")
+                        logger.info("[MM_PIPELINE_DEBUG] memory_context_preview (1200c): %s", preview)
             except TimeoutError:
                 logger.warning(f"⏱️ [MEMORY] retrieve_memories timed out ({_MEMORY_TIMEOUT}s) — skipping")
                 mem_ctx = ""

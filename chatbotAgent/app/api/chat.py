@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from ..core.auth import validate_user_token
 from ..core.logging import log_timing
-from ..models.request_models import ChatRequest
+from ..models.request_models import ChatRequest, EndSessionRequest
 from ..models.response_models import ChatResponse
 from ..pipeline.workflow import get_workflow_instance, process_user_chat
 from ..agents.memory_manager import memory_manager
@@ -433,6 +433,7 @@ async def get_greeting(
 async def process_chat(
     request: ChatRequest,
     authorization: str = Header(None),
+    x_mindmitra_eval_trace: Optional[str] = Header(None, alias="X-MindMitra-Eval-Trace"),
 ):
     """Main chat endpoint — executes full pipeline and returns response with optional avatar data."""
     try:
@@ -475,6 +476,10 @@ async def process_chat(
             except Exception as prosody_exc:
                 logger.warning(f"⚠️ [CHAT] Prosody analysis failed: {prosody_exc}")
 
+        allow_eval = os.getenv("ALLOW_EVAL_TRACE", "").lower() in ("1", "true", "yes")
+        _hdr = (x_mindmitra_eval_trace or "").strip().lower()
+        want_trace = allow_eval and _hdr in ("1", "true", "yes")
+
         with log_timing("Workflow Pipeline: process_user_chat", session_id=request.session_id, user_id=user_id):
             result = process_user_chat(
                 user_message=request.user_message,
@@ -489,6 +494,7 @@ async def process_chat(
                 companion_name=request.companion_name,
                 language=request.language,
                 previous_session_summary=prev_session_summary,
+                eval_trace=want_trace,
             )
 
         ai_text = result.get("message", "")
@@ -519,6 +525,7 @@ async def process_chat(
             modality=result.get("modality", "therapy"),
             confidence=result.get("confidence", 0.8),
             session_insights=result.get("session_insights"),
+            eval_trace=result.get("eval_trace") if want_trace else None,
         )
 
     except HTTPException:
@@ -701,3 +708,30 @@ async def process_chat_stream(
     except Exception as e:
         logger.error(f"❌ [STREAM] Setup failed: {e}")
         raise HTTPException(status_code=500, detail=f"Streaming failed: {str(e)}")
+
+
+@router.post("/chat/end-session")
+async def end_session(
+    request: EndSessionRequest,
+    authorization: str = Header(None),
+):
+    """Trigger session-end jobs (save summary, procedural synthesis, reflections) explicitly when chat closes."""
+    try:
+        user_id = await validate_user_token(authorization, supabase_client)
+        logger.info(f"🏁 [END-SESSION] Explicit user closure: user={user_id}, session={request.session_id}")
+        
+        # Fire-and-forget background jobs normally deferred by Modulo 36
+        import threading
+        threading.Thread(
+            target=_run_session_end_jobs,
+            args=(request.session_id, user_id),
+            daemon=True,
+        ).start()
+
+        return {"status": "queued", "session_id": request.session_id, "message": "Session wrap-up jobs initiated successfully."}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ [END-SESSION] Failed to queue jobs: {e}")
+        raise HTTPException(status_code=500, detail=f"End session failed: {str(e)}")

@@ -140,7 +140,8 @@ class MemoryRetriever:
                     fut_search = _ex.submit(
                         self._mem0.search, query=query, user_id=user_id, limit=MEMORY_OVERFETCH_LIMIT
                     )
-                fut_meta = _ex.submit(self._fetch_metadata_for_scoring, user_id)
+                    fut_meta = _ex.submit(self._fetch_metadata_for_scoring, user_id)
+                # Futures finish during executor shutdown; result() is valid here.
                 results = fut_search.result()
                 metadata_map = fut_meta.result()
 

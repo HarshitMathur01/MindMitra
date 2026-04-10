@@ -3,6 +3,7 @@ ResponseGenerator — GLM Agent 3: final therapeutic response generation.
 """
 import json
 import logging
+import os
 import re
 from typing import Any, Dict
 
@@ -338,6 +339,22 @@ ABSOLUTE RULES:
             system_msg = {"role": "system", "content": system_prompt}
             human_msg = {"role": "user", "content": self._build_context(user_context)}
 
+            if os.getenv("MM_PIPELINE_DEBUG", "").lower() in ("1", "true", "yes"):
+                um = human_msg["content"]
+                logger.info(
+                    "[MM_PIPELINE_DEBUG] prompt_sizes system=%s user_turn=%s",
+                    len(system_prompt),
+                    len(um),
+                )
+                logger.info(
+                    "[MM_PIPELINE_DEBUG] system_prompt_preview (800c): %s",
+                    system_prompt[:800].replace("\n", " "),
+                )
+                logger.info(
+                    "[MM_PIPELINE_DEBUG] user_turn_preview (600c): %s",
+                    um[:600].replace("\n", " "),
+                )
+
             # Per-path max_tokens override (Path A=150, B=300, C=500)
             invoke_kwargs: Dict[str, Any] = {}
             if "chunk_callback" in user_context:
@@ -366,6 +383,11 @@ ABSOLUTE RULES:
             user_context["ai_response"] = cleaned
             user_context["response_generated"] = True
             logger.info(f"✅ [RESPONSE-GEN] Response ready ({len(cleaned)} chars)")
+            if os.getenv("MM_PIPELINE_DEBUG", "").lower() in ("1", "true", "yes"):
+                logger.info(
+                    "[MM_PIPELINE_DEBUG] ai_response_preview (500c): %s",
+                    cleaned[:500].replace("\n", " "),
+                )
         except Exception as e:
             logger.error(f"❌ [RESPONSE-GEN] Exception: {e}, using default")
             fallback = self._get_default_response(user_context)

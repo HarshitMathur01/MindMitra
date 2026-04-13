@@ -6,7 +6,7 @@ Production-oriented test and evaluation tooling for the **chatbotAgent** FastAPI
 
 | Artifact | Purpose |
 |----------|---------|
-| `docs/backend_system_map.md` | Route + pipeline map for reviewers |
+| `docs/backend/GETTING_STARTED.md` | Routes + pipeline + eval trace + safety (reviewer quick ref) |
 | `tests/fixtures/test-dataset.json` | **v2:** Few deep **multi-turn** cases (memory recall, clinical boundary + code-mix, crisis pivot, adversarial memory-poison) + 2 edge singles; see `evaluation_design` in JSON |
 | `pytest` under `chatbotAgent/tests/` | API contracts, crisis keywords, mocked `/chat` |
 | `tests/rag_evaluator.py` | HTTP runner + metrics + `rag_evaluation_report.json` |
@@ -204,8 +204,8 @@ Do **not** ask one HTTP fixture to prove everything. Separate **concerns**:
 
 ## Related internal docs
 
-- `ai/claude.md`, `ai/skills.md` — contributor context
-- `docs/architecture.md`, `docs/rag.md`, `docs/memory.md`, `docs/therapist_bridge*.md`
+- `ai/claude.md` (pointer), `ai/skills.md` — optional; root `CLAUDE.md` / `AGENT.md` are authoritative
+- `docs/architecture.md`, `docs/MEMORY_AND_RAG.md`, `docs/therapist_bridge.md`
 
 ## CI suggestion
 
@@ -215,3 +215,60 @@ Do **not** ask one HTTP fixture to prove everything. Separate **concerns**:
 ```
 
 Schedule integration + `run_full_evaluation.py` on a **staging** API with secrets injected from your vault.
+
+---
+
+## Product metrics and beta analytics
+
+**Goal:** know **where** metrics live, how they stay privacy-aligned, and when to add a third-party product tool.
+
+### Three layers (different questions)
+
+| Layer | What it is | Best for | Where you read it |
+|--------|------------|----------|-------------------|
+| **1. Supabase (first-party)** | Rows the app writes: messages, games, voice metadata, explicit product events | Funnels, retention, beta cohorts | Supabase SQL Editor, CSV export, Metabase/Lightdash later |
+| **2. Server logs** | Structured lines from `chatbotAgent` (host) | Errors, latency, rate limits | Log tail; `LOG_FORMAT=json` + drain |
+| **3. Optional third-party** | PostHog / Plausible / GA4 | Session replay, marketing attribution | Vendor dashboards |
+
+**Beta default:** (1) + (2). Add (3) only for attribution or analytics UX without writing SQL — with strict event allowlists and **no autocapture on chat surfaces**.
+
+### What exists in the database (high level)
+
+- **`chat_messages`** — activity and timing; **content is sensitive**; prefer aggregates.
+- **`onboarding_analytics`** — structural onboarding events (`metadata.event_type`, etc.).
+- **`crisis_events`** — detections **without user text** (see migration comments).
+- **`user_activities`**, **`voice_analysis_events`** — Mind Gym / voice usage.
+- **`product_events`** — explicit funnel events from the web app (`trackProductEvent`); migration `supabase/migrations/20260409120000_product_events.sql`. **Never** put raw chat text in `properties`.
+
+**SQL templates:** [`docs/sql/beta_product_analytics_queries.sql`](sql/beta_product_analytics_queries.sql).
+
+### Client funnel writes
+
+- **Client:** `src/lib/productAnalytics.ts` — `trackProductEvent(name, props)`.
+- **RLS:** users insert/select **own** rows; cross-user beta dashboards use **postgres** / service role in SQL Editor, consistent with other operator queries.
+- **Disable:** set `VITE_ENABLE_PRODUCT_ANALYTICS=0` so the queue never flushes.
+
+### Server logs (`chatbotAgent`)
+
+Request middleware logs path, status, duration with `X-Request-ID`. Streaming chat logs a structured **`metrics`** blob on completion (**no message body**): event name, duration, language, flags, optional error type. Prefer JSON logs in production when the collector expects JSON.
+
+### Third-party tools (short)
+
+| Tool | Strength | Risk for mental-health products |
+|------|----------|----------------------------------|
+| **PostHog** | Funnels, flags, replay | Autocapture can over-collect; mask, disable replay on `/chat`, allowlist events |
+| **Plausible** | Simple, lightweight | Less depth on custom cohorts |
+| **GA4** | Ads integration | Complex; harder to guarantee no PHI in props |
+
+If you add one: **one** vendor, **explicit events only**, document allowed properties (same rules as `product_events`).
+
+### Weekly beta review (~30 min)
+
+1. Run SQL templates — DAU, chat volume, onboarding distribution, crisis counts.  
+2. Scan logs for `5xx` spikes and `429`.  
+3. Backlog themes: **stability**, **confusing UX**, **safety wording**.
+
+### Governance
+
+- Treat **chat content** as highly restricted; control exports and dashboard access.  
+- Beta agreement / privacy policy should state **what** is logged at a high level (events + operational logs).

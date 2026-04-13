@@ -51,11 +51,9 @@ import { triggerMindGymClinicalSync } from "@/lib/api/syncMindGymClinicalData";
  * work correctly.
  *
  * Gate logic:
- *  loading              → fullscreen spinner
  *  otherwise            → normal Routes
  */
 function AppContent() {
-  const { loading } = useAuth();
   const location = useLocation();
 
   // Silent fallback sync: Ensure any stranded offline MindGym data 
@@ -66,10 +64,6 @@ function AppContent() {
       console.warn("Silent Boot Sync for MindGym deferred:", err);
     });
   }, []);
-
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
 
   return (
     <AnimatePresence mode="wait">

@@ -10,7 +10,6 @@ import { PrivacySettings } from '@/components/settings/PrivacySettings';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
 import { AccessibilitySettings } from '@/components/settings/AccessibilitySettings';
 import { AccountSettings } from '@/components/settings/AccountSettings';
-import { ReplayOnboarding } from '@/components/settings/ReplayOnboarding';
 import { useSettings } from '@/hooks/useSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { AppShell } from '@/components/app/AppShell';
@@ -123,9 +122,6 @@ const Settings = () => {
                                         saving={saving}
                                         onSave={saveSettings}
                                     />
-                                    <div className="mt-6 pt-6 border-t border-border/50">
-                                        <ReplayOnboarding />
-                                    </div>
                                 </TabsContent>
 
                                 <TabsContent value="privacy">

@@ -7,8 +7,6 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { useFirstTimeUser } from "@/hooks/useFirstTimeUser";
-import FirstTimeExperience from "@/components/onboarding/FirstTimeExperience";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
@@ -54,12 +52,10 @@ import { triggerMindGymClinicalSync } from "@/lib/api/syncMindGymClinicalData";
  *
  * Gate logic:
  *  loading              → fullscreen spinner
- *  isFirstTime && !done → FirstTimeExperience orchestrator
  *  otherwise            → normal Routes
  */
 function AppContent() {
-  const { isFirstTime, loading, onboardingStep } = useFirstTimeUser();
-  const [onboardingDone, setOnboardingDone] = useState(false);
+  const { loading } = useAuth();
   const location = useLocation();
 
   // Silent fallback sync: Ensure any stranded offline MindGym data 
@@ -73,15 +69,6 @@ function AppContent() {
 
   if (loading) {
     return <DashboardSkeleton />;
-  }
-
-  if (isFirstTime && !onboardingDone) {
-    return (
-      <FirstTimeExperience
-        initialStep={onboardingStep}
-        onComplete={() => setOnboardingDone(true)}
-      />
-    );
   }
 
   return (

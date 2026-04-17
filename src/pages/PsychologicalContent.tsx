@@ -1,19 +1,14 @@
-import { useState, useMemo } from "react";
-import Header from "@/components/layout/Header";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppShell } from "@/components/app/AppShell";
+import { PageContainer } from "@/components/app/PageContainer";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    BookOpen,
     Play,
     Headphones,
     FileText,
@@ -21,12 +16,9 @@ import {
     Star,
     Search,
     Heart,
-    ExternalLink,
     ChevronRight,
     Brain,
     Sparkles,
-    TrendingUp,
-    Shield,
     ArrowRight,
     Bookmark,
     BookmarkCheck,
@@ -36,9 +28,10 @@ import {
     GraduationCap,
     Flower2,
     Activity,
-    X,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
+import { ease, duration, enterTransition } from "@/lib/motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -401,48 +394,74 @@ const typeIconMap: Record<ContentType, React.ElementType> = {
     exercise: CheckCircle2,
 };
 
-const typeColorMap: Record<ContentType, string> = {
-    article: "bg-primary/10 text-primary",
-    video: "bg-red-500/10 text-red-600 dark:text-red-400",
-    audio: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-    exercise: "bg-green-500/10 text-green-600 dark:text-green-400",
+const SAVED_KEY = "mm-psych-resources-saved";
+
+const sectionEyebrow = "text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5";
+
+type LongReadGuide = {
+    path: string;
+    kicker: string;
+    title: string;
+    description: string;
+    readLabel: string;
+    emoji: string;
 };
 
-const difficultyColors: Record<DifficultyLevel, string> = {
-    beginner: "bg-green-500/10 text-green-600 dark:text-green-400",
-    intermediate: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    advanced: "bg-red-500/10 text-red-600 dark:text-red-400",
-};
-
-const categoryColorMap: Record<string, string> = {
-    primary: "bg-primary/10 text-primary",
-    teal: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
-    blue: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
-    pink: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
-    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-    green: "bg-green-500/10 text-green-600 dark:text-green-400",
-    orange: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-};
-
-const activeCatColorMap: Record<string, string> = {
-    primary: "bg-primary text-white",
-    teal: "bg-teal-500 text-white",
-    blue: "bg-primary text-white",
-    pink: "bg-pink-500 text-white",
-    amber: "bg-amber-500 text-white",
-    violet: "bg-violet-500 text-white",
-    green: "bg-green-500 text-white",
-    orange: "bg-orange-500 text-white",
-};
+const longReadGuides: LongReadGuide[] = [
+    {
+        path: "/articles/grounding-rituals-busy-mornings",
+        kicker: "Morning",
+        title: "3 grounding rituals for busy mornings",
+        description: "Tiny rituals to feel calmer and more present before the day pulls you in.",
+        readLabel: "4 min read",
+        emoji: "🌅",
+    },
+    {
+        path: "/articles/reset-your-nervous-system",
+        kicker: "Regulation",
+        title: "How to reset your nervous system in 2 minutes",
+        description: "When you feel flooded or overstimulated, a short sequence can help you feel safer.",
+        readLabel: "3 min read",
+        emoji: "🌿",
+    },
+    {
+        path: "/articles/calming-bedtime-routine",
+        kicker: "Rest",
+        title: "A calming bedtime routine for deep rest",
+        description: "Help your body slow down so sleep feels more inviting.",
+        readLabel: "4 min read",
+        emoji: "🌙",
+    },
+    {
+        path: "/articles/mountain-reset-calmer-mind",
+        kicker: "Visual",
+        title: "Mountain reset for a calmer mind",
+        description: "A mountain-based visual reset when thoughts feel loud.",
+        readLabel: "4 min read",
+        emoji: "⛰️",
+    },
+    {
+        path: "/articles/nature-focus-visual-grounding",
+        kicker: "Practice",
+        title: "Nature focus: 5-minute visual grounding",
+        description: "Reconnect with the present through gentle observation.",
+        readLabel: "5 min practice",
+        emoji: "🍃",
+    },
+];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const ContentTypeChip = ({ type }: { type: ContentType }) => {
     const Icon = typeIconMap[type];
     return (
-        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${typeColorMap[type]}`}>
-            <Icon className="h-3 w-3" />
+        <span
+            className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                "border border-ink-3/25 bg-[hsl(var(--ink-1))]/60 text-ink-7 dark:border-ink-3/20 dark:text-ink-6",
+            )}
+        >
+            <Icon className="h-3 w-3 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" />
             <span className="capitalize">{type}</span>
         </span>
     );
@@ -455,12 +474,10 @@ const RatingStars = ({ rating }: { rating: number }) => {
             {Array.from({ length: full }).map((_, i) => (
                 <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
             ))}
-            <span className="text-xs ml-1 text-muted-foreground font-medium">{rating}</span>
+            <span className="ml-1 text-xs font-medium text-ink-5">{rating}</span>
         </span>
     );
 };
-
-// ─── Content Card ─────────────────────────────────────────────────────────────
 
 const ContentCard = ({
     item,
@@ -471,141 +488,128 @@ const ContentCard = ({
     item: ContentItem;
     onOpen: (item: ContentItem) => void;
     bookmarked: boolean;
-    onToggleBookmark: (id: string) => void;
-}) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            whileHover={{ y: -2 }}
-        >
-            <Card
-                className="relative overflow-hidden rounded-2xl border border-border/60 bg-surface transition-all duration-200 hover:shadow-lg cursor-pointer group"
-                style={{ boxShadow: "0 2px 16px var(--shadow)" }}
-                onClick={() => onOpen(item)}
-            >
-                {/* Featured badge */}
-                {item.featured && (
-                    <div className="absolute top-3 right-3 z-10">
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                            <Sparkles className="h-3 w-3" />
-                            Featured
-                        </span>
-                    </div>
-                )}
-
-                {/* Content area */}
-                <div className="p-5">
-                    {/* Emoji header + type */}
-                    <div className="flex items-start gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl shrink-0">
-                            {item.imageEmoji}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <ContentTypeChip type={item.type} />
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${difficultyColors[item.difficulty]} capitalize`}>
-                                    {item.difficulty}
-                                </span>
-                            </div>
-                            <h3 className="font-bold text-foreground text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                                {item.title}
-                            </h3>
-                        </div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-4">
-                        {item.description}
-                    </p>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                        {item.tags.slice(0, 3).map((tag) => (
-                            <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-background text-muted-foreground/80 border border-border/40">
-                                #{tag}
-                            </span>
-                        ))}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {item.duration}
-                            </span>
-                            <RatingStars rating={item.rating} />
-                            <span>{formatCount(item.readCount)} reads</span>
-                        </div>
-
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onToggleBookmark(item.id); }}
-                            className={`p-1.5 rounded-lg transition-colors ${bookmarked ? "text-primary" : "text-muted-foreground/40 hover:text-primary"
-                                }`}
-                        >
-                            {bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                        </button>
-                    </div>
-                </div>
-            </Card>
-        </motion.div>
-    );
-};
-
-// ─── Featured Hero Card ───────────────────────────────────────────────────────
-
-const FeaturedHeroCard = ({ item, onOpen }: { item: ContentItem; onOpen: (item: ContentItem) => void }) => (
+    onToggleBookmark: (id: string, e: React.MouseEvent) => void;
+}) => (
     <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: duration.base, ease: ease.outExpo }}
+        whileHover={{ y: -2 }}
     >
         <Card
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-surface to-accent/5 border border-primary/20 cursor-pointer group"
-            style={{ boxShadow: "0 4px 24px var(--shadow)" }}
+            className={cn(
+                "group relative cursor-pointer overflow-hidden rounded-[1.25rem] border border-ink-3/35 bg-[hsl(var(--card))]",
+                "shadow-dashboard-soft transition-shadow duration-base hover:shadow-lg dark:border-ink-3/25",
+            )}
             onClick={() => onOpen(item)}
         >
-            <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6">
-                <div className="w-20 h-20 rounded-2xl bg-primary/15 flex items-center justify-center text-5xl shrink-0">
-                    {item.imageEmoji}
+            {item.featured ? (
+                <div className="absolute right-3 top-3 z-10">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--warmth-50))] px-2.5 py-1 text-xs font-medium text-[hsl(var(--warmth-700))] dark:bg-[hsl(var(--warmth-50))]/15 dark:text-[hsl(var(--warmth-400))]">
+                        <Sparkles className="h-3 w-3" />
+                        Featured
+                    </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                            <Sparkles className="h-3 w-3" />
-                            Editor's Pick
-                        </span>
-                        <ContentTypeChip type={item.type} />
+            ) : null}
+            <div className="p-5">
+                <div className="mb-3 flex items-start gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--accent-100))]/50 text-2xl dark:bg-[hsl(var(--accent-100))]/20">
+                        {item.imageEmoji}
                     </div>
-                    <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
-                        {item.title}
-                    </h2>
-                    <p className="text-muted-foreground leading-relaxed mb-4 line-clamp-2">{item.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                            <Clock className="h-4 w-4" />
+                    <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <ContentTypeChip type={item.type} />
+                            <span
+                                className={cn(
+                                    "rounded-full px-2 py-0.5 text-xs capitalize",
+                                    "border border-ink-3/20 bg-transparent text-ink-6",
+                                )}
+                            >
+                                {item.difficulty}
+                            </span>
+                        </div>
+                        <h3 className="line-clamp-2 font-display text-base font-normal leading-snug tracking-tight text-ink-8 transition-colors group-hover:text-[hsl(var(--accent-600))] dark:group-hover:text-[hsl(var(--accent-400))]">
+                            {item.title}
+                        </h3>
+                    </div>
+                </div>
+                <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-ink-6">{item.description}</p>
+                <div className="mb-4 flex flex-wrap gap-1.5">
+                    {item.tags.slice(0, 3).map((tag) => (
+                        <span
+                            key={tag}
+                            className="rounded-full border border-ink-3/20 bg-[hsl(var(--background))] px-2 py-0.5 text-xs text-ink-5"
+                        >
+                            {tag}
+                        </span>
+                    ))}
+                </div>
+                <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-ink-5">
+                        <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
                             {item.duration}
                         </span>
                         <RatingStars rating={item.rating} />
                         <span>{formatCount(item.readCount)} reads</span>
-                        <span className="text-xs">by {item.author}</span>
                     </div>
-                </div>
-                <div className="hidden md:flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                        <ArrowRight className="h-5 w-5" />
-                    </div>
+                    <button
+                        type="button"
+                        onClick={(e) => onToggleBookmark(item.id, e)}
+                        className={cn(
+                            "rounded-lg p-1.5 transition-colors",
+                            bookmarked ? "text-[hsl(var(--accent-600))]" : "text-ink-5 hover:text-[hsl(var(--accent-600))]",
+                        )}
+                        aria-label={bookmarked ? "Remove from saved" : "Save for later"}
+                    >
+                        {bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                    </button>
                 </div>
             </div>
         </Card>
     </motion.div>
 );
 
-// ─── Content Detail Modal ─────────────────────────────────────────────────────
+const FeaturedHeroCard = ({ item, onOpen }: { item: ContentItem; onOpen: (item: ContentItem) => void }) => (
+    <motion.button
+        type="button"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: duration.long, ease: ease.outExpo }}
+        onClick={() => onOpen(item)}
+        className={cn(
+            "group w-full text-left",
+            "rounded-[1.75rem] border border-[hsl(var(--accent-400))]/25 bg-[hsl(var(--card))]/90 p-6 shadow-dashboard-soft backdrop-blur-sm",
+            "transition-shadow hover:shadow-lg md:p-8 dark:border-[hsl(var(--accent-500))]/20",
+        )}
+    >
+        <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            <div className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--accent-100))]/60 text-[2.75rem] dark:bg-[hsl(var(--accent-100))]/20">
+                {item.imageEmoji}
+            </div>
+            <div className="min-w-0 flex-1">
+                <p className={sectionEyebrow}>Start here</p>
+                <h2 className="mt-2 font-display text-2xl font-light tracking-tight text-ink-8 sm:text-3xl">{item.title}</h2>
+                <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-6">{item.description}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-ink-5">
+                    <span className="inline-flex items-center gap-1.5">
+                        <Clock className="h-4 w-4" />
+                        {item.duration}
+                    </span>
+                    <RatingStars rating={item.rating} />
+                    <span>{formatCount(item.readCount)} reads</span>
+                </div>
+            </div>
+            <div className="flex shrink-0 justify-end md:items-center">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--accent-500))] text-white shadow-md transition-transform group-hover:scale-105">
+                    <ArrowRight className="h-5 w-5" strokeWidth={1.8} />
+                </span>
+            </div>
+        </div>
+    </motion.button>
+);
 
-const ContentDetailModal = ({
+function ResourceReaderDialog({
     item,
     open,
     onClose,
@@ -613,343 +617,418 @@ const ContentDetailModal = ({
     item: ContentItem | null;
     open: boolean;
     onClose: () => void;
-}) => {
+}) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [progress, setProgress] = useState(0);
+    const [takeawayIndex, setTakeawayIndex] = useState(0);
+
+    const handleScroll = useCallback(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const max = el.scrollHeight - el.clientHeight;
+        setProgress(max <= 0 ? 1 : Math.min(1, el.scrollTop / max));
+    }, []);
+
+    useEffect(() => {
+        if (!open) {
+            setProgress(0);
+            setTakeawayIndex(0);
+            return;
+        }
+        const el = scrollRef.current;
+        if (el) {
+            el.scrollTop = 0;
+            handleScroll();
+        }
+    }, [open, item, handleScroll]);
+
     if (!item) return null;
 
+    const takeaways = item.keyTakeaways;
+    const nextInsight = () => setTakeawayIndex((i) => (i + 1) % takeaways.length);
+
     return (
-        <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-surface border-border/60 rounded-2xl p-0">
-                {/* Header */}
-                <div className="p-6 border-b border-border/40">
-                    <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center text-3xl shrink-0">
+        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+            <DialogContent className="max-h-[min(90vh,760px)] max-w-2xl gap-0 overflow-hidden rounded-[1.5rem] border border-ink-3/30 p-0 shadow-dashboard-soft dark:border-ink-3/25">
+                <div className="h-1 w-full bg-[hsl(var(--ink-2))] dark:bg-[hsl(var(--ink-3))]/40">
+                    <div
+                        className="h-full bg-[hsl(var(--accent-500))] transition-[width] duration-150 ease-out"
+                        style={{ width: `${Math.round(progress * 100)}%` }}
+                    />
+                </div>
+                <DialogHeader className="space-y-0 border-b border-ink-3/20 px-5 pb-4 pt-5 text-left sm:px-6">
+                    <div className="flex items-start gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--accent-100))]/50 text-2xl dark:bg-[hsl(var(--accent-100))]/20">
                             {item.imageEmoji}
                         </div>
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <ContentTypeChip type={item.type} />
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${difficultyColors[item.difficulty]} capitalize`}>
-                                    {item.difficulty}
-                                </span>
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <Clock className="h-3 w-3" /> {item.duration}
+                                <span className="inline-flex items-center gap-1 text-xs text-ink-5">
+                                    <Clock className="h-3 w-3" />
+                                    {item.duration}
                                 </span>
                             </div>
-                            <h2 className="text-xl font-bold text-foreground leading-snug">{item.title}</h2>
-                            <p className="text-sm text-muted-foreground mt-1.5">
-                                by <span className="font-medium text-foreground">{item.author}</span> — {item.authorCredential}
+                            <DialogTitle className="mt-2 font-display text-xl font-normal leading-snug tracking-tight text-ink-8 sm:text-2xl">
+                                {item.title}
+                            </DialogTitle>
+                            <p className="mt-1.5 text-sm text-ink-6">
+                                <span className="font-medium text-ink-8">{item.author}</span>
+                                <span className="text-ink-5"> — {item.authorCredential}</span>
                             </p>
                         </div>
                     </div>
+                </DialogHeader>
+
+                <div
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    className="max-h-[min(52vh,420px)] overflow-y-auto px-5 py-5 sm:px-6"
+                >
+                    <div className="space-y-4 text-[15px] leading-[1.75] text-ink-6">
+                        {item.longDescription.split("\n\n").map((paragraph, idx) => (
+                            <p key={idx} className="whitespace-pre-line last:mb-0">
+                                {paragraph}
+                            </p>
+                        ))}
+                    </div>
                 </div>
 
-                {/* Body */}
-                <div className="p-6 space-y-6">
-                    {/* Long description – render with line breaks and basic formatting */}
-                    <div className="prose prose-sm max-w-none text-muted-foreground leading-relaxed">
-                        {item.longDescription.split("\n\n").map((paragraph, idx) => (
-                            <p key={idx} className="mb-4 last:mb-0 whitespace-pre-line">{paragraph}</p>
-                        ))}
+                {takeaways.length > 0 ? (
+                    <div className="border-t border-ink-3/20 bg-[hsl(var(--warmth-50))]/40 px-5 py-4 dark:bg-[hsl(var(--ink-2))]/50 sm:px-6">
+                        <div className="flex items-center justify-between gap-3">
+                            <p className={cn(sectionEyebrow, "text-ink-6")}>One insight</p>
+                            <button
+                                type="button"
+                                onClick={nextInsight}
+                                className="text-xs font-medium text-[hsl(var(--accent-600))] underline-offset-4 hover:underline dark:text-[hsl(var(--accent-400))]"
+                            >
+                                Next ({takeawayIndex + 1}/{takeaways.length})
+                            </button>
+                        </div>
+                        <p className="mt-2 font-display text-[1.05rem] font-light leading-snug text-ink-8">{takeaways[takeawayIndex]}</p>
                     </div>
+                ) : null}
 
-                    {/* Key takeaways */}
-                    <div className="bg-primary/5 rounded-2xl p-5 border border-primary/15">
-                        <h3 className="font-bold text-foreground flex items-center gap-2 mb-3">
-                            <Lightbulb className="h-5 w-5 text-primary" />
-                            Key Takeaways
-                        </h3>
-                        <ul className="space-y-2">
-                            {item.keyTakeaways.map((takeaway, idx) => (
-                                <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                                    <span>{takeaway}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2">
-                        {item.tags.map((tag) => (
-                            <span key={tag} className="text-xs px-2.5 py-1 rounded-full bg-background text-muted-foreground border border-border/40">
-                                #{tag}
-                            </span>
-                        ))}
-                    </div>
-
-                    {/* Stats bar */}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t border-border/30">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-3/20 px-5 py-4 sm:px-6">
+                    <div className="flex items-center gap-3 text-sm text-ink-5">
                         <RatingStars rating={item.rating} />
                         <span>{formatCount(item.readCount)} reads</span>
                     </div>
+                    <Button type="button" variant="outline" className="rounded-full" onClick={onClose}>
+                        Close
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>
     );
-};
+}
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const PsychologicalContent = () => {
+    const navigate = useNavigate();
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<string>("all");
+    const [typeFilter, setTypeFilter] = useState<ContentType | "all">("all");
     const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
     const [savedItems, setSavedItems] = useState<string[]>([]);
     const [showBookmarks, setShowBookmarks] = useState(false);
 
-    // Categories setup
-    const allCategories = contentCategories;
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(SAVED_KEY);
+            if (raw) setSavedItems(JSON.parse(raw) as string[]);
+        } catch {
+            /* ignore */
+        }
+    }, []);
 
-    // Filter logic
+    useEffect(() => {
+        try {
+            localStorage.setItem(SAVED_KEY, JSON.stringify(savedItems));
+        } catch {
+            /* ignore */
+        }
+    }, [savedItems]);
+
     const filteredContent = useMemo(() => {
-        return allContent.filter(item => {
-            const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                  item.description.toLowerCase().includes(searchQuery.toLowerCase());
+        return allContent.filter((item) => {
+            const q = searchQuery.toLowerCase();
+            const matchesSearch =
+                item.title.toLowerCase().includes(q) ||
+                item.description.toLowerCase().includes(q) ||
+                item.tags.some((t) => t.toLowerCase().includes(q));
             const matchesTab = activeTab === "all" || item.category === activeTab;
+            const matchesType = typeFilter === "all" || item.type === typeFilter;
             const matchesSaved = !showBookmarks || savedItems.includes(item.id);
-            return matchesSearch && matchesTab && matchesSaved;
+            return matchesSearch && matchesTab && matchesType && matchesSaved;
         });
-    }, [searchQuery, activeTab, showBookmarks, savedItems]);
+    }, [searchQuery, activeTab, typeFilter, showBookmarks, savedItems]);
+
+    const spotlightItem = useMemo(() => {
+        if (showBookmarks || searchQuery.trim() || activeTab !== "all" || typeFilter !== "all") return null;
+        return allContent.find((c) => c.featured) ?? allContent[0] ?? null;
+    }, [showBookmarks, searchQuery, activeTab, typeFilter]);
+
+    const gridItems = useMemo(() => {
+        if (!spotlightItem) return filteredContent;
+        const rest = filteredContent.filter((i) => i.id !== spotlightItem.id);
+        if (rest.length === 0 && filteredContent.length > 0) return filteredContent;
+        return rest;
+    }, [filteredContent, spotlightItem]);
 
     const toggleBookmark = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         if (savedItems.includes(id)) {
-            setSavedItems(prev => prev.filter(i => i !== id));
-            toast({ title: "Removed from saved items", description: "This resource has been removed from your bookmarks." });
+            setSavedItems((prev) => prev.filter((i) => i !== id));
+            toast({ title: "Removed", description: "Taken off your saved list." });
         } else {
-            setSavedItems(prev => [...prev, id]);
-            toast({ title: "Saved for later", description: "You can find this resource in your bookmarks." });
+            setSavedItems((prev) => [...prev, id]);
+            toast({ title: "Saved", description: "We’ll keep this on your list in this browser." });
         }
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col font-sans">
-            <Header />
-
-            <main className="flex-1">
-                {/* HERO SECTION */}
-                <section className="pt-24 pb-12 px-6 lg:px-12 max-w-5xl mx-auto text-center space-y-6">
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                        <Badge variant="outline" className="mb-4 px-4 py-1.5 text-sm font-medium border-primary/20 text-primary bg-primary/5 rounded-full">
-                            <Sparkles className="h-4 w-4 mr-2" /> Mindful Resources
-                        </Badge>
-                        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
-                            Discover peace of mind.
-                        </h1>
-                        <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                            Curated articles, guided audio, and exercises designed to support your journey toward mental clarity and well-being.
-                        </p>
-                    </motion.div>
-
-                    {/* SEARCH & FILTERS */}
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }} 
-                        animate={{ opacity: 1, y: 0 }} 
-                        transition={{ duration: 0.4, delay: 0.1 }}
-                        className="max-w-2xl mx-auto pt-6 flex flex-col sm:flex-row gap-4"
+        <AppShell>
+            <PageContainer as="div" width="wide" className="relative pb-28 pt-6 sm:pb-24 sm:pt-8">
+                <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 top-0 h-[420px]"
+                    style={{
+                        backgroundImage:
+                            "radial-gradient(720px 380px at 18% -8%, hsl(var(--warmth-50)) 0%, transparent 55%), radial-gradient(560px 320px at 92% 12%, hsl(var(--accent-50)) 0%, transparent 50%)",
+                    }}
+                />
+                <header className="relative mx-auto max-w-3xl text-center">
+                    <motion.p
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={enterTransition}
+                        className={sectionEyebrow}
                     >
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input 
-                                placeholder="Search 'anxiety', 'sleep', 'focus'..." 
-                                className="w-full pl-11 pr-4 py-6 rounded-2xl bg-card border-border shadow-sm text-base focus-visible:ring-1 focus-visible:ring-primary"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <Button 
-                            variant={showBookmarks ? "default" : "outline"}
-                            className="py-6 px-6 rounded-2xl gap-2 font-medium"
-                            onClick={() => setShowBookmarks(!showBookmarks)}
-                        >
-                            {showBookmarks ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
-                            {showBookmarks ? "Saved" : "Saved"}
-                        </Button>
-                    </motion.div>
-
-                    {/* CATEGORY PILLS */}
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="flex flex-wrap items-center justify-center gap-2 pt-8"
+                        Resources
+                    </motion.p>
+                    <motion.h1
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ ...enterTransition, delay: 0.04 }}
+                        className="mt-3 text-balance font-display text-[clamp(1.85rem,4.2vw,2.65rem)] font-light tracking-tight text-ink-8"
                     >
-                        {allCategories.map(cat => {
+                        Read slowly.{" "}
+                        <span className="text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">Stay as long as you need.</span>
+                    </motion.h1>
+                    <motion.p
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ ...enterTransition, delay: 0.08 }}
+                        className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-ink-6"
+                    >
+                        Evidence-informed guides and short practices — written for real study days, family rhythms, and the moments when your mind won’t quiet down.
+                    </motion.p>
+                </header>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...enterTransition, delay: 0.1 }}
+                    className="mx-auto mt-10 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-center"
+                >
+                    <div className="relative flex-1">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-[1.125rem] w-[1.125rem] -translate-y-1/2 text-ink-5" />
+                        <Input
+                            placeholder="Try sleep, boundaries, grounding…"
+                            className="h-11 rounded-full border-ink-3/30 bg-[hsl(var(--card))]/80 pl-10 pr-4 text-[15px] shadow-dashboard-soft backdrop-blur-sm dark:border-ink-3/25"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            aria-label="Search resources"
+                        />
+                    </div>
+                    <Button
+                        type="button"
+                        variant={showBookmarks ? "default" : "outline"}
+                        className={cn(
+                            "h-11 shrink-0 rounded-full px-5",
+                            showBookmarks
+                                ? "bg-[hsl(var(--accent-500))] text-white hover:bg-[hsl(var(--accent-600))]"
+                                : "border-ink-3/30 bg-[hsl(var(--card))]/60",
+                        )}
+                        onClick={() => setShowBookmarks((v) => !v)}
+                    >
+                        {showBookmarks ? <BookmarkCheck className="mr-2 h-4 w-4" /> : <Bookmark className="mr-2 h-4 w-4" />}
+                        Saved
+                    </Button>
+                </motion.div>
+
+                <div className="mx-auto mt-6 max-w-3xl">
+                    <p className={`${sectionEyebrow} mb-2 text-center sm:text-left`}>Format</p>
+                    <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:justify-center">
+                        {typeFilters.map((tf) => {
+                            const Icon = tf.icon;
+                            const active = typeFilter === tf.id;
+                            return (
+                                <button
+                                    key={tf.id}
+                                    type="button"
+                                    onClick={() => setTypeFilter(tf.id)}
+                                    className={cn(
+                                        "snap-start whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                                        active
+                                            ? "bg-ink-8 text-[hsl(var(--background))] dark:bg-ink-8 dark:text-white"
+                                            : "border border-ink-3/25 bg-[hsl(var(--card))]/70 text-ink-7 hover:border-[hsl(var(--accent-400))]/40 hover:text-ink-8",
+                                    )}
+                                >
+                                    <Icon className="mr-1.5 inline h-3.5 w-3.5 align-[-2px]" />
+                                    {tf.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div className="mx-auto mt-6 max-w-4xl">
+                    <p className={`${sectionEyebrow} mb-2 text-center sm:text-left`}>Topics</p>
+                    <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
+                        {contentCategories.map((cat) => {
                             const Icon = cat.icon;
                             const isActive = activeTab === cat.id;
                             return (
                                 <button
                                     key={cat.id}
+                                    type="button"
                                     onClick={() => setActiveTab(cat.id)}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                                        isActive 
-                                            ? "bg-foreground text-background shadow-md" 
-                                            : "bg-secondary/50 text-secondary-foreground hover:bg-secondary border border-transparent hover:border-border"
-                                    }`}
+                                    title={cat.description}
+                                    className={cn(
+                                        "flex shrink-0 snap-start items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all",
+                                        isActive
+                                            ? "bg-[hsl(var(--accent-500))] text-white shadow-md"
+                                            : "border border-ink-3/25 bg-[hsl(var(--card))]/70 text-ink-7 hover:border-ink-3/40",
+                                    )}
                                 >
-                                    {Icon && <Icon className="h-4 w-4" />}
+                                    <Icon className="h-4 w-4 opacity-80" />
                                     {cat.label}
                                 </button>
                             );
                         })}
-                    </motion.div>
+                    </div>
+                </div>
+
+                <section className="mt-14 space-y-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className={sectionEyebrow}>Guided reads</p>
+                            <h2 className="mt-1 font-display text-xl font-light tracking-tight text-ink-8 sm:text-2xl">Full articles on the site</h2>
+                        </div>
+                        <p className="max-w-sm text-sm text-ink-6">Tap a card to open — made for reading without distractions.</p>
+                    </div>
+                    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:snap-none lg:grid-cols-5 lg:overflow-visible">
+                        {longReadGuides.map((g) => (
+                            <button
+                                key={g.path}
+                                type="button"
+                                onClick={() => navigate(g.path)}
+                                className={cn(
+                                    "flex w-[min(88vw,280px)] shrink-0 snap-start flex-col rounded-[1.25rem] border border-ink-3/30 bg-[hsl(var(--card))] p-5 text-left shadow-dashboard-soft transition-all",
+                                    "hover:-translate-y-0.5 hover:border-[hsl(var(--accent-400))]/35 hover:shadow-lg lg:w-auto dark:border-ink-3/25",
+                                )}
+                            >
+                                <span className="text-3xl" aria-hidden>
+                                    {g.emoji}
+                                </span>
+                                <p className={`${sectionEyebrow} mt-3 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]`}>{g.kicker}</p>
+                                <p className="mt-2 font-display text-lg font-normal leading-snug text-ink-8">{g.title}</p>
+                                <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-6">{g.description}</p>
+                                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">
+                                    {g.readLabel}
+                                    <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
+                                </span>
+                            </button>
+                        ))}
+                    </div>
                 </section>
 
-                {/* CONTENT GRID */}
-                <section className="max-w-7xl mx-auto px-6 lg:px-12 pb-24">
+                {spotlightItem ? (
+                    <section className="mt-16 space-y-6">
+                        <FeaturedHeroCard item={spotlightItem} onOpen={setSelectedItem} />
+                    </section>
+                ) : null}
+
+                <section className={spotlightItem ? "mt-10" : "mt-16"}>
                     <AnimatePresence mode="popLayout">
-                        {filteredContent.length > 0 ? (
-                            <motion.div 
+                        {gridItems.length > 0 ? (
+                            <motion.div
                                 layout
-                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                                className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
                             >
-                                {filteredContent.map((item, i) => (
-                                    <motion.div
+                                {gridItems.map((item) => (
+                                    <ContentCard
                                         key={item.id}
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ duration: 0.25, delay: i * 0.05 }}
-                                    >
-                                        <Card 
-                                            className="group h-full flex flex-col bg-card border border-border hover:border-primary/30 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                                            onClick={() => setSelectedItem(item)}
-                                        >
-                                            {/* Card Image Area (Simulated abstract colored header) */}
-                                            <div className={`h-32 bg-gradient-to-br from-primary/10 to-transparent relative p-5 flex flex-col justify-between`}>
-                                                <div className="flex justify-between items-start">
-                                                    <Badge variant="secondary" className="bg-background/80 backdrop-blur border-none font-medium capitalize flex gap-1.5 items-center shadow-sm">
-                                                        {item.type === 'video' ? <Play className="h-3 w-3" /> : item.type === 'audio' ? <Headphones className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
-                                                        {item.type}
-                                                    </Badge>
-                                                    <button 
-                                                        onClick={(e) => toggleBookmark(item.id, e)}
-                                                        className="p-2 rounded-full bg-background/50 hover:bg-background/80 backdrop-blur transition-colors text-foreground"
-                                                    >
-                                                        {savedItems.includes(item.id) ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Card Content */}
-                                            <div className="p-6 flex flex-col flex-1">
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
-                                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
-                                                    <span className="text-xs text-muted-foreground flex items-center"><Clock className="h-3 w-3 mr-1" /> {item.readTime}</span>
-                                                </div>
-                                                <h3 className="text-xl font-semibold leading-tight mb-2 text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                                                    {item.title}
-                                                </h3>
-                                                <p className="text-sm text-muted-foreground line-clamp-3 mb-6 leading-relaxed flex-1">
-                                                    {item.description}
-                                                </p>
-                                                
-                                                {/* Author/Action Footer */}
-                                                <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                                                            {item.author.charAt(0)}
-                                                        </div>
-                                                        <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">{item.author}</span>
-                                                    </div>
-                                                    <div className="text-primary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                                                        <ArrowRight className="h-5 w-5" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    </motion.div>
+                                        item={item}
+                                        onOpen={setSelectedItem}
+                                        bookmarked={savedItems.includes(item.id)}
+                                        onToggleBookmark={toggleBookmark}
+                                    />
                                 ))}
                             </motion.div>
                         ) : (
-                            <motion.div 
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                className="py-24 text-center max-w-md mx-auto"
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="rounded-[1.5rem] border border-ink-3/25 bg-[hsl(var(--card))] py-16 text-center shadow-dashboard-soft"
                             >
-                                <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6">
-                                    <Search className="h-8 w-8 text-muted-foreground" />
+                                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--ink-1))]">
+                                    <Search className="h-6 w-6 text-ink-5" />
                                 </div>
-                                <h3 className="text-xl font-semibold text-foreground mb-2">No resources found</h3>
-                                <p className="text-muted-foreground mb-6">We couldn't track down anything for "{searchQuery}". Try a different keyword or category.</p>
-                                <Button onClick={() => { setSearchQuery(""); setActiveTab("all"); }} variant="outline" className="rounded-xl">
-                                    Clear Filters
+                                <h3 className="font-display text-xl font-normal text-ink-8">Nothing matches yet</h3>
+                                <p className="mx-auto mt-2 max-w-sm text-sm text-ink-6">
+                                    Try another word, topic, or format — or clear filters to see everything again.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="mt-6 rounded-full"
+                                    onClick={() => {
+                                        setSearchQuery("");
+                                        setActiveTab("all");
+                                        setTypeFilter("all");
+                                        setShowBookmarks(false);
+                                    }}
+                                >
+                                    Reset filters
                                 </Button>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </section>
 
-                {/* BOTTOM CTA: NEED HELP? */}
-                <section className="bg-primary/5 py-16 border-t border-border">
-                    <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
-                        <Heart className="h-10 w-10 text-primary mx-auto opacity-80" />
-                        <h2 className="text-3xl font-semibold">Feeling overwhelmed right now?</h2>
-                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                            Sometimes an article isn't enough. Our AI companion is available 24/7 to listen, or you can instantly connect with our community or specialized crisis resources.
-                        </p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                            <Button className="rounded-full px-8 py-6 text-base font-semibold shadow-xl shadow-primary/20" onClick={() => window.location.href = '/chat'}>
-                                Talk to MindMitra <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" className="rounded-full px-8 py-6 text-base font-semibold bg-background" onClick={() => window.location.href = '/peer-support'}>
-                                Join Peer Support <Users className="ml-2 h-4 w-4" />
-                            </Button>
-                        </div>
+                <section className="mt-20 rounded-[1.75rem] border border-ink-3/25 bg-[hsl(var(--warmth-50))]/50 px-6 py-12 text-center shadow-dashboard-soft dark:bg-[hsl(var(--ink-2))]/40 sm:px-10">
+                    <Heart className="mx-auto h-9 w-9 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" strokeWidth={1.5} />
+                    <h2 className="mt-4 font-display text-2xl font-light tracking-tight text-ink-8 sm:text-3xl">If this isn’t enough right now</h2>
+                    <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-ink-6">
+                        You can sit with MindMitra for a while, or reach peers when you want a human thread alongside you.
+                    </p>
+                    <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                        <Button
+                            type="button"
+                            className="h-11 rounded-full bg-[hsl(var(--accent-500))] px-8 text-[15px] font-semibold text-white shadow-md hover:bg-[hsl(var(--accent-600))]"
+                            onClick={() => navigate("/chat")}
+                        >
+                            Open chat
+                            <ArrowRight className="ml-2 h-4 w-4" strokeWidth={1.8} />
+                        </Button>
+                        <Button type="button" variant="outline" className="h-11 rounded-full border-ink-3/30 px-8" onClick={() => navigate("/peer-support")}>
+                            Peer support
+                            <Users className="ml-2 h-4 w-4" strokeWidth={1.8} />
+                        </Button>
                     </div>
                 </section>
+            </PageContainer>
 
-            </main>
-
-            <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-                    {selectedItem && (
-                        <>
-                            <DialogHeader>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Badge variant="outline" className="capitalize">{selectedItem.type}</Badge>
-                                    <span className="text-sm text-muted-foreground"><Clock className="inline w-3 h-3 mr-1" />{selectedItem.duration}</span>
-                                </div>
-                                <DialogTitle className="text-2xl font-bold">{selectedItem.title}</DialogTitle>
-                            </DialogHeader>
-                            <div className="my-6">
-                                <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">{selectedItem.longDescription || selectedItem.description}</p>
-                            </div>
-                            
-                            {selectedItem.keyTakeaways && selectedItem.keyTakeaways.length > 0 && (
-                                <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10">
-                                    <h4 className="font-semibold mb-3 flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary"/> Key Takeaways</h4>
-                                    <ul className="space-y-2 text-sm text-muted-foreground">
-                                        {selectedItem.keyTakeaways.map((takeaway: string, idx: number) => (
-                                            <li key={idx} className="flex items-start gap-2">
-                                                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                                <span>{takeaway}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            <div className="flex justify-end gap-3 mt-6">
-                                {selectedItem.link && (
-                                    <Button onClick={() => window.open(selectedItem.link, "_blank")} className="rounded-full">
-                                        Open External Resource <ExternalLink className="w-4 h-4 ml-2" />
-                                    </Button>
-                                )}
-                                <Button variant="outline" onClick={() => setSelectedItem(null)} className="rounded-full">
-                                    Close
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
+            <ResourceReaderDialog item={selectedItem} open={!!selectedItem} onClose={() => setSelectedItem(null)} />
 
             <Footer />
-
-        </div>
+        </AppShell>
     );
 };
 

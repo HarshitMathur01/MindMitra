@@ -79,13 +79,13 @@ const MountainResetGuideArticle = () => {
             <Header />
 
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8">
-                <section className="overflow-hidden rounded-[32px] border border-border/50 bg-gradient-to-br from-[#ECFEFF] via-white to-[#F0FDF4] shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+                <section className="overflow-hidden rounded-[2rem] border border-ink-3/30 bg-gradient-to-br from-[#ECFEFF] via-white to-[#F0FDF4] shadow-dashboard-soft">
                     <div className="grid gap-8 px-6 py-8 md:grid-cols-[1.2fr_0.8fr] md:px-10 md:py-10">
                         <div>
                             <button
                                 type="button"
                                 onClick={() => navigate(-1)}
-                                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                                className="inline-flex items-center gap-2 rounded-full border border-ink-3/30 bg-[hsl(var(--card))] px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                             >
                                 <ArrowLeft className="h-4 w-4" />
                                 Back
@@ -96,27 +96,27 @@ const MountainResetGuideArticle = () => {
                                 Nature grounding guide
                             </div>
 
-                            <h1 className="mt-4 text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">
+                            <h1 className="mt-4 font-display text-3xl font-light leading-tight tracking-tight text-ink-8 sm:text-4xl">
                                 Mountain reset for a calmer mind
                             </h1>
 
-                            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+                            <p className="mt-4 max-w-2xl text-base leading-7 text-ink-6 sm:text-lg">
                                 When your thoughts feel loud or your body feels overstretched, a mountain-based visual reset can help you widen your attention, slow your breathing, and reconnect with a steadier inner pace.
                             </p>
 
-                            <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5">
+                            <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-ink-5">
+                                <span className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--card))] px-3 py-1.5">
                                     <Clock className="h-4 w-4 text-primary" />
                                     4 min read
                                 </span>
-                                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5">
+                                <span className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--card))] px-3 py-1.5">
                                     <Sparkles className="h-4 w-4 text-primary" />
                                     Grounding, breath, and visual calm
                                 </span>
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-center rounded-[28px] bg-white/80 p-6">
+                        <div className="flex items-center justify-center rounded-[1.75rem] bg-[hsl(var(--card))]/85 p-6">
                             <img
                                 src="https://images.unsplash.com/photo-1503614472-8c93d56e92ce?auto=format&fit=crop&w=900&q=80"
                                 alt="A mountain landscape for a calming visual reset"
@@ -127,12 +127,12 @@ const MountainResetGuideArticle = () => {
                 </section>
 
                 <section className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
-                    <article className="rounded-[28px] border border-border/50 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-8">
-                        <p className="text-sm leading-7 text-slate-600">
+                    <article className="rounded-[1.75rem] border border-ink-3/30 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft sm:p-8">
+                        <p className="text-sm leading-7 text-ink-6">
                             Sometimes the mind settles faster when attention moves away from pressure and toward something wider, quieter, and more stable. Mountains can work well for this because they naturally suggest steadiness. Even if you are indoors, looking at a mountain photo or any distant landscape can create a brief pause from mental overdrive.
                         </p>
 
-                        <p className="mt-4 text-sm leading-7 text-slate-600">
+                        <p className="mt-4 text-sm leading-7 text-ink-6">
                             This reset is not about forcing yourself to feel better instantly. It is about giving your nervous system a simpler job for a few minutes: look, breathe, and notice what is steady. That combination can help reduce overwhelm and create a small pocket of calm.
                         </p>
 
@@ -141,7 +141,7 @@ const MountainResetGuideArticle = () => {
                                 const Icon = step.icon;
 
                                 return (
-                                    <section key={step.title} className="rounded-2xl border border-border/50 bg-slate-50 p-5">
+                                    <section key={step.title} className="rounded-2xl border border-ink-3/30 bg-[hsl(var(--ink-1))]/55 p-5">
                                         <div className="flex flex-wrap items-start justify-between gap-4">
                                             <div className="flex items-start gap-3">
                                                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -151,11 +151,11 @@ const MountainResetGuideArticle = () => {
                                                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">
                                                         Reset step {index + 1}
                                                     </p>
-                                                    <h2 className="mt-1 text-xl font-semibold text-slate-900">{step.title}</h2>
+                                                    <h2 className="mt-1 text-xl font-semibold text-ink-8">{step.title}</h2>
                                                 </div>
                                             </div>
 
-                                            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-medium text-slate-600">
+                                            <span className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--card))] px-3 py-1 text-sm font-medium text-ink-6">
                                                 <Clock className="h-4 w-4 text-primary" />
                                                 {step.time}
                                             </span>
@@ -163,27 +163,27 @@ const MountainResetGuideArticle = () => {
 
                                         <ul className="mt-5 space-y-3">
                                             {step.steps.map((item) => (
-                                                <li key={item} className="flex items-start gap-3 text-sm leading-7 text-slate-600">
+                                                <li key={item} className="flex items-start gap-3 text-sm leading-7 text-ink-6">
                                                     <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
                                                     <span>{item}</span>
                                                 </li>
                                             ))}
                                         </ul>
 
-                                        <div className="mt-5 rounded-2xl bg-white p-4">
-                                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                                        <div className="mt-5 rounded-2xl bg-[hsl(var(--card))] p-4">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-5">
                                                 Why it helps
                                             </p>
-                                            <p className="mt-2 text-sm leading-7 text-slate-600">{step.whyItWorks}</p>
+                                            <p className="mt-2 text-sm leading-7 text-ink-6">{step.whyItWorks}</p>
                                         </div>
                                     </section>
                                 );
                             })}
                         </div>
 
-                        <section className="mt-8 rounded-2xl border border-border/50 bg-muted/40 p-5">
-                            <h2 className="text-lg font-semibold text-slate-900">References</h2>
-                            <p className="mt-2 text-sm leading-7 text-slate-600">
+                        <section className="mt-8 rounded-2xl border border-ink-3/30 bg-muted/40 p-5">
+                            <h2 className="text-lg font-semibold text-ink-8">References</h2>
+                            <p className="mt-2 text-sm leading-7 text-ink-6">
                                 These sources support the grounding, relaxation, and nature-based calming ideas used in this guide.
                             </p>
                             <ul className="mt-4 space-y-3">
@@ -205,31 +205,31 @@ const MountainResetGuideArticle = () => {
                     </article>
 
                     <aside className="space-y-5">
-                        <section className="rounded-[28px] border border-border/50 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-                            <h2 className="text-lg font-semibold text-slate-900">Try this in 3 minutes</h2>
-                            <ol className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
+                        <section className="rounded-[1.75rem] border border-ink-3/30 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft">
+                            <h2 className="text-lg font-semibold text-ink-8">Try this in 3 minutes</h2>
+                            <ol className="mt-4 space-y-3 text-sm leading-7 text-ink-6">
                                 <li>1. Look at a mountain or landscape image.</li>
                                 <li>2. Take 5 breaths with a longer exhale.</li>
                                 <li>3. Name 3 steady things around you.</li>
                             </ol>
                         </section>
 
-                        <section className="rounded-[28px] border border-border/50 bg-gradient-to-br from-primary/8 to-emerald-50 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-                            <h2 className="text-lg font-semibold text-slate-900">Helpful reminder</h2>
-                            <p className="mt-3 text-sm leading-7 text-slate-600">
+                        <section className="rounded-[1.75rem] border border-ink-3/30 bg-gradient-to-br from-primary/8 to-emerald-50 p-6 shadow-dashboard-soft">
+                            <h2 className="text-lg font-semibold text-ink-8">Helpful reminder</h2>
+                            <p className="mt-3 text-sm leading-7 text-ink-6">
                                 Calm does not have to arrive all at once. If this guide helps you feel even 5% more settled, that is a meaningful shift.
                             </p>
                         </section>
 
-                        <section className="rounded-[28px] border border-border/50 bg-slate-900 p-6 text-white shadow-[0_18px_40px_rgba(15,23,42,0.14)]">
+                        <section className="rounded-[1.75rem] border border-ink-3/30 bg-[hsl(var(--ink-8))] p-6 text-white shadow-dashboard-soft">
                             <h2 className="text-lg font-semibold">Explore more resources</h2>
-                            <p className="mt-3 text-sm leading-7 text-slate-300">
+                            <p className="mt-3 text-sm leading-7 text-white/75">
                                 Open the resource library for more grounding exercises, calming guides, and psychology-backed tools.
                             </p>
                             <button
                                 type="button"
                                 onClick={() => navigate("/psychological-content")}
-                                className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-transform hover:scale-[1.02]"
+                                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--card))] px-4 py-2.5 text-sm font-semibold text-ink-8 transition-transform hover:scale-[1.02]"
                             >
                                 Open resources
                                 <ArrowRight className="h-4 w-4" />

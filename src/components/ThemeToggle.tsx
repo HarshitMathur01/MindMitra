@@ -1,22 +1,23 @@
-import { Sun, Moon } from 'lucide-react'
-import { useTheme } from '@/context/ThemeContext'
+import { Sun, Moon } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 
 export function ThemeToggle() {
-    const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
 
-    return (
-        <button
-            onClick={toggleTheme}
-            className="relative w-14 h-7 rounded-full p-1 bg-border border border-border transition-all duration-300 ease-in-out hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
-            aria-label="Toggle theme"
-            type="button"
-        >
-            <div
-                className={`absolute top-1 w-5 h-5 rounded-full flex items-center justify-center bg-primary text-white shadow-theme transition-all duration-300 ease-in-out ${theme === 'dark' ? 'left-7' : 'left-1'
-                    }`}
-            >
-                {theme === 'dark' ? <Moon size={12} /> : <Sun size={12} />}
-            </div>
-        </button>
-    )
+  return (
+    <button
+      onClick={toggleTheme}
+      className={cn(
+        "inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-6",
+        "transition-colors duration-quick ease-out-expo",
+        "hover:bg-ink-2 hover:text-ink-8",
+      )}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      type="button"
+    >
+      {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+    </button>
+  );
 }

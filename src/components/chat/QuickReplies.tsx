@@ -33,17 +33,20 @@ const QuickReplies: React.FC<QuickRepliesProps> = ({
 
     return (
         <div
-            className={`mm-quick-replies ${className || ''}`}
+            className={`pt-3 ${className || ''}`}
             role="group"
             aria-label="Quick reply suggestions"
         >
-            <div className="mm-quick-replies-scroll" ref={scrollRef}>
+            <div
+                ref={scrollRef}
+                className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            >
                 {suggestions.slice(0, 3).map((text, i) => (
                     <button
                         key={`qr-${i}-${text.slice(0, 10)}`}
-                        className="mm-quick-reply-chip"
-                        onClick={() => onSelect(text)}
                         type="button"
+                        onClick={() => onSelect(text)}
+                        className="flex-shrink-0 inline-flex items-center rounded-full border border-ink-3 bg-ink-0 px-3 py-1.5 text-[12.5px] text-ink-7 whitespace-nowrap transition-colors duration-quick ease-out-expo hover:border-ink-5 hover:text-ink-9"
                     >
                         {text}
                     </button>

@@ -21,6 +21,12 @@ import { useAuth } from "@/hooks/useAuth";
 import PublicLanding from "./PublicLanding";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import { useTheme } from "@/context/ThemeContext";
+import {
+  getHeroExtraVeilStyle,
+  getHeroReadTier,
+  getHeroScrimStyle,
+  heroGreetingHaloClass,
+} from "@/lib/heroReadability";
 
 type MoodOption = {
   emoji: string;
@@ -32,6 +38,7 @@ type MoodOption = {
 type QuickAction = {
   title: string;
   duration: string;
+  kind: string;
   icon: typeof Wind;
   bg: string;
   iconColor: string;
@@ -61,11 +68,11 @@ type FeatureCard = {
 };
 
 const moodOptions: MoodOption[] = [
-  { emoji: "😰", label: "Anxious", ring: "ring-calm-blue", bg: "bg-calm-blue/40 dark:bg-calm-blue/20" },
-  { emoji: "😢", label: "Sad", ring: "ring-warm-purple", bg: "bg-warm-purple/40 dark:bg-warm-purple/20" },
-  { emoji: "😐", label: "Neutral", ring: "ring-warning/50", bg: "bg-warning/15 dark:bg-warning/10" },
-  { emoji: "😊", label: "Happy", ring: "ring-serene-green", bg: "bg-serene-green/40 dark:bg-serene-green/20" },
-  { emoji: "🤩", label: "Excited", ring: "ring-soft-pink", bg: "bg-soft-pink/40 dark:bg-soft-pink/20" },
+  { emoji: "🌧", label: "Anxious", ring: "ring-calm-blue", bg: "bg-calm-blue/40 dark:bg-calm-blue/20" },
+  { emoji: "🌫", label: "Sad", ring: "ring-warm-purple", bg: "bg-warm-purple/40 dark:bg-warm-purple/20" },
+  { emoji: "🌤", label: "Calm", ring: "ring-warning/50", bg: "bg-warning/15 dark:bg-warning/10" },
+  { emoji: "☀️", label: "Bright", ring: "ring-serene-green", bg: "bg-serene-green/40 dark:bg-serene-green/20" },
+  { emoji: "✨", label: "Glowing", ring: "ring-soft-pink", bg: "bg-soft-pink/40 dark:bg-soft-pink/20" },
 ];
 
 const affirmationsByPeriod: Record<"morning" | "afternoon" | "evening", string[]> = {
@@ -87,17 +94,17 @@ const affirmationsByPeriod: Record<"morning" | "afternoon" | "evening", string[]
 };
 
 const quickActions: QuickAction[] = [
-  { title: "Breathe", duration: "3 min", icon: Wind, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/breathe", weeklyDone: 4 },
-  { title: "Meditate", duration: "10 min", icon: Sparkles, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/meditate", weeklyDone: 5 },
-  { title: "Journal", duration: "5 min", icon: BookOpen, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/journal", weeklyDone: 3 },
-  { title: "Gratitude", duration: "3 min", icon: Heart, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/gratitude", weeklyDone: 2 },
+  { title: "Breathe", duration: "3 min", kind: "Breathwork", icon: Wind, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/breathe", weeklyDone: 4 },
+  { title: "Meditate", duration: "10 min", kind: "Stillness", icon: Sparkles, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/meditate", weeklyDone: 5 },
+  { title: "Journal", duration: "5 min", kind: "Reflect", icon: BookOpen, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/journal", weeklyDone: 3 },
+  { title: "Gratitude", duration: "3 min", kind: "Practice", icon: Heart, bg: "bg-primary/10 dark:bg-primary/15", iconColor: "text-primary", route: "/gratitude", weeklyDone: 2 },
 ];
 
-const pastMoodTags = [
-  "😐 So So due to Something else",
-  "😓 So So due to Family",
-  "😊 Feeling better after a walk",
-  "🤩 Energized by good news",
+const pastMoodReflections = [
+  { emoji: "🙂", text: "Settled after a long walk" },
+  { emoji: "😌", text: "Peaceful — family dinner" },
+  { emoji: "😊", text: "Lighter after journaling" },
+  { emoji: "🤩", text: "Energised by good news" },
 ];
 
 const morningHeroImages = [
@@ -129,7 +136,6 @@ const featureCards: FeatureCard[] = [
   { title: "Stress Control Online", description: "An evidence-based CBT program helps you learn how to deal with stress.", buttonLabel: "Explore more", buttonClassName: "bg-warning text-white", bg: "bg-warning/15 dark:bg-warning/10", accent: "from-warning/20 to-transparent", illustration: "🧘", category: "CBT Program", imageSrc: "/image2.png", categoryClassName: "bg-warning/20 text-warning", route: "/stress-control" },
   { title: "Diet and Nutrition Counselling", description: "Get personalized free health counselling and a diet plan.", buttonLabel: "Diet Counselling", buttonClassName: "bg-success text-white", bg: "bg-serene-green/40 dark:bg-serene-green/20", accent: "from-serene-green to-transparent", illustration: "🥗", category: "Nutrition", imageSrc: "/image3.png", categoryClassName: "bg-serene-green text-success", route: "/nutrition" },
   { title: "Counselling support, anytime", description: "Get free & unlimited support from the experts.", buttonLabel: "Counselling Sessions", buttonClassName: "bg-primary text-primary-foreground", bg: "bg-calm-blue/30 dark:bg-calm-blue/15", accent: "from-calm-blue to-transparent", illustration: "💬", category: "Expert Support", imageSrc: "/image4.png", categoryClassName: "bg-calm-blue text-primary", route: "/therapist-bridge" },
-  { title: "This is your safe space", description: "Try expressing your thoughts, feelings and stories to boost your mental health daily.", buttonLabel: "Write about today", buttonClassName: "bg-warm-purple/60 text-foreground", bg: "bg-warm-purple/20 dark:bg-warm-purple/10", accent: "from-warm-purple to-transparent", illustration: "✍️", category: "Journaling", imageSrc: "/safe_space.png", categoryClassName: "bg-warm-purple/40 text-foreground", route: "/journal" },
 ];
 
 const weekLabels = ["M", "T", "W", "T", "F", "S", "S"];
@@ -137,9 +143,8 @@ const dummyWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "�
 const loggedWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "🤩", "😊", null];
 
 const sectionTitleClass = "text-[18px] font-semibold text-foreground";
-const cardClass = "rounded-2xl bg-card p-4 shadow-card sm:p-5";
-const horizontalScrollClass = "flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
-
+const sectionEyebrowClass = "text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5";
+const sectionDisplayTitleClass = "font-display text-2xl sm:text-3xl font-light tracking-tight text-ink-8";
 const getVisibleContentCardCount = (width: number) => {
   if (width < 640) return 1;
   if (width < 1024) return 2;
@@ -157,6 +162,14 @@ const getContentCardActionLabel = (type: string) => {
   if (type === "Guide") return "Open guide";
   if (type === "Mindful View") return "Start view";
   return "Read now";
+};
+
+const getContentDurationLabel = (type: string) => {
+  if (type === "Video") return "6 min watch";
+  if (type === "Carousel") return "2 min listen";
+  if (type === "Guide") return "8 min read";
+  if (type === "Mindful View") return "5 min view";
+  return "4 min read";
 };
 
 const getGreeting = (hours: number) => {
@@ -189,6 +202,24 @@ const getRandomAffirmation = (period: "morning" | "afternoon" | "evening") => {
   return pool[Math.floor(Math.random() * pool.length)];
 };
 
+/** Split Gita-style strings (attribution / verse / translation) for calmer layout. */
+type AffirmationParts = { attribution: string; scripturalLines: string[]; translation: string };
+
+function parseAffirmationBody(raw: string): AffirmationParts {
+  const lines = raw.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length >= 3) {
+    return {
+      attribution: lines[0],
+      scripturalLines: lines.slice(1, -1),
+      translation: lines[lines.length - 1],
+    };
+  }
+  if (lines.length === 2) {
+    return { attribution: lines[0], scripturalLines: [], translation: lines[1] };
+  }
+  return { attribution: "", scripturalLines: [], translation: raw };
+}
+
 const getNextDayPeriodBoundary = (current: Date) => {
   const next = new Date(current);
   const hours = current.getHours();
@@ -199,17 +230,39 @@ const getNextDayPeriodBoundary = (current: Date) => {
   return next;
 };
 
-const getDashboardRevealStyle = (index: number, extraStyles: CSSProperties = {}): CSSProperties => ({
-  ...extraStyles,
-  ["--mm-enter-delay" as const]: `${80 + index * 90}ms`,
-});
+const getDashboardRevealStyle = (index: number, extraStyles: CSSProperties = {}): CSSProperties =>
+  ({
+    ...extraStyles,
+    "--mm-enter-delay": `${80 + index * 90}ms`,
+  }) as CSSProperties;
 
-const SectionHeader = ({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) => (
-  <div className="flex items-center justify-between gap-3">
-    <h2 className={sectionTitleClass}>{title}</h2>
+const SectionHeader = ({
+  kicker,
+  title,
+  action,
+  onAction,
+  subtitle,
+}: {
+  kicker?: string;
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  subtitle?: string;
+}) => (
+  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+    <div className="min-w-0">
+      {kicker ? <p className={sectionEyebrowClass}>{kicker}</p> : null}
+      <h2 className={kicker ? `mt-1 ${sectionDisplayTitleClass}` : sectionTitleClass}>{title}</h2>
+      {subtitle ? <p className="mt-1 hidden max-w-md text-sm text-ink-5 sm:block">{subtitle}</p> : null}
+    </div>
     {action ? (
-      <button onClick={onAction} className="text-sm font-medium text-muted-foreground transition-transform duration-150 hover:scale-[1.02] hover:text-primary">
+      <button
+        type="button"
+        onClick={onAction}
+        className="inline-flex shrink-0 items-center gap-1 self-start text-sm font-medium text-[hsl(var(--accent-600))] transition-colors duration-base hover:text-[hsl(var(--accent-500))] sm:self-auto"
+      >
         {action}
+        <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
       </button>
     ) : null}
   </div>
@@ -258,6 +311,9 @@ const Index = () => {
     if (dayPeriod === "afternoon") return pickRandomImage(afternoonHeroImages);
     return pickRandomImage(eveningHeroImages);
   }, [dayPeriod]);
+  const heroReadTier = useMemo(() => getHeroReadTier(heroBackgroundImage), [heroBackgroundImage]);
+  const heroScrimStyle = useMemo(() => getHeroScrimStyle(heroReadTier, theme === "dark"), [heroReadTier, theme]);
+  const heroExtraVeilStyle = useMemo(() => getHeroExtraVeilStyle(heroReadTier, theme === "dark"), [heroReadTier, theme]);
   const heroBackgroundPosition = getHeroBackgroundPosition(dayPeriod);
 
   const displayName = useMemo(() => {
@@ -267,6 +323,7 @@ const Index = () => {
 
   const avatarInitial = displayName.charAt(0).toUpperCase() || "F";
   const [affirmation] = useState(() => getRandomAffirmation(dayPeriod));
+  const affirmationParts = useMemo(() => parseAffirmationBody(affirmation), [affirmation]);
   const resolvedWeekMoods = loggedWeekMoods.length > 0 ? loggedWeekMoods : dummyWeekMoods;
   const loopedContentCards = useMemo(
     () => contentCards.length > visibleContentCardCount
@@ -278,8 +335,8 @@ const Index = () => {
   const activeContentCardIndex = contentCards.length > 0 ? contentCarouselIndex % contentCards.length : 0;
   const contentCarouselPeekPx = viewportWidth < 1024 ? 36 : 0;
   const contentCarouselStyle = {
-    ["--content-card-gap" as const]: "1rem",
-    ["--content-card-width" as const]: getContentCardColumnWidth(visibleContentCardCount, contentCarouselPeekPx),
+    "--content-card-gap": "1rem",
+    "--content-card-width": getContentCardColumnWidth(visibleContentCardCount, contentCarouselPeekPx),
     gridAutoColumns: "var(--content-card-width)",
     transform: `translateX(calc(-${contentCarouselIndex} * (var(--content-card-width) + var(--content-card-gap)) + ${contentDragOffset}px))`,
   } as CSSProperties;
@@ -413,108 +470,139 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main
-        className="flex w-full max-w-none flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-8"
+        className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-5 sm:gap-10 sm:px-6 sm:pt-8 lg:px-8"
         style={{ paddingBottom: "calc(10rem + env(safe-area-inset-bottom))" }}
       >
-        {/* ── Hero ── */}
+        {/* Hero — photo-first; single warm scrim at bottom for legible ink type */}
         <section
-          className="mm-dashboard-stagger relative min-h-[220px] overflow-hidden rounded-3xl px-4 pb-6 pt-4 text-white shadow-overlay sm:min-h-[280px] sm:px-6"
-          style={getDashboardRevealStyle(0, {
-            backgroundImage: `linear-gradient(180deg, rgba(17,24,39,0.12) 0%, rgba(15,23,42,0.48) 100%), url('${heroBackgroundImage}')`,
-            backgroundSize: "cover",
-            backgroundPosition: heroBackgroundPosition,
-            backgroundRepeat: "no-repeat",
-          })}
+          className="mm-dashboard-stagger overflow-hidden rounded-[2rem] bg-card shadow-dashboard-soft"
+          style={getDashboardRevealStyle(0)}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/20" />
+          <div className="relative h-[min(52vw,320px)] min-h-[260px] sm:h-[380px]">
+            <img
+              src={heroBackgroundImage}
+              alt="Soft light over the landscape — a quiet moment for you"
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: heroBackgroundPosition }}
+            />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0" style={heroScrimStyle} aria-hidden />
+            {heroExtraVeilStyle ? <div style={heroExtraVeilStyle} aria-hidden /> : null}
 
-          <div className="relative z-10 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/chat")}
-                className="flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-full border border-white/40 bg-white/25 ring-2 ring-white/70 shadow-lg shadow-white/30 backdrop-blur-md transition-transform duration-150 hover:scale-105"
-                aria-label="Open AI companion"
-              >
-                <img src="/image5.png" alt="AI companion" className="h-full w-full rounded-full object-cover" />
-              </button>
-              <p className="breathing-hero max-w-[10rem] text-xs font-semibold leading-tight text-white/95 sm:text-sm">
-                Meet your 3D avatar companion
-              </p>
+            <div className="absolute left-5 right-5 top-5 flex items-center justify-between sm:left-8 sm:right-8">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--card))]/85 text-[hsl(var(--accent-600))] shadow-dashboard-soft backdrop-blur-md ring-1 ring-ink-3/30 dark:bg-[hsl(var(--card))]/50 dark:text-[hsl(var(--accent-300))] dark:ring-ink-3/20">
+                <Sun className="h-4 w-4" strokeWidth={1.6} />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--card))]/85 text-ink-7 shadow-dashboard-soft backdrop-blur-md ring-1 ring-ink-3/30 transition-colors hover:bg-[hsl(var(--card))] dark:bg-[hsl(var(--card))]/50 dark:text-ink-8 dark:hover:bg-[hsl(var(--card))]/65"
+                  aria-label="Toggle color theme"
+                >
+                  {theme === "dark" ? <Sun className="h-4 w-4" strokeWidth={1.6} /> : <Moon className="h-4 w-4" strokeWidth={1.6} />}
+                </button>
+                <button
+                  type="button"
+                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--card))]/85 text-ink-7 shadow-dashboard-soft backdrop-blur-md ring-1 ring-ink-3/30 transition-colors hover:bg-[hsl(var(--card))] dark:bg-[hsl(var(--card))]/50 dark:text-ink-8 dark:hover:bg-[hsl(var(--card))]/65"
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-4 w-4" strokeWidth={1.6} />
+                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent-400))] ring-2 ring-[hsl(var(--card))]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/profile")}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--accent-400))] text-[13px] font-semibold text-white shadow-md ring-1 ring-ink-3/20 transition-colors hover:bg-[hsl(var(--accent-500))]"
+                  aria-label="Open profile"
+                >
+                  {avatarInitial}
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/20 backdrop-blur-md text-white transition-transform duration-150 hover:scale-105"
-                aria-label="Toggle color theme"
+            <div className="absolute inset-x-0 bottom-0 px-5 pb-7 sm:px-8 sm:pb-10">
+              <p className={`${sectionEyebrowClass} text-ink-6`}>{greeting.replace(",", "").trim()}</p>
+              <h1
+                className={`mt-2 max-w-[22ch] break-words font-display text-[clamp(1.65rem,5.2vw,3rem)] font-light leading-[1.1] tracking-tight text-ink-8 ${heroGreetingHaloClass(heroReadTier, theme === "dark")}`}
               >
-                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
-              <button
-                type="button"
-                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/20 backdrop-blur-md transition-transform duration-150 hover:scale-105"
-                aria-label="Notifications"
-              >
-                <Bell className="h-5 w-5 text-white" />
-                <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-semibold text-white">
-                  3
+                Welcome back,{" "}
+                <em className="font-display font-normal italic text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">{displayName}</em>
+              </h1>
+              <div className="mt-4 inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-ink-3/35 bg-[hsl(var(--card))]/92 px-4 py-2 text-sm text-ink-7 shadow-sm backdrop-blur-sm dark:border-ink-3/25 dark:bg-[hsl(var(--card))]/80 dark:text-ink-8">
+                <span className="text-base" aria-hidden>
+                  🌱
                 </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/profile")}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-primary text-sm font-semibold text-primary-foreground shadow-xs transition-transform duration-150 hover:scale-105"
-                aria-label="Open profile"
-              >
-                {avatarInitial}
-              </button>
+                <span>6-day streak — gently growing</span>
+              </div>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate("/chat")}
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-[hsl(var(--accent-400))] px-5 text-[14.5px] font-semibold text-white shadow-md transition-colors hover:bg-[hsl(var(--accent-500))] dark:bg-[hsl(var(--accent-500))] dark:hover:bg-[hsl(var(--accent-400))]"
+                >
+                  When you&apos;re ready
+                  <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
+                </button>
+                <p className="max-w-sm text-[13px] leading-relaxed text-ink-6">
+                  No need to have an answer ready. Sit for a minute, or talk — we&apos;re here either way.
+                </p>
+              </div>
             </div>
           </div>
-
-          <div className="relative z-10 mt-10 flex h-full flex-col items-center justify-center text-center sm:mt-12">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/85">{greeting}</p>
-            <h1 className="mt-3 text-[2rem] font-bold leading-tight sm:text-[2.35rem]">
-              {displayName} <span className="inline-block origin-[70%_70%]">👋</span>
-            </h1>
-            <p className="mt-3 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur-sm">
-              🔥 6-day streak — keep it up!
-            </p>
-          </div>
         </section>
 
-        {/* ── Daily Affirmation ── */}
-        <section
-          className="mm-dashboard-stagger rounded-2xl border border-primary/20 border-l-4 border-l-primary bg-primary/8 px-5 py-4 shadow-card"
-          style={getDashboardRevealStyle(1)}
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-            Daily affirmation 💫
-          </p>
-          <p className="mt-2 max-w-3xl whitespace-pre-line text-[15px] leading-7 text-foreground">
-            {affirmation}
-          </p>
-        </section>
+        {/* Daily affirmation — same left band as Check in: SectionHeader + full-width card (no centered max-w column) */}
+        <div className="mm-dashboard-stagger space-y-5" style={getDashboardRevealStyle(1)}>
+          <SectionHeader
+            kicker="Daily affirmation"
+            title={affirmationParts.attribution || "A verse for today"}
+          />
+          <section className="rounded-[1.75rem] border border-ink-3/50 bg-[hsl(var(--card))] px-5 py-6 shadow-dashboard-soft transition-shadow duration-base hover:shadow-dashboard-warm sm:px-6 dark:border-ink-3/30">
+            {affirmationParts.scripturalLines.length > 0 ? (
+              <p
+                className="whitespace-pre-line font-display text-xl font-light leading-[1.65] tracking-tight text-ink-8 sm:text-2xl"
+                lang="sa"
+              >
+                {affirmationParts.scripturalLines.join("\n")}
+              </p>
+            ) : null}
+            {affirmationParts.translation ? (
+              <p
+                className={`text-sm leading-relaxed text-ink-6 ${affirmationParts.scripturalLines.length > 0 ? "mt-5 border-t border-ink-3/25 pt-5 dark:border-ink-3/20" : ""}`}
+              >
+                {affirmationParts.translation}
+              </p>
+            ) : null}
+          </section>
+        </div>
 
-        {/* ── Mood Check-in ── */}
-        <div className="mm-dashboard-stagger" style={getDashboardRevealStyle(2)}>
+        {/* Mood check-in — subtle separator from hero card */}
+        <div className="mm-dashboard-stagger space-y-5 border-t border-ink-3/30 pt-8 sm:pt-10" style={getDashboardRevealStyle(2)}>
+          <SectionHeader
+            kicker="Check in"
+            title="How are you, really?"
+            subtitle="A small pause makes a big difference."
+          />
           <section
-            className={`${cardClass} overflow-hidden transition-all duration-700 ${isMoodCardVisible ? "max-h-[260px] translate-y-0 opacity-100" : "pointer-events-none max-h-0 -translate-y-2 p-0 opacity-0 shadow-none"}`}
+            className={`overflow-hidden rounded-[1.75rem] border border-ink-3/50 bg-[hsl(var(--card))] p-3 shadow-dashboard-soft transition-all duration-long sm:p-4 ${isMoodCardVisible ? "max-h-[280px] translate-y-0 opacity-100" : "pointer-events-none max-h-0 -translate-y-2 border-transparent p-0 opacity-0"}`}
             aria-hidden={!isMoodCardVisible}
           >
-            <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              How are you feeling today?
-            </p>
+            <div className="flex items-center justify-between px-1 sm:hidden">
+              <p className="text-[12.5px] text-ink-5">One tap. No pressure.</p>
+            </div>
 
-            <div className="mt-4 min-h-[110px]">
+            <div className="mt-3 min-h-[88px] sm:mt-0">
               {selectedMood ? (
-                <div className={`flex h-full flex-col items-center justify-center rounded-xl bg-warning/10 px-4 py-6 text-center transition-all duration-700 ${isMoodToastVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}>
-                  <div className="text-4xl">{selectedMood.emoji}</div>
-                  <p className="mt-3 text-base font-semibold text-foreground">Thanks for checking in! 💛</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    We've saved that you're feeling {selectedMood.label.toLowerCase()} today.
-                  </p>
+                <div className={`flex items-center gap-4 px-1 transition-all duration-long ${isMoodToastVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}>
+                  <div className="text-[38px] leading-none">{selectedMood.emoji}</div>
+                  <div>
+                    <p className="font-display text-[18px] tracking-tight text-ink-8">
+                      Noted. Thank you for being honest.
+                    </p>
+                    <p className="mt-1 text-[13.5px] text-ink-6">
+                      Saved as <em>{selectedMood.label.toLowerCase()}</em> for today&apos;s rhythm.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-5 gap-2 sm:gap-3">
@@ -523,12 +611,14 @@ const Index = () => {
                       key={mood.label}
                       type="button"
                       onClick={() => setSelectedMood(mood)}
-                      className={`flex flex-col items-center rounded-xl px-2 py-3 text-center transition-transform duration-150 hover:scale-[1.04] ${mood.bg}`}
+                      className="group flex flex-col items-center gap-2 rounded-2xl border border-transparent px-2 py-4 text-center transition-colors duration-base hover:bg-[hsl(var(--ink-1))]"
                     >
-                      <span className={`rounded-full ring-2 ring-transparent transition-all duration-150 ${mood.ring} px-1 py-1 text-[2rem]`}>
+                      <span className="text-[28px] leading-none transition-opacity duration-base group-hover:opacity-90 sm:text-[30px]">
                         {mood.emoji}
                       </span>
-                      <span className="mt-2 text-[11px] font-medium text-muted-foreground sm:text-xs">{mood.label}</span>
+                      <span className="text-[11px] font-medium text-ink-5 sm:text-[11.5px]">
+                        {mood.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -537,10 +627,14 @@ const Index = () => {
           </section>
         </div>
 
-        {/* ── Quick Actions ── */}
-        <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(3)}>
-          <SectionHeader title="Quick Actions" action="More >" onAction={() => navigate("/healthy-habits")} />
-          <div className={`${horizontalScrollClass} md:grid md:grid-cols-4 md:overflow-visible md:pb-0`}>
+        {/* Small rituals */}
+        <section className="mm-dashboard-stagger space-y-5 border-t border-ink-3/30 pt-8 sm:pt-10" style={getDashboardRevealStyle(3)}>
+          <SectionHeader
+            title="A small ritual for now"
+            action="View all"
+            onAction={() => navigate("/healthy-habits")}
+          />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {quickActions.map((action) => {
               const Icon = action.icon;
               const progressPct = Math.round((action.weeklyDone / 7) * 100);
@@ -549,117 +643,132 @@ const Index = () => {
                   key={action.title}
                   type="button"
                   onClick={() => navigate(action.route)}
-                  className={`group relative min-w-[100px] flex-1 overflow-hidden rounded-3xl border border-border/50 p-4 text-left shadow-card transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-card-hover active:scale-[0.98] md:min-w-0 dark:border-white/10 ${action.bg}`}
+                  className="group relative overflow-hidden rounded-2xl border border-ink-3/40 bg-[hsl(var(--card))] p-5 text-left shadow-dashboard-soft transition-shadow duration-base hover:shadow-dashboard-warm"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-black/5 opacity-70 transition-opacity duration-200 group-hover:opacity-100 dark:from-white/10" />
-                  <span className="absolute -right-5 -top-5 h-20 w-20 rounded-full bg-white/20 blur-2xl transition-transform duration-300 group-hover:scale-110" />
-                  {action.weeklyDone >= 7 && (
-                    <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-success shadow-xs" />
-                  )}
-                  <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-xs ring-2 ring-white/70 backdrop-blur-sm transition-transform duration-200 group-hover:scale-105 dark:bg-white/10 dark:ring-white/10 ${action.iconColor}`}>
-                    <Icon className="h-5 w-5 drop-shadow-sm" />
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-600))]">
+                      <Icon className="h-5 w-5" strokeWidth={1.6} />
+                    </span>
+                    <span className="text-[10px] font-medium uppercase tracking-widest text-ink-5">{action.kind}</span>
                   </div>
-                  <p className="relative mt-4 text-sm font-semibold text-foreground">{action.title}</p>
-                  <p className="relative mt-0.5 text-xs font-medium text-muted-foreground">{action.duration}</p>
-                  <div className="relative mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-                    <div className="h-full rounded-full bg-current opacity-60 transition-all duration-300 group-hover:opacity-80" style={{ width: `${progressPct}%` }} />
+                  <div className="mt-6">
+                    <h3 className="font-display text-xl font-normal text-ink-8">{action.title}</h3>
+                    <p className="mt-1 text-sm text-ink-5">{action.duration}</p>
                   </div>
-                  <p className="relative mt-1 text-[10px] font-medium text-muted-foreground">{action.weeklyDone}/7 this week</p>
+                  <div className="mt-5">
+                    <div className="h-1 w-full overflow-hidden rounded-full bg-[hsl(var(--ink-2))]">
+                      <div
+                        className="h-full rounded-full bg-[hsl(var(--accent-400))] transition-all duration-long"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-[11px] text-ink-5">
+                      {action.weeklyDone} of 7 this week
+                    </p>
+                  </div>
                 </button>
               );
             })}
           </div>
         </section>
 
-        {/* ── Past Moods ── */}
-        <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(4)}>
-          <h2 className={sectionTitleClass}>Your past moods</h2>
-          <div className={horizontalScrollClass}>
-            {pastMoodTags.map((tag) => (
+        {/* Recent reflections */}
+        <section className="mm-dashboard-stagger space-y-4 border-t border-ink-3/30 pt-8 sm:pt-10" style={getDashboardRevealStyle(4)}>
+          <h2 className={sectionDisplayTitleClass}>Recent reflections</h2>
+          <div className="flex flex-wrap gap-2">
+            {pastMoodReflections.map((row) => (
               <button
-                key={tag}
+                key={row.text}
                 type="button"
-                className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm text-foreground transition-transform duration-150 hover:scale-[1.02]"
+                className="inline-flex items-center gap-2 rounded-full border border-ink-3/60 bg-[hsl(var(--card))] px-4 py-2.5 text-sm text-ink-7 shadow-dashboard-soft transition-colors duration-base hover:border-[hsl(var(--accent-300))] hover:bg-[hsl(var(--accent-50))]"
               >
-                <span>{tag}</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <span>{row.emoji}</span>
+                <span>{row.text}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-ink-5" strokeWidth={1.8} />
               </button>
             ))}
           </div>
         </section>
 
-        {/* ── Daily Rhythm Banner ── */}
+        {/* Rhythm intro */}
         <section
-          className="mm-dashboard-stagger rounded-3xl bg-gradient-to-br from-calm-blue via-warm-purple/30 to-serene-green/20 p-5 shadow-card"
+          className="mm-dashboard-stagger rounded-[1.75rem] border border-ink-3/50 bg-[hsl(var(--ink-1))] p-6 pt-7 shadow-dashboard-soft sm:p-8 sm:pt-8"
           style={getDashboardRevealStyle(5)}
         >
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-foreground">A gentle glance at your daily rhythm</h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                Keep tabs on the tiny wins that help your mind feel grounded and cared for.
+              <p className={sectionEyebrowClass}>Your rhythm</p>
+              <h2 className="mt-2 font-display text-[clamp(1.25rem,3vw,1.75rem)] font-light leading-snug text-ink-8">
+                A gentle glance at the last seven days.
+              </h2>
+              <p className="mt-2 max-w-prose text-[14px] leading-relaxed text-ink-6">
+                Not streaks, not guilt — just small signals that your mind is getting what it needs.
               </p>
-            </div>
-            <div className="hidden h-20 w-20 shrink-0 items-center justify-center rounded-full bg-background/60 text-3xl md:flex">
-              📈
             </div>
           </div>
         </section>
 
-        {/* ── Search ── */}
+        {/* Search */}
         <section className="mm-dashboard-stagger" style={getDashboardRevealStyle(6)}>
-          <label className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 shadow-xs transition-shadow focus-within:shadow-card focus-within:ring-2 focus-within:ring-ring">
-            <Search className="h-5 w-5 text-muted-foreground" />
+          <label className="flex items-center gap-3 rounded-full border border-ink-3/50 bg-[hsl(var(--card))] px-5 py-4 shadow-dashboard-soft transition-shadow focus-within:shadow-dashboard-warm focus-within:ring-2 focus-within:ring-[hsl(var(--accent-300))]">
+            <Search className="h-4 w-4 text-ink-5" strokeWidth={1.6} />
             <input
               type="text"
-              placeholder="Search content, topics, exercises..."
-              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              placeholder="Search practices, articles, sounds…"
+              className="w-full bg-transparent text-sm text-ink-8 outline-none placeholder:text-ink-5"
             />
           </label>
         </section>
 
-        {/* ── Habits CTA ── */}
+        {/* Habits CTA */}
         <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(7)}>
-          <SectionHeader title="Habits" action="See all >" />
+          <SectionHeader title="Habits" action="See all" onAction={() => navigate("/healthy-habits")} />
           <button
             type="button"
             onClick={() => navigate("/healthy-habits")}
-            className="w-full rounded-3xl bg-gradient-to-r from-soft-pink/80 via-warning/50 to-warning/30 p-5 text-left text-foreground shadow-card-hover transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+            className="group block w-full overflow-hidden rounded-[24px] bg-[hsl(var(--accent-50))] p-7 text-left transition-colors duration-base hover:bg-[hsl(var(--accent-100))]"
           >
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div className="max-w-lg">
-                <h2 className="text-2xl font-bold">Build Healthy Habits!</h2>
-                <p className="mt-2 text-sm leading-6 text-foreground/80">
-                  A new way to nurture your mind, one step at a time.
+                <p className="text-[13px] text-[hsl(var(--accent-700))]">
+                  a few small rituals
                 </p>
-                <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background shadow-card transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]">
-                  Get Started
-                  <ArrowRight className="h-4 w-4" />
+                <h2 className="mt-3 font-display text-[clamp(24px,3vw,32px)] font-normal leading-[1.25] text-ink-8">
+                  Little habits that hold you on hard days.
+                </h2>
+                <p className="mt-3 max-w-md text-[15px] leading-[1.7] text-ink-6">
+                  Under five minutes each. Designed to compound quietly — not
+                  to be tracked, ticked, or turned into a streak.
+                </p>
+                <span className="mt-5 inline-flex items-center gap-2 text-[14.5px] font-medium text-[hsl(var(--accent-700))]">
+                  See the practices
+                  <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
                 </span>
               </div>
               <img
                 src="/image7.png"
-                alt="Healthy habits illustration"
-                className="h-28 w-full max-w-[160px] shrink-0 rounded-2xl object-cover shadow-card"
+                alt=""
+                aria-hidden
+                className="hidden h-32 w-full max-w-[180px] shrink-0 rounded-2xl object-cover opacity-95 md:block"
               />
             </div>
           </button>
         </section>
 
-        {/* ── Latest Content Carousel ── */}
+        {/* Slow reads & soft sounds */}
         <section
-          className="mm-dashboard-stagger space-y-4 rounded-3xl border border-border bg-card/90 p-4 shadow-card sm:p-5"
+          className="mm-dashboard-stagger space-y-5 rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--card))] p-5 shadow-dashboard-soft sm:p-6"
           style={getDashboardRevealStyle(8)}
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm font-medium text-warning">What's fresh?</p>
-              <h2 className="mt-1 text-[18px] font-semibold text-foreground">Latest content for you</h2>
+              <p className={`${sectionEyebrowClass} text-[hsl(var(--warmth-500))]`}>What&apos;s fresh</p>
+              <h2 className="mt-1 font-display text-2xl font-light text-ink-8 sm:text-3xl">Slow reads &amp; soft sounds</h2>
             </div>
 
             <div className="flex items-center justify-between gap-3 sm:justify-end">
-              <div className="text-sm text-muted-foreground">
-                {activeContentCardIndex + 1}/{contentCards.length}
+              <div className="text-sm text-ink-5">
+                {activeContentCardIndex + 1} / {contentCards.length}
               </div>
               {isContentCarouselInteractive && (
                 <div className="flex gap-2">
@@ -667,17 +776,17 @@ const Index = () => {
                     type="button"
                     onClick={handlePreviousContentCards}
                     aria-label="Show previous content cards"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-ink-8 text-[hsl(var(--ink-0))] shadow-dashboard-soft transition-colors hover:bg-[hsl(var(--accent-600))]"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-4 w-4" strokeWidth={1.8} />
                   </button>
                   <button
                     type="button"
                     onClick={handleNextContentCards}
                     aria-label="Show next content cards"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-ink-8 text-[hsl(var(--ink-0))] shadow-dashboard-soft transition-colors hover:bg-[hsl(var(--accent-600))]"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
                   </button>
                 </div>
               )}
@@ -703,11 +812,11 @@ const Index = () => {
                   tabIndex={card.href ? 0 : undefined}
                   onClick={card.href ? () => { if (!suppressCardClick.current) navigate(card.href!); } : undefined}
                   onKeyDown={card.href ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(card.href!); } } : undefined}
-                  className={`group relative overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all duration-200 ${card.href ? "cursor-pointer hover:-translate-y-1.5 hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" : ""}`}
+                  className={`group relative overflow-hidden rounded-2xl border border-ink-3/50 bg-[hsl(var(--card))] shadow-dashboard-soft transition-shadow duration-base ${card.href ? "cursor-pointer hover:shadow-dashboard-warm focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent-300))] focus-visible:ring-offset-2" : ""}`}
                 >
                   <div className="relative h-40 w-full overflow-hidden">
-                    <img src={card.image} alt={card.title} className={`h-full w-full object-cover transition-transform duration-300 ${card.href ? "group-hover:scale-[1.02]" : ""}`} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 via-transparent to-transparent" />
+                    <img src={card.image} alt={card.title} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink-9/35 via-transparent to-transparent" />
                     <button
                       type="button"
                       onClick={(e) => e.stopPropagation()}
@@ -717,19 +826,19 @@ const Index = () => {
                     >
                       <Bookmark className="h-4 w-4" />
                     </button>
-                    <div className="absolute left-3 top-3 z-10 rounded-full bg-card/90 px-3 py-1 text-xs font-semibold text-foreground shadow-xs backdrop-blur-sm">
+                    <div className="absolute left-3 top-3 z-10 rounded-full bg-[hsl(var(--card))]/90 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-ink-7 shadow-dashboard-soft backdrop-blur-sm">
                       {card.type}
                     </div>
                   </div>
 
-                  <div className="space-y-2 p-4">
-                    <h3 className={`text-sm font-semibold leading-6 transition-colors duration-150 ${card.href ? "text-foreground group-hover:text-primary" : "text-foreground"}`}>
+                  <div className="space-y-3 p-5">
+                    <h3 className="text-balance font-display text-lg font-normal leading-snug text-ink-8 transition-colors duration-base group-hover:text-[hsl(var(--accent-600))]">
                       {card.title}
                     </h3>
                     <div className="flex items-center justify-between gap-3 text-sm">
-                      <p className="text-muted-foreground">{getContentCardActionLabel(card.type)}</p>
-                      <span className="inline-flex items-center gap-1 font-semibold text-primary">
-                        Open <ArrowRight className="h-4 w-4" />
+                      <p className="text-ink-5">{getContentDurationLabel(card.type)}</p>
+                      <span className="inline-flex items-center gap-1 font-medium text-[hsl(var(--accent-600))]">
+                        Open <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                       </span>
                     </div>
                   </div>
@@ -761,136 +870,146 @@ const Index = () => {
           )}
         </section>
 
-        {/* ── Wellness Toolkit ── */}
-        <section className="mm-dashboard-stagger space-y-4" style={getDashboardRevealStyle(9)}>
-          <SectionHeader title="Your Wellness Toolkit" />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Wellness toolkit */}
+        <section className="mm-dashboard-stagger space-y-5" style={getDashboardRevealStyle(9)}>
+          <div>
+            <h2 className={sectionDisplayTitleClass}>Your wellness toolkit</h2>
+            <p className="mt-1 text-sm text-ink-5">Gentle tools, ready when you are.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {featureCards.map((card, index) => (
               <article
                 key={card.title}
-                className={`mm-dashboard-stagger flex flex-col rounded-2xl ${card.bg} p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover`}
+                className={`mm-dashboard-stagger flex flex-col overflow-hidden rounded-3xl ${card.bg} p-6 shadow-dashboard-soft transition-shadow duration-base sm:p-8 hover:shadow-dashboard-warm`}
                 style={getDashboardRevealStyle(10 + index)}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${card.categoryClassName}`}>
-                    {card.category}
-                  </span>
-                  <img src={card.imageSrc} alt={card.title} className="h-24 w-24 shrink-0 rounded-xl object-cover" />
+                <div className="flex items-start justify-between gap-6">
+                  <div className="min-w-0 max-w-[58%] flex-1">
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.18em] ${card.categoryClassName}`}>
+                      {card.category}
+                    </span>
+                    <h3 className="mt-3 font-display text-2xl font-normal text-ink-8">{card.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-6">{card.description}</p>
+                    <button
+                      type="button"
+                      className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-base sm:w-auto ${card.buttonClassName}`}
+                      onClick={() => navigate(card.route)}
+                    >
+                      {card.buttonLabel} <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    </button>
+                  </div>
+                  <img src={card.imageSrc} alt="" className="h-28 w-28 shrink-0 rounded-2xl object-cover sm:h-32 sm:w-32" />
                 </div>
-                <h3 className="mt-3 text-base font-semibold text-foreground">{card.title}</h3>
-                <p className="mt-1 text-sm leading-5 text-muted-foreground">{card.description}</p>
-                <button
-                  className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] ${card.buttonClassName}`}
-                  onClick={() => navigate(card.route)}
-                >
-                  {card.buttonLabel} <ArrowRight className="h-4 w-4" />
-                </button>
               </article>
             ))}
           </div>
         </section>
 
-        {/* ── Week Mood Tracker ── */}
+        {/* Week rhythm + quote */}
         <section
-          className="mm-dashboard-stagger rounded-2xl bg-card p-4 shadow-card"
+          className="mm-dashboard-stagger rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft sm:p-8"
           style={getDashboardRevealStyle(15)}
         >
-          <div className="flex items-center justify-between">
-            <h2 className={sectionTitleClass}>This week's mood</h2>
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className={sectionEyebrowClass}>This week</p>
+              <h2 className="mt-1 font-display text-2xl font-light text-ink-8 sm:text-[1.75rem]">A gentle glance at your rhythm</h2>
+            </div>
+            <span className="w-fit rounded-full bg-[hsl(var(--accent-100))] px-3 py-1 text-xs font-medium text-[hsl(var(--accent-700))]">
               {moodCompletionPercent}% logged
             </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-7 gap-2">
+          <div className="mt-8 grid grid-cols-7 gap-2 sm:gap-3">
             {weekMoodData.map((day, index) => (
-              <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-1.5">
-                <span className={`text-[11px] font-medium ${day.isToday ? "text-primary" : "text-muted-foreground"}`}>
+              <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-2 sm:gap-3">
+                <span className={`text-xs font-medium ${day.isToday ? "text-[hsl(var(--accent-600))]" : "text-ink-5"}`}>
                   {day.label}
                 </span>
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full text-lg ${day.isToday ? "border-2 border-primary/50 bg-primary/10 text-primary" : day.mood ? "bg-card text-foreground shadow-xs" : "border border-dashed border-border text-muted-foreground"}`}
+                  className={`flex h-11 w-11 items-center justify-center rounded-full text-lg sm:h-12 sm:w-12 ${day.isToday ? "border-2 border-[hsl(var(--accent-300))] bg-[hsl(var(--accent-50))] text-[hsl(var(--accent-700))]" : day.mood ? "bg-[hsl(var(--ink-2))] text-ink-8 shadow-dashboard-soft" : "border border-dashed border-ink-4 text-ink-5"}`}
                 >
-                  {day.mood ?? "·"}
+                  {day.mood ?? <span className="h-1 w-1 rounded-full bg-ink-4" />}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-3">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-gradient-to-r from-primary/70 to-primary" style={{ width: `${moodCompletionPercent}%` }} />
+          <div className="mt-6">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[hsl(var(--ink-2))]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[hsl(var(--accent-400))] to-[hsl(var(--warmth-400))]"
+                style={{ width: `${moodCompletionPercent}%` }}
+              />
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">{loggedMoodCount} of {weekMoodData.length} days logged</p>
+            <p className="mt-2 text-xs text-ink-5">
+              {loggedMoodCount} of {weekMoodData.length} days logged
+            </p>
           </div>
-        </section>
 
-        {/* ── Daily Quote ── */}
-        <section
-          className="mm-dashboard-stagger rounded-2xl bg-card p-4 shadow-card"
-          style={getDashboardRevealStyle(16)}
-        >
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Daily Insight</p>
-          <div className="mt-2 inline-flex flex-col items-start">
-            <p className="text-[15px] font-medium italic leading-relaxed text-foreground">
+          <blockquote className="mt-8 border-l-2 border-[hsl(var(--warmth-400))] pl-5">
+            <p className="text-balance font-display text-lg font-light italic leading-relaxed text-ink-8">
               &ldquo;{dailyQuote.text}&rdquo;
             </p>
-            <p className="mt-2 self-end text-sm font-semibold text-muted-foreground">— {dailyQuote.writer}</p>
-          </div>
+            <footer className="mt-2 text-sm text-ink-5">— {dailyQuote.writer}</footer>
+          </blockquote>
         </section>
       </main>
 
-      {/* ── Floating Chat Bubble ── */}
+      {/* ── Floating Chat Pill ── */}
       <div
-        className={`fixed right-4 z-30 flex items-center gap-2.5 transition-all duration-300 sm:right-6 ${showFloatingChatBubble ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"}`}
+        className={`fixed right-5 z-30 flex items-center gap-2 transition-all duration-base sm:right-6 ${showFloatingChatBubble ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"}`}
         style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
       >
-        <p className="breathing-hero rounded-2xl border border-border bg-card/95 px-4 py-2 text-xs font-semibold text-foreground shadow-card backdrop-blur-md">
-          {greeting} Chat with me 👋
-        </p>
         <button
           type="button"
           onClick={() => navigate("/chat")}
-          className="mm-fab-glow relative h-14 w-14 overflow-hidden rounded-full shadow-overlay ring-2 ring-primary/40 transition-all duration-200 hover:scale-110 active:scale-95"
-          aria-label="Open AI companion"
+          className="group inline-flex h-11 items-center gap-2 rounded-full bg-[hsl(var(--accent-500))] pl-3 pr-5 text-[13.5px] font-medium text-primary-foreground shadow-e1 transition-colors hover:bg-[hsl(var(--accent-600))]"
+          aria-label="Talk to Mitra"
         >
-          <img src="/image5.png" alt="AI companion" className="h-full w-full object-cover" />
+          <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[hsl(var(--accent-600))]">
+            <img
+              src="/image5.png"
+              alt=""
+              aria-hidden
+              className="h-full w-full object-cover opacity-95"
+            />
+          </span>
+          <span>Chat with MindMitra</span>
+          {/* <span>Talk it through</span> */}
         </button>
       </div>
 
-      {/* ── Bottom Navigation ── */}
+      {/* Bottom navigation — horizontal chips (clearer than stacked icon/label) */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-border/50 bg-card/80 px-6 pt-3 shadow-[0_-4px_16px_var(--shadow)] backdrop-blur-xl"
-        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-4"
+        style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
-        <div className="mx-auto flex max-w-md items-center justify-around">
-          <button className="group flex flex-col items-center gap-1 text-primary transition-transform duration-150 hover:scale-105">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 transition-colors duration-200">
-              <Home className="h-5 w-5" />
-            </div>
-            <span className="text-[11px] font-semibold">Home</span>
+        <div className="pointer-events-auto flex max-w-lg items-center gap-1 rounded-full border border-ink-3/60 bg-[hsl(var(--card))]/95 p-1.5 shadow-dashboard-warm backdrop-blur-xl sm:gap-1.5 sm:p-2">
+          <button
+            type="button"
+            className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-full bg-[hsl(var(--accent-500))] px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-[hsl(var(--accent-600))] sm:px-5"
+          >
+            <Home className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            <span>Home</span>
           </button>
 
           <button
             type="button"
             onClick={() => navigate("/psychological-content")}
-            className="group flex flex-col items-center gap-1 text-muted-foreground transition-all duration-150 hover:scale-105 hover:text-foreground"
+            className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-ink-6 transition-colors hover:bg-[hsl(var(--ink-2))] hover:text-ink-8 sm:px-5"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-accent">
-              <Compass className="h-5 w-5" />
-            </div>
-            <span className="text-[11px] font-medium">Discover</span>
+            <Compass className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            <span>Discover</span>
           </button>
 
           <button
             type="button"
             onClick={() => navigate("/profile")}
-            className="group flex flex-col items-center gap-1 text-muted-foreground transition-all duration-150 hover:scale-105 hover:text-foreground"
+            className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-ink-6 transition-colors hover:bg-[hsl(var(--ink-2))] hover:text-ink-8 sm:px-5"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-accent">
-              <User className="h-5 w-5" />
-            </div>
-            <span className="text-[11px] font-medium">Profile</span>
+            <User className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            <span>Profile</span>
           </button>
         </div>
       </nav>

@@ -177,3 +177,5 @@ chatbotAgent/test_rag_pipeline.py
 # *_test.py
 chatbotAgent/evaluations/history/runs.jsonl
 chatbotAgent/rag_evaluation_report.json
+chatbotAgent/memory_benchmark_report.json
+chatbotAgent/memory_benchmark_report.isolated.json

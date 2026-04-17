@@ -121,14 +121,14 @@ export default function ToolShell({
                 top: `${p.y}%`,
               }}
               animate={{
-                y: [0, -100, 50, 0],
-                x: [0, 50, -30, 0],
-                opacity: [p.opacity, p.opacity * 2, p.opacity],
+                y: [0, -36, 18, 0],
+                x: [0, 18, -12, 0],
+                opacity: [p.opacity, p.opacity * 1.25, p.opacity],
               }}
               transition={{
-                duration: p.duration,
+                duration: p.duration * 2.4,
                 repeat: Infinity,
-                ease: "linear",
+                ease: "easeInOut",
                 delay: p.delay,
               }}
             />
@@ -182,10 +182,10 @@ export default function ToolShell({
             <AnimatePresence>
               {whyOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 8, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 8 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ type: "spring", stiffness: 48, damping: 38, mass: 1.1 }}
                   className={isWarmTone ? "mx-auto w-[90%] bg-white/92 backdrop-blur-2xl border border-border rounded-2xl p-4 shadow-[0_24px_80px_-40px_rgba(62,84,60,0.28)]" : "mx-auto w-[90%] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl"}
                 >
                   <div className="flex items-start gap-3">
@@ -193,7 +193,7 @@ export default function ToolShell({
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className={isWarmTone ? "text-xs font-semibold text-foreground uppercase tracking-wider mb-1" : "text-xs font-semibold text-white/90 uppercase tracking-wider mb-1"}>Clinical Basis</h3>
+                      <h3 className={isWarmTone ? "text-[13px] font-medium text-ink-7 mb-1" : "text-[13px] font-medium text-white/90 mb-1"}>Why this helps</h3>
                       <p className={isWarmTone ? "text-base text-foreground/80 leading-7 font-normal max-w-prose" : "text-sm text-white/70 leading-relaxed font-light"}>
                         {clinicalBasis}
                       </p>
@@ -212,37 +212,27 @@ export default function ToolShell({
           <motion.div
             key="completion"
             className="relative z-10 w-full max-w-md mx-auto px-6 h-screen flex flex-col items-center justify-center pb-20 pt-16"
-            initial={{ scale: 0.95, opacity: 0, filter: "blur(10px)" }}
-            animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ type: "spring", stiffness: 36, damping: 38, mass: 1.25 }}
           >
-            {/* Glowing orb background for completion */}
-            <motion.div
-              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full blur-[80px] opacity-20 pointer-events-none ${theme.bg}`}
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.15, 0.25, 0.15]
-              }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            <div
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full blur-[80px] opacity-[0.14] pointer-events-none ${theme.bg}`}
+              aria-hidden
             />
 
-            <div className={`w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(255,255,255,0.05)] backdrop-blur-md relative overflow-hidden`}>
-              <motion.div
-                className={`absolute inset-0 opacity-20 ${theme.bg}`}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-              />
+            <div className={`w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-8 backdrop-blur-md relative`}>
               <Star className={`w-10 h-10 ${theme.accent} drop-shadow-lg relative z-10`} fill="currentColor" />
             </div>
 
-            <h2 className="text-3xl font-medium mb-3 text-white tracking-tight drop-shadow-md">Session Complete</h2>
+            <h2 className="font-display text-2xl sm:text-3xl font-normal mb-3 text-white tracking-tight drop-shadow-md text-center">You showed up for yourself</h2>
             <div className="flex flex-col items-center justify-center bg-black/20 rounded-2xl px-8 py-5 border border-white/5 mb-10 shadow-inner backdrop-blur-sm">
-              <p className="text-white/40 text-xs uppercase tracking-widest font-semibold mb-1">Reward</p>
-              <p className={`text-4xl font-bold ${theme.accent} drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]`}>+{xp} XP</p>
+              <p className="text-white/45 text-[12px] font-medium mb-1">A small acknowledgment</p>
+              <p className={`text-3xl font-medium ${theme.accent} drop-shadow-[0_0_15px_rgba(255,255,255,0.08)]`}>+{xp} gentle points</p>
             </div>
 
-            <p className="text-white/50 text-sm font-light mb-10 text-center max-w-[250px] leading-relaxed">
-              Take a slow, deep breath. Notice the space you've created.
+            <p className="text-white/50 text-sm font-light mb-10 text-center max-w-[280px] leading-relaxed">
+              Take a slow breath. Nothing here is judging you — you can leave this screen whenever you like.
             </p>
 
             <div className="w-full space-y-3 relative z-10">
@@ -250,17 +240,17 @@ export default function ToolShell({
                 <Button
                   onClick={() => { setHasRecorded(false); onReset(); }}
                   variant="outline"
-                  className="w-full rounded-full border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 h-14 font-medium transition-all"
+                  className="w-full rounded-full border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 h-14 font-medium transition-colors duration-base"
                 >
                   <RotateCcw className="w-4 h-4 mr-2 opacity-70" />
-                  Practice Again
+                  Go through it again
                 </Button>
               )}
               <Button
                 onClick={() => navigate("/mindgym")}
-                className={`w-full rounded-full ${theme.bg} hover:brightness-110 text-black font-semibold h-14 shadow-lg lg:hover:scale-[1.02] transition-transform`}
+                className={`w-full rounded-full ${theme.bg} hover:brightness-110 text-black font-medium h-14 shadow-lg transition-colors duration-base`}
               >
-                Return to Library
+                Back to practices
               </Button>
             </div>
           </motion.div>
@@ -268,10 +258,10 @@ export default function ToolShell({
           <motion.div
             key="content"
             className={contentClasses}
-            initial={{ opacity: 0, filter: "blur(5px)", scale: 0.98 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-            exit={{ opacity: 0, filter: "blur(5px)", scale: 0.98 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            initial={{ opacity: 0, filter: "blur(4px)", y: 8 }}
+            animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+            exit={{ opacity: 0, filter: "blur(4px)", y: 6 }}
+            transition={{ type: "spring", stiffness: 40, damping: 38, mass: 1.2 }}
           >
             {children}
           </motion.div>

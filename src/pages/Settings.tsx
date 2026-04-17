@@ -30,11 +30,11 @@ const Settings = () => {
     if (authLoading) {
         return (
             <AppShell hideHeader>
-                <div className="min-h-screen flex items-center justify-center">
+                <div className="flex min-h-screen items-center justify-center px-6">
                     <motion.div
                         animate={{ opacity: [0.5, 1, 0.5] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
-                        className="text-primary text-base font-medium"
+                        className="text-center text-base font-normal text-ink-6"
                     >
                         Loading your settings…
                     </motion.div>
@@ -45,24 +45,25 @@ const Settings = () => {
 
     return (
         <AppShell>
-            <PageContainer width="content" className="py-6 pb-24 md:pb-8">
+            <PageContainer width="wide" className="max-w-6xl py-8 pb-28 md:pb-12">
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25 }}
                 >
                     <PageHeader
+                        kicker="Preferences"
                         title="Settings"
-                        description="Customize your MindMitra experience — Apne hisaab se set karein ⚙️"
-                        icon={<SettingsIconLucide className="h-5 w-5" />}
+                        description="Tune companion, privacy, reminders, and accessibility — everything stays on your device until you save."
+                        icon={<SettingsIconLucide className="h-5 w-5" strokeWidth={1.8} />}
                         actions={
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => navigate('/profile')}
-                                className="gap-2"
+                                className="gap-2 rounded-full border-ink-3/50 bg-[hsl(var(--card))] shadow-dashboard-soft hover:bg-[hsl(var(--ink-1))]"
                             >
-                                <User className="h-4 w-4" />
+                                <User className="h-4 w-4" strokeWidth={1.8} />
                                 <span className="hidden sm:inline">Profile</span>
                             </Button>
                         }
@@ -74,41 +75,41 @@ const Settings = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1, duration: 0.25 }}
                 >
-                    <Card className="bg-card border-border">
-                        <CardContent className="p-4 sm:p-6">
+                    <Card className="overflow-hidden rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--card))] shadow-dashboard-soft dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]">
+                        <CardContent className="p-4 sm:p-8">
                             <Tabs defaultValue="general" className="w-full">
-                                <TabsList className="mb-6 bg-background/60 rounded-xl p-1 flex-wrap h-auto gap-1">
+                                <TabsList className="mb-8 flex h-auto flex-wrap gap-1 rounded-2xl border border-ink-3/35 bg-[hsl(var(--ink-1))] p-1 dark:border-ink-3/25 dark:bg-[hsl(var(--ink-2))]/80">
                                     <TabsTrigger
                                         value="general"
-                                        className="rounded-lg gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-xs text-xs sm:text-sm"
+                                        className="gap-1.5 rounded-xl text-xs data-[state=active]:border data-[state=active]:border-ink-3/40 data-[state=active]:bg-[hsl(var(--card))] data-[state=active]:text-ink-8 data-[state=active]:shadow-dashboard-soft sm:text-sm"
                                     >
                                         <SettingsIconLucide className="h-3.5 w-3.5" />
                                         General
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="privacy"
-                                        className="rounded-lg gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-xs text-xs sm:text-sm"
+                                        className="gap-1.5 rounded-xl text-xs data-[state=active]:border data-[state=active]:border-ink-3/40 data-[state=active]:bg-[hsl(var(--card))] data-[state=active]:text-ink-8 data-[state=active]:shadow-dashboard-soft sm:text-sm"
                                     >
                                         <Shield className="h-3.5 w-3.5" />
                                         Privacy
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="notifications"
-                                        className="rounded-lg gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-xs text-xs sm:text-sm"
+                                        className="gap-1.5 rounded-xl text-xs data-[state=active]:border data-[state=active]:border-ink-3/40 data-[state=active]:bg-[hsl(var(--card))] data-[state=active]:text-ink-8 data-[state=active]:shadow-dashboard-soft sm:text-sm"
                                     >
                                         <Bell className="h-3.5 w-3.5" />
                                         Notifications
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="accessibility"
-                                        className="rounded-lg gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-xs text-xs sm:text-sm"
+                                        className="gap-1.5 rounded-xl text-xs data-[state=active]:border data-[state=active]:border-ink-3/40 data-[state=active]:bg-[hsl(var(--card))] data-[state=active]:text-ink-8 data-[state=active]:shadow-dashboard-soft sm:text-sm"
                                     >
                                         <Accessibility className="h-3.5 w-3.5" />
                                         Accessibility
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="account"
-                                        className="rounded-lg gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-xs text-xs sm:text-sm"
+                                        className="gap-1.5 rounded-xl text-xs data-[state=active]:border data-[state=active]:border-ink-3/40 data-[state=active]:bg-[hsl(var(--card))] data-[state=active]:text-ink-8 data-[state=active]:shadow-dashboard-soft sm:text-sm"
                                     >
                                         <UserCog className="h-3.5 w-3.5" />
                                         Account

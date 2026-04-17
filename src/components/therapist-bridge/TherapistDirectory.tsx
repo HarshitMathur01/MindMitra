@@ -73,7 +73,13 @@ const TherapistDirectory = ({ therapists, onBook, booking, userTopics }: Therapi
 
   return (
     <section id="find-therapist" className="mb-12">
-      <h2 className="text-2xl md:text-3xl font-bold mb-6">Therapist Directory</h2>
+      <header className="mb-8 space-y-1">
+        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Directory</p>
+        <h2 className="font-display text-2xl font-normal tracking-tight text-ink-8 md:text-3xl">Find your therapist</h2>
+        <p className="max-w-2xl text-sm leading-relaxed text-ink-5">
+          Filter by language, focus, and availability. Recommended matches align with themes you&apos;ve explored in MindMitra.
+        </p>
+      </header>
       <FilterBar filters={filters} options={options} onChange={setFilters} />
 
       {!filteredTherapists.length ? (

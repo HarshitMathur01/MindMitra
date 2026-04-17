@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/layout/Header";
+import { AppShell } from "@/components/app/AppShell";
+import { PageContainer } from "@/components/app/PageContainer";
+import { profileSectionCard } from "@/components/profile/profileSurface";
+import { cn } from "@/lib/utils";
 import HeroSection from "@/components/therapist-bridge/HeroSection";
 import EmotionalProfile from "@/components/therapist-bridge/EmotionalProfile";
 import ConsentForm from "@/components/therapist-bridge/ConsentForm";
@@ -109,22 +112,21 @@ const TherapistBridge = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <Header />
-      <main className="container mx-auto px-4 sm:px-6 py-8 max-w-5xl">
+    <AppShell>
+      <PageContainer width="wide" className="max-w-6xl py-8 pb-24 md:pb-12">
         <HeroSection
           onViewProfile={() => document.getElementById("emotional-profile")?.scrollIntoView({ behavior: "smooth" })}
           onFindTherapist={() => document.getElementById("find-therapist")?.scrollIntoView({ behavior: "smooth" })}
         />
 
         {loadingTherapists ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, index) => (
-              <Card key={index} className="p-6">
-                <Skeleton className="h-6 w-32 mb-4" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-2/3 mb-6" />
-                <Skeleton className="h-10 w-full" />
+              <Card key={index} className={cn(profileSectionCard, "p-6")}>
+                <Skeleton className="mb-4 h-6 w-32" />
+                <Skeleton className="mb-2 h-4 w-full" />
+                <Skeleton className="mb-6 h-4 w-2/3" />
+                <Skeleton className="h-10 w-full rounded-full" />
               </Card>
             ))}
           </div>
@@ -138,39 +140,56 @@ const TherapistBridge = () => {
         )}
 
         {loadingProfile ? (
-          <Card className="p-6 mb-12">
-            <Skeleton className="h-8 w-56 mb-4" />
-            <Skeleton className="h-72 w-full" />
+          <Card className={cn(profileSectionCard, "mb-12 p-6")}>
+            <Skeleton className="mb-4 h-8 w-56" />
+            <Skeleton className="h-72 w-full rounded-xl" />
           </Card>
         ) : (
           profile && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center bg-card p-4 rounded-xl shadow-card border border-border">
-                <div>
-                  <h3 className="font-semibold">Clinical Data Management</h3>
-                  <p className="text-sm text-muted-foreground">Keep your profile current by syncing offline data or export your clinical brief.</p>
+            <div className="space-y-6">
+              <div
+                className={cn(
+                  profileSectionCard,
+                  "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6",
+                )}
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Clinical data</p>
+                  <h3 className="font-display text-lg font-normal text-ink-8">Sync &amp; export</h3>
+                  <p className="max-w-xl text-sm leading-relaxed text-ink-5">
+                    Pull offline MindGym check-ins into this profile, or download a brief you can share with a clinician.
+                  </p>
                 </div>
-                <div className="flex gap-3">
-                  <Button variant="outline" size="sm" onClick={async () => {
-                    const msg = await triggerMindGymClinicalSync();
-                    toast(msg, { icon: <RefreshCw className="w-4 h-4" /> });
-                  }}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Sync Device Data
+                <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full border-ink-3/50"
+                    onClick={async () => {
+                      const msg = await triggerMindGymClinicalSync();
+                      toast(msg, { icon: <RefreshCw className="h-4 w-4" /> });
+                    }}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" strokeWidth={1.8} />
+                    Sync device
                   </Button>
-                  <Button variant="default" size="sm" onClick={() => {
-                    if (!profile) return;
-                    exportClinicalBriefToPDF({
-                      userId: user?.id || "demo-ID-1234",
-                      userName: user?.user_metadata?.full_name || "User",
-                      dateStr: new Date().toLocaleDateString(),
-                      consentMask: consentState,
-                      profileData: profile
-                    });
-                    toast.success("Clinical PDF downloaded successfully.");
-                  }}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Export PDF Brief
+                  <Button
+                    size="sm"
+                    className="rounded-full bg-[hsl(var(--accent-500))] text-white hover:bg-[hsl(var(--accent-600))]"
+                    onClick={() => {
+                      if (!profile) return;
+                      exportClinicalBriefToPDF({
+                        userId: user?.id || "demo-ID-1234",
+                        userName: user?.user_metadata?.full_name || "User",
+                        dateStr: new Date().toLocaleDateString(),
+                        consentMask: consentState,
+                        profileData: profile,
+                      });
+                      toast.success("Clinical PDF downloaded successfully.");
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" strokeWidth={1.8} />
+                    Export PDF
                   </Button>
                 </div>
               </div>
@@ -184,7 +203,7 @@ const TherapistBridge = () => {
 
         <ProcessTimeline />
         <DashboardPreview />
-      </main>
+      </PageContainer>
 
       <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto shadow-xl">
@@ -233,7 +252,7 @@ const TherapistBridge = () => {
           <Button onClick={() => setConsentModalOpen(false)}>Update Consent</Button>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppShell>
   );
 };
 

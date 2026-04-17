@@ -1,176 +1,113 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Users, MessageCircle, TrendingUp, Heart } from 'lucide-react';
-import { AnimatedCounter } from '@/components/ui/scroll-progress';
-import { useIntersectionObserver } from '@/hooks/useScrollAnimations';
+import { motion } from "framer-motion";
+import { SectionMarker } from "@/components/ui/section-marker";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { duration, ease } from "@/lib/motion";
 
-const statistics = [
+const stats = [
   {
-    icon: Users,
+    num: "01",
     value: 1250,
     suffix: "+",
-    label: "Students Helped",
-    description: "Indian youth finding their mental wellness path",
-    iconGradient: "from-primary to-accent",
-    cardBorder: "border-border/70",
-    cardAccent: "bg-crushed-silk/85",
+    label: "Students held",
+    detail: "young minds finding words for what they feel",
   },
   {
-    icon: MessageCircle,
+    num: "02",
     value: 5240,
     suffix: "+",
-    label: "Therapy Sessions",
-    description: "Meaningful conversations and breakthroughs",
-    iconGradient: "from-primary to-accent",
-    cardBorder: "border-border/70",
-    cardAccent: "bg-crushed-silk/85",
+    label: "Sessions completed",
+    detail: "honest conversations, no scripts, no judgement",
   },
   {
-    icon: TrendingUp,
+    num: "03",
     value: 89,
     suffix: "%",
-    label: "Improvement Rate",
-    description: "Users report better mental health",
-    iconGradient: "from-primary to-accent",
-    cardBorder: "border-border/70",
-    cardAccent: "bg-crushed-silk/85",
+    label: "Feel steadier",
+    detail: "report reduced distress within four sessions",
   },
   {
-    icon: Heart,
+    num: "04",
     value: 98,
     suffix: "%",
-    label: "Satisfaction Score",
-    description: "Trust and positive feedback from our community",
-    iconGradient: "from-primary to-accent",
-    cardBorder: "border-border/70",
-    cardAccent: "bg-crushed-silk/85",
-  }
+    label: "Would return",
+    detail: "trust the loop enough to come back again",
+  },
 ];
 
 const StatsSection = () => {
-  const [sectionRef, sectionInView] = useIntersectionObserver({
-    threshold: 0.3,
-    triggerOnce: true
-  });
-
   return (
-    <section ref={sectionRef} className="py-20 relative overflow-hidden bg-crushed-silk/35">
-      {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-r from-crushed-silk/60 via-crushed-silk/35 to-crushed-silk/60"></div>
-      <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-gradient-to-r from-primary/8 to-accent/8 rounded-full blur-3xl transform -translate-y-1/2"></div>
+    <section className="relative border-y border-ink-3 bg-ink-1 py-24 md:py-32">
+      <div className="mx-auto max-w-page px-gutter">
+        <div className="grid gap-10 md:grid-cols-12 md:gap-8">
+          <div className="md:col-span-5">
+            <SectionMarker num="03" label="The quiet proof" />
+            <h2 className="mt-6 font-display text-[clamp(32px,4vw,56px)] font-medium leading-[1.04] tracking-tighter-2 text-ink-9">
+              Evidence,
+              <br />
+              <span className="italic text-[hsl(var(--accent-500))]">
+                not promises.
+              </span>
+            </h2>
+          </div>
+          <div className="md:col-span-6 md:col-start-7 md:pt-12">
+            <p className="max-w-prose text-[16px] leading-[1.65] text-ink-6">
+              Numbers we track because they answer the only question that
+              matters: <em>does this actually help?</em> Reviewed quarterly
+              with our clinical advisors.
+            </p>
+          </div>
+        </div>
 
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Section Header */}
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={sectionInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
-        >
-          <motion.h2
-            className="text-4xl md:text-5xl font-bold text-gradient mb-6"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={sectionInView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            Making a Real Difference
-          </motion.h2>
-          <motion.p
-            className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
-            initial={{ opacity: 0, y: 20 }}
-            animate={sectionInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            Your mental wellness journey is supported by proven results and a growing community of Indian youth finding their path to better mental health.
-          </motion.p>
-        </motion.div>
-
-        {/* Statistics Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {statistics.map((stat, index) => (
+        <div className="mt-16 grid grid-cols-1 divide-y divide-ink-3 border-y border-ink-3 md:grid-cols-4 md:divide-x md:divide-y-0">
+          {stats.map((s, i) => (
             <motion.div
-              key={index}
-              className={`text-center group ${stat.cardAccent} rounded-2xl p-8 border ${stat.cardBorder} shadow-sm hover:shadow-md transition-all duration-300`}
-              initial={{ opacity: 0, y: 50, scale: 0.8 }}
-              animate={sectionInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+              key={s.num}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
               transition={{
-                duration: 0.8,
-                delay: 0.6 + index * 0.1,
-                type: "spring",
-                stiffness: 100
+                duration: duration.long,
+                ease: ease.outExpo,
+                delay: i * 0.06,
               }}
+              className="flex flex-col gap-3 px-0 py-8 first:pl-0 md:px-7"
             >
-              {/* Icon Container */}
-              <motion.div
-                className={`mx-auto w-20 h-20 bg-gradient-to-r ${stat.iconGradient} rounded-2xl flex items-center justify-center mb-6 shadow-md`}
-                whileHover={{ rotate: 5, scale: 1.1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <stat.icon className="h-10 w-10 text-white" />
-              </motion.div>
-
-              {/* Counter */}
-              <motion.div
-                className="text-4xl md:text-5xl font-bold text-gradient mb-2"
-                initial={{ opacity: 0 }}
-                animate={sectionInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.5, delay: 1 + index * 0.1 }}
-              >
-                <AnimatedCounter
-                  value={stat.value}
-                  suffix={stat.suffix}
-                  duration={2000 + index * 200}
+              <div className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-5">
+                {s.num}
+              </div>
+              <div className="flex items-baseline gap-1 text-ink-9">
+                <NumberTicker
+                  value={s.value}
+                  className="font-display text-[clamp(44px,6vw,72px)] font-medium leading-none tracking-tighter-2 text-ink-9"
                 />
-              </motion.div>
-
-              {/* Label */}
-              <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors duration-300">
-                {stat.label}
-              </h3>
-
-              {/* Description */}
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {stat.description}
-              </p>
+                <span className="font-display text-[clamp(24px,3vw,36px)] text-[hsl(var(--accent-500))]">
+                  {s.suffix}
+                </span>
+              </div>
+              <div className="mt-1 text-[15px] font-medium text-ink-8">
+                {s.label}
+              </div>
+              <div className="text-caption leading-relaxed text-ink-6">
+                {s.detail}
+              </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Call to Action */}
-        <motion.div
-          className="text-center mt-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={sectionInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, delay: 1.5 }}
-        >
-          <motion.p
-            className="text-lg text-muted-foreground mb-6"
-            whileHover={{ scale: 1.02 }}
+        <div className="mt-16 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+          <p className="max-w-xl text-[15px] leading-relaxed text-ink-6">
+            Self-reported across 2025–26 beta cohorts. Methodology and raw
+            aggregates available on request — we take measurement as
+            seriously as the conversations we hold.
+          </p>
+          <a
+            href="mailto:research@mindmitra.app"
+            className="group inline-flex items-center gap-1.5 border-b border-ink-4 pb-1 text-[13.5px] font-medium text-ink-8 transition-colors hover:border-ink-8"
           >
-            Join thousands of Indian students on their journey to better mental health
-          </motion.p>
-          <motion.div
-            className="flex justify-center space-x-4"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={sectionInView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.6, delay: 1.8 }}
-          >
-            <div className="flex -space-x-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-full border-2 border-crushed-silk flex items-center justify-center text-white font-semibold text-sm"
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={sectionInView ? { scale: 1, rotate: 0 } : {}}
-                  transition={{ duration: 0.5, delay: 2 + i * 0.1 }}
-                  whileHover={{ scale: 1.2, zIndex: 10 }}
-                >
-                  {i === 5 ? '👋' : '😊'}
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </motion.div>
+            Request the methodology note
+            <span className="transition-transform group-hover:translate-x-0.5">→</span>
+          </a>
+        </div>
       </div>
     </section>
   );

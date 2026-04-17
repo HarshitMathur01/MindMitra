@@ -19,13 +19,14 @@ export default function CrisisOverlay({ open, onClose }: CrisisOverlayProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
           <motion.div
-            className="relative w-full max-w-md rounded-3xl bg-card/95 border border-border p-8 text-center shadow-overlay"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: "spring", damping: 25 }}
+            className="relative w-full max-w-md rounded-[28px] bg-[hsl(var(--warmth-50))] p-8 text-center shadow-none"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ type: "spring", stiffness: 42, damping: 38, mass: 1.2 }}
           >
             <button
               onClick={onClose}
@@ -34,21 +35,21 @@ export default function CrisisOverlay({ open, onClose }: CrisisOverlayProps) {
               <X className="w-5 h-5" />
             </button>
 
-            <Heart className="w-12 h-12 text-rose-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2">
+            <Heart className="w-11 h-11 text-[hsl(var(--warmth-500))] mx-auto mb-4" strokeWidth={1.5} />
+            <h2 className="font-display text-xl font-normal text-ink-8 mb-2">
               You matter. Help is here.
             </h2>
-            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-              If you&apos;re going through a tough time, please reach out. You don&apos;t
+            <p className="text-ink-6 text-sm mb-6 leading-relaxed">
+              If you&apos;re going through a tough time, reaching out is a brave step. You don&apos;t
               have to face this alone.
             </p>
 
             <div className="space-y-3 mb-6">
               <a
                 href="tel:9152987821"
-                className="flex items-center gap-3 p-4 rounded-2xl bg-rose-500/10 border border-rose-200 hover:bg-rose-500/15 transition-colors"
+                className="flex items-center gap-3 p-4 rounded-2xl bg-white/70 border border-[hsl(var(--warmth-200))] hover:bg-white/90 transition-colors duration-base"
               >
-                <Phone className="w-5 h-5 text-rose-500 shrink-0" />
+                <Phone className="w-5 h-5 text-[hsl(var(--warmth-500))] shrink-0" strokeWidth={1.8} />
                 <div className="text-left">
                   <p className="text-sm font-medium text-foreground">iCall Helpline</p>
                   <p className="text-xs text-muted-foreground">9152987821 (Mon–Sat, 8am–10pm)</p>
@@ -56,9 +57,9 @@ export default function CrisisOverlay({ open, onClose }: CrisisOverlayProps) {
               </a>
               <a
                 href="tel:08046110007"
-                className="flex items-center gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors"
+                className="flex items-center gap-3 p-4 rounded-2xl bg-[hsl(var(--accent-100))] border border-[hsl(var(--accent-200))] hover:bg-[hsl(var(--accent-100))]/90 transition-colors duration-base"
               >
-                <Phone className="w-5 h-5 text-primary shrink-0" />
+                <Phone className="w-5 h-5 text-[hsl(var(--accent-600))] shrink-0" strokeWidth={1.8} />
                 <div className="text-left">
                   <p className="text-sm font-medium text-foreground">NIMHANS Helpline</p>
                   <p className="text-xs text-muted-foreground">080-46110007 (24/7)</p>
@@ -68,10 +69,10 @@ export default function CrisisOverlay({ open, onClose }: CrisisOverlayProps) {
 
             <Button
               onClick={() => { onClose(); navigate("/chat"); }}
-              className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground h-12 shadow-card-hover"
+              className="w-full rounded-full h-12"
             >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Talk to MindMitra AI
+              <MessageSquare className="w-4 h-4 mr-2" strokeWidth={1.8} />
+              Open chat when you&apos;re ready
             </Button>
           </motion.div>
         </motion.div>

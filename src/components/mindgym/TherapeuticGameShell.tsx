@@ -230,9 +230,9 @@ export default function TherapeuticGameShell({
             <motion.div
               key="completion"
               className="flex flex-col items-center justify-center py-12"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 40, damping: 38, mass: 1.2 }}
             >
               <div className="w-24 h-24 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(255,255,255,0.1)]">
                 <Star className="w-12 h-12 text-teal-300 drop-shadow-lg" />
@@ -245,12 +245,12 @@ export default function TherapeuticGameShell({
 
               <div className="flex gap-4 mb-10">
                  <div className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-center">
-                    <p className="text-xs text-white/40 uppercase tracking-widest mb-1">XP Earned</p>
-                    <p className="text-2xl font-semibold text-teal-400">+{xp}</p>
+                    <p className="text-[12px] text-white/45 font-medium mb-1">Gentle points</p>
+                    <p className="text-2xl font-medium text-teal-300">+{xp}</p>
                  </div>
                  <div className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-center">
-                    <p className="text-xs text-white/40 uppercase tracking-widest mb-1">Streak</p>
-                    <p className="text-2xl font-semibold text-orange-400">{streakCount} 🔥</p>
+                    <p className="text-[12px] text-white/45 font-medium mb-1">Visits in a row</p>
+                    <p className="text-2xl font-medium text-orange-300">{streakCount}</p>
                  </div>
               </div>
 
@@ -262,25 +262,25 @@ export default function TherapeuticGameShell({
                     className="w-full rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm h-14 text-base"
                   >
                     <RotateCcw className="w-5 h-5 mr-3" />
-                    Play Again
+                    Try again
                   </Button>
                 )}
                 <Button
                   onClick={() => navigate("/journal")}
-                  className="w-full rounded-2xl border border-teal-500/30 bg-teal-500/20 hover:bg-teal-500/30 text-teal-100 backdrop-blur-sm h-14 text-base"
+                  className="w-full rounded-full border border-teal-500/30 bg-teal-500/20 hover:bg-teal-500/30 text-teal-100 backdrop-blur-sm h-14 text-base font-medium transition-colors duration-base"
                 >
                   <BookOpen className="w-5 h-5 mr-3" />
-                  Reflect in Journal
+                  Write in journal
                 </Button>
               </div>
             </motion.div>
           ) : (
             <motion.div
               key="game"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ type: "spring", stiffness: 44, damping: 38, mass: 1.15 }}
               className="w-full"
             >
               {children}

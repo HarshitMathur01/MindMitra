@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PrivacyToggle } from '@/components/shared/PrivacyToggle';
 import { SaveBar } from '@/components/shared/SaveBar';
 import type { UserProfile } from '@/lib/types/profile';
+import { profileSectionCard } from '@/components/profile/profileSurface';
+import { cn } from '@/lib/utils';
 
 interface PersonalInfoProps {
     profile: UserProfile | null;
@@ -77,7 +79,7 @@ export function PersonalInfo({ profile, loading, saving, onSave }: PersonalInfoP
 
     if (loading) {
         return (
-            <Card className="bg-surface border-border shadow-sm rounded-2xl">
+            <Card className={cn(profileSectionCard, 'overflow-hidden')}>
                 <CardHeader>
                     <Skeleton className="h-6 w-40" />
                 </CardHeader>
@@ -166,14 +168,15 @@ export function PersonalInfo({ profile, loading, saving, onSave }: PersonalInfoP
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
         >
-            <Card className="bg-surface border-border shadow-sm rounded-2xl">
+            <Card className={cn(profileSectionCard, 'overflow-hidden')}>
                 <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                        <User className="h-5 w-5 text-primary" />
-                        Personal Information
+                    <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Details</p>
+                    <CardTitle className="mt-1 flex items-center gap-2 font-display text-xl font-normal tracking-tight text-ink-8">
+                        <User className="h-5 w-5 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" strokeWidth={1.8} />
+                        Personal information
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        All fields are optional — share only what feels comfortable 💛
+                    <p className="text-sm leading-relaxed text-ink-5">
+                        All fields are optional — share only what feels comfortable.
                     </p>
                 </CardHeader>
                 <CardContent className="space-y-5">
@@ -197,7 +200,7 @@ export function PersonalInfo({ profile, loading, saving, onSave }: PersonalInfoP
                                     value={(form as Record<string, unknown>)[field.key] as string || ''}
                                     onValueChange={val => updateField(field.key, val)}
                                 >
-                                    <SelectTrigger className="rounded-xl border-border bg-background/50 focus:border-primary">
+                                    <SelectTrigger className="rounded-xl border-ink-3/50 bg-[hsl(var(--ink-1))] focus:border-[hsl(var(--accent-400))] dark:bg-[hsl(var(--ink-2))]">
                                         <SelectValue placeholder={`Choose ${field.label.toLowerCase()}`} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -214,7 +217,7 @@ export function PersonalInfo({ profile, loading, saving, onSave }: PersonalInfoP
                                     value={(form as Record<string, unknown>)[field.key] as string || ''}
                                     onChange={e => updateField(field.key, field.type === 'number' ? parseInt(e.target.value) || '' : e.target.value)}
                                     placeholder={field.placeholder}
-                                    className="rounded-xl border-border bg-background/50 focus:border-primary"
+                                    className="rounded-xl border-ink-3/50 bg-[hsl(var(--ink-1))] focus:border-[hsl(var(--accent-400))] dark:bg-[hsl(var(--ink-2))]"
                                 />
                             )}
                         </div>

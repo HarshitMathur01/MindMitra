@@ -1,5 +1,5 @@
-import { MessageSquare, useState, useEffect, useRef, useCallback } from "react";
-import Header from "@/components/layout/Header";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { AppShell } from "@/components/app/AppShell";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -40,20 +40,21 @@ import {
     X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const categories = [
-    { id: "all", label: "✨ All", color: "primary" },
-    { id: "exam-stress", label: "📚 Exam Stress", color: "amber" },
-    { id: "family-pressure", label: "🏠 Family Pressure", color: "violet" },
-    { id: "loneliness", label: "💙 Loneliness", color: "blue" },
-    { id: "anxiety", label: "🌪️ Anxiety", color: "teal" },
-    { id: "motivation", label: "🔥 Motivation", color: "orange" },
-    { id: "hostel-life", label: "🏢 Hostel Life", color: "pink" },
-    { id: "relationships", label: "💛 Relationships", color: "yellow" },
-    { id: "wins", label: "🎉 Small Wins", color: "green" },
-    { id: "jee-neet", label: "🎯 JEE/NEET", color: "red" },
+    { id: "all", label: "✨ All" },
+    { id: "exam-stress", label: "📚 Exam stress" },
+    { id: "family-pressure", label: "🏠 Family pressure" },
+    { id: "loneliness", label: "💙 Loneliness" },
+    { id: "anxiety", label: "🌪️ Anxiety" },
+    { id: "motivation", label: "🔥 Motivation" },
+    { id: "hostel-life", label: "🏢 Hostel life" },
+    { id: "relationships", label: "💛 Relationships" },
+    { id: "wins", label: "🎉 Small wins" },
+    { id: "jee-neet", label: "🎯 JEE / NEET" },
 ] as const;
 
 type CategoryId = (typeof categories)[number]["id"];
@@ -117,26 +118,17 @@ function generateAvatarColor(name: string): string {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const colors = [
-        "bg-teal-500", "bg-primary", "bg-violet-500", "bg-amber-500",
-        "bg-pink-500", "bg-green-500", "bg-orange-500", "bg-red-400",
+        "bg-[hsl(var(--accent-500))]",
+        "bg-[hsl(var(--accent-600))]",
+        "bg-[hsl(var(--warmth-500))]",
+        "bg-[hsl(var(--accent-500))]/90",
+        "bg-[hsl(var(--warmth-400))]",
+        "bg-[hsl(var(--accent-600))]/95",
+        "bg-[hsl(var(--warmth-500))]/90",
+        "bg-[hsl(var(--accent-500))]",
     ];
     return colors[Math.abs(hash) % colors.length];
 }
-
-// ─── Category color map ───────────────────────────────────────────────────────
-
-const categoryColorMap: Record<string, { bg: string; text: string; border: string; activeBg: string }> = {
-    primary: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30", activeBg: "bg-primary" },
-    amber: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/30", activeBg: "bg-amber-500" },
-    violet: { bg: "bg-violet-500/10", text: "text-violet-600 dark:text-violet-400", border: "border-violet-500/30", activeBg: "bg-violet-500" },
-    blue: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30", activeBg: "bg-primary" },
-    teal: { bg: "bg-teal-500/10", text: "text-teal-600 dark:text-teal-400", border: "border-teal-500/30", activeBg: "bg-teal-500" },
-    orange: { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", border: "border-orange-500/30", activeBg: "bg-orange-500" },
-    pink: { bg: "bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", border: "border-pink-500/30", activeBg: "bg-pink-500" },
-    yellow: { bg: "bg-yellow-500/10", text: "text-yellow-600 dark:text-yellow-400", border: "border-yellow-500/30", activeBg: "bg-yellow-500" },
-    green: { bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", border: "border-green-500/30", activeBg: "bg-green-500" },
-    red: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", border: "border-red-500/30", activeBg: "bg-red-500" },
-};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -210,10 +202,6 @@ function timeAgo(dateStr: string): string {
     return `${Math.floor(days / 7)}w ago`;
 }
 
-function getCategoryColor(colorKey: string) {
-    return categoryColorMap[colorKey] ?? categoryColorMap.primary;
-}
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 // Stat pill
@@ -221,9 +209,9 @@ const StatPill = ({ icon: Icon, text }: { icon: React.ElementType; text: string 
     <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/80 backdrop-blur-sm border border-border/50 text-sm text-muted-foreground"
+        className="inline-flex items-center gap-2 rounded-full border border-ink-3/40 bg-[hsl(var(--card))] px-4 py-2 text-sm text-ink-6 shadow-dashboard-soft backdrop-blur-sm dark:bg-[hsl(var(--ink-2))]/70"
     >
-        <Icon className="h-4 w-4 text-primary" />
+        <Icon className="h-4 w-4 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" strokeWidth={1.8} />
         <span>{text}</span>
     </motion.div>
 );
@@ -231,13 +219,17 @@ const StatPill = ({ icon: Icon, text }: { icon: React.ElementType; text: string 
 // Post type badge
 const PostTypeBadge = ({ type }: { type: PostType }) => {
     const config = {
-        story: { label: "Story", className: "bg-primary/10 text-primary" },
-        question: { label: "? Question", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-        win: { label: "🎉 Win!", className: "bg-green-500/10 text-green-600 dark:text-green-400" },
-        vent: { label: "💙 Just listen", className: "bg-primary/10 text-primary" },
+        story: { label: "Story", className: "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))] dark:bg-[hsl(var(--accent-100))]/20 dark:text-[hsl(var(--accent-300))]" },
+        question: { label: "Question", className: "bg-[hsl(var(--warmth-100))] text-[hsl(var(--warmth-600))] dark:bg-[hsl(var(--warmth-100))]/15 dark:text-[hsl(var(--warmth-400))]" },
+        win: { label: "Win", className: "bg-[hsl(var(--accent-50))] text-[hsl(var(--accent-700))] dark:bg-[hsl(var(--accent-100))]/18 dark:text-[hsl(var(--accent-300))]" },
+        vent: { label: "Listen", className: "bg-[hsl(var(--ink-1))] text-ink-7 dark:bg-[hsl(var(--ink-2))]/80 dark:text-ink-8" },
     };
     const c = config[type];
-    return <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${c.className}`}>{c.label}</span>;
+    return (
+        <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium", c.className)}>
+            {c.label}
+        </span>
+    );
 };
 
 // Emotion badge
@@ -273,11 +265,14 @@ const ReactionBtn = ({
     active: boolean;
 }) => (
     <button
+        type="button"
         onClick={onClick}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all duration-200 ${active
-                ? "bg-primary/15 text-primary font-semibold scale-105"
-                : "bg-surface hover:bg-primary/10 text-muted-foreground border border-border/50"
-            }`}
+        className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all duration-200",
+            active
+                ? "scale-[1.02] border-[hsl(var(--accent-400))]/40 bg-[hsl(var(--accent-100))] font-semibold text-[hsl(var(--accent-700))] dark:bg-[hsl(var(--accent-100))]/20 dark:text-[hsl(var(--accent-300))]"
+                : "border-ink-3/40 bg-[hsl(var(--card))] text-ink-5 hover:border-ink-3/60 hover:bg-[hsl(var(--ink-1))] dark:bg-[hsl(var(--ink-2))]/60",
+        )}
     >
         <span>{emoji}</span>
         <span className="hidden sm:inline">{label}</span>
@@ -311,7 +306,6 @@ const PostCard = ({
     const { toast } = useToast();
 
     const catMeta = categories.find((c) => c.id === post.category);
-    const catColors = getCategoryColor(catMeta?.color ?? "primary");
     const isLong = post.content.length > 200;
     const isWin = post.post_type === "win";
 
@@ -335,11 +329,12 @@ const PostCard = ({
             transition={{ duration: 0.3 }}
         >
             <Card
-                className={`p-5 rounded-2xl border transition-all duration-200 hover:shadow-lg ${isWin
-                        ? "border-green-400/40 bg-green-500/5"
-                        : "border-border/60 bg-surface"
-                    }`}
-                style={{ boxShadow: "0 2px 16px var(--shadow)" }}
+                className={cn(
+                    "rounded-[1.25rem] border p-5 shadow-dashboard-soft transition-all duration-200 hover:shadow-dashboard-warm",
+                    isWin
+                        ? "border-[hsl(var(--accent-300))]/50 bg-[hsl(var(--accent-50))] dark:border-[hsl(var(--accent-500))]/25 dark:bg-[hsl(var(--accent-100))]/12"
+                        : "border-ink-3/40 bg-[hsl(var(--card))] dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]",
+                )}
             >
                 {/* Header */}
                 <div className="flex items-start gap-3 mb-3">
@@ -347,13 +342,13 @@ const PostCard = ({
 
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-foreground text-sm">{post.anonymous_name}</span>
-                            <span className="text-xs text-muted-foreground">{timeAgo(post.created_at)}</span>
+                            <span className="text-sm font-medium text-ink-8">{post.anonymous_name}</span>
+                            <span className="text-xs text-ink-5">{timeAgo(post.created_at)}</span>
                         </div>
 
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                             {catMeta && (
-                                <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full ${catColors.bg} ${catColors.text}`}>
+                                <span className="inline-flex items-center rounded-full bg-[hsl(var(--ink-1))] px-2 py-0.5 text-xs font-medium text-ink-7 dark:bg-[hsl(var(--ink-2))]/80 dark:text-ink-8">
                                     {catMeta.label}
                                 </span>
                             )}
@@ -373,17 +368,17 @@ const PostCard = ({
 
                 {/* Title */}
                 {post.title && (
-                    <h3 className="font-bold text-foreground text-base mb-2 leading-snug">{post.title}</h3>
+                    <h3 className="mb-2 font-display text-base font-normal leading-snug text-ink-8">{post.title}</h3>
                 )}
 
                 {/* Content */}
-                <div className="text-muted-foreground text-sm leading-relaxed mb-4">
+                <div className="mb-4 text-sm leading-relaxed text-ink-6">
                     {isLong && !expanded ? (
                         <>
                             {post.content.slice(0, 200)}...
                             <button
                                 onClick={() => setExpanded(true)}
-                                className="ml-1 text-primary font-medium hover:underline"
+                                className="ml-1 font-medium text-[hsl(var(--accent-600))] hover:underline dark:text-[hsl(var(--accent-400))]"
                             >
                                 Read more
                             </button>
@@ -394,7 +389,7 @@ const PostCard = ({
                     {isLong && expanded && (
                         <button
                             onClick={() => setExpanded(false)}
-                            className="ml-1 text-primary font-medium hover:underline"
+                            className="ml-1 font-medium text-[hsl(var(--accent-600))] hover:underline dark:text-[hsl(var(--accent-400))]"
                         >
                             Show less
                         </button>
@@ -409,7 +404,7 @@ const PostCard = ({
 
                     <button
                         onClick={() => onOpenReplies(post)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-surface hover:bg-primary/10 text-muted-foreground border border-border/50 transition-colors ml-auto"
+                        className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-ink-3/40 bg-[hsl(var(--ink-1))] px-3 py-1.5 text-xs text-ink-5 transition-colors hover:border-ink-3/60 hover:bg-[hsl(var(--ink-2))] dark:bg-[hsl(var(--ink-2))]/60"
                     >
                         <MessageCircle className="h-3.5 w-3.5" />
                         <span>{post.reply_count} replies</span>
@@ -766,113 +761,114 @@ const PeerSupport = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-            <Header />
-
+        <AppShell>
+            <div className="mx-auto w-full max-w-6xl px-4 pb-28 sm:px-6 md:pb-12">
             {/* ─── HERO SECTION ──────────────────────────────────────────── */}
-            <section className="relative overflow-hidden">
-                {/* Soft teal gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-primary/3 to-transparent" />
-                <div className="absolute top-10 left-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 right-1/4 w-56 h-56 bg-accent/5 rounded-full blur-3xl" />
+            <section className="relative overflow-hidden pt-10 md:pt-12">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[hsl(var(--accent-50))]/50 via-transparent to-transparent dark:from-[hsl(var(--accent-500))]/5" />
+                <div className="pointer-events-none absolute -left-20 top-0 h-56 w-56 rounded-full bg-[hsl(var(--accent-100))]/40 blur-3xl dark:bg-[hsl(var(--accent-500))]/10" />
+                <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-[hsl(var(--warmth-100))]/30 blur-3xl dark:bg-[hsl(var(--warmth-500))]/10" />
 
-                <div className="container mx-auto px-4 pt-16 pb-12 relative z-10">
-                    <motion.div
-                        className="text-center max-w-2xl mx-auto"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
-                            You're Not Alone
+                <div className="relative z-10 mx-auto max-w-2xl text-center">
+                    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+                        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Peer support</p>
+                        <h1 className="mt-3 font-display text-4xl font-normal leading-tight tracking-tight text-ink-8 md:text-5xl">
+                            You&apos;re not alone
                         </h1>
-                        <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                            Connect with students who truly get it — the pressure, the expectations, the late nights.
+                        <p className="mt-4 text-lg leading-relaxed text-ink-5">
+                            Stories, questions, and small wins from people who get the pressure — anonymous, gentle, moderated.
                         </p>
 
-                        <div className="flex items-center justify-center gap-3 mb-8 flex-wrap">
+                        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                             <Button
+                                type="button"
                                 onClick={() => setComposerOpen(true)}
-                                className="rounded-xl bg-primary hover:bg-primary/90 text-white h-11 px-6 font-semibold"
+                                className="h-11 rounded-full bg-[hsl(var(--accent-500))] px-6 font-semibold text-white shadow-md hover:bg-[hsl(var(--accent-600))]"
                             >
-                                <PenLine className="h-4 w-4 mr-2" />
-                                Share Your Story
+                                <PenLine className="mr-2 h-4 w-4" strokeWidth={1.8} />
+                                Share your story
                             </Button>
                             <Button
+                                type="button"
                                 variant="outline"
                                 onClick={scrollToFeed}
-                                className="rounded-xl border-border/60 text-muted-foreground hover:bg-primary/5 h-11 px-6"
+                                className="h-11 rounded-full border-ink-3/50 bg-[hsl(var(--card))] text-ink-7 shadow-dashboard-soft hover:bg-[hsl(var(--ink-1))]"
                             >
-                                Browse Stories
+                                Browse feed
                             </Button>
                         </div>
 
-                        <div className="flex items-center justify-center gap-3 flex-wrap">
+                        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
                             <StatPill icon={Users} text="2,400+ students supported" />
-                            <StatPill icon={Shield} text="Anonymous & Safe" />
-                            <StatPill icon={Sparkles} text="Moderated 24/7" />
+                            <StatPill icon={Shield} text="Anonymous & safe" />
+                            <StatPill icon={Sparkles} text="Moderated community" />
                         </div>
                     </motion.div>
                 </div>
             </section>
 
             {/* ─── CATEGORIES ────────────────────────────────────────────── */}
-            <section className="sticky top-[73px] z-40 bg-background/95 backdrop-blur-md border-b border-border/40 py-3">
-                <div className="container mx-auto px-4">
-                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                        {categories.map((cat) => {
-                            const isActive = activeCategory === cat.id;
-                            const colors = getCategoryColor(cat.color);
-                            return (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => { setActiveCategory(cat.id); setVisibleCount(10); }}
-                                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${isActive
-                                            ? `${colors.activeBg} text-white border-transparent shadow-md`
-                                            : `bg-transparent ${colors.text} ${colors.border} hover:${colors.bg}`
-                                        }`}
-                                >
-                                    {cat.label}
-                                </button>
-                            );
-                        })}
-                    </div>
+            <section className="sticky top-[var(--header-height)] z-30 border-b border-ink-3/30 bg-[hsl(var(--background))]/90 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-[hsl(var(--background))]/75 dark:border-ink-3/25">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {categories.map((cat) => {
+                        const isActive = activeCategory === cat.id;
+                        return (
+                            <button
+                                type="button"
+                                key={cat.id}
+                                onClick={() => {
+                                    setActiveCategory(cat.id);
+                                    setVisibleCount(10);
+                                }}
+                                className={cn(
+                                    "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
+                                    isActive
+                                        ? "border-transparent bg-[hsl(var(--accent-500))] text-white shadow-dashboard-soft"
+                                        : "border-ink-3/40 bg-[hsl(var(--card))] text-ink-6 hover:border-ink-3/60 hover:bg-[hsl(var(--ink-1))] dark:bg-[hsl(var(--ink-2))]/60",
+                                )}
+                            >
+                                {cat.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </section>
 
             {/* ─── FEED ──────────────────────────────────────────────────── */}
-            <section ref={feedRef} className="container mx-auto px-4 py-8">
-                {/* Sort + search bar */}
-                <div className="flex items-center gap-3 mb-6 flex-wrap">
-                    <div className="flex items-center gap-1 bg-surface rounded-xl border border-border/50 p-1">
+            <section ref={feedRef} className="py-8">
+                <div className="mb-8 flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-1 rounded-2xl border border-ink-3/40 bg-[hsl(var(--ink-1))] p-1 dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]/60">
                         {sortOptions.map((opt) => (
                             <button
+                                type="button"
                                 key={opt.id}
                                 onClick={() => setSortBy(opt.id)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${sortBy === opt.id
-                                        ? "bg-primary/15 text-primary"
-                                        : "text-muted-foreground hover:bg-primary/5"
-                                    }`}
+                                className={cn(
+                                    "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-all",
+                                    sortBy === opt.id
+                                        ? "bg-[hsl(var(--card))] text-ink-8 shadow-dashboard-soft dark:bg-[hsl(var(--ink-2))]"
+                                        : "text-ink-5 hover:bg-[hsl(var(--card))]/80 dark:hover:bg-[hsl(var(--ink-2))]",
+                                )}
                             >
-                                <opt.icon className="h-3.5 w-3.5" />
+                                <opt.icon className="h-3.5 w-3.5" strokeWidth={1.8} />
                                 {opt.label}
                             </button>
                         ))}
                     </div>
 
-                    <div className="relative flex-1 max-w-xs ml-auto">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                    <div className="relative ml-auto min-w-0 flex-1 max-w-xs">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-5" strokeWidth={1.8} />
                         <Input
-                            placeholder="Search stories..."
+                            placeholder="Search stories…"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 rounded-xl bg-surface border-border/50 text-sm h-9"
+                            className="h-10 rounded-xl border-ink-3/50 bg-[hsl(var(--card))] pl-9 text-sm text-ink-8 placeholder:text-ink-5 dark:bg-[hsl(var(--ink-2))]/80"
                         />
                     </div>
                 </div>
 
                 {/* Posts */}
-                <div className="grid gap-4 max-w-2xl mx-auto">
+                <div className="mx-auto grid max-w-2xl gap-4">
                     <AnimatePresence mode="popLayout">
                         {visiblePosts.map((post) => (
                             <motion.div 
@@ -892,8 +888,9 @@ const PeerSupport = () => {
                             <p className="text-muted-foreground text-lg mb-2">No posts found</p>
                             <p className="text-muted-foreground/70 text-sm">Be the first to share in this category!</p>
                             <Button
+                                type="button"
                                 onClick={() => setComposerOpen(true)}
-                                className="mt-4 rounded-xl bg-primary hover:bg-primary/90 text-white"
+                                className="mt-4 h-11 rounded-full bg-[hsl(var(--accent-500))] px-6 text-white hover:bg-[hsl(var(--accent-600))]"
                             >
                                 <PenLine className="h-4 w-4 mr-2" />
                                 Share Your Story
@@ -903,7 +900,7 @@ const PeerSupport = () => {
 
                     {visibleCount < filteredPosts.length && (
                         <div className="text-center py-4">
-                            <Button variant="outline" onClick={loadMore} className="rounded-xl border-border/50">
+                            <Button type="button" variant="outline" onClick={loadMore} className="rounded-full border-ink-3/50">
                                 <ChevronDown className="h-4 w-4 mr-2" />
                                 Load more stories
                             </Button>
@@ -916,8 +913,9 @@ const PeerSupport = () => {
             <PostComposer open={composerOpen} onClose={() => setComposerOpen(false)} onSubmit={handleNewPost} />
             <ReplyDrawer post={replyPost} open={!!replyPost} onClose={() => setReplyPost(null)} />
 
+            </div>
             <Footer />
-        </div>
+        </AppShell>
     );
 };
 

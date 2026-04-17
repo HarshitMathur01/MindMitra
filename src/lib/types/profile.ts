@@ -1,3 +1,5 @@
+import type { SupportedLanguage } from '@/lib/locale';
+
 // Types for Profile & Settings pages
 
 export interface UserProfile {
@@ -8,7 +10,7 @@ export interface UserProfile {
     age?: number;
     date_of_birth?: string;
     gender?: 'male' | 'female' | 'non-binary' | 'prefer-not-to-say';
-    language?: 'hindi' | 'english' | 'hinglish';
+    language?: SupportedLanguage;
     college?: string;
     course_year?: string;
     city?: string;
@@ -36,7 +38,7 @@ export interface UserSettings {
     companion_personality: 'mitra' | 'arjun' | 'diya' | 'riya' | 'zen';
     companion_personality_locked?: boolean;
     reminder_time?: string;
-    language: 'hindi' | 'english' | 'hinglish';
+    language: SupportedLanguage;
     theme: 'light' | 'dark' | 'auto';
     /** Selected TalkingHead avatar model id. Matches AVATAR_OPTIONS in src/lib/avatarOptions.ts */
     avatar_model?: string;

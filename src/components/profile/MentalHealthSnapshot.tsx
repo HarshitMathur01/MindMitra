@@ -6,6 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import type { MentalHealthSnapshot as SnapshotType } from '@/lib/types/profile';
+import { profileSectionCard } from '@/components/profile/profileSurface';
+import { cn } from '@/lib/utils';
 
 interface MentalHealthSnapshotProps {
     snapshot: SnapshotType | null;
@@ -27,7 +29,7 @@ const trendColor: Record<string, string> = {
 export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshotProps) {
     if (loading) {
         return (
-            <Card className="bg-surface border-border shadow-sm rounded-2xl">
+            <Card className={cn(profileSectionCard, 'overflow-hidden')}>
                 <CardHeader>
                     <Skeleton className="h-6 w-56" />
                 </CardHeader>
@@ -44,17 +46,20 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ type: 'spring', stiffness: 40, damping: 38, mass: 1.2, delay: 0.08 }}
         >
-            <Card className="bg-surface border-border shadow-sm rounded-2xl">
+            <Card className={cn(profileSectionCard, 'overflow-hidden')}>
                 <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                            <Brain className="h-5 w-5 text-primary" />
-                            My Wellness Snapshot
-                        </CardTitle>
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Overview</p>
+                            <CardTitle className="mt-1 flex items-center gap-2 font-display text-xl font-normal tracking-tight text-ink-8">
+                                <Brain className="h-5 w-5 text-[hsl(var(--accent-500))]" strokeWidth={1.8} />
+                                How things have been feeling
+                            </CardTitle>
+                        </div>
                         <Tooltip>
                             <TooltipTrigger>
                                 <Info className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
@@ -67,8 +72,8 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                        A gentle overview of your mental wellness journey 🌿
+                    <p className="text-sm text-ink-6 leading-relaxed">
+                        A soft summary — only shared when you say it's okay.
                     </p>
                 </CardHeader>
 
@@ -76,8 +81,8 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                     {/* Stress Triggers */}
                     {snapshot.stress_triggers.length > 0 && (
                         <div className="space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                Areas we've noticed
+                            <p className="text-[13px] font-medium text-ink-6">
+                                Themes that showed up
                             </p>
                             <div className="flex flex-wrap gap-2">
                                 {snapshot.stress_triggers.map(trigger => (
@@ -94,10 +99,10 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                     )}
 
                     {/* Emotional Trend */}
-                    <div className="flex items-center justify-between bg-background/50 rounded-xl p-4 border border-border/50">
+                    <div className="flex items-center justify-between rounded-xl border border-ink-3/40 bg-[hsl(var(--ink-1))] p-4 dark:bg-[hsl(var(--ink-2))]/80">
                         <div className="space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                Emotional Trend
+                            <p className="text-[13px] font-medium text-ink-6">
+                                Emotional rhythm
                             </p>
                             <p className={`text-sm font-semibold capitalize ${trendColor[snapshot.emotional_trend]}`}>
                                 {snapshot.emotional_trend} {trendEmoji[snapshot.emotional_trend]}
@@ -124,9 +129,9 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                     </div>
 
                     {/* Sessions */}
-                    <div className="flex items-center gap-3 bg-background/50 rounded-xl p-4 border border-border/50">
-                        <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                            <MessageSquare className="h-5 w-5 text-accent" />
+                    <div className="flex items-center gap-3 rounded-xl border border-ink-3/40 bg-[hsl(var(--ink-1))] p-4 dark:bg-[hsl(var(--ink-2))]/80">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(var(--accent-100))]/60 dark:bg-[hsl(var(--accent-100))]/20">
+                            <MessageSquare className="h-5 w-5 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" strokeWidth={1.8} />
                         </div>
                         <div>
                             <p className="text-sm font-semibold text-foreground">
@@ -139,9 +144,9 @@ export function MentalHealthSnapshot({ snapshot, loading }: MentalHealthSnapshot
                     </div>
 
                     {/* Therapist Connection */}
-                    <div className="flex items-center gap-3 bg-background/50 rounded-xl p-4 border border-border/50">
-                        <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center">
-                            <Stethoscope className="h-5 w-5 text-secondary" />
+                    <div className="flex items-center gap-3 rounded-xl border border-ink-3/40 bg-[hsl(var(--ink-1))] p-4 dark:bg-[hsl(var(--ink-2))]/80">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(var(--warmth-100))]/50 dark:bg-[hsl(var(--warmth-100))]/15">
+                            <Stethoscope className="h-5 w-5 text-[hsl(var(--warmth-500))] dark:text-[hsl(var(--warmth-400))]" strokeWidth={1.8} />
                         </div>
                         <div>
                             <p className="text-sm font-semibold text-foreground">

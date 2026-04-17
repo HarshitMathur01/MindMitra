@@ -7,6 +7,7 @@ import { personalities, type PersonalityId, type Personality, getPersonalityById
 import { usePersonality } from '@/hooks/usePersonality'
 import { PersonalityPreviewChat } from './PersonalityPreviewChat'
 import { PersonalityChangeModal } from '@/components/session/PersonalityChangeModal'
+import { cn } from '@/lib/utils'
 
 /** Chat interfaces set this key when a session is open */
 export const ACTIVE_SESSION_LS_KEY = 'mm-active-chat-session'
@@ -26,21 +27,15 @@ function PersonalityCard({
     <motion.button
       type="button"
       onClick={onSelect}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`
-        relative w-full text-left rounded-2xl border-2 p-4 transition-all duration-300
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-        ${isSelected
-          ? 'bg-surface shadow-lg'
-          : 'bg-surface/50 border-border hover:border-border/80'
-        }
-      `}
+      className={cn(
+        'relative w-full rounded-[1.25rem] border p-4 text-left transition-colors duration-base',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+        isSelected ? 'border-transparent bg-[hsl(var(--card))] shadow-dashboard-soft' : 'border-ink-3/45 bg-[hsl(var(--ink-1))]/60 hover:border-ink-3/70 dark:bg-[hsl(var(--ink-2))]/50',
+      )}
       style={{
         borderColor: isSelected ? p.colorAccent : undefined,
-        boxShadow: isSelected ? `0 0 20px ${p.colorAccent}20, 0 0 40px ${p.colorAccent}10` : undefined,
-        focusVisibleRingColor: p.colorAccent,
-      } as any}
+        boxShadow: isSelected ? `0 12px 40px -24px ${p.colorAccent}33` : undefined,
+      }}
       role="radio"
       aria-checked={isSelected}
       aria-label={`Select ${p.name} — ${p.tagline}`}
@@ -49,14 +44,15 @@ function PersonalityCard({
       <AnimatePresence>
         {isSelected && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute top-3 right-3 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ type: 'spring', stiffness: 48, damping: 36, mass: 1.1 }}
+            className="absolute top-3 right-3 flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-medium text-white"
             style={{ backgroundColor: p.colorAccent }}
           >
-            <Check className="h-3 w-3" />
-            Active
+            <Check className="h-3 w-3" strokeWidth={2} />
+            In use
           </motion.div>
         )}
       </AnimatePresence>
@@ -70,8 +66,8 @@ function PersonalityCard({
       </div>
 
       {/* Name + tagline */}
-      <h3 className="text-base font-semibold text-foreground">{p.name}</h3>
-      <p className="text-sm text-muted-foreground mt-0.5">{p.tagline}</p>
+      <h3 className="text-base font-medium tracking-tight text-ink-8">{p.name}</h3>
+      <p className="mt-0.5 text-sm text-ink-5">{p.tagline}</p>
 
       {/* Best-for chip */}
       <span
@@ -85,7 +81,7 @@ function PersonalityCard({
       </span>
 
       {/* Description */}
-      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{p.description}</p>
+      <p className="mt-2 line-clamp-2 text-sm text-ink-5">{p.description}</p>
 
       {/* Expandable sample response */}
       <div className="mt-3">
@@ -206,7 +202,10 @@ export function PersonalitySelector() {
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-52 rounded-2xl bg-surface animate-pulse border border-border" />
+            <div
+              key={i}
+              className="h-52 animate-pulse rounded-[1.25rem] border border-ink-3/40 bg-[hsl(var(--ink-1))] dark:bg-[hsl(var(--ink-2))]/60"
+            />
           ))}
         </div>
       </div>
@@ -225,14 +224,14 @@ export function PersonalitySelector() {
         />
       )}
 
-      {/* Header */}
       <div>
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Choose Your AI Companion</h2>
+        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Companion</p>
+        <div className="mt-1 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" strokeWidth={1.8} />
+          <h2 className="font-display text-xl font-normal tracking-tight text-ink-8 sm:text-2xl">Choose your companion</h2>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Your companion's personality shapes how they talk to you. You can change this anytime.
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-5">
+          Their tone shapes every conversation. Switch whenever you like — we&apos;ll save it with care.
         </p>
       </div>
 
@@ -269,7 +268,7 @@ export function PersonalitySelector() {
             onChange={e => setLocalName(e.target.value)}
             maxLength={24}
             placeholder={currentPersonality.name}
-            className="w-full max-w-xs rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 transition-shadow"
+            className="w-full max-w-xs rounded-xl border border-ink-3/50 bg-[hsl(var(--ink-1))] px-3 py-2 text-sm text-ink-8 placeholder:text-ink-5/60 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--accent-400))]/35 dark:bg-[hsl(var(--ink-2))] transition-shadow"
             style={{ '--tw-ring-color': currentPersonality.colorAccent } as any}
             aria-label="Custom companion name"
           />

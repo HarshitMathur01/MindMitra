@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface HeroSectionProps {
   onViewProfile: () => void;
@@ -7,20 +8,41 @@ interface HeroSectionProps {
 
 const HeroSection = ({ onViewProfile, onFindTherapist }: HeroSectionProps) => {
   return (
-    <section className="mb-12 rounded-2xl bg-gradient-to-br from-primary/20 via-accent/15 to-primary/10 p-6 md:p-10">
-      <div className="max-w-3xl">
-        <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-3">Ready to Take the Next Step?</h1>
-        <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4">Connect with a Professional Therapist</h2>
-        <p className="text-muted-foreground text-base md:text-lg mb-6">
-          Your MindMitra has been supporting you. Now let's connect you with a human expert who can help you go deeper.
+    <section
+      className={cn(
+        "relative mb-12 overflow-hidden rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--card))] px-6 py-10 shadow-dashboard-soft",
+        "dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]",
+      )}
+    >
+      <div
+        className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--accent-100))]/35 blur-3xl dark:bg-[hsl(var(--accent-500))]/10"
+        aria-hidden
+      />
+      <div className="relative max-w-2xl space-y-4">
+        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Therapist bridge</p>
+        <h1 className="font-display text-3xl font-normal tracking-tight text-ink-8 md:text-[2.35rem] md:leading-tight">
+          Human care, when you&apos;re ready to go deeper
+        </h1>
+        <p className="text-base leading-relaxed text-ink-5 md:text-[17px]">
+          MindMitra walks with you day to day. A licensed therapist can help you work through patterns, stress, and
+          goals with continuity and clinical skill.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="secondary" className="transition-all duration-300" onClick={onViewProfile}>
-            View My Emotional Profile
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 rounded-full border-ink-3/50 bg-[hsl(var(--ink-1))] text-ink-8 hover:bg-[hsl(var(--ink-2))] dark:bg-[hsl(var(--ink-2))]/80"
+            onClick={onViewProfile}
+          >
+            View emotional profile
           </Button>
-          <Button className="gradient-primary hover-glow transition-all duration-300" onClick={onFindTherapist}>
-            Find a Therapist
+          <Button
+            type="button"
+            className="h-11 rounded-full bg-[hsl(var(--accent-500))] px-6 text-white shadow-md hover:bg-[hsl(var(--accent-600))]"
+            onClick={onFindTherapist}
+          >
+            Find a therapist
           </Button>
         </div>
       </div>

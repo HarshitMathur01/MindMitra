@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Flame, Sparkles, Trophy, ChevronRight, Phone, ArrowRight } from "lucide-react";
+import { Flame, Sparkles, Trophy, Phone, ArrowRight } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CrisisOverlay from "@/components/mindgym/CrisisOverlay";
@@ -11,12 +11,16 @@ import { Button } from "@/components/ui/button";
 
 const containerVariants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.05 } },
+  show: { transition: { staggerChildren: 0.08 } },
 } as const;
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 42, damping: 38, mass: 1.15 },
+  },
 } as const;
 
 export default function MindGymHub() {
@@ -35,40 +39,38 @@ export default function MindGymHub() {
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-8 pb-20">
         {/* Hero Section */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="mb-8"
+          transition={{ type: "spring", stiffness: 44, damping: 40, mass: 1.15 }}
+          className="mb-10"
         >
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-2">
+          <h1 className="font-display text-3xl sm:text-[2.125rem] font-normal tracking-tight text-ink-8 mb-3">
             MindGym
           </h1>
-          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl">
-            Evidence-based offline practices to build resilience, track your emotional state, and calm your mind.
+          <p className="text-ink-6 text-base sm:text-[17px] max-w-prose leading-[1.65]">
+            Small offline practices you can do at your own pace — nothing to prove, no score that defines you.
           </p>
         </motion.div>
 
         {/* Stats & Progress Container */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10"
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
+          transition={{ type: "spring", stiffness: 40, damping: 38, mass: 1.15, delay: 0.05 }}
         >
           {/* Daily Recommendation Card */}
           {recommendedTool && (
             <motion.div
               onClick={() => navigate(`/mindgym/${recommendedTool.id}`)}
-              className="bg-card p-5 rounded-2xl border border-border/50 shadow-card cursor-pointer hover:shadow-card-hover transition-all group flex flex-col justify-between"
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+              className="held-surface cursor-pointer transition-colors duration-base group flex flex-col justify-between rounded-[24px] p-6"
             >
               <div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">
-                  Recommended Today
+                <p className="text-[13px] font-medium text-ink-6 mb-3">
+                  If you want one gentle suggestion
                 </p>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="text-lg font-medium text-ink-8 group-hover:text-[hsl(var(--accent-600))] transition-colors duration-base">
                     {recommendedTool.title}
                   </h3>
                   <div
@@ -84,40 +86,41 @@ export default function MindGymHub() {
                   {recommendedTool.shortDesc}
                 </p>
               </div>
-              <div className="mt-4 flex items-center justify-between pt-4 border-t border-border/40">
-                <span className="text-xs font-medium text-muted-foreground line-clamp-1">{recommendedTool.clinicalTag}</span>
-                <span className="flex items-center text-xs font-medium text-primary group-hover:translate-x-1 transition-transform">
-                  Start Practice <ArrowRight className="w-3 h-3 ml-1" />
+              <div className="mt-4 flex items-center justify-between pt-4 border-t border-ink-3/50">
+                <span className="text-[12px] font-medium text-ink-5 line-clamp-1">{recommendedTool.clinicalTag}</span>
+                <span className="flex items-center text-[12px] font-medium text-[hsl(var(--accent-600))] transition-opacity duration-base group-hover:opacity-80">
+                  Try this practice <ArrowRight className="w-3 h-3 ml-1" strokeWidth={1.8} />
                 </span>
               </div>
             </motion.div>
           )}
 
           {/* Stats Summary Card */}
-          <div className="bg-card p-5 rounded-2xl border border-border/50 shadow-card flex flex-col justify-between">
+          <div className="held-surface flex flex-col justify-between rounded-[24px] p-6">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                Your Progress
+              <p className="text-[13px] font-medium text-ink-6 mb-4">
+                Your pace, not a race
               </p>
               <div className="flex flex-wrap gap-4 items-center mb-6">
-                <div className="flex items-center gap-2 bg-primary/10 px-3 py-2 rounded-xl border border-primary/20">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="font-bold text-primary">{progress.totalXP}</span>
-                  <span className="text-xs text-primary/80 font-medium">XP</span>
+                <div className="flex items-center gap-2 rounded-full bg-[hsl(var(--accent-100))] px-3 py-2">
+                  <Sparkles className="w-4 h-4 text-[hsl(var(--accent-600))]" strokeWidth={1.8} />
+                  <span className="font-medium text-ink-8">{progress.totalXP}</span>
+                  <span className="text-[12px] text-ink-6">moments</span>
                 </div>
-                <div className="flex items-center gap-2 bg-orange-500/10 px-3 py-2 rounded-xl border border-orange-500/20">
-                  <Flame className="w-4 h-4 text-orange-500" />
-                  <span className="font-bold text-orange-600 dark:text-orange-400">{progress.currentStreak}</span>
-                  <span className="text-xs text-orange-600/80 dark:text-orange-400/80 font-medium">Streak</span>
+                <div className="flex items-center gap-2 rounded-full bg-[hsl(var(--warmth-100))] px-3 py-2">
+                  <Flame className="w-4 h-4 text-[hsl(var(--warmth-500))]" strokeWidth={1.8} />
+                  <span className="font-medium text-ink-8">{progress.currentStreak}</span>
+                  <span className="text-[12px] text-ink-6">days in a row</span>
                 </div>
                 
                 <button
+                  type="button"
                   onClick={() => setShowBadges(!showBadges)}
-                  className="flex items-center gap-2 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                  className="flex items-center gap-2 rounded-full bg-ink-1 px-3 py-2 transition-colors duration-base hover:bg-ink-2"
                 >
-                  <Trophy className="w-4 h-4 text-amber-500" />
-                  <span className="font-bold text-amber-600 dark:text-amber-400">{progress.badges.length}</span>
-                  <span className="text-xs text-amber-600/80 dark:text-amber-400/80 font-medium">Badges</span>
+                  <Trophy className="w-4 h-4 text-ink-6" strokeWidth={1.8} />
+                  <span className="font-medium text-ink-8">{progress.badges.length}</span>
+                  <span className="text-[12px] text-ink-6">small wins</span>
                 </button>
               </div>
             </div>
@@ -154,9 +157,9 @@ export default function MindGymHub() {
           </div>
         </motion.div>
 
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-            Practices Library
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="font-display text-xl sm:text-2xl font-normal text-ink-8">
+            Practices you can open anytime
           </h2>
         </div>
 
@@ -176,14 +179,12 @@ export default function MindGymHub() {
                 key={tool.id}
                 variants={cardVariants}
                 onClick={() => navigate(`/mindgym/${tool.id}`)}
-                className="group relative flex flex-col p-5 rounded-2xl bg-card border border-border/50 shadow-card hover:shadow-card-hover text-left transition-all duration-200 overflow-hidden"
-                whileHover={{ y: -4 }}
-                whileTap={{ scale: 0.98 }}
+                className="group relative flex flex-col overflow-hidden rounded-[24px] bg-card p-5 text-left transition-colors duration-base hover:bg-ink-1"
               >
                 {/* Completion Indicator */}
                 {done && (
-                  <div className="absolute top-0 right-0 p-2 bg-success/10 text-success rounded-bl-xl z-10 flex items-center gap-1">
-                    <span className="text-[10px] font-bold px-1 uppercase tracking-wide">Done</span>
+                  <div className="absolute top-0 right-0 z-10 flex items-center gap-1 rounded-bl-2xl bg-[hsl(var(--accent-100))] px-2 py-1.5 text-[hsl(var(--accent-600))]">
+                    <span className="text-[11px] font-medium px-1">Visited today</span>
                   </div>
                 )}
 
@@ -207,7 +208,7 @@ export default function MindGymHub() {
 
                 {/* Content */}
                 <div className="flex-1 relative z-10">
-                  <h3 className="text-base font-bold text-foreground mb-1.5 group-hover:text-primary transition-colors">
+                  <h3 className="text-base font-medium text-ink-8 mb-1.5 transition-colors duration-base group-hover:text-[hsl(var(--accent-600))]">
                     {tool.title}
                   </h3>
                   <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
@@ -221,14 +222,14 @@ export default function MindGymHub() {
                     <span className="text-[11px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
                       {tool.minutes} min
                     </span>
-                    <span className="text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                      {tool.xp} XP
+                    <span className="text-[11px] font-medium text-ink-6 bg-ink-1 px-2 py-0.5 rounded-full">
+                      +{tool.xp} gentle points
                     </span>
                   </div>
                   {streak > 0 && (
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-orange-600 dark:text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-md">
-                      <Flame className="w-3 h-3" />
-                      {streak}
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-ink-6 bg-[hsl(var(--warmth-50))] px-2 py-0.5 rounded-full">
+                      <Flame className="w-3 h-3 text-[hsl(var(--warmth-500))]" strokeWidth={1.8} />
+                      {streak} visits
                     </span>
                   )}
                 </div>
@@ -241,13 +242,13 @@ export default function MindGymHub() {
       {/* Persistent crisis help */}
       <div className="fixed bottom-6 right-6 z-40">
         <Button
-          variant="destructive"
+          variant="warmth"
           size="sm"
           onClick={() => setCrisisOpen(true)}
-          className="flex items-center gap-2 shadow-lg rounded-full"
+          className="flex items-center gap-2 rounded-full shadow-none"
         >
-          <Phone className="w-4 h-4" />
-          Need Help?
+          <Phone className="w-4 h-4" strokeWidth={1.8} />
+          If you need someone
         </Button>
       </div>
 

@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SaveBar } from '@/components/shared/SaveBar';
 import { HELPLINE_CONTACTS } from '@/lib/types/profile';
 import type { UserProfile } from '@/lib/types/profile';
+import { profileSectionCard } from '@/components/profile/profileSurface';
+import { cn } from '@/lib/utils';
 
 interface EmergencyContactProps {
     profile: UserProfile | null;
@@ -45,7 +47,7 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
 
     if (loading) {
         return (
-            <Card className="bg-surface border-danger/20 shadow-sm rounded-2xl">
+            <Card className={cn(profileSectionCard, 'overflow-hidden ring-1 ring-[hsl(var(--danger))]/12')}>
                 <CardHeader>
                     <Skeleton className="h-6 w-44" />
                 </CardHeader>
@@ -63,15 +65,16 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
         >
-            <Card className="bg-surface border-danger/20 shadow-sm rounded-2xl ring-1 ring-danger/10">
+            <Card className={cn(profileSectionCard, 'overflow-hidden ring-1 ring-[hsl(var(--danger))]/15')}>
                 <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                        <ShieldAlert className="h-5 w-5 text-danger" />
-                        Emergency Contact
+                    <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-[hsl(var(--danger))]/90">Safety</p>
+                    <CardTitle className="mt-1 flex items-center gap-2 font-display text-xl font-normal tracking-tight text-ink-8">
+                        <ShieldAlert className="h-5 w-5 text-[hsl(var(--danger))]" strokeWidth={1.8} />
+                        Emergency contact
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                        <Heart className="h-3.5 w-3.5 text-danger/60" />
-                        This helps us keep you safe — yeh aapki suraksha ke liye hai
+                    <p className="flex items-center gap-1.5 text-sm leading-relaxed text-ink-5">
+                        <Heart className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--danger))]/70" strokeWidth={1.8} />
+                        Someone we can reach if you ever need help in a crisis.
                     </p>
                 </CardHeader>
 
@@ -112,8 +115,8 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
 
                     {/* Helplines */}
                     <div className="space-y-3">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            24/7 Helplines (always available)
+                        <p className="text-[13px] font-medium text-ink-6">
+                            Helplines — someone is there when you need them
                         </p>
                         {HELPLINE_CONTACTS.map(contact => (
                             <a
@@ -128,7 +131,7 @@ export function EmergencyContact({ profile, loading, saving, onSave }: Emergency
                                     <p className="text-sm font-semibold text-foreground">{contact.name}</p>
                                     <p className="text-xs text-muted-foreground">{contact.description}</p>
                                 </div>
-                                <span className="text-xs font-mono text-primary">{contact.phone}</span>
+                                <span className="text-[13px] font-medium tracking-wide text-[hsl(var(--accent-600))]">{contact.phone}</span>
                             </a>
                         ))}
                     </div>

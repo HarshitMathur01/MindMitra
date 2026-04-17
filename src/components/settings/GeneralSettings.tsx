@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SaveBar } from '@/components/shared/SaveBar';
 import { useTheme } from '@/context/ThemeContext';
 import type { UserSettings } from '@/lib/types/profile';
+import type { SupportedLanguage } from '@/lib/locale';
 
 interface GeneralSettingsProps {
     settings: UserSettings | null;
@@ -23,7 +24,7 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
         companion_name: '',
         avatar_personality: 'calm' as 'calm' | 'energetic' | 'analytical',
         reminder_time: '09:00',
-        language: 'english' as 'hindi' | 'english' | 'hinglish',
+        language: 'english' as SupportedLanguage,
     });
     const [hasChanges, setHasChanges] = useState(false);
 

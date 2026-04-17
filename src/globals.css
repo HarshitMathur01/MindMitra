@@ -33,63 +33,44 @@
 }
 
 :root {
-    /* Warm cream — base page background & surfaces */
-    --background: 35 40% 97%;
-    /* warm off-white ivory */
-    --surface: 35 38% 95%;
-    /* card surface, a step richer */
-    --crushed-silk: 35 38% 93%;
-    /* warm parchment mid-tone */
+    /* Warm oat — held space, sunlit paper */
+    --background: 34 38% 95%;
+    --surface: 32 30% 92%;
+    --crushed-silk: 30 22% 88%;
 
-    /* Brand teal — calm, trustworthy, grounding */
-    --primary: 188 51% 38%;
-    /* warm teal for buttons & accents */
-    --secondary: 173 35% 42%;
-    /* teal-green complement */
-    --accent: 35 50% 90%;
-    /* warm cream highlight for soft bgs */
+    /* Soft sage — calm, alive, never clinical teal */
+    --primary: 144 20% 38%;
+    --secondary: 144 16% 60%;
+    --accent: 18 50% 96%;       /* blush warmth */
 
-    /* Typography */
-    --text-primary: 196 33% 15%;
-    /* dark teal-gray */
-    --text-secondary: 197 17% 43%;
-    /* muted secondary */
+    /* Warm walnut text — never cool grey */
+    --text-primary: 24 18% 18%;
+    --text-secondary: 22 12% 40%;
 
-    /* Structural */
-    --border: 35 30% 87%;
-    /* warm light border */
+    --border: 26 12% 84%;
 
-    /* Semantic */
-    --danger: 353 66% 59%;
-    --success: 161 84% 38%;
-    --warning: 38 92% 50%;
-    --shadow: hsla(188, 30%, 15%, 0.08);
+    /* Semantic — muted, warm coral for crisis */
+    --danger: 10 48% 56%;
+    --success: 148 24% 38%;
+    --warning: 30 44% 54%;
+    --shadow: hsla(24, 18%, 18%, 0.06);
 }
 
 [data-theme="dark"] {
-    --background: 196 47% 9%;
-    /* deep teal-black */
-    --surface: 196 30% 17%;
-    /* cards — clear step above bg */
-    --crushed-silk: 196 24% 25%;
-    /* hover/input surfaces */
-    --primary: 188 55% 62%;
-    /* tonal-200 — pops on dark bg */
-    --secondary: 172 40% 60%;
-    /* vivid teal-green complement */
-    --accent: 196 22% 28%;
-    /* subtle accent surface */
-    --text-primary: 190 10% 95%;
-    /* near-white, minimal teal tint — crisp & bright */
-    --text-secondary: 188 16% 73%;
-    /* readable muted text — not muddy */
-    --border: 196 26% 27%;
-    /* visible borders, well above surface */
-    --danger: 354 100% 71%;
-    --success: 160 84% 49%;
-    --warning: 43 96% 56%;
-    --shadow: hsla(196, 65%, 4%, 0.55);
-    /* tinted deep teal shadow — not flat black */
+    /* Warm dim lamp light, not OLED black */
+    --background: 24 14% 9%;
+    --surface: 24 12% 12%;
+    --crushed-silk: 24 10% 16%;
+    --primary: 144 22% 64%;
+    --secondary: 144 18% 54%;
+    --accent: 14 26% 28%;
+    --text-primary: 32 18% 90%;
+    --text-secondary: 28 9% 62%;
+    --border: 24 9% 24%;
+    --danger: 10 56% 66%;
+    --success: 148 24% 56%;
+    --warning: 30 44% 62%;
+    --shadow: hsla(24, 50%, 2%, 0.55);
 }
 
 *,
@@ -443,36 +424,31 @@ img {
 }
 
 .mm-bubble--ai {
-    /* Cool-tinted near-white — perceptually distinct from the warm ivory page background.
-       Hue shift (188° teal) vs background (35° amber) creates immediate visual separation
-       even at near-identical lightness values. Combined with 3-layer shadow for elevation. */
-    background: hsl(188 30% 98%);
-    color: var(--text-primary);
-    border-radius: 4px 18px 18px 18px;
-    border: 1px solid hsl(188 28% 88%);
-    border-left: 3px solid hsl(188 51% 38% / 0.30);
-    max-width: 78%;
-    box-shadow:
-        0 1px 2px hsl(188 40% 15% / 0.04),
-        0 4px 12px hsl(188 40% 15% / 0.08),
-        0 12px 28px hsl(188 40% 15% / 0.04);
+    /* Borderless, warm — sits in the page like a continuation of the room. */
+    background: transparent;
+    color: hsl(var(--ink-7));
+    border-radius: 18px;
+    border: none;
+    max-width: 100%;
+    box-shadow: none;
 }
 
 .mm-bubble--user {
-    background: linear-gradient(135deg, hsl(188 55% 30%), hsl(168 50% 27%));
-    color: #ffffff;
+    /* Warm sand pill — reads as "your words on a sticky note", never a corporate fill */
+    background: hsl(var(--ink-2));
+    color: hsl(var(--ink-8));
     border-radius: 18px 18px 4px 18px;
-    max-width: 75%;
+    max-width: 78%;
     border: none;
-    box-shadow: 0 2px 10px hsl(188 50% 20% / 0.22);
+    box-shadow: none;
 }
 
 .mm-user-text {
-    font-size: 15px;
+    font-size: 15.5px;
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
-    color: #ffffff;
+    color: hsl(var(--ink-8));
 }
 
 .mm-bubble-time {
@@ -644,22 +620,16 @@ img {
    Dark mode refinements (already handled via CSS vars, but extras)
    ══════════════════════════════════════════════════════════════════ */
 [data-theme="dark"] .mm-bubble--ai {
-    background: hsl(188 22% 20%);
-    /* elevated above surface (17%) */
-    border-color: hsl(188 26% 30%);
-    /* visible against bg */
-    border-left-color: hsl(188 55% 62% / 0.50);
-    /* matches new --primary */
-    box-shadow:
-        0 1px 3px hsl(196 65% 3% / 0.22),
-        0 4px 14px hsl(188 55% 7% / 0.28),
-        0 16px 32px hsl(188 50% 5% / 0.18);
-    /* tinted shadow — depth without muddiness */
+    background: transparent;
+    color: hsl(var(--ink-7));
+    border: none;
+    box-shadow: none;
 }
 
 [data-theme="dark"] .mm-bubble--user {
-    background: linear-gradient(135deg, hsl(188 50% 25%), hsl(168 45% 22%));
-    box-shadow: 0 2px 10px hsl(188 50% 15% / 0.35);
+    background: hsl(var(--ink-3));
+    color: hsl(var(--ink-8));
+    box-shadow: none;
 }
 
 /* Voice recording radial pulse ring */

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -51,47 +52,40 @@ type WeekDay = {
 
 type HabitSort = "manual" | "streak" | "weekly";
 
-const categoryStyles: Record<
-    HabitCategory,
-    { soft: string; strong: string; bar: string; icon: JSX.Element }
-> = {
+const categoryStyles: Record<HabitCategory, { soft: string; bar: string; icon: JSX.Element }> = {
     Mindfulness: {
-        soft: "bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300",
-        strong: "bg-teal-500",
-        bar: "bg-teal-500",
-        icon: <Leaf className="h-4 w-4" />,
+        soft: "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-600))] dark:bg-[hsl(var(--accent-100))]/25 dark:text-[hsl(var(--accent-300))]",
+        bar: "bg-[hsl(var(--accent-500))]",
+        icon: <Leaf className="h-4 w-4 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-300))]" />,
     },
     Movement: {
-        soft: "bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-300",
-        strong: "bg-green-500",
-        bar: "bg-green-500",
-        icon: <Dumbbell className="h-4 w-4" />,
+        soft: "bg-[hsl(var(--warmth-100))] text-[hsl(var(--warmth-500))] dark:bg-[hsl(var(--warmth-100))]/22 dark:text-[hsl(var(--warmth-400))]",
+        bar: "bg-[hsl(var(--warmth-500))]",
+        icon: <Dumbbell className="h-4 w-4 text-[hsl(var(--warmth-500))] dark:text-[hsl(var(--warmth-400))]" />,
     },
     Reflection: {
-        soft: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
-        strong: "bg-amber-500",
-        bar: "bg-amber-500",
-        icon: <Heart className="h-4 w-4" />,
+        soft: "bg-[hsl(var(--ink-1))] text-ink-7 dark:bg-[hsl(var(--ink-2))] dark:text-ink-8",
+        bar: "bg-[hsl(var(--accent-400))]",
+        icon: <Heart className="h-4 w-4 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" />,
     },
     Sleep: {
-        soft: "bg-indigo-50 text-indigo-500 dark:bg-indigo-500/15 dark:text-indigo-300",
-        strong: "bg-indigo-400",
-        bar: "bg-indigo-400",
-        icon: <MoonStar className="h-4 w-4" />,
+        soft: "bg-[hsl(var(--accent-50))] text-[hsl(var(--accent-700))] dark:bg-[hsl(var(--ink-2))] dark:text-ink-8",
+        bar: "bg-[hsl(var(--accent-600))]",
+        icon: <MoonStar className="h-4 w-4 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" />,
     },
     Social: {
-        soft: "bg-pink-50 text-pink-600 dark:bg-pink-500/15 dark:text-pink-300",
-        strong: "bg-pink-500",
-        bar: "bg-pink-500",
-        icon: <Users className="h-4 w-4" />,
+        soft: "bg-[hsl(var(--warmth-50))] text-[hsl(var(--warmth-500))] dark:bg-[hsl(var(--warmth-50))]/15 dark:text-[hsl(var(--warmth-400))]",
+        bar: "bg-[hsl(var(--warmth-400))]",
+        icon: <Users className="h-4 w-4 text-[hsl(var(--warmth-500))] dark:text-[hsl(var(--warmth-400))]" />,
     },
     Nutrition: {
-        soft: "bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300",
-        strong: "bg-orange-500",
-        bar: "bg-orange-500",
-        icon: <Footprints className="h-4 w-4" />,
+        soft: "bg-[hsl(var(--accent-100))]/80 text-[hsl(var(--accent-700))] dark:bg-[hsl(var(--accent-100))]/20 dark:text-[hsl(var(--accent-300))]",
+        bar: "bg-[hsl(var(--accent-500))]",
+        icon: <Footprints className="h-4 w-4 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-300))]" />,
     },
 };
+
+const pageEyebrowClass = "text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5";
 
 const initialHabits: HabitItem[] = [
     { id: "breathing", emoji: "🌬️", name: "Breathing exercise", category: "Mindfulness", duration: "3 min", weeklyDone: 4, streak: 5, completedToday: false },
@@ -247,14 +241,7 @@ export default function HealthyHabits() {
     };
 
     return (
-        <div className="relative min-h-screen text-foreground"
-            style={{
-                backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.92) 100%), url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1800&auto=format&fit=crop&q=80')",
-                backgroundSize: "cover",
-                backgroundPosition: "center top",
-                backgroundAttachment: "fixed",
-            }}
-        >
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
             {/* Milestone toast */}
             <AnimatePresence>
                 {showMilestone && (
@@ -262,46 +249,54 @@ export default function HealthyHabits() {
                         initial={{ opacity: 0, y: 20, scale: 0.92 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -16, scale: 0.96 }}
-                        className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-[24px] bg-card px-6 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.18)] text-center"
+                        className="fixed bottom-8 left-1/2 z-50 w-[min(100%,20rem)] -translate-x-1/2 rounded-[1.5rem] border border-ink-3/40 bg-[hsl(var(--card))] px-6 py-4 text-center shadow-dashboard-soft dark:border-ink-3/30"
                     >
                         <p className="text-2xl">🎊</p>
-                        <p className="mt-1 text-sm font-bold text-foreground">7-day streak unlocked!</p>
-                        <p className="text-xs text-muted-foreground">This rhythm is your new normal.</p>
+                        <p className="mt-1 text-sm font-semibold text-ink-8">7-day streak unlocked!</p>
+                        <p className="text-xs text-ink-5">This rhythm is your new normal.</p>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Sticky header */}
-            <div className="sticky top-0 z-20 flex items-center gap-3 bg-white/80 dark:bg-background/80 px-5 py-3 backdrop-blur">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card shadow-sm transition-transform hover:scale-105 active:scale-95"
-                    aria-label="Go back"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                </button>
-                <div className="flex-1">
-                    <h1 className="text-[17px] font-bold leading-tight">Healthy Habits</h1>
-                    <p className="text-[11px] text-muted-foreground">Small steps, big shifts</p>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-500/15 px-3 py-1.5">
-                    <Flame className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{bestStreak}d</span>
-                </div>
-            </div>
+            <main
+                className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8"
+                style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" }}
+            >
+                <header className="flex items-start gap-3">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="mt-0.5 shrink-0 rounded-full text-ink-7 hover:bg-[hsl(var(--ink-1))]"
+                        onClick={() => navigate(-1)}
+                        aria-label="Go back"
+                    >
+                        <ArrowLeft className="h-5 w-5 stroke-[1.6]" />
+                    </Button>
+                    <div className="min-w-0 flex-1">
+                        <p className={pageEyebrowClass}>Rhythm</p>
+                        <h1 className="font-display text-[clamp(1.65rem,4vw,2.25rem)] font-normal tracking-tight text-ink-8">
+                            Healthy habits
+                        </h1>
+                        <p className="mt-1 text-sm leading-relaxed text-ink-5">Small steps, big shifts.</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-ink-3/40 bg-[hsl(var(--card))] px-3 py-1.5 shadow-dashboard-soft">
+                        <Flame className="h-3.5 w-3.5 text-[hsl(var(--accent-600))]" strokeWidth={1.6} />
+                        <span className="text-xs font-semibold tabular-nums text-ink-7">{bestStreak}d</span>
+                    </div>
+                </header>
 
-            <div className="px-5 pb-16 space-y-5">
-
+                <div className="flex flex-col gap-8">
                 {/* ── Hero stats ── */}
-                <div className="rounded-[28px] bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 dark:from-amber-500/10 dark:via-orange-500/10 dark:to-rose-500/10 p-5 shadow-sm border border-amber-200/60 dark:border-amber-500/20">
+                <div className="rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft dark:border-ink-3/30">
                     <div className="flex items-center gap-4">
                         {/* Ring */}
                         <div className="relative shrink-0">
                             <svg className="-rotate-90" width={circleSize} height={circleSize} viewBox={`0 0 ${circleSize} ${circleSize}`}>
-                                <circle cx={circleSize / 2} cy={circleSize / 2} r={circleRadius} className="fill-none stroke-white/60 dark:stroke-white/10" strokeWidth="7" />
+                                <circle cx={circleSize / 2} cy={circleSize / 2} r={circleRadius} className="fill-none stroke-[hsl(var(--ink-2))]" strokeWidth="7" />
                                 <motion.circle
                                     cx={circleSize / 2} cy={circleSize / 2} r={circleRadius}
-                                    className="fill-none stroke-amber-500"
+                                    className="fill-none stroke-[hsl(var(--accent-500))]"
                                     strokeWidth="7" strokeLinecap="round"
                                     strokeDasharray={circleCircumference}
                                     animate={{ strokeDashoffset: circleCircumference - (completionPercent / 100) * circleCircumference }}
@@ -309,16 +304,16 @@ export default function HealthyHabits() {
                                 />
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-lg font-bold leading-none">{completionPercent}%</span>
-                                <span className="text-[9px] text-muted-foreground">today</span>
+                                <span className="text-lg font-semibold tabular-nums leading-none text-ink-8">{completionPercent}%</span>
+                                <span className="text-[9px] text-ink-5">today</span>
                             </div>
                         </div>
                         {/* Stats */}
                         <div className="flex-1">
-                            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1">
-                                <Sparkles className="h-3 w-3" /> Daily focus
+                            <p className="flex items-center gap-1 text-xs font-medium text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">
+                                <Sparkles className="h-3 w-3" strokeWidth={1.6} /> Daily focus
                             </p>
-                            <p className="mt-1 text-base font-bold text-foreground leading-snug">
+                            <p className="mt-1 font-display text-lg font-normal leading-snug text-ink-8">
                                 {allDone ? "All done! You crushed today 🎉" : "Your rhythm is taking shape"}
                             </p>
                             <div className="mt-3 flex gap-3">
@@ -350,10 +345,10 @@ export default function HealthyHabits() {
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
                                 className={cn(
-                                    "shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150",
+                                    "shrink-0 rounded-full border px-4 py-1.5 text-xs font-medium transition-all duration-150",
                                     activeCategory === cat
-                                        ? "bg-foreground text-background"
-                                        : "bg-card border border-border text-muted-foreground hover:bg-accent"
+                                        ? "border-[hsl(var(--accent-400))] bg-[hsl(var(--accent-100))] text-ink-8 dark:border-[hsl(var(--accent-500))]/50 dark:bg-[hsl(var(--accent-100))]/20 dark:text-ink-8"
+                                        : "border-ink-3/40 bg-[hsl(var(--card))] text-ink-5 hover:border-ink-3/60 hover:bg-[hsl(var(--ink-1))]"
                                 )}
                             >
                                 {cat}
@@ -387,18 +382,18 @@ export default function HealthyHabits() {
                 </div>
 
                 {/* ── Today's Habits ── */}
-                <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-base font-semibold">Today&apos;s Habits</h2>
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                        <h2 className="font-display text-xl font-normal tracking-tight text-ink-8">Today&apos;s habits</h2>
                         {allDone && (
-                            <span className="rounded-full bg-green-100 dark:bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-700 dark:text-green-300">
+                            <span className="rounded-full border border-[hsl(var(--accent-300))]/50 bg-[hsl(var(--accent-100))] px-3 py-1 text-[11px] font-medium text-[hsl(var(--accent-700))] dark:border-[hsl(var(--accent-500))]/30 dark:bg-[hsl(var(--accent-100))]/20 dark:text-[hsl(var(--accent-300))]">
                                 All done! 🎉
                             </span>
                         )}
                     </div>
 
                     {visibleHabits.length === 0 ? (
-                        <div className="rounded-[24px] border border-dashed border-border bg-card px-5 py-10 text-center text-sm text-muted-foreground">
+                        <div className="rounded-[1.5rem] border border-dashed border-ink-3/50 bg-[hsl(var(--card))] px-5 py-10 text-center text-sm text-ink-5 shadow-dashboard-soft">
                             No habits match. Add your first one below.
                         </div>
                     ) : (
@@ -410,8 +405,8 @@ export default function HealthyHabits() {
                                 return (
                                     <motion.article layout key={habit.id}
                                         className={cn(
-                                            "rounded-[24px] border border-border bg-card shadow-sm overflow-hidden transition-colors",
-                                            habit.completedToday && "bg-green-50/60 dark:bg-green-500/10 border-green-200/60 dark:border-green-500/20"
+                                            "overflow-hidden rounded-[1.5rem] border border-ink-3/40 bg-[hsl(var(--card))] shadow-dashboard-soft transition-colors dark:border-ink-3/30",
+                                            habit.completedToday && "border-[hsl(var(--accent-400))]/45 bg-[hsl(var(--accent-50))] dark:border-[hsl(var(--accent-500))]/35 dark:bg-[hsl(var(--accent-100))]/15"
                                         )}
                                     >
                                         <div className="flex items-center gap-3 p-4">
@@ -425,7 +420,7 @@ export default function HealthyHabits() {
                                                 <p className="truncate text-sm font-semibold">{habit.name}</p>
                                                 <p className="text-[11px] text-muted-foreground mt-0.5">
                                                     {habit.category}{habit.duration ? ` · ${habit.duration}` : ""}
-                                                    {habit.streak > 0 && <span className="ml-2 text-amber-600 dark:text-amber-400">🔥 {habit.streak}d</span>}
+                                                    {habit.streak > 0 && <span className="ml-2 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">🔥 {habit.streak}d</span>}
                                                 </p>
                                                 {/* Weekly progress bar */}
                                                 <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-border/50">
@@ -460,8 +455,8 @@ export default function HealthyHabits() {
                                                     className={cn(
                                                         "flex h-10 w-10 items-center justify-center rounded-2xl border-2 transition-colors",
                                                         habit.completedToday
-                                                            ? "border-green-500 bg-green-500 text-white"
-                                                            : "border-border bg-background"
+                                                            ? "border-[hsl(var(--accent-500))] bg-[hsl(var(--accent-500))] text-white"
+                                                            : "border-ink-3/50 bg-[hsl(var(--ink-1))]"
                                                     )}
                                                 >
                                                     <AnimatePresence mode="wait">
@@ -536,8 +531,8 @@ export default function HealthyHabits() {
                 </section>
 
                 {/* ── Streak Calendar ── */}
-                <section className="rounded-[24px] bg-card p-5 shadow-sm border border-border">
-                    <h2 className="mb-4 text-base font-semibold">Streak Calendar</h2>
+                <section className="rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft dark:border-ink-3/30">
+                    <h2 className="mb-4 font-display text-xl font-normal tracking-tight text-ink-8">Streak calendar</h2>
                     <div className="grid grid-cols-7 gap-2">
                         {weekData.map((day) => (
                             <button
@@ -546,10 +541,10 @@ export default function HealthyHabits() {
                                 onClick={() => setSelectedDay(selectedDay?.id === day.id ? null : day)}
                                 className={cn(
                                     "h-10 rounded-full text-xs font-semibold transition-all duration-150",
-                                    day.isToday && "ring-2 ring-amber-400 ring-offset-2 ring-offset-background",
-                                    day.status === "completed" && "bg-green-500 text-white",
-                                    day.status === "missed" && "bg-muted text-muted-foreground",
-                                    day.status === "future" && "border border-border bg-background text-foreground",
+                                    day.isToday && "ring-2 ring-[hsl(var(--accent-400))] ring-offset-2 ring-offset-[hsl(var(--background))]",
+                                    day.status === "completed" && "bg-[hsl(var(--accent-500))] text-white",
+                                    day.status === "missed" && "bg-[hsl(var(--ink-2))] text-ink-5",
+                                    day.status === "future" && "border border-ink-3/50 bg-[hsl(var(--ink-1))] text-ink-7",
                                     selectedDay?.id === day.id && "scale-95"
                                 )}
                             >
@@ -574,7 +569,7 @@ export default function HealthyHabits() {
                                     {selectedDay.doneHabits.length > 0 ? (
                                         selectedDay.doneHabits.map((name) => (
                                             <div key={name} className="flex items-center gap-2 rounded-2xl bg-background px-3 py-2 text-sm">
-                                                <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                                <Check className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--accent-600))]" strokeWidth={1.8} />
                                                 {name}
                                             </div>
                                         ))
@@ -590,9 +585,9 @@ export default function HealthyHabits() {
                 </section>
 
                 {/* ── Category bars ── */}
-                <section className="rounded-[24px] bg-card p-5 shadow-sm border border-border">
-                    <p className="mb-4 flex items-center gap-2 text-sm font-semibold">
-                        <BarChart3 className="h-4 w-4 text-emerald-500" />
+                <section className="rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft dark:border-ink-3/30">
+                    <p className="mb-4 flex items-center gap-2 text-sm font-medium text-ink-8">
+                        <BarChart3 className="h-4 w-4 text-[hsl(var(--accent-600))]" strokeWidth={1.6} />
                         Category completion
                     </p>
                     <div className="space-y-3">
@@ -619,16 +614,25 @@ export default function HealthyHabits() {
                 </section>
 
                 {/* ── Streak nudge ── */}
-                <div className={cn(
-                    "rounded-[24px] p-5 border",
-                    streakBroken
-                        ? "bg-rose-50 dark:bg-rose-500/10 border-rose-200/60 dark:border-rose-500/20"
-                        : "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/60 dark:border-emerald-500/20"
-                )}>
-                    <p className={cn("text-xs font-semibold mb-1", streakBroken ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400")}>
+                <div
+                    className={cn(
+                        "rounded-[1.75rem] border p-6 shadow-dashboard-soft",
+                        streakBroken
+                            ? "border-[hsl(var(--warmth-300))]/50 bg-[hsl(var(--warmth-50))] dark:border-[hsl(var(--warmth-400))]/25 dark:bg-[hsl(var(--ink-2))]"
+                            : "border-ink-3/40 bg-[hsl(var(--accent-50))] dark:border-[hsl(var(--accent-500))]/20 dark:bg-[hsl(var(--accent-100))]/12"
+                    )}
+                >
+                    <p
+                        className={cn(
+                            "mb-1 text-xs font-semibold uppercase tracking-wide",
+                            streakBroken
+                                ? "text-[hsl(var(--warmth-500))] dark:text-[hsl(var(--warmth-400))]"
+                                : "text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]"
+                        )}
+                    >
                         {streakBroken ? "Streak reminder" : "No broken streaks 🌱"}
                     </p>
-                    <p className="text-sm text-foreground">
+                    <p className="text-sm leading-relaxed text-ink-7">
                         {streakBroken
                             ? "It's okay. Every day is a fresh start. Tap a habit to check it off."
                             : "No broken streaks right now. Keep this momentum going."}
@@ -636,9 +640,9 @@ export default function HealthyHabits() {
                 </div>
 
                 {/* ── Daily quote ── */}
-                <section className="rounded-[24px] bg-gradient-to-br from-emerald-100 via-amber-50 to-white p-5 border border-emerald-100 dark:from-emerald-500/20 dark:via-amber-500/15 dark:to-card dark:border-emerald-500/20">
-                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Daily note</p>
-                    <p className="mt-2 text-base font-semibold text-foreground">"{quoteOfTheDay}"</p>
+                <section className="rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--warmth-50))] p-6 shadow-dashboard-soft dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">Daily note</p>
+                    <p className="mt-3 font-display text-lg font-normal leading-snug text-ink-8">&ldquo;{quoteOfTheDay}&rdquo;</p>
                     <div className="mt-4 flex items-center justify-between">
                         <p className="text-[11px] text-muted-foreground">Shared by your companion</p>
                         <Avatar className="h-8 w-8 border border-white/60 shadow-sm">
@@ -653,7 +657,7 @@ export default function HealthyHabits() {
                     {!showAddForm ? (
                         <button
                             onClick={handleShowAddForm}
-                            className="flex w-full items-center justify-center gap-2 rounded-[24px] border-2 border-dashed border-border py-5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                            className="flex w-full items-center justify-center gap-2 rounded-[1.5rem] border-2 border-dashed border-ink-3/50 py-5 text-sm font-medium text-ink-5 transition-colors hover:border-[hsl(var(--accent-400))] hover:text-[hsl(var(--accent-600))]"
                         >
                             <Plus className="h-4 w-4" />
                             Add new habit
@@ -747,14 +751,15 @@ export default function HealthyHabits() {
                             <button
                                 onClick={addHabit}
                                 disabled={!newHabitName.trim()}
-                                className="flex h-11 w-full items-center justify-center rounded-2xl bg-foreground text-sm font-semibold text-background disabled:opacity-40 disabled:cursor-not-allowed transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                                className="flex h-11 w-full items-center justify-center rounded-2xl bg-[hsl(var(--accent-500))] text-sm font-semibold text-white transition-colors hover:bg-[hsl(var(--accent-600))] disabled:cursor-not-allowed disabled:opacity-40"
                             >
                                 Save habit
                             </button>
                         </motion.div>
                     )}
                 </div>
-            </div>
+                </div>
+            </main>
         </div>
     );
 }

@@ -75,6 +75,20 @@ const loadingPhases = [
   "Putting it into words",
 ];
 
+/** Slow, low-bounce spring for message bubbles — readable, not performative */
+const CHAT_MESSAGE_SPRING = {
+  type: "spring" as const,
+  stiffness: 38,
+  damping: 38,
+  mass: 1.25,
+};
+const CHAT_SOFT_SPRING = {
+  type: "spring" as const,
+  stiffness: 44,
+  damping: 40,
+  mass: 1.15,
+};
+
 type MoodOption = {
   emoji: string;
   label: string;
@@ -224,7 +238,7 @@ const RecentChatItem = ({
     <motion.div
       layout="position"
       initial={false}
-      transition={{ duration: 0.28, ease: "easeOut" }}
+      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
     >
       <Button
         variant="ghost"
@@ -237,7 +251,7 @@ const RecentChatItem = ({
       >
         <div className="min-w-0 w-full">
           <p className="truncate leading-tight text-sm font-medium">{chat.title}</p>
-          <p className="text-xs text-muted-foreground/70 mt-0.5">{displayMessageCount} msgs</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">{displayMessageCount} messages</p>
         </div>
       </Button>
     </motion.div>
@@ -385,7 +399,7 @@ const ChatGPTInterface = () => {
   }, [isLoading]);
 
   const loadingPhase = loadingPhases[Math.min(Math.floor(loadingProgress / 33), loadingPhases.length - 1)] ?? loadingPhases[0];
-  const headerStatusText = isLoading ? loadingPhase : 'Online';
+  const headerStatusText = isLoading ? loadingPhase : 'here when you are';
 
   // Signal to PersonalitySelector that a chat session is open (enables mid-session switch warning)
   useEffect(() => {
@@ -1257,30 +1271,30 @@ const ChatGPTInterface = () => {
     <div className="flex h-dvh max-h-dvh min-h-0 bg-background text-foreground relative overflow-hidden">
       {/* Sidebar */}
       <motion.div
-        initial={{ x: -100, opacity: 0 }}
+        initial={{ x: -24, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-        className={`${sidebarCollapsed ? 'w-0' : 'w-72'} transition-all duration-200 bg-surface text-foreground flex flex-col min-h-0 border-r border-border overflow-hidden`}
+        transition={CHAT_SOFT_SPRING}
+        className={`${sidebarCollapsed ? 'w-0' : 'w-72'} transition-all duration-base bg-surface text-foreground flex flex-col min-h-0 border-r border-border overflow-hidden`}
       >
         <div className="p-4 border-b border-border bg-surface">
           <Button
             onClick={startNewChat}
-            className="w-full h-11 rounded-xl justify-start gap-2 text-sm font-semibold shadow-card hover:shadow-card-hover transition-all duration-200"
+            className="w-full h-11 justify-start gap-2 text-[14px] font-medium"
             variant="default"
           >
-            <Plus className="h-4 w-4" />
-            New chat
+            <Plus className="h-4 w-4" strokeWidth={1.8} />
+            A new conversation
           </Button>
         </div>
 
         <div className="p-4 border-b border-border/80">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" strokeWidth={1.8} />
             <Input
-              placeholder="Search chats..."
+              placeholder="Look back at something you said"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-11 rounded-xl pl-10 bg-background border border-input text-foreground placeholder:text-muted-foreground text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="h-11 rounded-full pl-10 bg-background border border-input text-foreground placeholder:text-muted-foreground text-[14px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
           </div>
         </div>
@@ -1299,33 +1313,33 @@ const ChatGPTInterface = () => {
               Home
             </Button>
 
-            {/* Recent Chats — grouped by date */}
+            {/* Recent conversations — soft labels, sentence case */}
             <div className="pt-1 pb-1">
               <div className="flex items-center justify-between px-1 mb-2">
-                <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider">
-                  Recent Chats
+                <h3 className="text-[13px] font-medium text-ink-6">
+                  what you've talked about
                 </h3>
               </div>
               <div className="space-y-0.5 max-h-52 overflow-y-auto custom-scrollbar pr-1">
                 {loadingChats ? (
                   <div className="space-y-2 py-2 px-1">
-                    <Skeleton className="h-9 w-full bg-surface/50 rounded-xl" />
-                    <Skeleton className="h-9 w-[80%] bg-surface/50 rounded-xl" />
-                    <Skeleton className="h-9 w-full bg-surface/50 rounded-xl" />
+                    <Skeleton className="h-9 w-full bg-ink-2 rounded-full" />
+                    <Skeleton className="h-9 w-[80%] bg-ink-2 rounded-full" />
+                    <Skeleton className="h-9 w-full bg-ink-2 rounded-full" />
                   </div>
                 ) : recentChats.length === 0 ? (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-3 py-2 text-sm text-muted-foreground italic">
-                    No recent chats
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-3 py-2 text-[13px] text-ink-5">
+                    Nothing here yet. That's okay.
                   </motion.div>
                 ) : (
                   <AnimatePresence initial={false} mode="popLayout">
                     {(["today", "yesterday", "earlier"] as const).map((group) => {
                       const chats = groupedChats[group];
                       if (!chats.length) return null;
-                      const label = group === "today" ? "Today" : group === "yesterday" ? "Yesterday" : "Earlier";
+                      const label = group === "today" ? "today" : group === "yesterday" ? "yesterday" : "earlier";
                       return (
                         <div key={group}>
-                          <span className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/55 px-3 pt-2 pb-1">{label}</span>
+                          <span className="block text-[12px] text-ink-5 px-3 pt-2 pb-1">{label}</span>
                           {chats.map((chat) => (
                             <RecentChatItem
                               key={chat.id}
@@ -1343,17 +1357,16 @@ const ChatGPTInterface = () => {
               </div>
             </div>
 
-            {/* Quick Topics */}
             <div className="pt-1 pb-1">
-              <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider px-1 mb-2">
-                Quick Topics
+              <h3 className="text-[13px] font-medium text-ink-6 px-1 mb-2">
+                if you're not sure where to start
               </h3>
               <div className="space-y-0.5">
                 {quickCategories.map((category) => (
                   <Button
                     key={category.label}
                     variant="ghost"
-                    className="w-full justify-start px-3 hover:bg-muted/40 text-sm py-1 h-9 rounded-xl transition-all duration-200"
+                    className="w-full justify-start px-3 hover:bg-muted/40 text-[14px] py-1 h-9 transition-all duration-200"
                     onClick={() => handleSendMessage(`Tell me about ${category.label.toLowerCase()}`)}
                   >
                     <span className="w-5 h-5 mr-2 flex items-center justify-center text-lg flex-shrink-0">{category.icon}</span>
@@ -1363,17 +1376,16 @@ const ChatGPTInterface = () => {
               </div>
             </div>
 
-            {/* Suggested */}
             <div className="pt-1 pb-1">
-              <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider px-1 mb-2">
-                Suggested
+              <h3 className="text-[13px] font-medium text-ink-6 px-1 mb-2">
+                Some things people ask
               </h3>
               <div className="space-y-0.5">
                 {suggestedPrompts.slice(0, 3).map((prompt, index) => (
                   <Button
                     key={index}
                     variant="ghost"
-                    className="w-full justify-start px-3 text-muted-foreground hover:bg-muted/40 hover:text-foreground text-sm p-2.5 h-auto leading-tight rounded-xl transition-all duration-200"
+                    className="w-full justify-start px-3 text-muted-foreground hover:bg-muted/40 hover:text-foreground text-[13.5px] p-2.5 h-auto leading-[1.45] text-left transition-all duration-200"
                     onClick={() => handleSendMessage(prompt)}
                   >
                     <span className="text-left line-clamp-2">
@@ -1390,27 +1402,27 @@ const ChatGPTInterface = () => {
           <div className="flex-shrink-0 border-t border-border pt-2 bg-surface px-3">
             <div className="flex items-center justify-between px-1 py-2">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-xs">
-                  <User className="h-3 w-3 text-primary-foreground" />
+                <div className="w-7 h-7 rounded-full bg-[hsl(var(--accent-100))] flex items-center justify-center">
+                  <User className="h-3.5 w-3.5 text-[hsl(var(--accent-600))]" strokeWidth={1.8} />
                 </div>
-                <span className="text-sm text-muted-foreground truncate max-w-[170px]">
-                  {user?.email?.split('@')[0] || 'User'}
+                <span className="text-[13px] text-ink-6 truncate max-w-[170px]">
+                  {user?.email?.split('@')[0] || 'you'}
                 </span>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-background transition-colors">
-                    <MoreVertical className="h-3 w-3" />
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-ink-5 hover:text-ink-7 hover:bg-background transition-colors">
+                    <MoreVertical className="h-3.5 w-3.5" strokeWidth={1.8} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <Settings className="h-4 w-4 mr-2" />
+                    <Settings className="h-4 w-4 mr-2" strokeWidth={1.8} />
                     Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Sign Out
+                    <Download className="h-4 w-4 mr-2" strokeWidth={1.8} />
+                    Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1423,9 +1435,9 @@ const ChatGPTInterface = () => {
       <div className="flex-1 flex flex-col min-h-0 min-w-0">
         {/* Enhanced Chat Header with Glassmorphism */}
         <motion.div
-          initial={{ y: -20, opacity: 0 }}
+          initial={{ y: -8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          transition={CHAT_SOFT_SPRING}
           className="border-b border-border bg-card/95 backdrop-blur p-3 sm:p-4 flex items-center justify-between gap-2 min-w-0"
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -1456,8 +1468,8 @@ const ChatGPTInterface = () => {
                 className="text-left"
                 aria-label="Go to home"
               >
-                <h1 className="text-base sm:text-lg font-semibold text-foreground leading-tight">MindMitra</h1>
-                <p className="text-[11px] text-muted-foreground leading-none">{headerStatusText}</p>
+                <h1 className="font-display text-[16px] sm:text-[17px] font-normal text-ink-8 leading-tight">MindMitra</h1>
+                <p className="text-[11.5px] text-ink-5 leading-none mt-0.5">{headerStatusText}</p>
               </button>
             </div>
           </div>
@@ -1589,10 +1601,10 @@ const ChatGPTInterface = () => {
               <AnimatePresence>
                 {avatarCurrentMessage?.text && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={CHAT_MESSAGE_SPRING}
                     className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none z-10"
                   >
                     <div className="bg-foreground/80 backdrop-blur rounded-xl px-4 py-3 mx-2 max-h-24 overflow-hidden">
@@ -1622,13 +1634,13 @@ const ChatGPTInterface = () => {
                 {filteredMessages.length <= 1 && !moodSelected && (
                   <motion.div
                     key="mood-widget"
-                    initial={{ opacity: 0, y: 16 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                    transition={{ duration: 0.35 }}
-                    className="mx-auto max-w-sm bg-card border border-border rounded-2xl p-5 text-center space-y-3 shadow-card"
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={CHAT_MESSAGE_SPRING}
+                    className="mx-auto max-w-sm rounded-[24px] bg-[hsl(var(--warmth-50))] p-6 text-center space-y-4"
                   >
-                    <p className="text-sm font-semibold text-foreground">How are you feeling right now?</p>
+                    <p className="text-[15px] text-ink-7">How are you, right now?</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {moodOptions.map(({ emoji, label, value }) => (
                         <button
@@ -1644,9 +1656,9 @@ const ChatGPTInterface = () => {
                     </div>
                     <button
                       onClick={() => setMoodSelected(true)}
-                      className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                      className="text-[12px] text-ink-5 hover:text-ink-7 transition-colors"
                     >
-                      Skip
+                      Maybe later
                     </button>
                   </motion.div>
                 )}
@@ -1693,10 +1705,10 @@ const ChatGPTInterface = () => {
                           </div>
                         )}
                         <motion.div
-                          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.3 }}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          transition={CHAT_MESSAGE_SPRING}
                           className="group"
                         >
                           {message.sender === "ai" ? (
@@ -1707,8 +1719,8 @@ const ChatGPTInterface = () => {
                                 </div>
                               </div>
                               <div className="flex-1 flex flex-col items-start space-y-2 min-w-0">
-                                <div className="bg-card border border-border rounded-2xl shadow-card px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
-                                  <div className="text-sm leading-6 text-foreground break-words">
+                                <div className="rounded-[18px] rounded-tl-md bg-ink-1 px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
+                                  <div className="text-[15px] leading-[1.55] text-ink-8 break-words">
                                     <MessageRenderer content={message.content} />
                                   </div>
                                 </div>
@@ -1769,8 +1781,8 @@ const ChatGPTInterface = () => {
                           ) : (
                             <div className="flex gap-3 justify-end items-start">
                               <div className="flex-1 flex flex-col items-end">
-                                <div className="bg-primary text-primary-foreground rounded-2xl shadow-xs px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
-                                  <span className="text-sm leading-6 whitespace-pre-wrap break-words">{message.content}</span>
+                                <div className="bg-ink-2 text-ink-8 rounded-[18px] rounded-tr-md px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
+                                  <span className="text-[15px] leading-[1.55] whitespace-pre-wrap break-words">{message.content}</span>
                                 </div>
                                 <div className="flex items-center justify-end gap-2 mt-1">
                                   <DropdownMenu>
@@ -1804,7 +1816,7 @@ const ChatGPTInterface = () => {
                                 {userAvatarUrl ? (
                                   <img src={userAvatarUrl} alt={userDisplayName} className="h-9 w-9 rounded-full object-cover border border-border" />
                                 ) : (
-                                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[13px] font-medium text-[hsl(var(--accent-600))]">
                                     {userInitial}
                                   </span>
                                 )}
@@ -1821,9 +1833,10 @@ const ChatGPTInterface = () => {
               {/* Typing Indicator */}
               {isLoading && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={CHAT_MESSAGE_SPRING}
                   className="flex gap-3 items-start"
                 >
                   <div className="flex-shrink-0">
@@ -1831,12 +1844,12 @@ const ChatGPTInterface = () => {
                       <img src="/image6.png" alt="AI companion" className="h-7 w-7 rounded-full object-cover" />
                     </div>
                   </div>
-                  <div className="bg-card border border-border rounded-2xl shadow-card px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
-                    <p className="text-xs text-muted-foreground">{loadingPhase}</p>
+                  <div className="px-2 py-2 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
+                    <p className="text-[12px] text-ink-5">{loadingPhase}</p>
                     <div className="mt-2 flex items-center gap-1.5" aria-hidden="true">
-                      <motion.div className="h-2 w-2 rounded-full bg-muted-foreground/60" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0 }} />
-                      <motion.div className="h-2 w-2 rounded-full bg-muted-foreground/60" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.15 }} />
-                      <motion.div className="h-2 w-2 rounded-full bg-muted-foreground/60" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }} />
+                      <motion.div className="h-1.5 w-1.5 rounded-full bg-ink-5" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0 }} />
+                      <motion.div className="h-1.5 w-1.5 rounded-full bg-ink-5" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }} />
+                      <motion.div className="h-1.5 w-1.5 rounded-full bg-ink-5" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }} />
                     </div>
                   </div>
                 </motion.div>
@@ -1850,11 +1863,12 @@ const ChatGPTInterface = () => {
               {showScrollBtn && (
                 <motion.button
                   key="scroll-btn"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={CHAT_SOFT_SPRING}
                   onClick={scrollToBottom}
-                  className="fixed z-30 w-10 h-10 rounded-full bg-card border border-border text-foreground shadow-card flex items-center justify-center hover:bg-muted/40 transition-colors right-4 sm:right-6 bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
+                  className="fixed z-30 w-10 h-10 rounded-full bg-card border border-border text-foreground flex items-center justify-center hover:bg-muted/50 transition-colors duration-base right-4 sm:right-6 bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </motion.button>
@@ -1864,19 +1878,19 @@ const ChatGPTInterface = () => {
         </div>
         {/* Input bar */}
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
+          initial={{ y: 12, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          transition={CHAT_SOFT_SPRING}
           className="sticky bottom-0 z-20 shrink-0 border-t border-border bg-card/95 backdrop-blur p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]"
         >
-          <div className="max-w-4xl mx-auto">
-            <div className="relative">
+          <div className="max-w-3xl mx-auto">
+            <div className="chat-input relative rounded-full bg-background border border-input transition-all duration-base">
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Message MindMitra..."
-                className="pr-20 h-12 text-sm rounded-2xl bg-background border border-input text-foreground placeholder:text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                placeholder="Take your time…"
+                className="pr-24 h-12 text-[15px] rounded-full bg-transparent border-0 text-foreground placeholder:text-ink-5 shadow-none focus-visible:outline-none focus-visible:ring-0"
                 disabled={isLoading}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -1884,29 +1898,32 @@ const ChatGPTInterface = () => {
                   size="sm"
                   variant="ghost"
                   className={`h-9 w-9 p-0 rounded-full transition-all duration-200 ${isRecording
-                    ? 'text-danger bg-danger/10 hover:bg-danger/20 voice-recording-active'
+                    ? 'text-[hsl(var(--warmth-500))] bg-[hsl(var(--warmth-100))] hover:bg-[hsl(var(--warmth-200))]'
                     : 'hover:bg-muted/40'
                     }`}
                   onClick={handleVoiceInput}
                   disabled={isProcessing || isLoading}
-                  aria-label={isRecording ? 'Stop recording' : 'Start voice recording'}
+                  aria-label={isRecording ? 'Stop recording' : 'Speak instead'}
                 >
                   {isProcessing ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-[hsl(var(--accent-500))] border-t-transparent" />
                   ) : (
-                    <Mic className="h-4 w-4" />
+                    <Mic className="h-4 w-4" strokeWidth={1.8} />
                   )}
                 </Button>
                 <Button
                   onClick={() => handleSendMessage()}
                   disabled={!inputValue.trim() || isLoading}
-                  className="h-9 w-9 p-0 rounded-full shadow-xs transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Send message"
+                  className="h-9 w-9 p-0 rounded-full transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Send"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
                 </Button>
               </div>
             </div>
+            {/* <p className="mt-2.5 text-center text-[12px] text-ink-5">
+              You can stop, change direction, or leave anytime.
+            </p> */}
           </div>
         </motion.div>
       </div>

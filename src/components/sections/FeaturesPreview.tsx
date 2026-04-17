@@ -1,171 +1,107 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { MessageSquare, Puzzle, BarChart, Globe, ArrowRight, MessageCircle, Brain, BookOpen, Users, Stethoscope } from 'lucide-react';
+import { ArrowUpRight, MessageCircle, Leaf, HandHelping } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { duration, ease } from "@/lib/motion";
 
-import { Button } from '@/components/ui/button';
+type Offering = {
+  kicker: string;
+  title: string;
+  description: string;
+  cta: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+};
 
-/* ── Therapist Bridge — person embracing a heart ── */
-const TherapistBridgeIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    {/* Head */}
-    <circle cx="12" cy="5" r="2.2" />
-    {/* Heart centered on chest */}
-    <path d="M9.5 11.5 C9.5 10 11 9 12 10.2 C13 9 14.5 10 14.5 11.5 C14.5 13 12 14.5 12 14.5 C12 14.5 9.5 13 9.5 11.5Z" fill="currentColor" fillOpacity="0.5" stroke="currentColor" strokeWidth="1" />
-    {/* Left arm reaching out */}
-    <path d="M9 13 Q6 14 4.5 16" />
-    <path d="M3.5 16.8 Q4 15.8 4.5 16 Q5 16.2 4.8 17" strokeWidth="1.2" />
-    {/* Right arm reaching out */}
-    <path d="M15 13 Q18 14 19.5 16" />
-    <path d="M20.5 16.8 Q20 15.8 19.5 16 Q19 16.2 19.2 17" strokeWidth="1.2" />
-    {/* Body */}
-    <path d="M9.5 14.5 Q10.5 19 12 20 Q13.5 19 14.5 14.5" />
-  </svg>
-);
-import { Card, CardContent } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { useIntersectionObserver } from '@/hooks/useScrollAnimations';
+const offerings: Offering[] = [
+  {
+    kicker: "When you want to talk",
+    title: "A quiet conversation, whenever",
+    description:
+      "Tell it what's on your mind — in whatever shape it's in. No prompts to fill, no tone to perform.",
+    cta: "Start a conversation",
+    path: "/chat",
+    icon: MessageCircle,
+  },
+  {
+    kicker: "When your body is tense",
+    title: "Small practices that settle you",
+    description:
+      "Breathing, grounding, and short reflections for the moments where your thoughts are moving too fast.",
+    cta: "Try a 2-minute practice",
+    path: "/wellness-checkin",
+    icon: Leaf,
+  },
+  {
+    kicker: "When you want a person",
+    title: "A warm hand-off to a therapist",
+    description:
+      "When and if you're ready, we can connect you with a real clinician — someone who speaks your language, on your terms.",
+    cta: "See how it works",
+    path: "/therapist-bridge",
+    icon: HandHelping,
+  },
+];
 
 const FeaturesPreview = () => {
   const navigate = useNavigate();
-  const [visibleCards, setVisibleCards] = useState<number[]>([]);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  const features = [
-    {
-      icon: MessageCircle,
-      title: "AI Therapy Companion",
-      description: "Professional psychology support with CBT, ACT, and MBCT techniques, delivered like a caring friend who understands Indian culture.",
-      gradient: "from-violet-300 to-purple-300",
-      action: () => navigate("/chat"),
-      actionText: "Start Chatting",
-      comingSoon: false,
-    },
-    {
-      icon: Puzzle,
-      title: "Mindfulness Games",
-      description: "Interactive wellness activities designed to reduce stress, improve focus, and build emotional resilience through play.",
-      gradient: "from-amber-300 to-orange-300",
-      action: () => navigate("/games"),
-      actionText: "Play Games",
-      comingSoon: false,
-    },
-    {
-      icon: BarChart,
-      title: "Wellness Check-ins",
-      description: "Regular mood tracking and progress monitoring to understand your mental health journey and celebrate growth.",
-      gradient: "from-emerald-300 to-teal-300",
-      action: () => navigate("/wellness-checkin"),
-      actionText: "Check Progress",
-      comingSoon: false,
-    },
-    {
-      icon: TherapistBridgeIcon,
-      title: "Therapist Bridge",
-      description: "Get a warm referral to a licensed therapist who understands Indian culture. Your emotional profile is shared securely with consent.",
-      gradient: "from-rose-300 to-pink-300",
-      action: () => navigate("/therapist-bridge"),
-      actionText: "Connect Now",
-      comingSoon: false,
-    }
-  ];
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = cardRefs.current.findIndex(ref => ref === entry.target);
-            if (index !== -1 && !visibleCards.includes(index)) {
-              setTimeout(() => {
-                setVisibleCards(prev => [...prev, index]);
-              }, index * 200); // Stagger animation
-            }
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    cardRefs.current.forEach(ref => {
-      if (ref) observer.observe(ref);
-    });
-
-    return () => observer.disconnect();
-  }, [visibleCards]);
 
   return (
-    <section className="py-20 relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-50/30 to-rose-50/20 dark:via-transparent dark:to-transparent"></div>
-      <div className="absolute top-10 right-10 w-40 h-40 bg-gradient-to-r from-amber-200/15 to-rose-200/10 dark:from-primary/5 dark:to-transparent rounded-full"></div>
-      <div className="absolute bottom-20 left-10 w-32 h-32 bg-gradient-to-r from-orange-200/15 to-amber-200/10 dark:from-primary/5 dark:to-transparent rounded-full"></div>
-
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Section Header */}
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient mb-6">
-            Your Mental Wellness Toolkit
+    <section className="relative py-28 md:py-36">
+      <div className="mx-auto max-w-3xl px-gutter">
+        <div className="text-center">
+          <span className="text-[13.5px] text-ink-6">a few things that help</span>
+          <h2 className="mt-4 font-display text-[clamp(28px,3.6vw,44px)] font-normal leading-[1.2] tracking-tight-1 text-ink-8">
+            You don't have to use all of it.
+            <br />
+            <span className="font-display-soft text-[hsl(var(--accent-600))]">
+              Take what feels useful today.
+            </span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Comprehensive support designed specifically for Indian youth, combining professional psychology with cultural understanding
-          </p>
-        </motion.div>
-
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              ref={el => cardRefs.current[index] = el}
-              className={`transform transition-all duration-700 ease-out ${visibleCards.includes(index)
-                ? 'translate-y-0 opacity-100 scale-100'
-                : 'translate-y-8 opacity-0 scale-95'
-                }`}
-            >
-              <Card className="wellness-card group cursor-pointer h-full" onClick={feature.action}>
-                <CardContent className="p-6 text-center h-full flex flex-col">
-                  {/* Icon with Gentle Hover Effect */}
-                  <div className="mb-6">
-                    <div className={`mx-auto w-16 h-16 rounded-full bg-gradient-to-r ${feature.gradient} flex items-center justify-center text-2xl transform transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg`}>
-                      <feature.icon className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-grow">
-                    <h3 className="text-xl font-semibold text-foreground mb-3 group-hover:text-gradient transition-all duration-300">
-                      {feature.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-                      {feature.description}
-                    </p>
-                  </div>
-
-                  {/* Action Button */}
-                  <Button
-                    className="w-full bg-primary hover:bg-primary/90 text-white border-0 rounded-xl font-semibold py-2.5 shadow-sm hover:shadow-md transform transition-all duration-300 group-hover:scale-105 flex items-center justify-center gap-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      feature.action();
-                    }}
-                  >
-                    <feature.icon className="h-4 w-4 flex-shrink-0" />
-                    <span>{feature.actionText}</span>
-                    <ArrowRight className="h-4 w-4 flex-shrink-0 ml-auto transition-transform duration-300 group-hover:translate-x-1" />
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          ))}
         </div>
 
-
+        <div className="mt-20 flex flex-col gap-5">
+          {offerings.map((o, i) => {
+            const Icon = o.icon;
+            return (
+              <motion.button
+                key={o.title}
+                type="button"
+                onClick={() => navigate(o.path)}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{
+                  duration: duration.long,
+                  ease: ease.outExpo,
+                  delay: i * 0.06,
+                }}
+                className="group relative w-full rounded-[28px] bg-[hsl(var(--ink-1))] px-7 py-8 text-left transition-colors duration-base ease-out-expo hover:bg-[hsl(var(--ink-2))] md:px-10 md:py-10"
+              >
+                <div className="flex items-start gap-6">
+                  <span
+                    aria-hidden
+                    className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
+                  >
+                    <Icon className="h-5 w-5" strokeWidth={1.6} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] text-ink-5">{o.kicker}</div>
+                    <h3 className="mt-1.5 font-display text-[22px] font-normal leading-[1.3] tracking-tight-1 text-ink-8 md:text-[26px]">
+                      {o.title}
+                    </h3>
+                    <p className="mt-3 max-w-xl text-[15.5px] leading-[1.7] text-ink-6">
+                      {o.description}
+                    </p>
+                    <span className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-medium text-[hsl(var(--accent-600))] transition-colors group-hover:text-[hsl(var(--accent-700))]">
+                      {o.cta}
+                      <ArrowUpRight className="h-4 w-4" strokeWidth={1.6} />
+                    </span>
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

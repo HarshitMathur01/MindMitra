@@ -193,11 +193,11 @@ const WellnessCheckIn = () => {
     const totalScore = Object.values(answers).reduce((sum, score) => sum + score, 0);
     const averageScore = totalScore / Object.keys(answers).length;
 
-    if (averageScore >= 4.5) return { level: "Thriving", emoji: "🌟", description: "You're doing exceptionally well! Your wellbeing is flourishing." };
-    if (averageScore >= 3.5) return { level: "Balanced", emoji: "⚖️", description: "You're in a good place with some areas to nurture." };
-    if (averageScore >= 2.5) return { level: "Managing", emoji: "🌱", description: "You're coping well, with room for self-care and growth." };
-    if (averageScore >= 1.5) return { level: "Struggling", emoji: "🤗", description: "Things feel challenging right now. Consider reaching out for support." };
-    return { level: "Overwhelmed", emoji: "💙", description: "You're going through a tough time. Please prioritize self-care and seek help." };
+    if (averageScore >= 4.5) return { level: "A lighter stretch", emoji: "🌟", description: "What you shared sounds like you're holding a lot of steadiness right now. Let it be enough for today." };
+    if (averageScore >= 3.5) return { level: "Mostly steady", emoji: "⚖️", description: "Some parts of the day feel softer than others. That mix is human — you don't have to fix all of it at once." };
+    if (averageScore >= 2.5) return { level: "Carrying a fair amount", emoji: "🌱", description: "You're still here, still answering. Small rests and kind support can help more than pushing harder." };
+    if (averageScore >= 1.5) return { level: "It's a lot right now", emoji: "🤗", description: "If you can, lean on someone you trust or a helpline. You deserve support — not because you're broken, but because you're human." };
+    return { level: "Heavy on your heart", emoji: "💙", description: "Whatever this score says, you matter. If you're not safe with your thoughts, please reach out to a helpline or someone nearby." };
   };
 
   const progress = ((currentQuestion + 1) / questions.length) * 100;
@@ -209,20 +209,20 @@ const WellnessCheckIn = () => {
       <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
         <Header />
         <main className="container mx-auto px-4 py-8">
-          <Card className="max-w-2xl mx-auto p-8 text-center">
-            <div className="text-6xl mb-4">{results.emoji}</div>
-            <h1 className="text-3xl font-bold mb-4 text-primary">{results.level}</h1>
-            <p className="text-lg text-muted-foreground mb-8">{results.description}</p>
+          <Card className="max-w-2xl mx-auto rounded-[24px] border-0 bg-[hsl(var(--warmth-50))] p-8 sm:p-10 text-center shadow-none">
+            <div className="text-5xl mb-5" aria-hidden>{results.emoji}</div>
+            <h1 className="font-display text-2xl sm:text-3xl font-normal mb-3 text-ink-8">{results.level}</h1>
+            <p className="text-base sm:text-[17px] text-ink-6 leading-[1.65] mb-10 max-w-prose mx-auto">{results.description}</p>
 
-            <div className="grid gap-4 mb-8">
-              <Button onClick={handleRestart} className="gap-2">
-                <RotateCcw className="h-4 w-4" />
-                Take Again
+            <div className="grid gap-3 mb-2 max-w-sm mx-auto">
+              <Button onClick={handleRestart} className="gap-2 rounded-full">
+                <RotateCcw className="h-4 w-4" strokeWidth={1.8} />
+                Reflect again
               </Button>
-              <Button variant="outline" onClick={() => navigate('/qa-tests')}>
-                Back to Q&A Tests
+              <Button variant="outline" className="rounded-full" onClick={() => navigate('/qa-tests')}>
+                Back to Q&A tests
               </Button>
-              <Button variant="ghost" onClick={() => navigate('/')}>
+              <Button variant="ghost" className="rounded-full text-ink-6" onClick={() => navigate('/')}>
                 Home
               </Button>
             </div>
@@ -242,58 +242,58 @@ const WellnessCheckIn = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/qa-tests')}
-            className="gap-2 mb-6"
+            className="gap-2 mb-8 text-ink-6 hover:text-ink-8"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Q&A Tests
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
+            Back to Q&A tests
           </Button>
 
-          <div className="mb-6">
-            <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Question {currentQuestion + 1} of {questions.length}</span>
-              <span>{Math.round(progress)}% complete</span>
+          <div className="mb-8">
+            <div className="flex justify-between text-[13px] text-ink-6 mb-2">
+              <span>Step {currentQuestion + 1} of {questions.length}</span>
+              <span>{Math.round(progress)}%</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-1.5 rounded-full bg-ink-2" />
           </div>
 
-          <Card className="p-8">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">{question.text}</h2>
-              <p className="text-muted-foreground italic">{question.metaphor}</p>
+          <Card className="rounded-[24px] border-0 held-surface p-8 sm:p-10 shadow-none">
+            <div className="text-center mb-8">
+              <h2 className="font-display text-xl sm:text-2xl font-normal text-ink-8 mb-2">{question.text}</h2>
+              <p className="text-sm text-ink-5">{question.metaphor}</p>
             </div>
 
-            <div className="grid gap-3 mb-8">
+            <div className="grid gap-3 mb-10">
               {question.options.map((option) => (
                 <Button
                   key={option.value}
                   variant={answers[question.id] === option.value ? "default" : "outline"}
-                  className="h-auto py-4 text-left justify-start gap-4"
+                  className="h-auto min-h-[52px] rounded-full py-3.5 text-left justify-start gap-4 text-[15px] font-normal"
                   onClick={() => handleAnswer(option.value)}
                 >
-                  <span className="text-2xl">{option.emoji}</span>
-                  <span className="text-base">{option.label}</span>
+                  <span className="text-2xl shrink-0" aria-hidden>{option.emoji}</span>
+                  <span>{option.label}</span>
                 </Button>
               ))}
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-3">
               <Button
                 variant="outline"
                 onClick={handleBack}
                 disabled={currentQuestion === 0}
-                className="gap-2"
+                className="gap-2 rounded-full"
               >
-                <ArrowLeft className="h-4 w-4" />
-                Back
+                <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
+                Previous
               </Button>
 
               <Button
                 onClick={handleNext}
                 disabled={!canGoNext}
-                className="gap-2"
+                className="gap-2 rounded-full"
               >
-                {currentQuestion === questions.length - 1 ? 'See Results' : 'Next'}
-                <ArrowRight className="h-4 w-4" />
+                {currentQuestion === questions.length - 1 ? 'See summary' : 'Next'}
+                <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
               </Button>
             </div>
           </Card>

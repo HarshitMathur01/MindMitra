@@ -1,5 +1,6 @@
 import { Phone, Shield, ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const quickLinks = [
   { label: "Chat", path: "/chat" },
@@ -26,12 +27,12 @@ const legal = [
  * Crisis numbers are first and legible. Nothing is in caps tracking.
  * The closing line reads like a note slipped under a door.
  */
-const Footer = () => {
+const Footer = ({ className }: { className?: string } = {}) => {
   const navigate = useNavigate();
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-24 bg-[hsl(var(--ink-0))] text-ink-8">
+    <footer className={cn("relative mt-24 bg-[hsl(var(--ink-0))] text-ink-8", className)}>
       <div className="mx-auto max-w-page px-gutter">
         <div className="h-px bg-[hsl(var(--ink-3))]" aria-hidden />
 

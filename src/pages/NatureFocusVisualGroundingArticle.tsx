@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
     ArrowLeft,
     ArrowRight,
@@ -12,6 +13,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import {
+    ArticleOnThisPageNav,
+    ArticleScrollProgress,
+    makeArticleStepId,
+} from "@/components/resources/ArticleReadingEnhancements";
 
 const groundingSteps = [
     {
@@ -71,15 +77,26 @@ const references = [
     },
 ];
 
+const VISUAL_REF_ID = "visual-references";
+
 const NatureFocusVisualGroundingArticle = () => {
     const navigate = useNavigate();
+
+    const tocItems = useMemo(() => {
+        const steps = groundingSteps.map((r, i) => ({
+            id: makeArticleStepId("visual", i, r.title),
+            label: `${i + 1}. ${r.title.length > 36 ? `${r.title.slice(0, 34)}…` : r.title}`,
+        }));
+        return [...steps, { id: VISUAL_REF_ID, label: "References" }];
+    }, []);
 
     return (
         <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
             <Header />
+            <ArticleScrollProgress />
 
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8">
-                <section className="overflow-hidden rounded-[2rem] border border-ink-3/30 bg-gradient-to-br from-[#F0FDF4] via-white to-[#EFF6FF] shadow-dashboard-soft">
+                <section className="overflow-hidden rounded-[2rem] border border-ink-3/30 bg-gradient-to-br from-[hsl(var(--warmth-50))]/90 via-[hsl(var(--card))] to-[hsl(var(--accent-50))]/45 shadow-dashboard-soft">
                     <div className="grid gap-8 px-6 py-8 md:grid-cols-[1.2fr_0.8fr] md:px-10 md:py-10">
                         <div>
                             <button
@@ -127,6 +144,9 @@ const NatureFocusVisualGroundingArticle = () => {
                 </section>
 
                 <section className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+                    <div className="col-span-full md:hidden">
+                        <ArticleOnThisPageNav items={tocItems} variant="bar" />
+                    </div>
                     <article className="rounded-[1.75rem] border border-ink-3/30 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft sm:p-8">
                         <p className="text-sm leading-7 text-ink-6">
                             Visual grounding works by giving your attention something real, steady, and non-demanding to rest on. Nature scenes are especially helpful because they often contain repeating patterns, soft textures, and a sense of spaciousness that the body can interpret as less threatening than busy, high-stimulation environments.
@@ -139,9 +159,14 @@ const NatureFocusVisualGroundingArticle = () => {
                         <div className="mt-8 space-y-6">
                             {groundingSteps.map((step, index) => {
                                 const Icon = step.icon;
+                                const stepId = tocItems[index]?.id ?? makeArticleStepId("visual", index, step.title);
 
                                 return (
-                                    <section key={step.title} className="rounded-2xl border border-ink-3/30 bg-[hsl(var(--ink-1))]/55 p-5">
+                                    <section
+                                        key={step.title}
+                                        id={stepId}
+                                        className="scroll-mt-28 rounded-2xl border border-ink-3/30 bg-[hsl(var(--ink-1))]/55 p-5"
+                                    >
                                         <div className="flex flex-wrap items-start justify-between gap-4">
                                             <div className="flex items-start gap-3">
                                                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -181,7 +206,7 @@ const NatureFocusVisualGroundingArticle = () => {
                             })}
                         </div>
 
-                        <section className="mt-8 rounded-2xl border border-ink-3/30 bg-muted/40 p-5">
+                        <section id={VISUAL_REF_ID} className="mt-8 scroll-mt-28 rounded-2xl border border-ink-3/30 bg-muted/40 p-5">
                             <h2 className="text-lg font-semibold text-ink-8">References</h2>
                             <p className="mt-2 text-sm leading-7 text-ink-6">
                                 These sources support the grounding, relaxation, and nature-exposure ideas used in this visual reset.
@@ -205,6 +230,9 @@ const NatureFocusVisualGroundingArticle = () => {
                     </article>
 
                     <aside className="space-y-5">
+                        <div className="hidden md:block">
+                            <ArticleOnThisPageNav items={tocItems} />
+                        </div>
                         <section className="rounded-[1.75rem] border border-ink-3/30 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft">
                             <h2 className="text-lg font-semibold text-ink-8">Quick version</h2>
                             <ol className="mt-4 space-y-3 text-sm leading-7 text-ink-6">
@@ -214,7 +242,7 @@ const NatureFocusVisualGroundingArticle = () => {
                             </ol>
                         </section>
 
-                        <section className="rounded-[1.75rem] border border-ink-3/30 bg-gradient-to-br from-primary/8 to-cyan-50 p-6 shadow-dashboard-soft">
+                        <section className="rounded-[1.75rem] border border-ink-3/30 bg-gradient-to-br from-[hsl(var(--accent-50))]/40 to-[hsl(var(--warmth-50))]/75 p-6 shadow-dashboard-soft">
                             <h2 className="text-lg font-semibold text-ink-8">Helpful reminder</h2>
                             <p className="mt-3 text-sm leading-7 text-ink-6">
                                 If your thoughts keep drifting, that is okay. Each gentle return to what you can see is part of the practice.
@@ -229,7 +257,7 @@ const NatureFocusVisualGroundingArticle = () => {
                             <button
                                 type="button"
                                 onClick={() => navigate("/psychological-content")}
-                                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--card))] px-4 py-2.5 text-sm font-semibold text-ink-8 transition-transform hover:scale-[1.02]"
+                                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--card))] px-4 py-2.5 text-sm font-semibold text-ink-8 transition-colors hover:bg-[hsl(var(--ink-1))]"
                             >
                                 Open resources
                                 <ArrowRight className="h-4 w-4" />

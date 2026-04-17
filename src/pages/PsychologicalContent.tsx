@@ -479,6 +479,17 @@ const RatingStars = ({ rating }: { rating: number }) => {
     );
 };
 
+function categoryLabelFor(categoryId: string): string {
+    return contentCategories.find((c) => c.id === categoryId)?.label ?? categoryId.replace(/-/g, " ");
+}
+
+function formatContentTypeLabel(type: ContentType): string {
+    if (type === "article") return "Article";
+    if (type === "video") return "Video";
+    if (type === "audio") return "Audio";
+    return "Exercise";
+}
+
 const ContentCard = ({
     item,
     onOpen,
@@ -489,86 +500,99 @@ const ContentCard = ({
     onOpen: (item: ContentItem) => void;
     bookmarked: boolean;
     onToggleBookmark: (id: string, e: React.MouseEvent) => void;
-}) => (
-    <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: duration.base, ease: ease.outExpo }}
-        whileHover={{ y: -2 }}
-    >
-        <Card
-            className={cn(
-                "group relative cursor-pointer overflow-hidden rounded-[1.25rem] border border-ink-3/35 bg-[hsl(var(--card))]",
-                "shadow-dashboard-soft transition-shadow duration-base hover:shadow-lg dark:border-ink-3/25",
-            )}
-            onClick={() => onOpen(item)}
+}) => {
+    const topic = categoryLabelFor(item.category);
+    const typeLabel = formatContentTypeLabel(item.type);
+    const tags = item.tags.slice(0, 2);
+    const extraTags = item.tags.length - tags.length;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: duration.base, ease: ease.outExpo }}
+            whileHover={{ y: -3 }}
+            className="h-full"
         >
-            {item.featured ? (
-                <div className="absolute right-3 top-3 z-10">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--warmth-50))] px-2.5 py-1 text-xs font-medium text-[hsl(var(--warmth-700))] dark:bg-[hsl(var(--warmth-50))]/15 dark:text-[hsl(var(--warmth-400))]">
-                        <Sparkles className="h-3 w-3" />
-                        Featured
-                    </span>
-                </div>
-            ) : null}
-            <div className="p-5">
-                <div className="mb-3 flex items-start gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--accent-100))]/50 text-2xl dark:bg-[hsl(var(--accent-100))]/20">
-                        {item.imageEmoji}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex flex-wrap items-center gap-2">
-                            <ContentTypeChip type={item.type} />
-                            <span
-                                className={cn(
-                                    "rounded-full px-2 py-0.5 text-xs capitalize",
-                                    "border border-ink-3/20 bg-transparent text-ink-6",
-                                )}
-                            >
-                                {item.difficulty}
-                            </span>
-                        </div>
-                        <h3 className="line-clamp-2 font-display text-base font-normal leading-snug tracking-tight text-ink-8 transition-colors group-hover:text-[hsl(var(--accent-600))] dark:group-hover:text-[hsl(var(--accent-400))]">
-                            {item.title}
-                        </h3>
-                    </div>
-                </div>
-                <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-ink-6">{item.description}</p>
-                <div className="mb-4 flex flex-wrap gap-1.5">
-                    {item.tags.slice(0, 3).map((tag) => (
+            <Card
+                className={cn(
+                    "group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-[1.35rem] border bg-[hsl(var(--card))] shadow-dashboard-soft",
+                    "border-ink-3/30 transition-[border-color,box-shadow,transform] duration-300 ease-out",
+                    "hover:border-[hsl(var(--accent-400))]/35 hover:shadow-lg dark:border-ink-3/25",
+                    "border-l-[3px] border-l-[hsl(var(--accent-500))] pl-[1px] dark:border-l-[hsl(var(--accent-400))]",
+                )}
+                onClick={() => onOpen(item)}
+            >
+                <div className="flex flex-1 flex-col px-6 pb-2 pt-6">
+                    <div className="flex items-start justify-between gap-3">
+                        <p className="min-w-0 pt-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-ink-5 sm:text-[11px] sm:tracking-[0.12em]">
+                            <span className="text-ink-6">{topic}</span>
+                            <span className="mx-1.5 text-ink-4">·</span>
+                            <span>{typeLabel}</span>
+                            <span className="mx-1.5 text-ink-4">·</span>
+                            <span className="capitalize">{item.difficulty}</span>
+                        </p>
                         <span
-                            key={tag}
-                            className="rounded-full border border-ink-3/20 bg-[hsl(var(--background))] px-2 py-0.5 text-xs text-ink-5"
+                            className="flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg bg-[hsl(var(--ink-1))]/80 text-lg leading-none shadow-sm ring-1 ring-ink-3/10 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:bg-[hsl(var(--accent-50))] dark:bg-[hsl(var(--ink-2))]/80 dark:group-hover:bg-[hsl(var(--accent-900))]"
+                            aria-hidden
                         >
-                            {tag}
+                            {item.imageEmoji}
                         </span>
-                    ))}
-                </div>
-                <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-ink-5">
-                        <span className="inline-flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {item.duration}
-                        </span>
-                        <RatingStars rating={item.rating} />
-                        <span>{formatCount(item.readCount)} reads</span>
                     </div>
+
+                    <h3 className="mt-4 min-h-[3rem] line-clamp-2 text-balance font-display text-[1.05rem] font-medium leading-snug tracking-tight text-ink-8 transition-colors group-hover:text-[hsl(var(--accent-600))] dark:group-hover:text-[hsl(var(--accent-400))]">
+                        {item.title}
+                    </h3>
+
+                    <p className="mt-2 min-h-[2.75rem] line-clamp-2 text-[13.5px] leading-relaxed text-ink-6 transition-colors group-hover:text-ink-7">{item.description}</p>
+
+                    {tags.length > 0 ? (
+                        <div className="mt-auto pt-4 flex min-h-[1.75rem] flex-wrap items-center gap-2">
+                            {tags.map((tag, idx) => (
+                                <span
+                                    key={`${item.id}-${tag}-${idx}`}
+                                    className="rounded-md bg-[hsl(var(--ink-1))]/80 px-2 py-1 text-[10px] uppercase font-bold tracking-wide text-ink-6 transition-colors group-hover:bg-[hsl(var(--ink-2))] dark:bg-[hsl(var(--ink-2))]/50"
+                                >
+                                    {tag.replace(/-/g, " ")}
+                                </span>
+                            ))}
+                            {extraTags > 0 ? (
+                                <span className="text-[11px] font-medium text-ink-5 transition-colors group-hover:text-[hsl(var(--accent-600))] dark:group-hover:text-[hsl(var(--accent-400))]">+{extraTags}</span>
+                            ) : null}
+                        </div>
+                    ) : (
+                        <div className="mt-auto pt-4 min-h-[1.75rem]" />
+                    )}
+                </div>
+
+                <div className="flex min-h-[3.25rem] items-center justify-between gap-3 border-t border-ink-3/15 px-6 py-3.5 bg-[hsl(var(--ink-1))]/10 transition-colors group-hover:bg-[hsl(var(--ink-1))]/30 dark:border-ink-3/20">
+                    <p className="min-w-0 truncate text-[12px] tabular-nums text-ink-5">
+                        <span className="inline-flex items-center gap-0.5 text-amber-600/90 dark:text-amber-400/90">
+                            <Star className="h-3 w-3 fill-amber-400/80 text-amber-500" aria-hidden />
+                            {item.rating.toFixed(1)}
+                        </span>
+                        <span className="mx-1.5 text-ink-4">·</span>
+                        <span>{formatCount(item.readCount)} reads</span>
+                        <span className="mx-1.5 text-ink-4">·</span>
+                        <span>{item.duration}</span>
+                    </p>
                     <button
                         type="button"
                         onClick={(e) => onToggleBookmark(item.id, e)}
                         className={cn(
-                            "rounded-lg p-1.5 transition-colors",
-                            bookmarked ? "text-[hsl(var(--accent-600))]" : "text-ink-5 hover:text-[hsl(var(--accent-600))]",
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-transparent transition-colors",
+                            "hover:border-ink-3/25 hover:bg-[hsl(var(--ink-1))]/50",
+                            bookmarked ? "text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" : "text-ink-5",
                         )}
                         aria-label={bookmarked ? "Remove from saved" : "Save for later"}
                     >
-                        {bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                        {bookmarked ? <BookmarkCheck className="h-[1.125rem] w-[1.125rem]" /> : <Bookmark className="h-[1.125rem] w-[1.125rem]" />}
                     </button>
                 </div>
-            </div>
-        </Card>
-    </motion.div>
-);
+            </Card>
+        </motion.div>
+    );
+};
 
 const FeaturedHeroCard = ({ item, onOpen }: { item: ContentItem; onOpen: (item: ContentItem) => void }) => (
     <motion.button
@@ -601,7 +625,7 @@ const FeaturedHeroCard = ({ item, onOpen }: { item: ContentItem; onOpen: (item: 
                 </div>
             </div>
             <div className="flex shrink-0 justify-end md:items-center">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--accent-500))] text-white shadow-md transition-transform group-hover:scale-105">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--accent-500))] text-white shadow-md transition-transform group-hover:translate-x-0.5">
                     <ArrowRight className="h-5 w-5" strokeWidth={1.8} />
                 </span>
             </div>
@@ -792,7 +816,7 @@ const PsychologicalContent = () => {
 
     return (
         <AppShell>
-            <PageContainer as="div" width="wide" className="relative pb-28 pt-6 sm:pb-24 sm:pt-8">
+            <PageContainer as="div" width="wide" className="relative pb-12 pt-6 sm:pb-16 sm:pt-8">
                 <div
                     aria-hidden
                     className="pointer-events-none absolute inset-x-0 top-0 h-[420px]"
@@ -954,7 +978,14 @@ const PsychologicalContent = () => {
                     </section>
                 ) : null}
 
-                <section className={spotlightItem ? "mt-10" : "mt-16"}>
+                <section className={cn("space-y-6", spotlightItem ? "mt-12" : "mt-16")}>
+                    <div className="max-w-2xl">
+                        <p className={sectionEyebrow}>Library</p>
+                        <h2 className="mt-1 font-display text-xl font-light tracking-tight text-ink-8 sm:text-2xl">Short reads &amp; practices</h2>
+                        <p className="mt-2 text-sm leading-relaxed text-ink-6 sm:text-[15px]">
+                            Same calm tone as the rest of MindMitra — open anything to read slowly, or save it for later.
+                        </p>
+                    </div>
                     <AnimatePresence mode="popLayout">
                         {gridItems.length > 0 ? (
                             <motion.div
@@ -1002,32 +1033,50 @@ const PsychologicalContent = () => {
                     </AnimatePresence>
                 </section>
 
-                <section className="mt-20 rounded-[1.75rem] border border-ink-3/25 bg-[hsl(var(--warmth-50))]/50 px-6 py-12 text-center shadow-dashboard-soft dark:bg-[hsl(var(--ink-2))]/40 sm:px-10">
-                    <Heart className="mx-auto h-9 w-9 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" strokeWidth={1.5} />
-                    <h2 className="mt-4 font-display text-2xl font-light tracking-tight text-ink-8 sm:text-3xl">If this isn’t enough right now</h2>
-                    <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-ink-6">
-                        You can sit with MindMitra for a while, or reach peers when you want a human thread alongside you.
-                    </p>
-                    <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                        <Button
-                            type="button"
-                            className="h-11 rounded-full bg-[hsl(var(--accent-500))] px-8 text-[15px] font-semibold text-white shadow-md hover:bg-[hsl(var(--accent-600))]"
-                            onClick={() => navigate("/chat")}
-                        >
-                            Open chat
-                            <ArrowRight className="ml-2 h-4 w-4" strokeWidth={1.8} />
-                        </Button>
-                        <Button type="button" variant="outline" className="h-11 rounded-full border-ink-3/30 px-8" onClick={() => navigate("/peer-support")}>
-                            Peer support
-                            <Users className="ml-2 h-4 w-4" strokeWidth={1.8} />
-                        </Button>
+                {/* Pre-footer CTA: card surface + asymmetric layout so it doesn’t compete with Footer crisis band */}
+                <section
+                    aria-labelledby="resources-cta-heading"
+                    className="mt-14 border-t border-ink-3/20 pt-10 sm:mt-16 sm:pt-12"
+                >
+                    <div className="flex flex-col gap-8 rounded-[1.5rem] border border-ink-3/30 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft sm:p-8 md:flex-row md:items-center md:justify-between md:gap-10 lg:rounded-[1.75rem] lg:p-10">
+                        <div className="min-w-0 max-w-xl text-left">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">When reading isn’t enough</p>
+                            <h2
+                                id="resources-cta-heading"
+                                className="mt-2 font-display text-[clamp(1.35rem,3.2vw,1.85rem)] font-light leading-snug tracking-tight text-ink-8"
+                            >
+                                Prefer to sit with someone gentle?
+                            </h2>
+                            <p className="mt-3 text-[15px] leading-relaxed text-ink-6">
+                                Chat stays open — peer support is there when you want company alongside the words.
+                            </p>
+                        </div>
+                        <div className="flex w-full shrink-0 flex-col gap-3 sm:flex-row sm:justify-end md:w-auto md:flex-col lg:flex-row">
+                            <Button
+                                type="button"
+                                className="h-11 rounded-full bg-[hsl(var(--accent-500))] px-8 text-[15px] font-semibold text-white shadow-md hover:bg-[hsl(var(--accent-600))] dark:hover:bg-[hsl(var(--accent-400))]"
+                                onClick={() => navigate("/chat")}
+                            >
+                                Open chat
+                                <ArrowRight className="ml-2 h-4 w-4" strokeWidth={1.8} />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="h-11 rounded-full border-ink-3/30 bg-transparent px-8 hover:bg-[hsl(var(--ink-1))]/50"
+                                onClick={() => navigate("/peer-support")}
+                            >
+                                Peer support
+                                <Users className="ml-2 h-4 w-4" strokeWidth={1.8} />
+                            </Button>
+                        </div>
                     </div>
                 </section>
             </PageContainer>
 
             <ResourceReaderDialog item={selectedItem} open={!!selectedItem} onClose={() => setSelectedItem(null)} />
 
-            <Footer />
+            <Footer className="mt-10 sm:mt-14" />
         </AppShell>
     );
 };

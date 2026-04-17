@@ -1,7 +1,13 @@
+import { useMemo } from "react";
 import { ArrowLeft, ArrowRight, Brain, CheckCircle2, Clock, Sparkles, Wind } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import {
+    ArticleOnThisPageNav,
+    ArticleScrollProgress,
+    makeArticleStepId,
+} from "@/components/resources/ArticleReadingEnhancements";
 
 const resetSteps = [
     {
@@ -45,12 +51,22 @@ const resetSteps = [
 const NervousSystemResetArticle = () => {
     const navigate = useNavigate();
 
+    const tocItems = useMemo(
+        () =>
+            resetSteps.map((r, i) => ({
+                id: makeArticleStepId("nervous", i, r.title),
+                label: `${i + 1}. ${r.title.length > 40 ? `${r.title.slice(0, 38)}…` : r.title}`,
+            })),
+        [],
+    );
+
     return (
         <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
             <Header />
+            <ArticleScrollProgress />
 
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8">
-                <section className="overflow-hidden rounded-[2rem] border border-ink-3/30 bg-gradient-to-br from-[#F5F3FF] via-white to-[#ECFEFF] shadow-dashboard-soft">
+                <section className="overflow-hidden rounded-[2rem] border border-ink-3/30 bg-gradient-to-br from-[hsl(var(--warmth-50))]/90 via-[hsl(var(--card))] to-[hsl(var(--accent-50))]/45 shadow-dashboard-soft">
                     <div className="grid gap-8 px-6 py-8 md:grid-cols-[1.2fr_0.8fr] md:px-10 md:py-10">
                         <div>
                             <button
@@ -98,6 +114,9 @@ const NervousSystemResetArticle = () => {
                 </section>
 
                 <section className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+                    <div className="col-span-full md:hidden">
+                        <ArticleOnThisPageNav items={tocItems} variant="bar" />
+                    </div>
                     <article className="rounded-[1.75rem] border border-ink-3/30 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft sm:p-8">
                         <p className="text-sm leading-7 text-ink-6">
                             Your nervous system is always scanning for safety. When you are overwhelmed by messages, deadlines, conflict, or too much stimulation, your body may switch into protection mode. That can feel like restlessness, shallow breathing, racing thoughts, or the urge to shut down.
@@ -110,9 +129,14 @@ const NervousSystemResetArticle = () => {
                         <div className="mt-8 space-y-6">
                             {resetSteps.map((step, index) => {
                                 const Icon = step.icon;
+                                const stepId = tocItems[index]?.id ?? makeArticleStepId("nervous", index, step.title);
 
                                 return (
-                                    <section key={step.title} className="rounded-[1.25rem] border border-ink-3/30 bg-[hsl(var(--ink-1))]/55 p-5">
+                                    <section
+                                        key={step.title}
+                                        id={stepId}
+                                        className="scroll-mt-28 rounded-[1.25rem] border border-ink-3/30 bg-[hsl(var(--ink-1))]/55 p-5"
+                                    >
                                         <div className="flex flex-wrap items-start justify-between gap-4">
                                             <div className="flex items-start gap-3">
                                                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -154,6 +178,9 @@ const NervousSystemResetArticle = () => {
                     </article>
 
                     <aside className="space-y-5">
+                        <div className="hidden md:block">
+                            <ArticleOnThisPageNav items={tocItems} />
+                        </div>
                         <section className="rounded-[1.75rem] border border-ink-3/30 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft">
                             <h2 className="text-lg font-semibold text-ink-8">When to use this</h2>
                             <ol className="mt-4 space-y-3 text-sm leading-7 text-ink-6">
@@ -163,7 +190,7 @@ const NervousSystemResetArticle = () => {
                             </ol>
                         </section>
 
-                        <section className="rounded-[1.75rem] border border-ink-3/30 bg-gradient-to-br from-primary/8 to-cyan-50 p-6 shadow-dashboard-soft">
+                        <section className="rounded-[1.75rem] border border-ink-3/30 bg-gradient-to-br from-[hsl(var(--accent-50))]/50 to-[hsl(var(--warmth-50))]/70 p-6 shadow-dashboard-soft">
                             <h2 className="text-lg font-semibold text-ink-8">Keep it simple</h2>
                             <p className="mt-3 text-sm leading-7 text-ink-6">
                                 The most effective reset is the one you will actually use. Small regulation habits repeated often can be more powerful than perfect routines you never reach.
@@ -178,7 +205,7 @@ const NervousSystemResetArticle = () => {
                             <button
                                 type="button"
                                 onClick={() => navigate("/psychological-content")}
-                                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--card))] px-4 py-2.5 text-sm font-semibold text-ink-8 transition-transform hover:scale-[1.02]"
+                                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--card))] px-4 py-2.5 text-sm font-semibold text-ink-8 transition-colors hover:bg-[hsl(var(--ink-1))]"
                             >
                                 Open resources
                                 <ArrowRight className="h-4 w-4" />

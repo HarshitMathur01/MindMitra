@@ -232,7 +232,7 @@ const getNextDayPeriodBoundary = (current: Date) => {
 
 const getDashboardRevealStyle = (index: number, extraStyles: CSSProperties = {}): CSSProperties =>
   ({
-    ...extraStyles,
+  ...extraStyles,
     "--mm-enter-delay": `${80 + index * 90}ms`,
   }) as CSSProperties;
 
@@ -324,6 +324,8 @@ const Index = () => {
   const avatarInitial = displayName.charAt(0).toUpperCase() || "F";
   const [affirmation] = useState(() => getRandomAffirmation(dayPeriod));
   const affirmationParts = useMemo(() => parseAffirmationBody(affirmation), [affirmation]);
+  const affirmationHasTopBlock =
+    Boolean(affirmationParts.attribution) || affirmationParts.scripturalLines.length > 0;
   const resolvedWeekMoods = loggedWeekMoods.length > 0 ? loggedWeekMoods : dummyWeekMoods;
   const loopedContentCards = useMemo(
     () => contentCards.length > visibleContentCardCount
@@ -491,34 +493,34 @@ const Index = () => {
             <div className="absolute left-5 right-5 top-5 flex items-center justify-between sm:left-8 sm:right-8">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--card))]/85 text-[hsl(var(--accent-600))] shadow-dashboard-soft backdrop-blur-md ring-1 ring-ink-3/30 dark:bg-[hsl(var(--card))]/50 dark:text-[hsl(var(--accent-300))] dark:ring-ink-3/20">
                 <Sun className="h-4 w-4" strokeWidth={1.6} />
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={toggleTheme}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--card))]/85 text-ink-7 shadow-dashboard-soft backdrop-blur-md ring-1 ring-ink-3/30 transition-colors hover:bg-[hsl(var(--card))] dark:bg-[hsl(var(--card))]/50 dark:text-ink-8 dark:hover:bg-[hsl(var(--card))]/65"
-                  aria-label="Toggle color theme"
-                >
+                aria-label="Toggle color theme"
+              >
                   {theme === "dark" ? <Sun className="h-4 w-4" strokeWidth={1.6} /> : <Moon className="h-4 w-4" strokeWidth={1.6} />}
-                </button>
-                <button
-                  type="button"
+              </button>
+              <button
+                type="button"
                   className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--card))]/85 text-ink-7 shadow-dashboard-soft backdrop-blur-md ring-1 ring-ink-3/30 transition-colors hover:bg-[hsl(var(--card))] dark:bg-[hsl(var(--card))]/50 dark:text-ink-8 dark:hover:bg-[hsl(var(--card))]/65"
-                  aria-label="Notifications"
-                >
+                aria-label="Notifications"
+              >
                   <Bell className="h-4 w-4" strokeWidth={1.6} />
                   <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent-400))] ring-2 ring-[hsl(var(--card))]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/profile")}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/profile")}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--accent-400))] text-[13px] font-semibold text-white shadow-md ring-1 ring-ink-3/20 transition-colors hover:bg-[hsl(var(--accent-500))]"
-                  aria-label="Open profile"
-                >
-                  {avatarInitial}
-                </button>
-              </div>
+                aria-label="Open profile"
+              >
+                {avatarInitial}
+              </button>
             </div>
+          </div>
 
             <div className="absolute inset-x-0 bottom-0 px-5 pb-7 sm:px-8 sm:pb-10">
               <p className={`${sectionEyebrowClass} text-ink-6`}>{greeting.replace(",", "").trim()}</p>
@@ -527,7 +529,7 @@ const Index = () => {
               >
                 Welcome back,{" "}
                 <em className="font-display font-normal italic text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">{displayName}</em>
-              </h1>
+            </h1>
               <div className="mt-4 inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-ink-3/35 bg-[hsl(var(--card))]/92 px-4 py-2 text-sm text-ink-7 shadow-sm backdrop-blur-sm dark:border-ink-3/25 dark:bg-[hsl(var(--card))]/80 dark:text-ink-8">
                 <span className="text-base" aria-hidden>
                   🌱
@@ -551,30 +553,40 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Daily affirmation — same left band as Check in: SectionHeader + full-width card (no centered max-w column) */}
-        <div className="mm-dashboard-stagger space-y-5" style={getDashboardRevealStyle(1)}>
-          <SectionHeader
-            kicker="Daily affirmation"
-            title={affirmationParts.attribution || "A verse for today"}
-          />
-          <section className="rounded-[1.75rem] border border-ink-3/50 bg-[hsl(var(--card))] px-5 py-6 shadow-dashboard-soft transition-shadow duration-base hover:shadow-dashboard-warm sm:px-6 dark:border-ink-3/30">
+        {/* Daily affirmation — prior wide card: centered kicker, left-aligned quote, rule before translation */}
+        <section
+          className="mm-dashboard-stagger rounded-[2rem] border border-ink-3/35 bg-[hsl(var(--card))] px-6 py-9 shadow-dashboard-soft sm:px-10 sm:py-10 dark:border-ink-3/25 dark:bg-[hsl(var(--card))]"
+          style={getDashboardRevealStyle(1)}
+        >
+          <p className={`${sectionEyebrowClass} text-center`}>Daily affirmation</p>
+
+          <div className="mt-8 text-left">
+            {affirmationParts.attribution ? (
+              <p className="font-display text-[1.05rem] font-normal leading-snug text-ink-8 sm:text-lg">
+                {affirmationParts.attribution}
+              </p>
+            ) : null}
+
             {affirmationParts.scripturalLines.length > 0 ? (
               <p
-                className="whitespace-pre-line font-display text-xl font-light leading-[1.65] tracking-tight text-ink-8 sm:text-2xl"
+                className="mt-4 whitespace-pre-line font-display text-base font-light leading-[1.7] text-ink-7 sm:text-[1.05rem]"
                 lang="sa"
               >
                 {affirmationParts.scripturalLines.join("\n")}
               </p>
             ) : null}
+
+            {affirmationHasTopBlock && affirmationParts.translation ? (
+              <div className="my-5 border-t border-ink-3/25 dark:border-ink-3/20" aria-hidden />
+            ) : null}
+
             {affirmationParts.translation ? (
-              <p
-                className={`text-sm leading-relaxed text-ink-6 ${affirmationParts.scripturalLines.length > 0 ? "mt-5 border-t border-ink-3/25 pt-5 dark:border-ink-3/20" : ""}`}
-              >
+              <p className="text-sm font-normal leading-relaxed text-ink-6 sm:text-[15px]">
                 {affirmationParts.translation}
               </p>
             ) : null}
-          </section>
-        </div>
+          </div>
+        </section>
 
         {/* Mood check-in — subtle separator from hero card */}
         <div className="mm-dashboard-stagger space-y-5 border-t border-ink-3/30 pt-8 sm:pt-10" style={getDashboardRevealStyle(2)}>
@@ -886,17 +898,17 @@ const Index = () => {
                 <div className="flex items-start justify-between gap-6">
                   <div className="min-w-0 max-w-[58%] flex-1">
                     <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.18em] ${card.categoryClassName}`}>
-                      {card.category}
-                    </span>
+                    {card.category}
+                  </span>
                     <h3 className="mt-3 font-display text-2xl font-normal text-ink-8">{card.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-ink-6">{card.description}</p>
-                    <button
+                <button
                       type="button"
                       className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-base sm:w-auto ${card.buttonClassName}`}
-                      onClick={() => navigate(card.route)}
-                    >
+                  onClick={() => navigate(card.route)}
+                >
                       {card.buttonLabel} <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    </button>
+                </button>
                   </div>
                   <img src={card.imageSrc} alt="" className="h-28 w-28 shrink-0 rounded-2xl object-cover sm:h-32 sm:w-32" />
                 </div>

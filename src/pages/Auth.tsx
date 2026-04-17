@@ -102,7 +102,7 @@ const Auth = () => {
             <div className="text-[13px] leading-relaxed text-ink-6">
               Encrypted end-to-end. Compliant with India's data protection law.
               Built in a small cohort, with care.
-            </div>
+                </div>
           </div>
         </motion.aside>
 
@@ -120,7 +120,7 @@ const Auth = () => {
               </span>
               <span className="flex items-baseline gap-1.5">
                 <span className="font-display text-[18px] font-medium tracking-tight-1 text-ink-8">
-                  MindMitra
+                MindMitra
                 </span>
                 <span className="text-[12px] text-ink-5">· beta</span>
               </span>
@@ -170,7 +170,7 @@ const Auth = () => {
                 </svg>
                 {isGoogleLoading ? "Connecting…" : "Continue with Google"}
               </Button>
-            </div>
+              </div>
 
             <div className="my-7 flex items-center gap-3">
               <span className="h-px flex-1 bg-ink-3" />

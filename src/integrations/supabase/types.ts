@@ -221,6 +221,30 @@ export type Database = {
         }
         Relationships: []
       }
+      product_events: {
+        Row: {
+          id: string
+          user_id: string
+          event_name: string
+          properties: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          event_name: string
+          properties?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          event_name?: string
+          properties?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_onboarding: {
         Row: {
           id: string

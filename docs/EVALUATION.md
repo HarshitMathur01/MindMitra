@@ -228,7 +228,7 @@ Schedule integration + `run_full_evaluation.py` on a **staging** API with secret
 |--------|------------|----------|-------------------|
 | **1. Supabase (first-party)** | Rows the app writes: messages, games, voice metadata, explicit product events | Funnels, retention, beta cohorts | Supabase SQL Editor, CSV export, Metabase/Lightdash later |
 | **2. Server logs** | Structured lines from `chatbotAgent` (host) | Errors, latency, rate limits | Log tail; `LOG_FORMAT=json` + drain |
-| **3. Optional third-party** | PostHog / Plausible / GA4 | Session replay, marketing attribution | Vendor dashboards |
+| **3. Optional third-party** | Mixpanel (in-repo) / Plausible / GA4 | Funnels, marketing attribution | Vendor dashboards |
 
 **Beta default:** (1) + (2). Add (3) only for attribution or analytics UX without writing SQL — with strict event allowlists and **no autocapture on chat surfaces**.
 
@@ -238,7 +238,7 @@ Schedule integration + `run_full_evaluation.py` on a **staging** API with secret
 - **`onboarding_analytics`** — structural onboarding events (`metadata.event_type`, etc.).
 - **`crisis_events`** — detections **without user text** (see migration comments).
 - **`user_activities`**, **`voice_analysis_events`** — Mind Gym / voice usage.
-- **`product_events`** — explicit funnel events from the web app (`trackProductEvent`); migration `supabase/migrations/20260409120000_product_events.sql`. **Never** put raw chat text in `properties`.
+- **`product_events`** — explicit funnel events from the web app (`trackProductEvent`); migration `supabase/migrations/20260417120000_product_events.sql`. **Never** put raw chat text in `properties`.
 
 **SQL templates:** [`docs/sql/beta_product_analytics_queries.sql`](sql/beta_product_analytics_queries.sql).
 
@@ -246,7 +246,7 @@ Schedule integration + `run_full_evaluation.py` on a **staging** API with secret
 
 - **Client:** `src/lib/productAnalytics.ts` — `trackProductEvent(name, props)`.
 - **RLS:** users insert/select **own** rows; cross-user beta dashboards use **postgres** / service role in SQL Editor, consistent with other operator queries.
-- **Disable:** set `VITE_ENABLE_PRODUCT_ANALYTICS=0` so the queue never flushes.
+- **Disable:** omit `VITE_ENABLE_PRODUCT_ANALYTICS` or set it to anything other than `1` so Mixpanel and `product_events` writes stay off. See [`docs/PRODUCT_ANALYTICS_MIXPANEL_AND_SQL.md`](PRODUCT_ANALYTICS_MIXPANEL_AND_SQL.md).
 
 ### Server logs (`chatbotAgent`)
 
@@ -256,6 +256,7 @@ Request middleware logs path, status, duration with `X-Request-ID`. Streaming ch
 
 | Tool | Strength | Risk for mental-health products |
 |------|----------|----------------------------------|
+| **Mixpanel** (configured in-repo) | Funnels, retention, explicit events | Keep replay off; never send chat/clinical strings; EU `api_host` when needed |
 | **PostHog** | Funnels, flags, replay | Autocapture can over-collect; mask, disable replay on `/chat`, allowlist events |
 | **Plausible** | Simple, lightweight | Less depth on custom cohorts |
 | **GA4** | Ads integration | Complex; harder to guarantee no PHI in props |

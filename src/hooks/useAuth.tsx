@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  identifyProductAnalyticsUser,
+  resetProductAnalyticsIdentity,
+} from '@/lib/productAnalytics';
 
 interface AuthContextType {
   user: User | null;
@@ -52,6 +56,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    identifyProductAnalyticsUser(user?.id ?? null);
+  }, [user?.id]);
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
@@ -132,6 +140,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description: error.message
       });
     } else {
+      resetProductAnalyticsIdentity();
       toast({
         title: "Signed out",
         description: "You've been successfully signed out."

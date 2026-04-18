@@ -7,3 +7,5 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
+
+Sitemap: https://mindmitra.co.in/sitemap.xml

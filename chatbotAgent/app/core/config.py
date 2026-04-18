@@ -116,6 +116,12 @@ class Config:
                 "max_workers": 3,
                 "timeout_seconds": 30,
             },
+            "memory": {
+                "use_mem0_add": False,
+                "extraction_provider": "groq",
+                "earned_intimacy_read_gate": True,
+                "redis_context_cache_ttl_seconds": 0,
+            },
         }
 
     # ── env-var substitution ───────────────────────────────────────────────

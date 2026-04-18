@@ -1,4 +1,4 @@
-"""Chat response schema validation with mocked pipeline (no external LLM)."""
+"""HTTP contract tests: /chat (mocked pipeline), /health, /, /debug/memory, /onboarding/*."""
 
 from unittest.mock import patch, AsyncMock
 
@@ -120,3 +120,44 @@ def test_eval_trace_passed_when_env_and_header(mock_ctx, mock_chat, client, monk
     assert r.status_code == 200
     assert r.json().get("eval_trace") is not None
     assert r.json()["eval_trace"]["pipeline_path"] == "B-emotional"
+
+
+# ── /health, /, /debug/memory (no auth) ─────────────────────────────────────
+
+
+def test_health_ok(client):
+    r = client.get("/health")
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("status") == "healthy"
+    assert "service" in data
+    assert "version" in data
+
+
+def test_root_ok(client):
+    r = client.get("/")
+    assert r.status_code == 200
+    body = r.json()
+    assert "health" in body
+    assert "/health" in body.get("health", "")
+
+
+def test_debug_memory_shape(client):
+    r = client.get("/debug/memory", params={"user_id": "pytest_user"})
+    assert r.status_code == 200
+    data = r.json()
+    assert "memory_ready" in data
+    assert "user_id" in data
+
+
+# ── /onboarding (validation-only; no LLM) ───────────────────────────────────
+
+
+def test_mirror_response_validation_error_on_empty_body(client):
+    r = client.post("/onboarding/mirror-response")
+    assert r.status_code == 422
+
+
+def test_crisis_check_validation_error_on_empty_body(client):
+    r = client.post("/onboarding/crisis-check")
+    assert r.status_code == 422

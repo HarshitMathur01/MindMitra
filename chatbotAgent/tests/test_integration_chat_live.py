@@ -74,4 +74,4 @@ def test_live_chat_crisis_routing(http_client, eval_headers):
 
     et = r.json().get("eval_trace") or {}
     if et:
-        assert et.get("pipeline_path") == "D-crisis" or et.get("routed_intent") == "crisis"
+        assert str(et.get("pipeline_path") or "").startswith("D-crisis")

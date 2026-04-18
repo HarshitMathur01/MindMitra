@@ -26,16 +26,19 @@ import pytest
 from dotenv import load_dotenv
 
 _CHATBOT_ROOT = Path(__file__).resolve().parents[1]
-_DOTENV_PATH = _CHATBOT_ROOT / ".env"
+_CHATBOT_DOTENV = _CHATBOT_ROOT / ".env"
+_REPO_ROOT_DOTENV = _CHATBOT_ROOT.parent / ".env"
 
 
 def _load_dotenv_for_tests() -> None:
     if os.getenv("PYTEST_DOTENV", "1").lower() in ("0", "false", "no"):
         return
-    if _DOTENV_PATH.is_file():
-        load_dotenv(dotenv_path=_DOTENV_PATH, override=False)
+    if _CHATBOT_DOTENV.is_file():
+        load_dotenv(dotenv_path=_CHATBOT_DOTENV, override=False)
     else:
         load_dotenv(override=False)
+    if _REPO_ROOT_DOTENV.is_file() and _REPO_ROOT_DOTENV.resolve() != _CHATBOT_DOTENV.resolve():
+        load_dotenv(dotenv_path=_REPO_ROOT_DOTENV, override=False)
 
 
 _load_dotenv_for_tests()

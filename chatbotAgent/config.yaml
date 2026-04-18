@@ -96,7 +96,7 @@ screening_assessments:
   max_tokens: 280
 
 # ──────────────────────────────────────────────────────────────
-# 7. MEMORY SYSTEM (mem0 + Qdrant)
+# 7. MEMORY SYSTEM (Qdrant)
 # ──────────────────────────────────────────────────────────────
 memory:
   # Qdrant connection — override via env vars QDRANT_HOST / QDRANT_PORT / QDRANT_COLLECTION
@@ -106,7 +106,12 @@ memory:
   # LLM: Groq llama-3.3-70b-versatile (fact extraction)
   # Embedder: sentence-transformers/all-MiniLM-L6-v2 (local, 384-dim, no API cost)
   # Init runs in a background daemon thread — never blocks server startup
-  retrieval_limit: 5  # max memories returned per query
+  retrieval_limit: 7  # max memories returned per query (MEMOIR top-K)
+  extraction_provider: anthropic
+  # First ~message of a session: skip retrieved memory injection (earned intimacy).
+  earned_intimacy_read_gate: true
+  # Optional Redis (REDIS_URL): working-memory ring + context cache TTL (0 = disabled).
+  redis_context_cache_ttl_seconds: 0
 
 # ──────────────────────────────────────────────────────────────
 # 10. RESPONSE GENERATOR CONFIGURATION
@@ -120,9 +125,8 @@ response_generator:
   # Memory context
   max_memories_per_type: 3
   
-  # System prompt is defined in response_agent.py (the config default below is a fallback)
-  # The actual prompt includes Magnetic Companion Rules, question budget, stage directives, etc.
-  # See response_agent.py BASE_SYSTEM_PROMPT for the authoritative version.
+  # System prompt is RESPONSE_SYSTEM_PROMPT_V2 in app/core/prompts.py (COMPASS stack).
+  # ResponseGenerator._build_system_prompt_v2 fills all cl_* and personality placeholders.
 
 # ──────────────────────────────────────────────────────────────
 # 11. WORKFLOW ORCHESTRATION

@@ -1,30 +1,35 @@
 """
 Crisis Manager — Critical path safety classification.
 
-Decoupled critical path evaluation module used to override regular orchestration paths
-in case of detected harm/crisis language. Triggers automated escalation scripts and acts
-as an overriding gate in the conversation.
+Keyword sentinel + LLM disambiguation for crisis signals. The warm crisis
+response is built via ``crisis_templates.build_warm_crisis_response`` and
+dispatched by the orchestrator. This module handles detection (keyword scan +
+optional LLM check), Supabase event logging, and non-blocking crisis memory
+persistence.
 """
 import logging
 import threading
 import time
-from typing import Dict, Any, Optional
-from ..core.prompts import CRISIS_LLM_CHECK_PROMPT, CRISIS_RESPONSE_TEMPLATES
+from typing import Any, Dict, Optional
 
-from ..agents.memory_manager import memory_manager
+from ..core import crisis_templates
+from ..core.prompts import CRISIS_LLM_CHECK_PROMPT
 from ..agents.analysis_agent import AnalysisAgent
+from ..agents.memory_manager import memory_manager
 from supabase import Client
 
 logger = logging.getLogger(__name__)
 
+
 class CrisisManager:
     """
     Crisis Safety System for MindMitra.
-    Responsible for keyword scanning, LLM-based crisis escalation, 
-    and handling the immediate crisis fast-path (Path D).
+    Responsible for keyword scanning, LLM-based crisis disambiguation,
+    crisis event persistence, and delegating warm-response building to
+    ``crisis_templates``.
     """
 
-    # Crisis keywords that trigger immediate fast-path (no LLM needed)
+    # Keywords that force immediate crisis routing (no LLM gate needed)
     _CRISIS_HARD_KEYWORDS = (
         "kill myself", "killing myself", "end my life", "ending my life",
         "take my life", "taking my life", "suicidal",
@@ -55,74 +60,7 @@ class CrisisManager:
         "nobody cares", "worthless", "hopeless", "disappear forever",
     )
 
-    # Hardcoded crisis resources (India-specific) — template-dynamic
-    _CRISIS_RESPONSE_TEMPLATES: Dict[str, str] = {
-        "english": (
-            "I'm really glad you reached out. You're not alone, and what you're feeling is real. "
-            "{known_support}"
-            "Please talk to someone who can be there with you in person — "
-            "a doctor, counselor, or someone you trust:\n\n"
-            "📞 iCall India: 9152987821\n"
-            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "You deserve that support. I'm here whenever you want to talk."
-        ),
-        "hindi": (
-            "Mujhe bahut khushi hai ki tumne baat ki. Tum akele nahi ho — jo tum mehsoos kar rahe ho woh real hai. "
-            "{known_support}"
-            "Please kisi se baat karo jo tumhare saath ho sake — "
-            "doctor, counselor, ya koi apna:\n\n"
-            "📞 iCall India: 9152987821\n"
-            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "Tum real support ke haqdaar ho. Main yahan hoon jab bhi baat karni ho."
-        ),
-        "hinglish": (
-            "I'm really glad tumne baat ki. You're not alone — jo tum feel kar rahe ho woh real hai. "
-            "{known_support}"
-            "Please kisi se baat karo who can really be there — "
-            "doctor, counselor, ya koi close person:\n\n"
-            "📞 iCall India: 9152987821\n"
-            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "You deserve real support. Main hoon — jab bhi baat karni ho."
-        ),
-        "japanese": (
-            "話してくれてありがとうございます。あなたは一人じゃありません。"
-            "今感じていることは本物で、大切なことです。"
-            "{known_support}"
-            "信頼できる人に話してみてください — 医師、カウンセラー、大切な人に:\n\n"
-            "📞 いのちの電話: 0570-783-556\n"
-            "📞 よりそいホットライン: 0120-279-338\n\n"
-            "あなたはサポートを受ける価値があります。話したいときはいつでもここにいます。"
-        ),
-        "telugu": (
-            "మీరు నాతో మాట్లాడినందుకు సంతోషంగా ఉంది. మీరు ఒంటరిగా లేరు — మీరు అనుభవిస్తున్నది నిజమైనది. "
-            "{known_support}"
-            "దయచేసి మీకు అండగా ఉండగల వారితో మాట్లాడండి — "
-            "డాక్టర్, కౌన్సెలర్, లేదా విశ్వసనీయ వ్యక్తి:\n\n"
-            "📞 iCall India: 9152987821\n"
-            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "మీకు నిజమైన సహాయం అందాలి. మాట్లాడాలనుకున్నప్పుడు నేను ఇక్కడ ఉన్నాను."
-        ),
-        "kannada": (
-            "ನೀವು ನನ್ನೊಂದಿಗೆ ಮಾತನಾಡಿದ್ದಕ್ಕೆ ಖುಷಿಯಾಗಿದೆ. ನೀವು ಒಬ್ಬಂಟಿಯಲ್ಲ — ನೀವು ಅನುಭವಿಸುತ್ತಿರುವುದು ನಿಜ. "
-            "{known_support}"
-            "ಬೆಂಬಲ ನೀಡಬಲ್ಲ ಯಾರೊಂದಿಗಾದರೂ ಮಾತನಾಡಿ — "
-            "ವೈದ್ಯರು, ಕೌನ್ಸೆಲರ್, ಅಥವಾ ನಂಬಿಕಸ್ಥ ವ್ಯಕ್ತಿ:\n\n"
-            "📞 iCall India: 9152987821\n"
-            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "ನಿಮಗೆ ನಿಜವಾದ ಬೆಂಬಲ ಸಿಗಬೇಕು. ಮಾತನಾಡಬೇಕೆನಿಸಿದಾಗ ನಾನು ಇಲ್ಲಿದ್ದೇನೆ."
-        ),
-        "tamil": (
-            "நீங்கள் என்னிடம் பேசியதற்கு மகிழ்ச்சியாக இருக்கிறேன். நீங்கள் தனியாக இல்லை — நீங்கள் உணர்வது உண்மையானது. "
-            "{known_support}"
-            "உங்களுக்கு ஆதரவாக இருக்கக்கூடிய யாரிடமாவது பேசுங்கள் — "
-            "மருத்துவர், ஆலோசகர், அல்லது நம்பகமான நபர்:\n\n"
-            "📞 iCall India: 9152987821\n"
-            "📞 Vandrevala Foundation: 1860-2662-345\n\n"
-            "நீங்கள் உண்மையான ஆதரவைப் பெற தகுதியானவர். பேசவேண்டும் என்றால் நான் இங்கே இருக்கிறேன்."
-        ),
-    }
-
-    def __init__(self, groq_nlp: Optional[AnalysisAgent] = None, supabase: Optional[Client] = None):
+    def __init__(self, groq_nlp: Optional[AnalysisAgent] = None, supabase: Optional[Client] = None) -> None:
         self.groq_nlp = groq_nlp
         self.supabase = supabase
 
@@ -166,92 +104,78 @@ class CrisisManager:
             logger.warning(f"⚠️ [CRISIS-LLM] Check failed: {e}")
             return False
 
-    def build_crisis_response(self, ctx: Dict) -> str:
-        """
-        Builds the fallback crisis template response.
-        """
-        lang = ctx["personality_settings"].get("language", "english").lower()
-        template = self._CRISIS_RESPONSE_TEMPLATES.get(
-            lang, self._CRISIS_RESPONSE_TEMPLATES["english"]
-        )
+    def build_warm_crisis_response(self, ctx: Dict, cognitive_output=None, **kwargs) -> str:
+        """Delegates to ``crisis_templates.build_warm_crisis_response``."""
+        return crisis_templates.build_warm_crisis_response(ctx, cognitive_output, **kwargs)
 
-        known_support = ""
-        mem_text = ctx.get("memory_context", "")
-        if "brother" in mem_text.lower() or "sister" in mem_text.lower():
-            known_support = "I know you have family who cares about you. "
-        elif "friend" in mem_text.lower():
-            known_support = "I know you have friends who care about you. "
-
-        return template.format(known_support=known_support)
-
-    def crisis_fast_path(self, ctx: Dict) -> None:
+    def log_crisis_event(self, ctx: Dict) -> None:
         """
-        Path D — immediate empathetic crisis response. Logs event. Under ~1s.
-        Sets ctx["ai_response"] directly, sets analysis to crisis defaults.
+        Non-blocking: logs a crisis_events row to Supabase and persists a crisis memory.
+        Called by the orchestrator immediately after building the warm crisis response.
         """
         logger.critical(
-            f"🚨 [CRISIS] Fast-path triggered | session={str(ctx.get('session_id','?'))[:8]}"
+            "🚨 [CRISIS] D-crisis-warm triggered | "
+            "session=%s user=%s",
+            str(ctx.get("session_id", "?"))[:8],
+            str(ctx.get("user_id", "?"))[:12],
         )
-        
-        # Log to crisis_events table (non-blocking)
+
         if self.supabase:
-            try:
-                # Include voice stress indicators in crisis log for clinical review
-                voice = ctx.get("voice_analysis", {})
-                prosody = voice.get("prosody", {})
-                voice_indicators: Dict[str, Any] = {}
-                if voice.get("speech_rate_wpm"):
-                    voice_indicators["speech_rate_wpm"] = voice["speech_rate_wpm"]
-                if prosody.get("jitter_local_percent"):
-                    voice_indicators["jitter_percent"] = prosody["jitter_local_percent"]
-                if prosody.get("pitch_mean_hz"):
-                    voice_indicators["pitch_mean_hz"] = prosody["pitch_mean_hz"]
-                    voice_indicators["pitch_std_hz"] = prosody.get("pitch_std_hz", 0)
-                if prosody.get("hnr_db"):
-                    voice_indicators["hnr_db"] = prosody["hnr_db"]
+            def _log_event() -> None:
+                try:
+                    _t0 = time.monotonic()
+                    voice = ctx.get("voice_analysis") or {}
+                    prosody = voice.get("prosody") or {}
+                    voice_indicators: Dict[str, Any] = {}
+                    if voice.get("speech_rate_wpm"):
+                        voice_indicators["speech_rate_wpm"] = voice["speech_rate_wpm"]
+                    if prosody.get("jitter_local_percent"):
+                        voice_indicators["jitter_percent"] = prosody["jitter_local_percent"]
+                    if prosody.get("pitch_mean_hz"):
+                        voice_indicators["pitch_mean_hz"] = prosody["pitch_mean_hz"]
+                        voice_indicators["pitch_std_hz"] = prosody.get("pitch_std_hz", 0)
+                    if prosody.get("hnr_db"):
+                        voice_indicators["hnr_db"] = prosody["hnr_db"]
 
-                crisis_data = {
-                    "user_id": ctx.get("user_id", "anonymous"),
-                    "level": "high",
-                    "source": "intent_router_crisis_path",
-                }
-                if voice_indicators:
-                    crisis_data["voice_indicators"] = voice_indicators
+                    crisis_data: Dict[str, Any] = {
+                        "user_id": ctx.get("user_id", "anonymous"),
+                        "level": "high",
+                        "source": "D-crisis-warm",
+                    }
+                    if voice_indicators:
+                        crisis_data["voice_indicators"] = voice_indicators
 
-                self.supabase.table("crisis_events").insert(crisis_data).execute()
-            except Exception as e:
-                logger.error(f"❌ [CRISIS] Supabase log failed: {e}")
+                    self.supabase.table("crisis_events").insert(crisis_data).execute()
+                    logger.info("✅ [CRISIS] crisis_events row written")
+                except Exception as exc:
+                    logger.error("❌ [CRISIS] Supabase event log failed: %s", exc)
+                    try:
+                        self.supabase.table("crisis_dead_letter").insert(
+                            {
+                                "user_id": ctx.get("user_id", "anonymous"),
+                                "session_id": ctx.get("session_id"),
+                                "component": "crisis_manager",
+                                "action": "insert_crisis_events",
+                                "error": str(exc),
+                                "detail": {"source": "D-crisis-warm"},
+                            }
+                        ).execute()
+                    except Exception:
+                        pass
+                finally:
+                    logger.info(
+                        "[CRISIS] crisis_events latency_ms=%.1f",
+                        (time.monotonic() - _t0) * 1000,
+                    )
 
-        ctx["ai_response"] = self.build_crisis_response(ctx)
-        ctx["response_generated"] = True
-        ctx["intervention_directive"] = ""
+            threading.Thread(target=_log_event, daemon=True, name="crisis-event-log").start()
 
-        # Store crisis memory (background, non-blocking)
         try:
             threading.Thread(
                 target=memory_manager.add_crisis_memory,
-                args=(
-                    ctx.get("user_id", "anonymous"),
-                    ctx.get("user_message", ""),
-                    ctx.get("session_id"),
-                ),
+                args=(ctx.get("user_id", "anonymous"), ctx.get("user_message", ""), ctx.get("session_id")),
                 daemon=True,
+                name="crisis-memory-save",
             ).start()
-        except Exception as crisis_mem_exc:
-            logger.error(f"❌ [CRISIS] Memory save failed: {crisis_mem_exc}")
-
-        ctx["psychological_analysis"] = {
-            "emotional_state": "crisis",
-            "stress_categories": ["Crisis"],
-            "risk_assessment": "crisis",
-            "coping_assessment": "immediate intervention required",
-            "intervention_priority": "immediate",
-            "psychological_insights": ["User expressed crisis-level distress"],
-            "cultural_pressures": "",
-        }
-        ctx["technique_selection"] = {
-            "primary_technique": "Crisis-Protocol",
-            "therapeutic_approach": "refer",
-            "activity_recommendations": [],
-            "rationale": "immediate safety — crisis fast-path",
-        }
+        except Exception as exc:
+            logger.error("❌ [CRISIS] Memory save thread failed: %s", exc)

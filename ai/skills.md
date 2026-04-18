@@ -46,7 +46,7 @@ Define what AI can change autonomously and what requires explicit human approval
 ### Change Memory Logic
 1. Define retrieval/write impact
 2. Validate safety and latency impact
-3. Update /docs/rag.md and /docs/memory.md
+3. Update /docs/MEMORY.md and /docs/backend/MEMORY_ARCHITECTURE.md
 4. Add regression checks
 
 ### Provider/Model Changes

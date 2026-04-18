@@ -1,82 +1,58 @@
-# MindMitra Backend — Multi-Agent Therapeutic Pipeline
+# MindMitra Backend (`chatbotAgent`)
 
-> FastAPI backend for MindMitra. Intent-routed multi-agent pipeline with mem0 long-term memory, 11 therapeutic emotion detection, PHQ-9/GAD-7 clinical screening, and Chain-of-Experts reasoning.
+> **FastAPI** service: authenticated chat (JSON + SSE), onboarding, therapist bridge, voice transcription. **COMPASS** (cognitive layer + v2 paths) drives response shaping; **MEMOIR** (structured extraction + scored retrieval) drives longitudinal memory. Crisis handling is template-first (**D-crisis-warm**) with deterministic keyword gating.
 >
-> **Python 3.12 · FastAPI 0.115 · uvicorn · ~6,000 lines across 24 files**
+> **Canonical docs:** [`../docs/README.md`](../docs/README.md) — start there for architecture, memory, API contracts, logging, and ops.
 
----
-## Architecture Overview
-
-```
-POST /chat → auth.py (JWT verify) → chat.py (endpoint)
-                                        │
-                              workflow.py (MindMitraWorkflow.process_chat)
-                                        │
-                              ┌─────────┼──────────────┐
-                              │         │              │
-                        Build UserContext   Fetch memories   Fetch screening scores
-                        (context.py)       (memory_manager)  (supabase_service)
-                              │         │              │
-                              └─────────┼──────────────┘
-                                        │
-                               IntentRouter.classify() (Groq qwen3-32b)
-                               + screening_hint injection
-                               + activity awareness
-                                        │
-                    ┌──────────────┬─────┴──────┬─────────────┐
-                    ▼              ▼            ▼             ▼
-              Path A           Path B       Path C        Path D
-              casual           emotional    therapeutic   crisis
-              ─────            ────────     ──────────    ──────
-              1 GLM call       1 Groq      1-2 GLM       0 LLM
-              150 tokens       + 1 GLM     + opt. Groq   template response
-                               300 tok     500 tok       safety resources
-                    │              │            │             │
-                    └──────────────┴────────────┘             │
-                                   │                          │
-                    ┌──────────────┤                          │
-                    ▼              ▼                          │
-              Detect emotion  Build response                  │
-              (11 types)      (text only)                     │
-                    │              │                          │
-                    └──────────────┴──────────────────────────┘
-                                   │
-                          ChatResponse JSON
-                    (message + emotion + animation + insights)
-
-Note: TTS and lip-sync run entirely in the browser (frontend iframe).
-The backend sends only text + emotion metadata — no audio generation.
-
-Background threads (daemon, non-blocking):
-  ├─ Memory extraction (every 12 messages, Groq + Qdrant)
-  ├─ Session summary (every 36 messages, Gemini)
-  ├─ PHQ-9/GAD-7 scoring (session-end, EMA-smoothed)
-  ├─ Procedural synthesis (coping keyword trigger)
-  ├─ Reflection generation (every 5 sessions)
-  └─ Game→mem0 bridge (activity therapeutic insights)
-```
+**Python 3.12 · FastAPI · uvicorn**
 
 ---
 
-## Module Reference
+## Architecture overview (current)
 
-| Module | File | Lines | LLM Provider | Purpose |
-|---|---|---|---|---|
-| **Pipeline Orchestrator** | `app/pipeline/workflow.py` | 1,092 | — | The brain: routing, paths, crisis |
-| **UserContext Builder** | `app/pipeline/context.py` | 93 | — | JSON envelope for pipeline |
-| **Intent Router** | `app/agents/intent_router.py` | 141 | Groq qwen3-32b | 4-class message classification |
-| **Response Generator** | `app/agents/response_agent.py` | 442 | ZhipuAI GLM-4-32b | CoE reasoning + personality + response |
-| **Memory Manager** | `app/agents/memory_manager.py` | 1,321 | Groq llama-3.3 + local embeddings | Composite-scored retrieval, reflections |
-| **Screening Agent** | `app/agents/screening_agent.py` | 232 | Groq llama-3.3 | PHQ-9/GAD-7 with EMA |
-| **NLP Agent** | `app/agents/nlp_agent.py` | 48 | Groq qwen3-32b | Client factory only |
-| **GLM Controller** | `app/controllers/glm_controller.py` | 174 | ZhipuAI (Groq fallback) | Thread-safe LLM wrapper |
-| **Chat Endpoints** | `app/api/chat.py` | 493 | — | POST /chat, /chat/stream, GET /greeting, _detect_emotion() |
-| **Supabase Service** | `app/services/supabase_service.py` | 233 | — | All DB operations |
-| **Greeting Service** | `app/services/greeting_service.py` | 228 | — | Time/personality/continuity greetings |
-| **Config** | `app/core/config.py` | 226 | — | config.yaml + env-var loader |
-| **JSON Utils** | `app/utils/json_utils.py` | 136 | — | 4-tier LLM output parser |
-| **Constants** | `app/utils/constants.py` | 80 | — | All magic numbers (35+) |
-| **Boot/CORS** | `app/main.py` | 134 | — | FastAPI factory, health-first boot |
+```
+POST /chat | /chat/stream
+  → JWT + rate limit (chat.py)
+  → fetch_user_context (+ summaries, activities)
+  → MindMitraWorkflow.process_chat
+       → PipelineOrchestrator.route_and_execute
+            → IntentRouter (Groq) + CrisisManager keyword/LLM gate
+            → retrieve_memories ∥ get_emotional_trend (timeout from config.yaml)
+            → CognitiveLayer (COMPASS) → cl_* fields on ctx
+            → A-casual-v2 | B-emotional-v2 | C-therapeutic-v2 | D-crisis-warm
+            → ResponseGenerator (v2 prompt) except D-crisis-warm
+  → ChatResponse (text + avatar metadata only — no server-side audio)
+
+Background (daemon, non-blocking):
+  ├─ SessionLifecycle: registry bump; add_structured every 12 msgs; checkpoint every 36
+  ├─ Session summaries / procedural / reflections / screening (see docs/backend/MEMORY_ARCHITECTURE.md)
+  └─ Game → add_memories bridge (synthetic insights only)
+```
+
+TTS and lipsync run in the **browser**; the API returns text plus animation / facial-expression hints.
+
+---
+
+## Module reference
+
+| Module | File | LLM / IO | Purpose |
+|--------|------|-----------|---------|
+| **Workflow** | `app/pipeline/workflow.py` | — | `process_chat`; singleton orchestration entry |
+| **Orchestrator** | `app/pipeline/pipeline_orchestrator.py` | Groq + parallel memory | Router, crisis gate, retrieval, COMPASS, v2 paths |
+| **UserContext** | `app/pipeline/context.py` | — | Envelope dict for the pipeline |
+| **Intent router** | `app/agents/intent_router.py` | Groq | 4-class intent + hints |
+| **Cognitive layer** | `app/core/cognitive_layer.py` | Groq | COMPASS structured output |
+| **Response generator** | `app/agents/response_agent.py` | GLM / Azure | v2 system prompt + invoke |
+| **Memory manager** | `app/agents/memory_manager.py` | Groq + embeddings | MEMOIR read / lifecycle facade |
+| **Session lifecycle** | `app/core/session_lifecycle.py` | — | `add_structured` cadence, checkpoints |
+| **Screening** | `app/agents/screening_agent.py` | Groq / GLM | PHQ-9/GAD-7 + EMA |
+| **Groq NLP client** | `app/agents/analysis_agent.py` | Groq | Shared client for router + cognitive layer + crisis LLM check |
+| **GLM controller** | `app/controllers/glm_controller.py` | Zhipu / fallback | Thread-safe generation |
+| **Chat API** | `app/api/chat.py` | — | `/chat`, `/chat/stream`, triggers, post-stream hooks |
+| **Supabase** | `app/services/supabase_service.py` | Postgres | Context, messages, hybrid counts |
+| **Config** | `app/core/config.py` | — | `config.yaml` + env substitution |
+| **Constants** | `app/utils/constants.py` | — | Memory limits, intervals, caps |
+| **Boot** | `app/main.py` | — | App factory, CORS, health-first include order |
 
 ---
 
@@ -134,7 +110,9 @@ CORS_ALLOW_ORIGINS          → Extra allowed origins (comma-separated)
 | `GET`  | `/chat/greeting` | JWT | Personalized session-start greeting |
 | `GET`  | `/health` | None | Health check (registered before heavy imports) |
 | `POST` | `/transcribe` | JWT | Groq Whisper fallback STT (base64 WAV, requires `GROQ_API_KEY`) |
-| `POST` | `/api/onboarding/generate` | JWT | Dynamic onboarding question generation |
+| `POST` | `/onboarding/mirror-response` | — | Mirror text + crisis screen (see `app/api/onboarding.py`) |
+| `POST` | `/onboarding/crisis-check` | — | LLM crisis disambiguation for onboarding |
+| * | `/therapist-bridge/*` | JWT | Clinician handoff (see `docs/therapist_bridge.md`) |
 
 ---
 
@@ -152,7 +130,7 @@ CORS_ALLOW_ORIGINS          → Extra allowed origins (comma-separated)
 | `MEMORY_LIMIT_EMOTIONAL` | 5 | Max memories for emotional intent |
 | `MEMORY_LIMIT_THERAPEUTIC` | 7 | Max memories for therapeutic intent |
 | `MEMORY_LIMIT_CRISIS` | 4 | Max memories for crisis intent |
-| `EMBEDDING_DIMS` | 384 | all-MiniLM-L6-v2 vector dimensions |
+| `EMBEDDING_DIMS` / `EMBEDDING_MODEL` | env (default 1024 / BAAI/bge-m3) | Must match Qdrant collection size. Set in **`chatbotAgent/.env`** (that file loads first; repo-root `.env` only fills vars that are missing). Legacy collections: MiniLM + 384. |
 | `REFLECTION_INTERVAL_SESSIONS` | 5 | Generate reflections every N sessions |
 
 ---
@@ -161,7 +139,7 @@ CORS_ALLOW_ORIGINS          → Extra allowed origins (comma-separated)
 
 | Trigger | Interval | Job | Agent |
 |---|---|---|---|
-| Message count | Every 12 msgs | Memory extraction (fetch last 12 msgs → mem0) | `memory_manager.add_memories()` |
+| Message count | Every 12 msgs | Structured memory extraction | `SessionLifecycle` → `MemoryStore.add_structured()` |
 | Message count | Every 36 msgs | Session-end jobs (summary + synthesis + reflection + screening) | `_run_session_end_jobs()` |
 | Game detected | On activity | Game→mem0 bridge (store game insights as memories) | `_extract_game_insights_for_memory()` |
 | Coping keywords | Session-end | Procedural synthesis (extract coping strategies) | `memory_manager.synthesize_procedural_memory()` |
@@ -171,9 +149,7 @@ CORS_ALLOW_ORIGINS          → Extra allowed origins (comma-separated)
 
 ## Configuration
 
-`config.yaml` (193 lines) defines model names, temperatures, max tokens, system prompts, and feature flags. Environment variables are substituted via `${VAR_NAME}` syntax.
-
-Key sections: `api_keys`, `nlp_module`, `glm_controller`, `screening_assessments`, `memory`, `response_generator`, `workflow`, `features` (8 flags), `performance`, `debug`.
+`config.yaml` defines model names, temperatures, max tokens, and sections such as `api_keys`, `nlp_module`, `glm_controller`, `screening_assessments`, `memory`, `response_generator`, `workflow`, `features`, `performance`, `debug`. Environment variables are substituted via `${VAR_NAME}` syntax.
 
 `Config` class (singleton): `config.get("nlp_module.model")` for dot-notation access, `config.get_api_key("groq")` for keys, `config.reload()` for hot-reload.
 
@@ -207,12 +183,14 @@ docker run -p 8080:8080 --env-file .env mindmitra-backend
 
 ---
 
-## Deep References
+## Deep references
 
-| Document | What's In It |
-|---|---|
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Complete backend architecture (1894 lines): every function signature, every LLM call, every prompt template, every constant, every database table, boot sequence, module dependency graph |
-| [`docs/MEMORY_ARCHITECTURE.md`](docs/MEMORY_ARCHITECTURE.md) | Memory system deep dive: composite scoring formula, retrieval pipeline, reflections, procedural synthesis, emotional trend, session summaries, game→mem0 bridge |
+| Document | Contents |
+|----------|----------|
+| [`../docs/README.md`](../docs/README.md) | Documentation hub (architecture, memory, API, logging, ops) |
+| [`../docs/backend/ARCHITECTURE.md`](../docs/backend/ARCHITECTURE.md) | FastAPI request path, COMPASS, routes, screening, boot order |
+| [`../docs/backend/MEMORY_ARCHITECTURE.md`](../docs/backend/MEMORY_ARCHITECTURE.md) | MEMOIR read/write, triggers, Qdrant, session lifecycle, game bridge |
+| [`app/agents/README.md`](app/agents/README.md) | Memory stack overview for agents layer |
 
 ---
 

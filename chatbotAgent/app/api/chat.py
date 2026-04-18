@@ -9,6 +9,7 @@ import queue
 import re
 import tempfile
 import threading
+import uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query
@@ -17,7 +18,7 @@ from groq import Groq
 from pydantic import BaseModel
 
 from ..core.auth import validate_user_token
-from ..core.logging import log_timing
+from ..core.logging import log_timing, request_id_var, log_event
 from ..models.request_models import ChatRequest, EndSessionRequest
 from ..models.response_models import ChatResponse
 from ..pipeline.workflow import get_workflow_instance, process_user_chat
@@ -32,8 +33,11 @@ from ..services.supabase_service import (
     get_hybrid_message_count,
     save_screening_scores,
     session_message_counters,
+    bump_session_message_count,
     supabase_client,
 )
+from ..core.emotional_arc_updater import EmotionalArcUpdater
+from ..core.output_safety_auditor import OutputSafetyAuditor
 from ..utils.constants import (
     MEMORY_TRIGGER_INTERVAL,
     SCREENING_EMA_ALPHA,
@@ -49,6 +53,9 @@ from ..utils.constants import (
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+output_safety_auditor = OutputSafetyAuditor()
+emotional_arc_updater = EmotionalArcUpdater()
 
 # ── Compiled regex for sentence-boundary detection in SSE chunk buffer ──────
 # Matches end of a sentence: punctuation followed by a space.
@@ -223,41 +230,88 @@ def _build_avatar_package(
     return {"animation": "Idle", "facial_expression": "default"}
 
 
-def _maybe_trigger_memory(session_id: str, user_id: str, content_locale: str | None = None) -> None:
-    """Increment counter and trigger memory extraction every MEMORY_TRIGGER_INTERVAL messages."""
+def _maybe_trigger_memory(
+    session_id: str,
+    user_id: str,
+    content_locale: str | None = None,
+    emotional_intensity: float | None = None,
+) -> None:
+    """Hybrid message counter hint + MemoryManager session lifecycle (extraction at 12)."""
     try:
-        session_message_counters[session_id] += 1
-        count = get_hybrid_message_count(session_id)
-        logger.info(f"📊 [MEMORY] Session count: {count}")
-        if count > 0 and count % MEMORY_TRIGGER_INTERVAL == 0:
-            logger.info(f"🔔 [MEMORY] Triggering mem0 extraction at message #{count}")
-            messages = fetch_last_n_messages(session_id, n=MEMORY_TRIGGER_INTERVAL)
-            if messages:
-                meta = {"content_locale": content_locale} if content_locale else None
-                threading.Thread(
-                    target=memory_manager.add_memories,
-                    args=(messages, user_id, session_id, meta),
-                    daemon=True,
-                ).start()
+        count = bump_session_message_count(session_id, ttl_seconds=3600)
+        will_extract = count > 0 and count % 12 == 0
+        will_checkpoint = count > 0 and count % 36 == 0
+        logger.info(
+            "📊 [MEMORY-TRIGGER] session=%s user=%s count=%d interval=%d "
+            "extract_trigger=%s checkpoint_trigger=%s locale=%s",
+            session_id[-8:], user_id[-8:], count, MEMORY_TRIGGER_INTERVAL,
+            will_extract, will_checkpoint, content_locale or "none",
+        )
+        n_fetch = min(MEMORY_TRIGGER_INTERVAL, max(count, 1))
+        messages = fetch_last_n_messages(session_id, n=n_fetch) or []
+        memory_manager.on_message(
+            messages,
+            user_id,
+            session_id,
+            count,
+            content_locale,
+            emotional_intensity=emotional_intensity,
+        )
     except Exception as e:
-        logger.error(f"❌ [MEMORY] Trigger failed: {e}")
+        logger.error("❌ [MEMORY-TRIGGER] Failed | session=%s error=%s", session_id[-8:], e)
+
+
+def _run_session_checkpoint_jobs(session_id: str, user_id: str) -> None:
+    """Mid-session checkpoint: structured extraction + optional summary; screening."""
+    try:
+        cnt = get_hybrid_message_count(session_id) or 0
+        cap = max(cnt, 1)
+        messages = fetch_last_n_messages(session_id, n=min(cap, 200)) or []
+        memory_manager.on_session_checkpoint(messages, user_id, session_id)
+
+        recent = fetch_last_n_messages(session_id, n=30)
+        if recent and len(recent) >= SCREENING_MIN_MESSAGES:
+            try:
+                workflow = get_workflow_instance()
+                if workflow.screening_agent:
+                    previous = fetch_latest_screening_scores(user_id)
+                    scores = workflow.screening_agent.generate_session_assessment(
+                        recent, previous_scores=previous, ema_alpha=SCREENING_EMA_ALPHA
+                    )
+                    if scores:
+                        save_screening_scores(user_id, session_id, scores)
+                        logger.info(
+                            f"\u2705 [SCREENING] Checkpoint assessment complete | "
+                            f"PHQ-9={scores.get('phq9',{}).get('score','?')} "
+                            f"GAD-7={scores.get('gad7',{}).get('score','?')}"
+                        )
+            except Exception as screen_exc:
+                logger.error(f"\u274c [SCREENING] Checkpoint assessment failed: {screen_exc}")
+    except Exception as e:
+        logger.error(f"❌ [SESSION-CHECKPOINT] Job failed: {e}")
 
 
 def _run_session_end_jobs(session_id: str, user_id: str) -> None:
-    """Background: save session summary + run PHQ-9/GAD-7 screening + reflections at session-end intervals."""
+    """Background: session-end memory pipeline + procedural + reflections + screening."""
     try:
-        messages = fetch_last_n_messages(session_id, n=30)
-        if messages and len(messages) >= 5:
-            memory_manager.save_session_summary(user_id, session_id, messages)
+        cnt = get_hybrid_message_count(session_id) or 0
+        cap = max(cnt, 1)
+        messages_all = fetch_last_n_messages(session_id, n=min(cap, 400)) or []
+        if messages_all:
+            threading.Thread(
+                target=memory_manager.on_session_end,
+                args=(messages_all, user_id, session_id),
+                daemon=True,
+                name="session-end-memory",
+            ).start()
 
-            # ── Procedural memory synthesis ──────────────────────────────
-            # Extract coping strategies / techniques from therapeutic conversations
+        recent = fetch_last_n_messages(session_id, n=30) or []
+        if recent and len(recent) >= 5:
             try:
-                _trigger_procedural_synthesis(user_id, messages)
+                _trigger_procedural_synthesis(user_id, recent)
             except Exception as proc_exc:
                 logger.error(f"❌ [PROCEDURAL] Synthesis failed: {proc_exc}")
 
-            # ── Reflection generation (every N sessions) ─────────────────
             try:
                 if memory_manager.should_generate_reflections(user_id):
                     threading.Thread(
@@ -269,14 +323,13 @@ def _run_session_end_jobs(session_id: str, user_id: str) -> None:
             except Exception as ref_exc:
                 logger.error(f"❌ [REFLECTION] Trigger failed: {ref_exc}")
 
-        # PHQ-9/GAD-7 session-level screening with EMA
-        if messages and len(messages) >= SCREENING_MIN_MESSAGES:
+        if recent and len(recent) >= SCREENING_MIN_MESSAGES:
             try:
                 workflow = get_workflow_instance()
                 if workflow.screening_agent:
                     previous = fetch_latest_screening_scores(user_id)
                     scores = workflow.screening_agent.generate_session_assessment(
-                        messages, previous_scores=previous, ema_alpha=SCREENING_EMA_ALPHA
+                        recent, previous_scores=previous, ema_alpha=SCREENING_EMA_ALPHA
                     )
                     if scores:
                         save_screening_scores(user_id, session_id, scores)
@@ -323,7 +376,7 @@ def _trigger_procedural_synthesis(user_id: str, messages: list) -> None:
 
 def _extract_game_insights_for_memory(activities: list, user_id: str) -> None:
     """
-    Extract therapeutic insights from game/assessment activities and store as mem0 memories.
+    Extract therapeutic insights from game/assessment activities and store as long-term memories.
     Bridges the gap between the game data system and the memory system so that
     game-derived observations persist beyond the 24h activity window.
     Runs in a background thread — fire and forget.
@@ -436,13 +489,30 @@ async def process_chat(
     x_mindmitra_eval_trace: Optional[str] = Header(None, alias="X-MindMitra-Eval-Trace"),
 ):
     """Main chat endpoint — executes full pipeline and returns response with optional avatar data."""
+    _rid = uuid.uuid4().hex[:12]
+    request_id_var.set(_rid)
     try:
-        logger.info("=" * 70)
-        logger.info("🚀 [CHAT] New request received")
+        logger.info(
+            "═" * 60 + "\n"
+            "🚀 [CHAT] Incoming request\n"
+            "  request_id=%s  session=%s  msg_len=%d",
+            _rid, request.session_id or "none", len(request.user_message),
+        )
         user_id = await validate_user_token(authorization, supabase_client)
-        logger.info(f"👤 [CHAT] user={user_id} session={request.session_id}")
+        log_event(
+            logger,
+            "chat_request",
+            endpoint="/chat",
+            user=str(user_id)[:12],
+            session=str(request.session_id or "none")[:16],
+            avatar_visible=bool(request.avatar_visible),
+            has_audio=bool(request.audio_data),
+            personality=request.personality,
+            language=request.language,
+            msg_len=len(request.user_message or ""),
+        )
+        logger.info("👤 [CHAT] Authenticated | user=%s session=%s", user_id[:12], request.session_id or "none")
 
-        # Prewarm emotional trend cache (same pattern as /chat/stream) so orchestrator often hits cache.
         threading.Thread(
             target=memory_manager.get_emotional_trend,
             args=(user_id,),
@@ -514,16 +584,42 @@ async def process_chat(
         avatar = _build_avatar_package(ai_text, result, request.avatar_visible, request.personality)
 
         if request.session_id:
-            _maybe_trigger_memory(request.session_id, user_id, content_locale=request.language)
+            _maybe_trigger_memory(
+                request.session_id,
+                user_id,
+                content_locale=request.language,
+                emotional_intensity=float(result.get("cl_emotional_intensity", 0.0) or 0.0),
+            )
+            final_response_text = (
+                result.get("ai_response") or result.get("message", "") or ai_text
+            )
+            if final_response_text:
+                post_ctx = {
+                    "ai_response": final_response_text,
+                    "session_id": request.session_id or "",
+                    "user_id": user_id,
+                    "cl_intent": result.get("cl_intent", "unknown"),
+                    "cl_intervention_sequence": result.get("cl_intervention_sequence", []),
+                    "cl_arc_trajectory": result.get("cl_arc_trajectory", "stable"),
+                    "cl_risk_level": result.get("cl_risk_level", "low"),
+                }
+                output_safety_auditor.run_async(final_response_text, post_ctx, logger)
+                emotional_arc_updater.update_async(
+                    request.user_message,
+                    final_response_text,
+                    post_ctx,
+                    supabase_client,
+                    logger,
+                )
             count = get_hybrid_message_count(request.session_id)
             if count > 0 and count % (MEMORY_TRIGGER_INTERVAL * 3) == 0:
                 threading.Thread(
-                    target=_run_session_end_jobs,
+                    target=_run_session_checkpoint_jobs,
                     args=(request.session_id, user_id),
                     daemon=True,
                 ).start()
 
-            # Game → mem0 memory bridge (extract therapeutic insights from activities)
+            # Game → memory bridge (extract therapeutic insights from activities)
             if context["user_activities"]:
                 threading.Thread(
                     target=_extract_game_insights_for_memory,
@@ -554,20 +650,30 @@ async def process_chat_stream(
     authorization: str = Header(None),
 ):
     """
-    Streaming endpoint (SSE) — sends AI text immediately, then TTS/lipsync asynchronously.
-    Events: text_chunk | audio_ready | lipsync_ready | complete | error
+    Streaming endpoint (SSE) — emits incremental text deltas and completes with final metadata.
+    Events: text_chunk_delta | complete | error
     """
+    _rid = uuid.uuid4().hex[:12]
+    request_id_var.set(_rid)
     try:
         user_id = await validate_user_token(authorization, supabase_client)
-        logger.info(f"🚀 [STREAM] user={user_id} session={request.session_id} avatar={request.avatar_visible}")
+        log_event(
+            logger,
+            "chat_request",
+            endpoint="/chat/stream",
+            request_id=_rid,
+            user=str(user_id)[:12],
+            session=str(request.session_id or "none")[:16],
+            avatar_visible=bool(request.avatar_visible),
+            has_audio=bool(request.audio_data),
+            personality=request.personality,
+            language=request.language,
+            msg_len=len(request.user_message or ""),
+        )
 
         async def event_generator():
             try:
 
-                # Pre-warm emotional trend cache immediately — the pipeline will need it
-                # ~500ms later (after intent routing + memory retrieval). Firing a daemon
-                # thread here ensures the 8b Groq call completes before route_and_execute
-                # calls get_emotional_trend(), turning a blocking call into a cache hit.
                 threading.Thread(
                     target=memory_manager.get_emotional_trend,
                     args=(user_id,),
@@ -640,9 +746,9 @@ async def process_chat_stream(
                 _chunk_buffer = ""  # Buffer for sentence-boundary streaming
                 while True:
                     try:
-                        item = q.get_nowait()
+                        # Avoid busy-waiting: block briefly for new items.
+                        item = await asyncio.to_thread(q.get, True, 0.25)
                     except queue.Empty:
-                        await asyncio.sleep(0.002)  # 2ms polling — was 10ms
                         continue
 
                     kind, data = item
@@ -676,27 +782,47 @@ async def process_chat_stream(
                 ai_text = result.get("message", "")
                 logger.info(f"✅ [STREAM] Full text ready ({len(ai_text)} chars)")
 
-                yield (
-                    f"event: text_chunk\ndata: {json.dumps({'message': ai_text, 'modality': result.get('modality'), 'confidence': result.get('confidence', 0.8)})}\n\n"
-                )
-
-                if request.avatar_visible and ai_text:
-                    mood = _detect_emotion(ai_text)
-                    yield (
-                        f"event: avatar_ready\ndata: {json.dumps({'animation': 'Talking_0', 'facial_expression': mood['facial_expression']})}\n\n"
-                    )
-
                 if request.session_id:
-                    _maybe_trigger_memory(request.session_id, user_id, content_locale=request.language)
+                    _maybe_trigger_memory(
+                        request.session_id,
+                        user_id,
+                        content_locale=request.language,
+                        emotional_intensity=float(result.get("cl_emotional_intensity", 0.0) or 0.0),
+                    )
+                    final_response_text = (
+                        result.get("ai_response")
+                        or result.get("message", "")
+                        or ai_text
+                    )
+                    if final_response_text:
+                        post_ctx = {
+                            "ai_response": final_response_text,
+                            "session_id": request.session_id or "",
+                            "user_id": user_id,
+                            "cl_intent": result.get("cl_intent", "unknown"),
+                            "cl_intervention_sequence": result.get("cl_intervention_sequence", []),
+                            "cl_arc_trajectory": result.get("cl_arc_trajectory", "stable"),
+                            "cl_risk_level": result.get("cl_risk_level", "low"),
+                        }
+                        output_safety_auditor.run_async(
+                            final_response_text, post_ctx, logger
+                        )
+                        emotional_arc_updater.update_async(
+                            request.user_message,
+                            final_response_text,
+                            post_ctx,
+                            supabase_client,
+                            logger,
+                        )
                     count = get_hybrid_message_count(request.session_id)
                     if count > 0 and count % (MEMORY_TRIGGER_INTERVAL * 3) == 0:
                         threading.Thread(
-                            target=_run_session_end_jobs,
+                            target=_run_session_checkpoint_jobs,
                             args=(request.session_id, user_id),
                             daemon=True,
                         ).start()
 
-                    # Game → mem0 memory bridge
+                    # Game → memory bridge
                     if context["user_activities"]:
                         threading.Thread(
                             target=_extract_game_insights_for_memory,
@@ -704,7 +830,7 @@ async def process_chat_stream(
                             daemon=True,
                         ).start()
 
-                yield f"event: complete\ndata: {json.dumps({'status': 'success'})}\n\n"
+                yield f"event: complete\ndata: {json.dumps({'status': 'success', 'message': ai_text, 'modality': result.get('modality'), 'confidence': result.get('confidence', 0.8)})}\n\n"
 
             except Exception as exc:
                 logger.error(f"❌ [STREAM] Generator error: {exc}")

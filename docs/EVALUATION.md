@@ -83,6 +83,38 @@ cd chatbotAgent
 python -m tests.rag_evaluator
 ```
 
+## Memory benchmark (multi-turn, 15–16 turns)
+
+**Fixture:** `chatbotAgent/tests/fixtures/memory-benchmark-dataset.json` — several long conversations with `expected_memory_items`, implicit recall turns, a **diet conflict** update, and a **cross-session** pair that flags leakage if niche hobby tokens appear in a fresh session.
+
+**Runner (HTTP, same auth/trace as `rag_evaluator`):**
+
+```bash
+cd chatbotAgent
+export ALLOW_EVAL_TRACE=true
+export EVAL_BASE_URL=http://127.0.0.1:8000
+# export EVAL_AUTH_TOKEN=...   or SKIP_AUTH=true on the API
+python -m tests.memory_benchmark_runner
+```
+
+**Isolated run (recommended):** fresh `DEV_USER_ID` / `EVAL_SEED_USER_ID`, starts `uvicorn`, skips Priya/Mumbai seed by default, writes `memory_benchmark_report.isolated.json`, stops the server:
+
+```bash
+cd chatbotAgent
+./scripts/run_isolated_memory_benchmark.sh
+# optional: BENCH_PORT=8010 SEED_EVAL_MEMORY=1 EVAL_BENCHMARK_USER_ID=<uuid> MEMORY_BENCHMARK_REPORT_PATH=./out.json
+```
+
+Expect occasional `user_contexts` FK warnings for a random UUID — chat still works; create a matching `users` row in Supabase if you need a silent DB path.
+
+**Output:** `memory_benchmark_report.json` (set `MEMORY_BENCHMARK_REPORT_PATH` to override). The report includes per-conversation transcripts, recall scores against `surface_forms`, regex checks on `memory_context_preview`, and **failure_cases** for strict review.
+
+**Schema-only pytest (no network):** `pytest tests/test_memory_evaluation.py` (fixture schema + judge formatting / stub path)
+
+**Groq memory judge:** With `GROQ_API_KEY` set, the runner attaches **`llm_deep_diagnostic`** per conversation (retrieval quality, grounding, false-recall risk, contamination risk, failure tags, root-cause hint). Disable with `MEMORY_BENCHMARK_USE_JUDGE=0`. Full five-phase protocol: **[`docs/MEMORY_QUALITY_EVAL_PROTOCOL.md`](MEMORY_QUALITY_EVAL_PROTOCOL.md)**.
+
+**Caveats:** Heuristic scores use substring overlap; the judge is **evidence**, not a legal verdict. Mem0 extraction runs every `MEMORY_TRIGGER_INTERVAL` messages (see `app/utils/constants.py`); for reliable `memory_injected`, see `scripts/seed_eval_memory.py` or cooldown between runs. Treat as **stress/diagnostic** until human sign-off.
+
 ## Environment variables
 
 | Variable | Purpose |
@@ -91,6 +123,7 @@ python -m tests.rag_evaluator
 | `X-MindMitra-Eval-Trace: 1` | Client header (evaluator sets automatically) |
 | `EVAL_BASE_URL` | Base URL for HTTP evaluation |
 | `EVAL_AUTH_TOKEN` | Bearer JWT when `SKIP_AUTH` is off |
+| `MEMORY_BENCHMARK_REPORT_PATH` | Output path for `memory_benchmark_runner` |
 | `EVAL_USE_JUDGE` | `true`/`false` — Groq judge on each case |
 | `EVAL_JUDGE_MODEL` | Groq model id (default `llama-3.3-70b-versatile`) |
 | `EVAL_REPORT_PATH` | Where to write JSON report |
@@ -205,7 +238,7 @@ Do **not** ask one HTTP fixture to prove everything. Separate **concerns**:
 ## Related internal docs
 
 - `ai/claude.md` (pointer), `ai/skills.md` — optional; root `CLAUDE.md` / `AGENT.md` are authoritative
-- `docs/architecture.md`, `docs/MEMORY_AND_RAG.md`, `docs/therapist_bridge.md`
+- `docs/architecture.md`, `docs/MEMORY.md`, `docs/therapist_bridge.md`
 
 ## CI suggestion
 
@@ -267,6 +300,12 @@ If you add one: **one** vendor, **explicit events only**, document allowed prope
 1. Run SQL templates — DAU, chat volume, onboarding distribution, crisis counts.  
 2. Scan logs for `5xx` spikes and `429`.  
 3. Backlog themes: **stability**, **confusing UX**, **safety wording**.
+
+### COMPASS chat path (latency / LLM calls)
+
+- **`config.yaml` → `compass.skip_intent_router`:** when `true` (default in this repo), the separate Groq **IntentRouter** call is skipped; **CognitiveLayer** supplies intent for MEMOIR scoring and for path A/B/C/D. Set `false` only if you need legacy router labels for A/B experiments.
+- **Order:** crisis keyword gate (and optional ambiguous LLM check) → parallel **within-session arc** (`EmotionalArcReader`) and **cross-session emotional trend** → **CognitiveLayer** → **MEMOIR** `retrieve_memories` with `current_affect` from cognitive valence/intensity → final response stream.
+- **MEMOIR:** default `retrieve_memories` **limit** is **7**; `ContextComposer` can drop episodic/affective rows when `cl_memory_reference_allowed` is false (venting / crisis risk).
 
 ### Governance
 

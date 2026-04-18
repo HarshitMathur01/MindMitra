@@ -2,10 +2,10 @@
 ResponseGenerator — GLM Agent 3: final therapeutic response generation.
 """
 import json
-from ..core.prompts import RESPONSE_BASE_SYSTEM_PROMPT, RESPONSE_STAGE_DIRECTIVE_TRUST_WINDOW, RESPONSE_STAGE_DIRECTIVE_DEEPENING, RESPONSE_STAGE_DIRECTIVE_INSIGHT, RESPONSE_STAGE_DIRECTIVE_COMPANION
 import logging
 import os
 import re
+import time
 from typing import Any, Dict
 
 from ..core.config import config
@@ -23,41 +23,6 @@ logger = logging.getLogger(__name__)
 class ResponseGenerator:
     def __init__(self, glm):
         self.glm = glm
-        self.BASE_SYSTEM_PROMPT = config.get(
-            "response_generator.system_prompt",
-            default="""IDENTITY:
-You are {companion_name} — a real companion, not a label. The friend who listens completely, never judges, and understands Indian life from the inside. You hold psychology lightly; it shows in how you respond, never in what you say.
-
-RESPONSE RULES:
-• Listen before anything else. Presence beats advice. The user should never feel "in a session".
-• Energy match: ≤10 words → 1-2 sentences. 10-40 words → 2-4 sentences. 40+ words → 3-5 sentences.
-• Lead with a specific reflection — show you heard THIS message, not a category of message.
-• Prefer 'I wonder…' / 'It sounds like…' over direct questions.
-• NEVER open with hollow filler: 'Great!', 'Got it!', 'Of course!', 'No worries!', 'That's nice!'
-• NEVER use technique labels (CBT, DBT, validation) in your text — apply them invisibly.
-• NEVER be generic — be specific to what they actually said right now.
-• NEVER add meta-commentary, advice headers, or structured formats.
-• Language: respond in your designated language only; do not mirror the user's language choice.
-• Emoji: one subtle emoji only when it adds genuine warmth; never in a heavy or crisis moment.
-
-{stage_directive}
-
-{personality_instruction}
-
-{language_instruction}
-
-{intervention_directive}
-
-{coe_reasoning}
-
-MEMORY — use with care:
-• Reference only facts listed below; never invent or assume details not present.
-• One natural callback per turn at most — only if it genuinely fits what they just said.
-• If memory and message conflict, trust the message.
-• If the block is empty, respond fully from the conversation; do not reference anything from before.
-
-{memory_context}""",
-        )
 
         # Personality-specific tone instructions
         # Legacy keys (calm/energetic/analytical) kept as fallback aliases
@@ -161,21 +126,6 @@ MEMORY — use with care:
             ),
         }
 
-        # ── Chain of Empathy (CoE) approach labels ───────────────────
-        # Compact one-line therapeutic frame injected into the system prompt.
-        # Replaces the old verbose <think>...</think> blocks which caused gpt-5-mini
-        # (a native reasoning model) to emit hundreds of billed thinking tokens before
-        # the actual response. The model's internal reasoning already covers this;
-        # we only need to name the therapeutic lens to activate the right framing.
-        self.COE_REASONING: Dict[str, str] = {
-            "validate": "Lens: pure presence — reflect the exact emotion felt, no advice, unconditional positive regard.",
-            "reframe": "Lens: gentle reframe — offer one alternative perspective as an invitation ('I wonder if…'), not a correction.",
-            "ground": "Lens: grounding — weave a sensory anchor (breath, body, what they can see/feel) naturally into the response.",
-            "problem-solve": "Lens: agency — name one small, concrete, achievable step; focus on what they can actually control right now.",
-            "refer": "Lens: warm handoff — honour their courage, frame professional support as strength, stay connected throughout.",
-            "psychoeducation": "Lens: normalize — share one insight via a relatable analogy; conversational and concise, never clinical.",
-        }
-
         self.recent_messages_count = config.get("response_generator.recent_messages_count", 3)
         logger.info("✅ [RESPONSE-GEN] Response generator ready")
 
@@ -220,67 +170,200 @@ MEMORY — use with care:
     _EMOJI_RE = re.compile(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]")
 
     def _build_system_prompt(self, user_context: Dict[str, Any]) -> str:
-        """Build a system prompt tailored to the user's personality settings."""
-        prefs = user_context.get("personality_settings", {})
-        personality = prefs.get("personality", "mitra")
-        companion_name = prefs.get("companion_name") or self._PERSONALITY_NAMES.get(personality, "Mitra")
-        language = prefs.get("language", "english")
+        """Build COMPASS / v2 system prompt (cognitive layer cl_* fields)."""
+        return self._build_system_prompt_v2(user_context)
 
+    def _build_system_prompt_v2(self, user_context: Dict[str, Any]) -> str:
+        """V2 system prompt (cognitive layer cl_* fields)."""
+        from ..core.prompts import RESPONSE_SYSTEM_PROMPT_V2
+
+        prefs = user_context.get("personality_settings", {}) or {}
+        personality = prefs.get("personality", "mitra")
+        companion_name = prefs.get("companion_name") or self._PERSONALITY_NAMES.get(
+            personality, "Mitra"
+        )
         personality_instruction = self.PERSONALITY_INSTRUCTIONS.get(
             personality, self.PERSONALITY_INSTRUCTIONS["mitra"]
         )
-        language_instruction = self.LANGUAGE_INSTRUCTIONS.get(
-            language, self.LANGUAGE_INSTRUCTIONS["english"]
-        )
-
-        intervention_directive = user_context.get("intervention_directive", "")
-        memory_context = user_context.get("memory_context", "")
-        if os.getenv("MM_MEMORY_TRACE", "").lower() in ("1", "true", "yes"):
-            logger.info(
-                "[MM_MEMORY_TRACE] response_gen: memory_context chars in system prompt=%s",
-                len(memory_context or ""),
-            )
 
         stage = user_context.get("_conversation_stage", "companion")
         stage_directive = self._get_stage_directive(stage)
 
-        therapeutic_approach = user_context.get("technique_selection", {}).get(
-            "therapeutic_approach", ""
-        )
-        coe_reasoning = self.COE_REASONING.get(therapeutic_approach, "")
+        memory_context = user_context.get("memory_context", "")
+        if os.getenv("MM_MEMORY_TRACE", "").lower() in ("1", "true", "yes"):
+            logger.info(
+                "[MM_MEMORY_TRACE] response_gen v2: memory_context chars in system prompt=%s",
+                len(memory_context or ""),
+            )
 
-        return self.BASE_SYSTEM_PROMPT.format_map(_SafeFormatDict(
-            companion_name=companion_name,
-            personality_instruction=personality_instruction,
-            language_instruction=language_instruction,
-            intervention_directive=intervention_directive,
-            coe_reasoning=coe_reasoning,
-            memory_context=memory_context,
-            stage_directive=stage_directive,
-        ))
+        primary_emotion = user_context.get("cl_primary_emotion", "neutral")
+        emotional_intensity = float(user_context.get("cl_emotional_intensity", 0.5) or 0.0)
+        arc_trajectory = user_context.get("cl_arc_trajectory", "stable")
+        intervention_directive = user_context.get("intervention_directive", "")
+        question_allowed = user_context.get("cl_question_allowed", True)
+        language_mirror = user_context.get("cl_language_mirror", "en")
+        mi_move = user_context.get("cl_mi_move", "reflection")
+        response_length = user_context.get("cl_response_length", "medium")
+        risk_level = user_context.get("cl_risk_level", "low")
+
+        emotional_intensity_label = (
+            "mild"
+            if emotional_intensity < 0.35
+            else "moderate"
+            if emotional_intensity < 0.65
+            else "strong"
+            if emotional_intensity < 0.85
+            else "very strong"
+        )
+
+        arc_note = {
+            "rising": "Things seem to be getting lighter for them.",
+            "falling": "Their distress has been increasing. Be especially gentle.",
+            "volatile": "Their emotions have been fluctuating. Stay steady.",
+            "stable": "",
+        }.get(arc_trajectory, "")
+
+        # Arc numerics are provided by the pure-Python arc reader via ctx["_precomputed_emotional_arc"].
+        # We intentionally do not include these in the 14-key cl_* contract.
+        cv = float(user_context.get("arc_current_valence", 0.0) or 0.0)
+        sl = float(user_context.get("arc_session_low", 0.0) or 0.0)
+        ad = float(user_context.get("cl_arc_delta", 0.0) or 0.0)
+        arc_numeric_line = (
+            f"Within-session valence snapshot (internal, do not quote numbers to the user): "
+            f"current≈{cv:.2f}, lowest-so-far≈{sl:.2f}, recent shift≈{ad:+.2f} vs a few turns back."
+        )
+
+        trust_tier = user_context.get("_relational_trust_tier")
+        if trust_tier is not None and str(trust_tier).strip() != "":
+            trust_context_line = (
+                f"Relational depth: trust tier {trust_tier} (from stored engagement profile). "
+                "Match warmth to how much safety you've already built — don't perform closeness you haven't earned."
+            )
+        else:
+            trust_context_line = ""
+
+        cultural_raw = (user_context.get("cl_cultural_context") or "").strip()
+        cultural_context_line = (
+            f"Cultural / situational note (weave naturally, do not lecture): {cultural_raw}"
+            if cultural_raw
+            else ""
+        )
+
+        psc = int(user_context.get("_profile_session_count", 0) or 0)
+        prev = user_context.get("previous_session_summary") or {}
+        continuity_callback_line = ""
+        if psc >= 3 and isinstance(prev, dict):
+            summ = (prev.get("summary") or "").strip()
+            if summ:
+                continuity_callback_line = (
+                    "If it fits this turn without sounding like a recap, you may offer ONE natural callback "
+                    "to something concrete from their last session (do not quiz them on whether they remember): "
+                    f"{summ[:520]}"
+                )
+
+        if user_context.get("memory_clarification_pending"):
+            continuity_callback_line = (
+                (continuity_callback_line + "\n\n" if continuity_callback_line else "")
+                + "Internal note: two stored memories may disagree. Do not assert which is true; "
+                "prefer one gentle clarifying question or reflection that invites them to say what feels most accurate now."
+            ).strip()
+
+        mi_guidance = {
+            "open_question": (
+                "End your response with exactly ONE open-ended question. Not a yes/no question."
+            ),
+            "affirmation": (
+                "Include a genuine, specific affirmation of something they did or expressed."
+            ),
+            "reflection": "Use a reflective statement. Do not end with a question.",
+            "summary": "Briefly reflect what you've understood before moving forward.",
+            "no_move": "Respond naturally. Do not force a therapeutic technique.",
+        }.get(mi_move, "Respond with warmth.")
+
+        if not question_allowed:
+            mi_guidance = (
+                "Do NOT ask any question this turn. Hold the space. Let them continue if they want to."
+            )
+
+        language_guidance = {
+            "hinglish": (
+                "Mirror their Hinglish naturally. If they mix Hindi and English, you can too — organically."
+            ),
+            "hi": "Respond in Hindi since they wrote in Hindi.",
+            "en": "",
+        }.get(language_mirror, "")
+
+        length_guidance = {
+            "short": "Keep response to 1-3 sentences. No more.",
+            "medium": "2-4 sentences. Focused and warm. No lists.",
+            "long": "You can be more expansive (4-6 sentences). Still no lists or headers.",
+        }.get(response_length, "")
+
+        safety_note = ""
+        if risk_level in ("elevated", "crisis"):
+            safety_note = (
+                "This person may be in significant distress. "
+                "If distress escalates within your response, gently acknowledge it and mention that "
+                "professional support is available (iCall: 9152987821; Vandrevala Foundation: 1860-2662-345). "
+                "Do NOT diagnose, do NOT give medical advice, do NOT minimize."
+            )
+
+        return RESPONSE_SYSTEM_PROMPT_V2.format_map(
+            _SafeFormatDict(
+                companion_name=companion_name,
+                personality_instruction=personality_instruction,
+                stage_directive=stage_directive,
+                memory_context=memory_context,
+                primary_emotion=primary_emotion,
+                emotional_intensity_label=emotional_intensity_label,
+                arc_trajectory=arc_trajectory,
+                arc_note=arc_note,
+                arc_numeric_line=arc_numeric_line,
+                trust_context_line=trust_context_line,
+                cultural_context_line=cultural_context_line,
+                continuity_callback_line=continuity_callback_line or "(none)",
+                intervention_directive=intervention_directive,
+                mi_guidance=mi_guidance,
+                language_guidance=language_guidance,
+                length_guidance=length_guidance,
+                safety_note=safety_note,
+            )
+        )
 
     # ── public entry ──────────────────────────────────────────────────────
     def generate(self, user_context: Dict[str, Any]) -> Dict[str, Any]:
-        logger.info("💬 [RESPONSE-GEN] Generating therapeutic response...")
+        _pipeline_path = user_context.get("_pipeline_path", "?")
+        _t0 = time.monotonic()
+        # Accuracy: log the actual provider/model used for Stage 4.
+        user_context["_response_provider"] = getattr(self.glm, "provider", None) or type(self.glm).__name__
+        user_context["_response_model"] = getattr(self.glm, "model_name", None) or getattr(self.glm, "model", None)
+        logger.info(
+            "💬 [RESPONSE-GEN] Starting generation | path=%s intent=%s emotion=%s",
+            _pipeline_path,
+            user_context.get("cl_intent", "?"),
+            user_context.get("cl_primary_emotion", "?"),
+        )
         try:
+            _t_prompt = time.monotonic()
             system_prompt = self._build_system_prompt(user_context)
+            human_msg_content = self._build_context(user_context)
             system_msg = {"role": "system", "content": system_prompt}
-            human_msg = {"role": "user", "content": self._build_context(user_context)}
+            human_msg = {"role": "user", "content": human_msg_content}
+            _prompt_ms = (time.monotonic() - _t_prompt) * 1000
+
+            logger.info(
+                "📝 [RESPONSE-GEN] Prompt built | system_chars=%d user_chars=%d build_ms=%.1f",
+                len(system_prompt), len(human_msg_content), _prompt_ms,
+            )
 
             if os.getenv("MM_PIPELINE_DEBUG", "").lower() in ("1", "true", "yes"):
-                um = human_msg["content"]
-                logger.info(
-                    "[MM_PIPELINE_DEBUG] prompt_sizes system=%s user_turn=%s",
-                    len(system_prompt),
-                    len(um),
-                )
                 logger.info(
                     "[MM_PIPELINE_DEBUG] system_prompt_preview (800c): %s",
                     system_prompt[:800].replace("\n", " "),
                 )
                 logger.info(
                     "[MM_PIPELINE_DEBUG] user_turn_preview (600c): %s",
-                    um[:600].replace("\n", " "),
+                    human_msg_content[:600].replace("\n", " "),
                 )
 
             # Per-path max_tokens from ctx (see config azure_controller.max_tokens_path_* / orchestrator)
@@ -295,29 +378,64 @@ MEMORY — use with care:
             if path_temperature is not None:
                 invoke_kwargs["temperature"] = float(path_temperature)
 
+            logger.info(
+                "🤖 [RESPONSE-GEN] Invoking LLM | max_tokens=%s temperature=%s streaming=%s",
+                invoke_kwargs.get("max_tokens", "default"),
+                invoke_kwargs.get("temperature", "default"),
+                "chunk_callback" in invoke_kwargs,
+            )
+            _t_llm = time.monotonic()
             resp = self.glm.invoke([system_msg, human_msg], **invoke_kwargs)
+            _llm_ms = (time.monotonic() - _t_llm) * 1000
 
             if not resp or not resp.content:
-                logger.error("❌ [RESPONSE-GEN] GLM returned empty response, using default")
+                logger.error(
+                    "❌ [RESPONSE-GEN] LLM returned empty response | llm_ms=%.0f path=%s",
+                    _llm_ms, _pipeline_path,
+                )
                 cleaned = self._get_default_response(user_context)
             else:
                 cleaned = self._clean(resp.content)
+                logger.info(
+                    "✅ [RESPONSE-GEN] LLM response received | llm_ms=%.0f raw_chars=%d path=%s",
+                    _llm_ms, len(resp.content), _pipeline_path,
+                )
 
             # Question budget enforcement (stage-aware post-processing)
             stage = user_context.get("_conversation_stage", "companion")
             cleaned = self.enforce_question_budget(cleaned, stage)
+            if user_context.get("cl_question_allowed") is False:
+                cleaned = cleaned.replace("?", ".")
             cleaned = self._add_micro_emoji(cleaned, user_context)
 
             user_context["ai_response"] = cleaned
             user_context["response_generated"] = True
-            logger.info(f"✅ [RESPONSE-GEN] Response ready ({len(cleaned)} chars)")
+            _total_ms = (time.monotonic() - _t0) * 1000
+            if user_context.get("_eval_trace_requested"):
+                user_context.setdefault("_eval_data", {})["response_gen"] = {
+                    "llm_ms": round(_llm_ms, 1),
+                    "total_ms": round(_total_ms, 1),
+                    "provider": str(user_context.get("_response_provider") or ""),
+                    "model": str(user_context.get("_response_model") or ""),
+                    "streaming": bool("chunk_callback" in invoke_kwargs),
+                    "max_tokens": invoke_kwargs.get("max_tokens", "default"),
+                    "temperature": invoke_kwargs.get("temperature", "default"),
+                }
+            logger.info(
+                "✅ [RESPONSE-GEN] Complete | final_chars=%d total_ms=%.0f llm_ms=%.0f",
+                len(cleaned), _total_ms, _llm_ms,
+            )
             if os.getenv("MM_PIPELINE_DEBUG", "").lower() in ("1", "true", "yes"):
                 logger.info(
                     "[MM_PIPELINE_DEBUG] ai_response_preview (500c): %s",
                     cleaned[:500].replace("\n", " "),
                 )
         except Exception as e:
-            logger.error(f"❌ [RESPONSE-GEN] Exception: {e}, using default")
+            _total_ms = (time.monotonic() - _t0) * 1000
+            logger.error(
+                "❌ [RESPONSE-GEN] Exception after %.0fms | path=%s error=%s",
+                _total_ms, _pipeline_path, e,
+            )
             fallback = self._get_default_response(user_context)
             user_context["ai_response"] = self._add_micro_emoji(fallback, user_context)
             user_context["response_generated"] = False
@@ -719,7 +837,7 @@ Respond as {companion_name} — warm, real, and specific to what they just said:
     def _get_default_response(self, user_context: Dict) -> str:
         user_message = user_context.get("user_message", "")
         if "sad" in user_message.lower() or "stressed" in user_message.lower():
-            return "I hear you. It sounds like you're going through a tough time. It's okay to feel this way, and I'm here with you. Sometimes just sharing helps."
+            return "That sounds really heavy. You don’t have to carry it alone — I’m here with you. If you want, we can take this one small piece at a time."
         if "happy" in user_message.lower() or "great" in user_message.lower():
             return "That's wonderful to hear. It's great that you're feeling positive. Hold onto this feeling — I'd love to hear more about it."
         return "Thank you for sharing that with me. I'm here to listen and support you. I'm ready to explore whatever feels right for you."
@@ -741,7 +859,7 @@ Respond as {companion_name} — warm, real, and specific to what they just said:
         if personality not in self._EMOJI_SAFE_PERSONALITIES:
             return text
 
-        if user_context.get("_pipeline_path") == "D-crisis":
+        if user_context.get("_pipeline_path") in ("D-crisis", "D-crisis-warm"):
             return text
 
         if self._contains_emoji(text):

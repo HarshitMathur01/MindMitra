@@ -1,30 +1,31 @@
 """
-Pipeline Orchestrator — Execution routing based on intent and constraints.
+Pipeline Orchestrator — COMPASS execution.
 
-This module maps the path classification (light, standard, rich, crisis) into
-executable pipeline flows. It controls which LLM tools (e.g. AnalysisAgent, LLMController)
-are invoked, how context blocks max_tokens are managed, and explicitly handles
-the invocation logic separating the main flow into manageable atomic actions.
+CrisisManager keyword/LLM gate with severity ``hard`` returns a warm static template
+(Path D). All other turns run a single COMPASS response path; cognitive-layer
+``intent`` / ``risk_level`` shape prompts via ``ctx`` and do not select alternate
+handlers or models.
 """
 import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
-from typing import Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from .analysis_engine import AnalysisEngine
 from .crisis_manager import CrisisManager
 from ..agents.memory_manager import memory_manager
-from ..agents.intent_router import IntentRouter
 from ..agents.response_agent import ResponseGenerator
 from ..controllers.llm_controller import LLMController
 from ..agents.analysis_agent import AnalysisAgent
 from ..core.config import config
+from ..core.context_composer import ContextComposer
+from ..core.logging import log_event
 from ..services.locale_service import resolve_locale
 from supabase import Client
 
 logger = logging.getLogger(__name__)
+
+from ..core.cognitive_layer_types import CognitivLayerOutput
 
 
 def _path_generation_int(azure_subkey: str, default: int) -> int:
@@ -50,9 +51,8 @@ def _path_generation_float(azure_subkey: str, glm_subkey: str, default: float) -
 
 class PipelineOrchestrator:
     """
-    Orchestrates the intent-routed execution paths (A/B/C/D).
-    Coordinates intent routing, crisis checks, memory integration,
-    and delegating generation to the ResponseAgent.
+    Orchestrates COMPASS: crisis sentinel ``hard`` → warm static template; otherwise
+    cognitive layer + one unified response generation path.
     """
 
     _TECHNIQUE_DIRECTIVES: Dict[str, str] = {
@@ -91,22 +91,28 @@ class PipelineOrchestrator:
         self,
         groq_nlp: Optional[AnalysisAgent],
         glm: LLMController,
-        intent_router: Optional[IntentRouter],
         response_gen: ResponseGenerator,
         crisis_manager: CrisisManager,
         supabase: Optional[Client],
     ) -> None:
         self.groq_nlp = groq_nlp
         self.glm = glm
-        self.intent_router = intent_router
         self.response_gen = response_gen
         self.crisis_manager = crisis_manager
         self.supabase = supabase
 
+        from ..core.cognitive_layer import CognitiveLayer
+
+        _groq = self.groq_nlp
+        _client = _groq.client if _groq and getattr(_groq, "client", None) else None
+        _model = getattr(_groq, "model", "") if _groq else ""
+        default_model = str(config.get("nlp_module.model", "") or "").strip() or "qwen/qwen3-32b"
+        self.cognitive_layer = CognitiveLayer(_client, _model or default_model)
+
     @staticmethod
     def _build_voice_hint(voice: Dict) -> Optional[str]:
         """
-        Build a concise voice prosody summary for intent routing.
+        Build a concise voice prosody summary for cognitive-layer context.
         Returns None if no meaningful voice data available.
         """
         if not voice:
@@ -159,228 +165,205 @@ class PipelineOrchestrator:
         """Pure Python dict lookup. Zero LLM calls."""
         return self._TECHNIQUE_DIRECTIVES.get(intervention.lower(), self._TECHNIQUE_DIRECTIVES["validate"])
 
-    def _path_light(self, ctx: Dict) -> None:
-        """
-        Path A — 1 GLM call. Casual / small-talk messages.
-        Minimal context. Short, warm, conversational response.
-        """
-        logger.info("━" * 50)
-        logger.info("💬 [PATH-A] ▶  EXECUTING: casual/light path (1 GLM call)")
-        logger.info("━" * 50)
+    def _run_cognitive_layer(self, ctx: Dict) -> CognitivLayerOutput:
+        user_message = ctx.get("user_message", "")
+        recent_turns = ctx.get("session_context", {}).get("recent_messages", [])
+        session_count = int(ctx.get("session_message_count", 0) or 0)
 
-        ctx["_response_max_tokens"] = _path_generation_int("max_tokens_path_a", 384)
-        ctx["_response_temperature"] = _path_generation_float("temperature_path_a", "temperature_path_a", 0.8)
-        ctx["psychological_analysis"] = {
-            "emotional_state": "casual",
-            "stress_categories": [],
-            "risk_assessment": "low",
-            "coping_assessment": "",
-            "intervention_priority": "long-term",
-            "psychological_insights": [],
-            "cultural_pressures": "",
-        }
-        ctx["technique_selection"] = {
-            "primary_technique": "Companion",
-            "therapeutic_approach": "casual",
-            "activity_recommendations": [],
-            "rationale": "light conversation",
-        }
-        ctx["intervention_directive"] = (
-            "CASUAL — light conversation, no therapeutic depth. "
-            "1-3 sentences, warm and specific to exactly what they just said. "
-            "Memory is available but don't force callbacks on a casual turn — use only if it fits naturally. "
-            "Sound like a real person who is genuinely interested, not a support bot."
-            + self._get_question_constraint(ctx)
-        )
-        logger.info(f"  📞 [PATH-A] Calling GLM response-gen (model={getattr(self.glm, 'model_name', '?')})...")
-        _t = time.monotonic()
-        self.response_gen.generate(ctx)
-        logger.info(
-            f"  ✅ [PATH-A] GLM done in {(time.monotonic()-_t)*1000:.0f}ms | "
-            f"response={len(ctx.get('ai_response', ''))} chars"
+        # Always run keyword scan before CognitiveLayer.analyze; orchestrator may override via ctx.
+        kw_live = self.crisis_manager.check_crisis_keywords(user_message)
+        crisis_level = ctx.get("_crisis_sentinel_for_cognitive")
+        if crisis_level is None:
+            crisis_level = kw_live
+
+        pre_arc = ctx.get("_precomputed_emotional_arc")
+        trust_tier = ctx.get("_relational_trust_tier")
+
+        cl_output = self.cognitive_layer.analyze(
+            user_message=user_message,
+            recent_turns=recent_turns,
+            session_count=session_count,
+            crisis_sentinel_level=crisis_level,
+            precomputed_arc=pre_arc if isinstance(pre_arc, dict) else None,
+            trust_tier=trust_tier,
+            ambiguous_llm_cleared=bool(ctx.get("_crisis_ambiguous_llm_cleared")),
         )
 
-    def _path_standard(self, ctx: Dict) -> None:
-        """
-        Path B — 2 LLM calls (1 Groq combined analysis + 1 GLM response).
-        For emotional messages. Memory already fetched before routing.
-        """
-        logger.info("━" * 50)
-        logger.info("❤️  [PATH-B] ▶  EXECUTING: emotional/standard path (1 Groq + 1 GLM)")
-        logger.info("━" * 50)
+        ctx.update(cl_output.to_ctx_dict())
 
-        ctx["_response_max_tokens"] = _path_generation_int("max_tokens_path_b", 720)
-        ctx["_response_temperature"] = _path_generation_float("temperature_path_b", "temperature_path_b", 0.6)
+        if ctx.get("eval_trace") or ctx.get("_eval_trace_requested"):
+            ctx.setdefault("_eval_data", {})["cognitive_layer"] = {
+                "intent": cl_output.intent,
+                "risk_level": cl_output.risk_level,
+                "arc_trajectory": cl_output.arc_trajectory,
+                "arc_delta": cl_output.arc_delta,
+                "fallback_used": cl_output.fallback_used,
+                "question_allowed": cl_output.question_allowed,
+                "intervention_sequence": cl_output.intervention_sequence,
+            }
 
-        logger.info(f"  📞 [PATH-B] Calling Groq combined-analysis (model={getattr(getattr(self, 'groq_nlp', None), 'model', '?')})...")
-        _t_combined = time.monotonic()
-        combined = AnalysisEngine.combined_emotion_cultural_analyse(self.groq_nlp, ctx)
-        logger.info(f"  ✅ [PATH-B] Groq combined-analysis done in {(time.monotonic()-_t_combined)*1000:.0f}ms")
+        return cl_output
 
-        ctx["nlp_analysis"] = {
-            "primary_emotion": combined.get("primary_emotion", "unknown"),
-            "intensity": combined.get("intensity", 0.5),
-            "emotions": {},
-            "sentiment": {"score": 0.0, "label": "neutral"},
-            "key_phrases": [],
-            "language_detected": "en",
-            "urgency_flag": False,
-        }
-        cultural_pressure = combined.get("cultural_pressure", "none")
-        ctx["cultural_context"] = {
-            "language_style": combined.get("language_style", "english"),
-            "hindi_english_ratio": 0.0,
-            "code_switching_detected": combined.get("language_style") in ("hinglish", "hindi"),
-            "cultural_sensitivity_flags": (
-                [cultural_pressure] if cultural_pressure not in ("none", "") else []
+    def _build_intervention_directive(self, intervention_seq: List[str], ctx: Dict) -> str:
+        arc = ctx.get("cl_arc_trajectory", "stable")
+        mi_move = ctx.get("cl_mi_move", "reflection")
+        question_allowed = ctx.get("cl_question_allowed", True)
+        language = ctx.get("cl_language_mirror", "en")
+
+        directive_map = {
+            "validate": (
+                "First: acknowledge what the user is feeling without judgment. "
+                "Name the emotion if clear."
             ),
-            "communication_pattern": combined.get("tone_match", "warm"),
-            "regional_context": "",
-            "formality_level": "medium",
+            "reflect": (
+                "Use reflective listening — mirror the essence of what they said, not the words."
+            ),
+            "ground": (
+                "Gently help the user connect to the present. "
+                "A simple grounding question or observation."
+            ),
+            "reframe": (
+                "Offer a gentle alternative perspective only if the user seems open. Don't force it."
+            ),
+            "affirm": "Acknowledge the user's strength or courage in sharing this.",
+            "explore": "Invite the user to say more. Follow their lead.",
+            "practical_support": (
+                "Offer a concrete, actionable suggestion. Keep it specific and achievable."
+            ),
+            "summary": "Briefly reflect back what you've understood so far before continuing.",
+            "no_intervention": "Be present and warm. Follow the user's conversational lead.",
         }
+
+        mi_move_map = {
+            "open_question": "End with one open-ended question if question_allowed.",
+            "affirmation": "Include a genuine affirmation of the user's effort or resilience.",
+            "reflection": "Use a reflective statement rather than a question.",
+            "summary": "Briefly summarize what you've heard before responding.",
+            "no_move": "",
+        }
+
+        language_note = {
+            "hinglish": (
+                "Mirror the user's Hinglish naturally. Don't force it — respond in whichever mix feels right."
+            ),
+            "hi": "Respond in Hindi if the user wrote in Hindi.",
+            "en": "",
+        }
+
+        steps = [directive_map.get(s, "") for s in intervention_seq if s in directive_map]
+        directive = " → ".join(f"Step {i + 1}: {s}" for i, s in enumerate(steps) if s)
+
+        mi_note = mi_move_map.get(mi_move, "")
+        if not question_allowed:
+            mi_note = "Do NOT ask any question this turn."
+
+        lang_note = language_note.get(language, "")
+        arc_note = ""
+        if arc == "falling":
+            arc_note = (
+                "Note: user's emotional state is declining. Prioritize warmth over advice."
+            )
+        elif arc == "volatile":
+            arc_note = "Note: user's emotions are fluctuating. Stay steady and grounding."
+
+        parts = [p for p in [directive, mi_note, lang_note, arc_note] if p]
+        return "\n".join(parts)
+
+    def _compass_max_tokens(self) -> int:
+        v = config.get("azure_controller.max_tokens_path_compass")
+        if v is not None:
+            return int(v)
+        v2 = config.get("glm_controller.max_tokens_path_compass")
+        if v2 is not None:
+            return int(v2)
+        return _path_generation_int("max_tokens_path_c", 1024)
+
+    def _compass_temperature(self) -> float:
+        v = config.get("azure_controller.temperature_path_compass")
+        if v is not None:
+            return float(v)
+        v2 = config.get("glm_controller.temperature_path_compass")
+        if v2 is not None:
+            return float(v2)
+        return _path_generation_float("temperature_path_c", "temperature_path_c", 0.55)
+
+    def _run_compass_response(self, ctx: Dict) -> None:
+        """Single non-crisis path: one ResponseGenerator call shaped by all ``cl_*`` fields."""
+        logger.info("━" * 50)
+        logger.info("🧭 [COMPASS] ▶  EXECUTING: unified response path (v2 cognitive)")
+        logger.info("━" * 50)
+
+        ctx["_response_max_tokens"] = self._compass_max_tokens()
+        ctx["_response_temperature"] = self._compass_temperature()
+
+        pc = ctx.get("cl_cultural_context", "") or ""
+        seq = ctx.get("cl_intervention_sequence", ["validate"])
+        first_int = seq[0] if seq and seq[0] != "no_intervention" else "validate"
         ctx["psychological_analysis"] = {
-            "emotional_state": combined.get("primary_emotion", "unknown"),
-            "stress_categories": (
-                [cultural_pressure.title()] if cultural_pressure not in ("none", "") else ["General"]
-            ),
-            "risk_assessment": "low",
+            "emotional_state": ctx.get("cl_primary_emotion", "distressed"),
+            "primary_stressor": pc,
+            "stress_categories": [pc] if pc else ["General"],
+            "risk_assessment": ctx.get("cl_risk_level", "moderate"),
+            "risk_level": ctx.get("cl_risk_level", "moderate"),
+            "intervention": first_int,
+            "insight": "",
+            "cultural_factor": pc,
+            "cultural_pressures": pc,
             "coping_assessment": "",
             "intervention_priority": "supportive",
             "psychological_insights": [],
-            "cultural_pressures": cultural_pressure if cultural_pressure != "none" else "",
         }
+        lm = ctx.get("cl_language_mirror", "en")
+        style = "hinglish" if lm == "hinglish" else ("hindi" if lm == "hi" else "english")
+        ctx.setdefault(
+            "nlp_analysis",
+            {
+                "primary_emotion": ctx.get("cl_primary_emotion", "unknown"),
+                "intensity": ctx.get("cl_emotional_intensity", 0.5),
+                "emotions": {},
+                "sentiment": {"score": ctx.get("cl_emotional_valence", 0.0), "label": "neutral"},
+                "key_phrases": [],
+                "language_detected": lm,
+                "urgency_flag": False,
+            },
+        )
+        ctx.setdefault(
+            "cultural_context",
+            {
+                "language_style": style,
+                "hindi_english_ratio": 0.0,
+                "code_switching_detected": lm in ("hinglish", "hi"),
+                "cultural_sensitivity_flags": [pc] if pc else [],
+                "communication_pattern": "warm",
+                "regional_context": "",
+                "formality_level": "medium",
+            },
+        )
         ctx["technique_selection"] = {
-            "primary_technique": "Validation",
-            "therapeutic_approach": combined.get("user_needs", "validation"),
+            "primary_technique": first_int.replace("-", " ").title(),
+            "therapeutic_approach": first_int,
             "activity_recommendations": [],
-            "rationale": "emotional support — standard path",
-        }
-
-        user_needs = combined.get("user_needs", "validation")
-        needs_to_intervention = {
-            "just_to_vent": "validate",
-            "validation": "validate",
-            "practical_help": "problem-solve",
-            "information": "psychoeducation",
-            "company": "validate",
+            "rationale": "COMPASS — cognitive layer",
         }
         ctx["intervention_directive"] = (
-            self._technique_directive(needs_to_intervention.get(user_needs, "validate"))
-            + self._get_question_constraint(ctx)
+            self._build_intervention_directive(seq, ctx) + self._get_question_constraint(ctx)
         )
-        logger.info(
-            f"  🧩 [PATH-B] Analysis complete: "
-            f"emotion={combined.get('primary_emotion','?')} "
-            f"intensity={combined.get('intensity',0):.2f} "
-            f"needs={user_needs} "
-            f"lang={combined.get('language_style','?')} "
-            f"directive='{needs_to_intervention.get(user_needs,'validate')}'"
-        )
-        logger.info(f"  📞 [PATH-B] Calling GLM response-gen (model={getattr(self.glm, 'model_name', '?')})...")
+        provider = str(ctx.get("_response_provider") or "llm")
+        model = str(ctx.get("_response_model") or getattr(self.glm, "model_name", "?"))
+        logger.info(f"  📞 [COMPASS] Calling {provider} response-gen (model={model})...")
         _t_gen = time.monotonic()
         self.response_gen.generate(ctx)
         logger.info(
-            f"  ✅ [PATH-B] GLM response-gen done in {(time.monotonic()-_t_gen)*1000:.0f}ms | "
-            f"response={len(ctx.get('ai_response',''))} chars"
-        )
-
-    def _path_rich(self, ctx: Dict) -> None:
-        """
-        Path C — 2-3 LLM calls. For therapeutic messages.
-        Parallel: optimised psych analysis + optional crisis LLM check.
-        Memories already fetched before routing.
-        """
-        logger.info("━" * 50)
-        logger.info("🧠 [PATH-C] ▶  EXECUTING: therapeutic/rich path (1 GLM psych + 1 GLM response)")
-        logger.info("━" * 50)
-
-        ctx["_response_max_tokens"] = _path_generation_int("max_tokens_path_c", 1024)
-        ctx["_response_temperature"] = _path_generation_float("temperature_path_c", "temperature_path_c", 0.55)
-
-        # Fast keyword check first (0 ms)
-        crisis_level = self.crisis_manager.check_crisis_keywords(ctx["user_message"])
-        logger.debug(f"  🔍 [PATH-C] In-path crisis scan → '{crisis_level}'")
-        if crisis_level == "hard":
-            logger.warning("🚨 [PATH-C] Hard crisis keyword inside rich path — fast-pathing to D")
-            self.crisis_manager.crisis_fast_path(ctx)
-            return
-
-        # Run psych analysis; if ambiguous crisis signal, also run LLM check in parallel
-        _workers = "GLM psych-analysis" + (" + Groq crisis-check [parallel]" if crisis_level == "ambiguous" else "")
-        logger.info(f"  📞 [PATH-C] Calling {_workers}...")
-        _t_psych = time.monotonic()
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            fut_psych = executor.submit(AnalysisEngine.optimized_psych_analysis, self.glm, deepcopy(ctx))
-            fut_crisis_llm = (
-                executor.submit(self.crisis_manager.crisis_llm_check, ctx["user_message"])
-                if crisis_level == "ambiguous"
-                else None
-            )
-            psych_result = fut_psych.result()
-            is_crisis_llm = fut_crisis_llm.result() if fut_crisis_llm else False
-            
-        logger.info(
-            f"  ✅ [PATH-C] Psych analysis done in {(time.monotonic()-_t_psych)*1000:.0f}ms | "
-            f"stressor={psych_result.get('primary_stressor','?')} "
-            f"risk={psych_result.get('risk_level','?')} "
-            f"intervention={psych_result.get('intervention','?')}"
-        )
-
-        # Crisis escalation: psych analysis or LLM check says crisis
-        if is_crisis_llm or psych_result.get("risk_level") == "crisis":
-            logger.warning(
-                f"🚨 [PATH-C] Crisis escalation: "
-                f"risk_level={psych_result.get('risk_level')} llm_crisis={is_crisis_llm}"
-            )
-            self.crisis_manager.crisis_fast_path(ctx)
-            return
-
-        # Populate context fields
-        ctx["psychological_analysis"] = {
-            "emotional_state": psych_result.get("emotional_state", ""),
-            "stress_categories": [psych_result.get("primary_stressor", "General")],
-            "risk_assessment": psych_result.get("risk_level", "moderate"),
-            "coping_assessment": "",
-            "intervention_priority": (
-                "immediate" if psych_result.get("risk_level") == "high" else "supportive"
-            ),
-            "psychological_insights": (
-                [psych_result["insight"]] if psych_result.get("insight") else []
-            ),
-            "cultural_pressures": psych_result.get("cultural_factor") or "",
-        }
-        intervention = psych_result.get("intervention", "validate")
-        ctx["technique_selection"] = {
-            "primary_technique": intervention.replace("-", " ").title(),
-            "therapeutic_approach": intervention,
-            "activity_recommendations": [],
-            "rationale": psych_result.get("insight", ""),
-        }
-
-        ctx["intervention_directive"] = (
-            self._technique_directive(intervention)
-            + self._get_question_constraint(ctx)
-        )
-        logger.info(
-            f"  🧩 [PATH-C] Psych complete: "
-            f"state='{psych_result.get('emotional_state','?')}' "
-            f"insight='{str(psych_result.get('insight',''))[:60]}' "
-            f"directive='{intervention}'"
-        )
-        logger.info(f"  📞 [PATH-C] Calling GLM response-gen (model={getattr(self.glm, 'model_name', '?')})...")
-        _t_gen = time.monotonic()
-        self.response_gen.generate(ctx)
-        logger.info(
-            f"  ✅ [PATH-C] GLM response-gen done in {(time.monotonic()-_t_gen)*1000:.0f}ms | "
-            f"response={len(ctx.get('ai_response',''))} chars"
+            f"  ✅ [COMPASS] {provider} response-gen done in {(time.monotonic()-_t_gen)*1000:.0f}ms | "
+            f"response={len(ctx.get('ai_response', ''))} chars"
         )
 
     def route_and_execute(self, ctx: Dict, session_id: Optional[str], message_count: int = 0) -> None:
         """
-        Single entry point for the routed pipeline.
-        1. Classify intent via IntentRouter.
-        2. Safety gate: keyword crisis check overrides any non-crisis classification.
-        3. Dispatch to A / B / C / D.
+        Single entry point for the chat pipeline.
+        1. Stage 1 (parallel): crisis sentinel + MEMOIR retrieval + within-session arc.
+        2. If sentinel is ``hard``, warm crisis template and return (no cognitive / no LLM response).
+        3. Else: cognitive layer (COMPASS), then one ResponseGenerator call.
 
         Args:
             message_count: Pre-fetched session message count (avoids a duplicate DB query).
@@ -402,133 +385,229 @@ class PipelineOrchestrator:
 
         _t_router = time.monotonic()
 
-        activities = ctx.get("session_context", {}).get("user_activities", [])
-
         # ── Conversation stage (compute once — used for question budget + screening gate) ──
         from ..services.supabase_service import get_hybrid_message_count
-        from ..utils.constants import STAGE_TRUST_WINDOW_MAX, STAGE_DEEPENING_MAX, STAGE_INSIGHT_MAX, SCREENING_MIN_MESSAGES
+        from ..utils.constants import (
+            MEMORY_TRIGGER_INTERVAL,
+            STAGE_TRUST_WINDOW_MAX,
+            STAGE_DEEPENING_MAX,
+            STAGE_INSIGHT_MAX,
+        )
         # Use the pre-fetched count when available — avoids a duplicate Supabase COUNT(*) call
         session_msg_count = message_count if message_count > 0 else (
             get_hybrid_message_count(session_id) if session_id else len(recent)
         )
 
-        # ── Screening-aware routing: inject PHQ-9/GAD-7 hint only when relevant ──
-        # Gate behind SCREENING_MIN_MESSAGES to skip the DB lookup for new sessions.
-        # fetch_latest_screening_scores is cached (5-min TTL) so re-calls are cheap.
-        screening_hint = None
-        if session_msg_count >= SCREENING_MIN_MESSAGES:
-            try:
-                from ..services.supabase_service import fetch_latest_screening_scores
-                user_id = ctx.get("user_id", "anonymous")
-                if user_id != "anonymous" and self.supabase:
-                    scores = fetch_latest_screening_scores(user_id)
-                    if scores:
-                        phq9 = scores.get("phq9", {})
-                        gad7 = scores.get("gad7", {})
-                        phq9_sev = phq9.get("severity", "")
-                        gad7_sev = gad7.get("severity", "")
-                        if phq9_sev in ("moderate", "moderately_severe", "severe") or gad7_sev in ("moderate", "severe"):
-                            screening_hint = f"PHQ-9={phq9_sev or 'unknown'} (score {phq9.get('score', '?')}), GAD-7={gad7_sev or 'unknown'} (score {gad7.get('score', '?')})"
-                            logger.info(f"📋 [ROUTER] Screening hint injected: {screening_hint}")
-            except Exception as screen_exc:
-                logger.debug(f"[ROUTER] Screening hint fetch skipped: {screen_exc}")
+        _uid_for_lifecycle = ctx.get("user_id", "anonymous")
+        if session_id and _uid_for_lifecycle != "anonymous":
+            memory_manager.maybe_warm_session(_uid_for_lifecycle, session_id, session_msg_count)
 
-        if self.intent_router:
-            voice_hint = self._build_voice_hint(ctx.get("voice_analysis", {}))
-            intent_result = self.intent_router.classify(
-                text, recent, activities=activities,
-                screening_hint=screening_hint, voice_hint=voice_hint,
-            )
-        else:
-            intent_result = {"intent": "emotional", "confidence": 0.5}
-            logger.warning("⚠️ [ROUTER] IntentRouter unavailable — defaulting to 'emotional'")
-        
-        intent = intent_result.get("intent", "emotional")
-        confidence = intent_result.get("confidence", 0.0)
-        ctx["_eval_router_intent_raw"] = intent
-        logger.info(
-            f"🤖 [ROUTER] IntentRouter → intent='{intent}' confidence={confidence:.2f} "
-            f"(Groq {getattr(self.groq_nlp, 'model', '?') if self.groq_nlp else '?'})"
-        )
-
-        # ── Safety gate: crisis keyword check (CANNOT be bypassed) ────────
-        original_intent = intent
-        if intent != "crisis":
-            crisis_level = self.crisis_manager.check_crisis_keywords(text)
-            logger.debug(f"🔍 [CRISIS-SCAN] keyword scan → '{crisis_level}'")
-            if crisis_level == "hard":
-                logger.warning(
-                    f"🚨 [CRISIS-GATE] Hard keyword match — overriding intent "
-                    f"'{original_intent}' → 'crisis'"
-                )
-                intent = "crisis"
-            elif crisis_level == "ambiguous":
-                logger.info("⚠️ [CRISIS-GATE] Ambiguous keyword — escalating to LLM check")
-                _t_crisis = time.monotonic()
-                crisis_confirmed = self.crisis_manager.crisis_llm_check(text)
-                logger.info(
-                    f"{'🚨' if crisis_confirmed else '✅'} [CRISIS-GATE] LLM check "
-                    f"→ {'CRISIS CONFIRMED' if crisis_confirmed else 'safe'} "
-                    f"({(time.monotonic()-_t_crisis)*1000:.0f}ms)"
-                )
-                if crisis_confirmed:
-                    intent = "crisis"
-        else:
-            logger.info("🚨 [CRISIS-GATE] IntentRouter already classified as crisis")
-
-        logger.info(
-            f"🗺️  [ROUTER] DISPATCH → path={'D (crisis)' if intent=='crisis' else 'A (casual)' if intent=='casual' else 'B (emotional)' if intent=='emotional' else 'C (therapeutic)'} "
-            f"[router_time={(time.monotonic()-_t_router)*1000:.0f}ms]"
-        )
-        ctx["_eval_routed_intent"] = intent
-
-        # ── Memory retrieval + emotional trend (parallel) ────────────────
-        # Both calls are independent — run concurrently.
-        # A 2.5 s timeout guards against slow Qdrant / embedding cold-starts;
-        # on timeout we continue without memory context rather than block the
-        # entire response.
         _user_id = ctx.get("user_id", "anonymous")
         _MEMORY_TIMEOUT = float(
             config.get("performance.pipeline_memory_parallel_timeout_seconds", 5.0)
         )
 
-        with ThreadPoolExecutor(max_workers=2) as _mem_ex:
-            fut_mem   = _mem_ex.submit(
+        # ── Conversation stage (for question budget) ─────────────────────
+        if session_msg_count <= STAGE_TRUST_WINDOW_MAX:
+            ctx["_conversation_stage"] = "trust_window"
+        elif session_msg_count <= STAGE_DEEPENING_MAX:
+            ctx["_conversation_stage"] = "deepening"
+        elif session_msg_count <= STAGE_INSIGHT_MAX:
+            ctx["_conversation_stage"] = "insight"
+        else:
+            ctx["_conversation_stage"] = "companion"
+        logger.info(f"📊 [STAGE] Conversation stage: {ctx['_conversation_stage']} (msg_count={session_msg_count})")
+
+        ctx["session_message_count"] = session_msg_count
+        prof_prefetch = (
+            memory_manager.get_user_profile(_user_id) if _user_id != "anonymous" else {}
+        )
+        ctx["_relational_trust_tier"] = prof_prefetch.get("trust_tier", 1)
+        ctx["_profile_session_count"] = int(prof_prefetch.get("session_count", 0) or 0)
+        ctx["memory_clarification_pending"] = bool(prof_prefetch.get("memory_clarification_pending", False))
+
+        # ── Stage 1 (parallel): crisis sentinel + MEMOIR retrieval + within-session arc ──
+        _t_s1 = time.monotonic()
+        # Same reader instance as CognitiveLayer so tests / monkeypatches stay aligned.
+        arc_reader = self.cognitive_layer.arc_reader
+        kw_scan = "safe"
+        arc_pre: Dict[str, Any] = {}
+        mem_ctx_stage1 = ""
+        crisis_ambiguous_cleared = False
+        with ThreadPoolExecutor(max_workers=3) as _s1_ex:
+            fut_kw = _s1_ex.submit(self.crisis_manager.check_crisis_keywords, text)
+            fut_arc = _s1_ex.submit(arc_reader.compute_arc, recent)
+
+            # PDF Stage 1B: retrieval happens in parallel. At this stage we do not yet have
+            # cognitive-layer affect/intent; we seed with a safe default and refine later in
+            # MEMOIR-specific refactors.
+            seed_intent = "emotional"
+            fut_mem = _s1_ex.submit(
                 memory_manager.retrieve_memories,
-                text, _user_id, intent,
-            )
-            fut_trend = _mem_ex.submit(
-                memory_manager.get_emotional_trend,
+                text,
                 _user_id,
+                seed_intent,
+                session_id=session_id,
+                current_affect={"valence": 0.0, "intensity": 0.0},
+                memory_reference_allowed=True,
+                session_message_count=session_msg_count,
+                cl_arc_trajectory="stable",
             )
 
-            # Collect memory context with timeout
             try:
-                mem_ctx = fut_mem.result(timeout=_MEMORY_TIMEOUT)
-                if mem_ctx:
-                    ctx["memory_context"] = mem_ctx
-                    logger.info(f"🧠 [MEMORY] Injected memory context ({len(mem_ctx)} chars)")
-                    if os.getenv("MM_PIPELINE_DEBUG", "").lower() in ("1", "true", "yes"):
-                        preview = mem_ctx[:1200].replace("\n", " ")
-                        logger.info("[MM_PIPELINE_DEBUG] memory_context_preview (1200c): %s", preview)
-            except TimeoutError:
-                logger.warning(f"⏱️ [MEMORY] retrieve_memories timed out ({_MEMORY_TIMEOUT}s) — skipping")
-                mem_ctx = ""
-            except Exception as mem_exc:
-                logger.error(f"❌ [MEMORY] retrieve_memories failed: {mem_exc}")
-                mem_ctx = ""
+                kw_scan = fut_kw.result(timeout=_MEMORY_TIMEOUT) or "safe"
+            except Exception as kw_exc:
+                logger.debug("[STAGE1] crisis sentinel failed: %s", kw_exc)
+                kw_scan = "safe"
 
-            # Collect emotional trend — typically fast (cached by prewarm thread)
             try:
-                trend = fut_trend.result(timeout=_MEMORY_TIMEOUT)
-                if trend:
-                    existing = ctx.get("memory_context", "")
-                    ctx["memory_context"] = existing + f"\n\n📈 EMOTIONAL TREND (recent sessions): {trend}"
-                    logger.info(f"📈 [TREND] Injected emotional trend ({len(trend)} chars)")
+                arc_pre = fut_arc.result(timeout=_MEMORY_TIMEOUT) or {}
+            except Exception as arc_exc:
+                logger.debug("[STAGE1] arc reader failed: %s", arc_exc)
+                arc_pre = arc_reader.compute_arc([]) or {}
+            ctx["_precomputed_emotional_arc"] = arc_pre
+            # Expose arc numerics for prompt v2 without expanding the 14-key cl_* contract.
+            ctx["arc_current_valence"] = float((arc_pre or {}).get("current_valence", 0.0) or 0.0)
+            ctx["arc_session_low"] = float((arc_pre or {}).get("session_low", 0.0) or 0.0)
+
+            # Crisis ambiguous LLM disambiguation runs only if needed; keep it out of the
+            # hottest parallel lane unless ambiguity is detected.
+            if kw_scan == "ambiguous":
+                try:
+                    _t_crisis = time.monotonic()
+                    crisis_confirmed = self.crisis_manager.crisis_llm_check(text)
+                    logger.info(
+                        f"{'🚨' if crisis_confirmed else '✅'} [CRISIS-GATE] LLM check "
+                        f"→ {'CRISIS CONFIRMED' if crisis_confirmed else 'safe'} "
+                        f"({(time.monotonic()-_t_crisis)*1000:.0f}ms)"
+                    )
+                    crisis_ambiguous_cleared = not crisis_confirmed
+                    if crisis_confirmed:
+                        kw_scan = "hard"
+                except Exception as exc:
+                    logger.debug("[STAGE1] crisis LLM check failed: %s", exc)
+
+            try:
+                mem_ctx_stage1 = fut_mem.result(timeout=_MEMORY_TIMEOUT) or ""
             except TimeoutError:
-                logger.warning(f"⏱️ [TREND] get_emotional_trend timed out ({_MEMORY_TIMEOUT}s) — skipping")
-            except Exception as trend_exc:
-                logger.error(f"❌ [TREND] get_emotional_trend failed: {trend_exc}")
+                logger.warning(
+                    "⏱️ [STAGE1] MEMOIR retrieve_memories timed out (%ss) — skipping",
+                    _MEMORY_TIMEOUT,
+                )
+                mem_ctx_stage1 = ""
+            except Exception as mem_exc:
+                logger.error("❌ [STAGE1] MEMOIR retrieve_memories failed: %s", mem_exc)
+                mem_ctx_stage1 = ""
+
+        ctx["_crisis_ambiguous_llm_cleared"] = bool(kw_scan == "ambiguous" and crisis_ambiguous_cleared)
+        ctx["_crisis_sentinel_for_cognitive"] = ("safe" if (kw_scan == "ambiguous" and crisis_ambiguous_cleared) else kw_scan)
+
+        if mem_ctx_stage1:
+            ctx["memory_context"] = mem_ctx_stage1
+
+        if ctx.get("_eval_trace_requested"):
+            ctx.setdefault("_eval_data", {})["stage1"] = {
+                "latency_ms": round((time.monotonic() - _t_s1) * 1000, 1),
+                "kw_scan": kw_scan,
+                "memory_chars": len(mem_ctx_stage1 or ""),
+            }
+
+        log_event(
+            logger,
+            "compass_stage1_parallel",
+            user=str(_user_id)[:12],
+            session=str(session_id or "none")[:16],
+            kw_scan=kw_scan,
+            arc_direction=(arc_pre or {}).get("arc_direction", "stable"),
+            arc_delta=(arc_pre or {}).get("arc_delta", 0.0),
+            memory_chars=len(mem_ctx_stage1 or ""),
+            latency_ms=round((time.monotonic() - _t_s1) * 1000, 1),
+        )
+        logger.info(
+            "[COMPASS] Stage1 parallel complete | latency_ms=%.0f",
+            (time.monotonic() - _t_s1) * 1000,
+        )
+
+        if kw_scan == "hard":
+            from ..core.crisis_templates import build_warm_crisis_response
+
+            ctx["_pipeline_path"] = "D-crisis-warm"
+            stub = CognitivLayerOutput(
+                intent="crisis",
+                risk_level="crisis",
+                primary_emotion="distress",
+                intervention_sequence=["refer"],
+                question_allowed=False,
+            )
+            ctx.update(stub.to_ctx_dict())
+            if ctx.get("_eval_trace_requested"):
+                ctx.setdefault("_eval_data", {})["cognitive_layer"] = {
+                    "skipped": True,
+                    "reason": "crisis_sentinel_hard",
+                    "kw_scan": kw_scan,
+                    "latency_ms": 0.0,
+                }
+            ps = ctx.get("personality_settings") or {}
+            ctx.setdefault("language_preference", ps.get("language", "english"))
+            ctx["ai_response"] = build_warm_crisis_response(ctx, None, template_severity="hard")
+            ctx["response_generated"] = True
+            ctx["psychological_analysis"] = {
+                "emotional_state": "crisis",
+                "risk_assessment": "crisis",
+                "risk_level": "crisis",
+            }
+            ctx["technique_selection"] = {
+                "primary_technique": "Crisis-Protocol",
+                "therapeutic_approach": "refer",
+                "activity_recommendations": [],
+                "rationale": "warm static crisis response",
+            }
+            ctx["intervention_directive"] = ""
+            self.crisis_manager.log_crisis_event(ctx)
+            return
+
+        # ── Cognitive layer (COMPASS) — before MEMOIR so scoring can use affect ──
+        _t_cl = time.monotonic()
+        cl_output = self._run_cognitive_layer(ctx)
+        _cl_ms = (time.monotonic() - _t_cl) * 1000
+        intent_cl = cl_output.intent
+        if ctx.get("_eval_trace_requested"):
+            ctx.setdefault("_eval_data", {})["cognitive_layer"] = {
+                "latency_ms": round(_cl_ms, 1),
+                "intent": intent_cl,
+                "risk": cl_output.risk_level,
+                "arc": getattr(cl_output, "arc_trajectory", ""),
+                "fallback_used": bool(getattr(cl_output, "fallback_used", False)),
+                "model": str(getattr(self.cognitive_layer, "model", "") or ""),
+            }
+        log_event(
+            logger,
+            "compass_cognitive_layer",
+            user=str(_user_id)[:12],
+            session=str(session_id or "none")[:16],
+            model=str(getattr(self.cognitive_layer, "model", "") or ""),
+            intent=intent_cl,
+            risk=cl_output.risk_level,
+            emotion=getattr(cl_output, "primary_emotion", ""),
+            arc=getattr(cl_output, "arc_trajectory", ""),
+            fallback_used=bool(getattr(cl_output, "fallback_used", False)),
+            latency_ms=round(_cl_ms, 1),
+        )
+        logger.info(
+            "[COMPASS] Cognitive layer complete | intent=%s risk=%s emotion=%s arc=%s latency_ms=%.0f",
+            intent_cl,
+            cl_output.risk_level,
+            getattr(cl_output, "primary_emotion", "?"),
+            getattr(cl_output, "arc_trajectory", "?"),
+            _cl_ms,
+        )
+
+        if ctx.get("memory_clarification_pending"):
+            ctx["cl_mi_move"] = "open_question"
+            ctx["cl_question_allowed"] = True
+
+        # PDF-ditto: Stage 1B retrieval runs before cognitive layer (parallel Stage 1).
+        # Do not re-run retrieval post-cognitive; cognitive outputs only gate injection/formatting later.
 
         if os.getenv("MM_MEMORY_TRACE", "").lower() in ("1", "true", "yes"):
             _mem_final = ctx.get("memory_context") or ""
@@ -540,28 +619,5 @@ class PipelineOrchestrator:
                 len(_mem_final),
             )
 
-        # ── Conversation stage (for question budget) ─────────────────────
-        # session_msg_count already computed above (pre-fetched from outer scope or DB)
-        if session_msg_count <= STAGE_TRUST_WINDOW_MAX:
-            ctx["_conversation_stage"] = "trust_window"
-        elif session_msg_count <= STAGE_DEEPENING_MAX:
-            ctx["_conversation_stage"] = "deepening"
-        elif session_msg_count <= STAGE_INSIGHT_MAX:
-            ctx["_conversation_stage"] = "insight"
-        else:
-            ctx["_conversation_stage"] = "companion"
-        logger.info(f"📊 [STAGE] Conversation stage: {ctx['_conversation_stage']} (msg_count={session_msg_count})")
-
-        # ── Dispatch ───────────────────────────────────────────────────────
-        if intent == "crisis":
-            ctx["_pipeline_path"] = "D-crisis"
-            self.crisis_manager.crisis_fast_path(ctx)
-        elif intent == "casual":
-            ctx["_pipeline_path"] = "A-casual"
-            self._path_light(ctx)
-        elif intent == "emotional":
-            ctx["_pipeline_path"] = "B-emotional"
-            self._path_standard(ctx)
-        else:  # therapeutic
-            ctx["_pipeline_path"] = "C-therapeutic"
-            self._path_rich(ctx)
+        ctx["_pipeline_path"] = "COMPASS-v2"
+        self._run_compass_response(ctx)

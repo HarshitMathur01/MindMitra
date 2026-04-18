@@ -3,6 +3,8 @@ Named constants — all magic numbers live here and nowhere else.
 Import and use these instead of hard-coding values across the codebase.
 """
 
+from __future__ import annotations
+
 # ── Database fetch limits ──────────────────────────────────────
 MAX_ACTIVITIES_FETCH: int = 50
 MAX_MESSAGES_FETCH: int = 10
@@ -37,12 +39,25 @@ NLP_HISTORY_MESSAGES: int = 3             # messages included in NLP context win
 SESSION_HISTORY_MESSAGES_MEMORY: int = 15 # messages fetched for memory extraction
 
 # ── Embeddings ────────────────────────────────────────────────
-EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
-EMBEDDING_MAX_LENGTH: int = 512
-EMBEDDING_DIMS: int = 384
+# EMBEDDING_MODEL / EMBEDDING_DIMS are resolved lazily via __getattr__ so they
+# reflect os.environ after load_dotenv(). Prefer importing from
+# app.core.embedding_settings for explicit runtime reads in new code.
+EMBEDDING_MAX_LENGTH: int = 8192
+
+
+def __getattr__(name: str):
+    if name == "EMBEDDING_MODEL":
+        from app.core.embedding_settings import get_embedding_model
+
+        return get_embedding_model()
+    if name == "EMBEDDING_DIMS":
+        from app.core.embedding_settings import get_embedding_dims
+
+        return get_embedding_dims()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # ── Memory Scoring (Generative-Agents-inspired) ───────────────
-MEMORY_OVERFETCH_LIMIT: int = 25           # over-fetch from mem0 before re-ranking
+MEMORY_OVERFETCH_LIMIT: int = 25           # over-fetch before re-ranking
 RECENCY_DECAY_RATE: float = 0.999          # exponential decay per hour (~84% at 1 week)
 SCORE_WEIGHT_RECENCY: float = 0.15         # α_r in composite score
 SCORE_WEIGHT_IMPORTANCE: float = 0.35      # α_i in composite score

@@ -63,8 +63,6 @@ Same JSON schema as POST /chat.
 
 ### Response (SSE events)
 - text_chunk_delta
-- text_chunk
-- avatar_ready
 - complete
 - error
 
@@ -76,20 +74,8 @@ data: {"chunk":"partial text"}
 ```
 
 ```text
-event: text_chunk
-data: {"message":"full text","modality":"...","confidence":0.8}
-
-```
-
-```text
-event: avatar_ready
-data: {"animation":"Talking_0","facial_expression":"empathy"}
-
-```
-
-```text
 event: complete
-data: {"status":"success"}
+data: {"status":"success","message":"full text","modality":"...","confidence":0.8}
 
 ```
 

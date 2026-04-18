@@ -55,6 +55,29 @@ if not _SUPABASE_URL or not _SUPABASE_KEY:
 # ── In-memory fallback counter ─────────────────────────────────────────────
 session_message_counters: Dict[str, int] = defaultdict(int)
 
+
+def bump_session_message_count(session_id: str, *, ttl_seconds: int = 3600) -> int:
+    """
+    Multi-worker safe-ish counter using Redis when available; falls back to process-local.
+    Returns the updated count.
+    """
+    if not session_id:
+        return 0
+    try:
+        from ..core.redis_working_memory import _client  # type: ignore
+
+        r = _client()
+        if r:
+            k = f"mm:session_count:{session_id}"
+            n = int(r.incr(k))
+            if n == 1:
+                r.expire(k, max(60, int(ttl_seconds)))
+            return n
+    except Exception:
+        pass
+    session_message_counters[session_id] += 1
+    return int(session_message_counters.get(session_id, 0))
+
 # ── Screening scores cache — PHQ-9/GAD-7 change rarely between messages ───
 _screening_cache: Dict[str, Tuple[Dict, float]] = {}  # user_id -> (scores, timestamp)
 _SCREENING_CACHE_TTL_S: float = 300.0  # 5 minutes
@@ -117,7 +140,7 @@ def _fetch_activities_sync(user_id: str) -> List[Dict]:
 
 
 def _fetch_messages_sync(session_id: str, user_id: str) -> List[Dict]:
-    """Synchronous helper — fetch last 10 chat messages for the session."""
+    """Synchronous helper — fetch last 12 chat messages (~6 user/assistant turns)."""
     if not supabase_client or not session_id:
         return []
     resp = (
@@ -125,7 +148,7 @@ def _fetch_messages_sync(session_id: str, user_id: str) -> List[Dict]:
         .select("*")
         .eq("session_id", session_id)
         .order("created_at", desc=True)
-        .limit(10)
+        .limit(12)
         .execute()
     )
     return [

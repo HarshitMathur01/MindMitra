@@ -37,7 +37,7 @@ def create_empty_user_context(
             "user_patterns": {},
         },
 
-        # ── NLP analysis (written by AnalysisAgent) ──
+        # ── NLP analysis (legacy envelope; COMPASS uses cl_* on ctx) ──
         "nlp_analysis": {
             "emotions": {},
             "primary_emotion": "",

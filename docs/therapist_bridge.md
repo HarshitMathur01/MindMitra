@@ -87,6 +87,6 @@ For anonymized snapshots, licensed reviewers score **1–5**:
 
 | Topic | Doc |
 |-------|-----|
-| Master hub | [`docs/MASTER_DOCUMENTATION.md`](MASTER_DOCUMENTATION.md) |
+| Doc hub | [`docs/README.md`](README.md) |
 | HTTP contracts | [`docs/api_contracts.md`](api_contracts.md) |
 | System architecture | [`docs/architecture.md`](architecture.md) |

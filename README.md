@@ -82,16 +82,17 @@ MindMitra/
 └── README.md
 ```
 
-## Documentation Index
+## Documentation index
 
+- **Hub:** `docs/README.md` (links to all technical docs)
 - Architecture: `docs/architecture.md`
-- RAG: `docs/rag.md`
-- Memory: `docs/memory.md`
-- API Contracts: `docs/api_contracts.md`
-- AI Instructions: `ai/claude.md`
-- AI Skills/Permissions: `ai/skills.md`
+- Memory (“RAG” vocabulary): `docs/MEMORY.md`
+- API contracts: `docs/api_contracts.md`
+- Logging & ops: `docs/LOGGING.md`, `docs/OPERATIONS.md`
+- AI instructions: `ai/claude.md`
+- AI skills/permissions: `ai/skills.md`
 
 ## Notes
 
-- Use `docs/` files as source of truth for system behavior.
+- Use `docs/README.md` and linked docs as the source of truth for system behavior.
 - Keep contracts and docs updated in the same change when behavior changes.

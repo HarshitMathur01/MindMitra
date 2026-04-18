@@ -30,7 +30,8 @@ from tests.llm_judge import heuristic_judge_scores, run_judge
 
 logger = logging.getLogger(__name__)
 
-FIXTURE = Path(__file__).resolve().parent / "fixtures" / "test-dataset.json"
+_DEFAULT_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "test-dataset.json"
+FIXTURE = Path(os.getenv("EVAL_FIXTURE_PATH", str(_DEFAULT_FIXTURE))).resolve()
 
 # Applied to all crisis_expected cases in addition to dataset must_not_contain_regex
 CRISIS_GLOBAL_MUST_NOT_REGEX: List[str] = [

@@ -1,9 +1,12 @@
+import hashlib
 import json
 import logging
 import math
 import os
 import threading
 import time
+import uuid
+from copy import deepcopy
 from tenacity import retry, stop_after_attempt, wait_random_exponential, before_sleep_log
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -11,114 +14,94 @@ from typing import Any, Dict, List, Optional, Tuple
 import google.generativeai as genai
 
 from ..controllers.llm_controller import LLMController
+from ..core.config import config
 from ..services.supabase_service import supabase_client
 from ..core.logging import log_timing
+from ..core.language_detector import LanguageDetector
+from ..utils.constants import EMBEDDING_DIMS, EMBEDDING_MODEL
 
 logger = logging.getLogger(__name__)
 
 class MemoryStore:
     def __init__(self) -> None:
         # Return immediately with safe defaults so the module-level singleton
-        # (bottom of this file) resolves in microseconds.  The sentence-
-        # transformers model load (~90 MB), Qdrant connection, Gemini init,
+        # (bottom of this file) resolves in microseconds.  The BGE-M3 model load
+        # (~570 MB), Qdrant connection, Gemini init,
         # and GLM init are all offloaded to a daemon thread — uvicorn can
         # bind port 8000 and serve requests while memory warms up in the
         # background (~5-30 s on a cold cache, <1 s if already cached).
-        self._mem0 = None       # type: ignore[assignment]
+        self._qdrant_client = None
+        self._collection: str = os.getenv("QDRANT_COLLECTION", "companion_memories")
         self._ready = False
         self._gemini_model = None
         self._glm = None
         self._groq_client = None   # for importance scoring
+        self._anthropic_client = None  # for structured extraction (PDF: claude-haiku-4-5)
         self._init_lock = threading.Lock()
+        self._memory_crud: Optional[Any] = None  # MemoryCRUD — set after Qdrant init
 
         # Emotional trend cache: user_id → (trend_text, timestamp)
         # Avoids redundant Groq LLM calls within the same session (~1 hour)
         self._emotional_trend_cache: Dict[str, Tuple[str, float]] = {}
         self._EMOTIONAL_TREND_CACHE_TTL_S: float = 3600.0  # 1 hour
 
-        logger.debug("[MEMORY] Spawning background init thread (mem0-init)")
-        threading.Thread(target=self._deferred_init, daemon=True, name="mem0-init").start()
+        # Avoid starting heavyweight background init during pytest collection/execution.
+        # The init thread loads large embedding models and opens network connections.
+        if os.getenv("PYTEST_CURRENT_TEST"):
+            logger.debug("[MEMORY] Pytest detected — skipping background init thread")
+        else:
+            logger.debug("[MEMORY] Spawning background init thread (memory-init)")
+            threading.Thread(target=self._deferred_init, daemon=True, name="memory-init").start()
 
     # ── deferred (background) initialisation ─────────────────────────────
 
-    def _init_mem0_with_retry(self, config):
-        """
-        Initialize mem0 with exponential backoff retry.
-        Handles cases where Qdrant is still starting (common in Railway deployments).
-        """
-        from mem0 import Memory
-        return Memory.from_config(config)
+    def _init_qdrant_with_retry(self) -> Any:
+        """Initialize Qdrant client with exponential backoff retry."""
+        from qdrant_client import QdrantClient
+
+        host = os.getenv("QDRANT_HOST", "localhost")
+        port = int(os.getenv("QDRANT_PORT", "6333"))
+        url = (os.getenv("QDRANT_URL") or "").strip()
+        api_key = (os.getenv("QDRANT_API_KEY") or "").strip() or None
+        collection = os.getenv("QDRANT_COLLECTION", "companion_memories")
+        self._collection = collection
+
+        if url:
+            qc = QdrantClient(url=url, api_key=api_key, timeout=5.0)
+        else:
+            qc = QdrantClient(host=host, port=port, api_key=api_key, timeout=5.0)
+        # lightweight connectivity check
+        qc.get_collections()
+        return qc
 
     def _deferred_init(self) -> None:
         """
         Runs in a daemon thread.  Loads the local HuggingFace embedding model,
-        connects to Qdrant via mem0, and initialises Gemini + GLM.
-        Sets self._ready = True only when mem0 is fully operational.
+        connects to Qdrant, and initialises Gemini + GLM.
+        Sets self._ready = True only when Qdrant + CRUD are operational.
         """
         with self._init_lock:
-            # ── mem0 + Qdrant (Groq LLM + local HuggingFace embedder) ──────
+            # ── Qdrant + embedder + CRUD ─────────────────────────────────
             try:
-                from mem0 import Memory  # lazy — fails gracefully if not installed
+                from ..core.embedder import get_embedding_service
+                from ..core.memory_crud import MemoryCRUD
 
-                qdrant_host = os.getenv("QDRANT_HOST", "localhost")
-                qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
-                collection = os.getenv("QDRANT_COLLECTION", "companion_memories")
-                groq_key = os.getenv("GROQ_API_KEY", "")
-
-                if not groq_key:
-                    logger.warning("⚠️ [MEMORY] GROQ_API_KEY not set — mem0 disabled")
-                else:
-                    mem0_config = {
-                        "version": "v1.1",
-                        "llm": {
-                            # Groq 8b: entity/fact extraction — no deep reasoning needed, 88% cheaper
-                            "provider": "groq",
-                            "config": {
-                                "model": "llama-3.1-8b-instant",
-                                "temperature": 0.1,
-                                "max_tokens": 2000,
-                            },
-                        },
-                        "embedder": {
-                            # Local sentence-transformers model — no API, 384-dim.
-                            # Loaded here in the background thread so startup is
-                            # never blocked by the ~90 MB model download/load.
-                            "provider": "huggingface",
-                            "config": {
-                                "model": "sentence-transformers/all-MiniLM-L6-v2",
-                                "embedding_dims": 384,
-                            },
-                        },
-                        "vector_store": {
-                            "provider": "qdrant",
-                            "config": {
-                                "host": qdrant_host,
-                                "port": qdrant_port,
-                                "collection_name": collection,
-                                # Must be set explicitly — mem0 only auto-propagates
-                                # embedding_dims → embedding_model_dims when graph_store
-                                # is in config AND vector_store is absent. Since we
-                                # always provide vector_store, we set it manually.
-                                "embedding_model_dims": 384,
-                            },
-                        },
-                    }
-
-                    logger.debug(
-                        f"[MEMORY] Calling Memory.from_config() — loading "
-                        f"all-MiniLM-L6-v2 + connecting Qdrant @ {qdrant_host}:{qdrant_port}"
-                    )
-                    self._mem0 = self._init_mem0_with_retry(mem0_config)
-                    self._ready = True
-                    logger.info(
-                        f"✅ [MEMORY] MemoryManager ready — Qdrant @ {qdrant_host}:{qdrant_port}, "
-                        f"collection={collection}"
-                    )
+                get_embedding_service().ensure_loaded()
+                self._qdrant_client = self._init_qdrant_with_retry()
+                self._memory_crud = MemoryCRUD(self._qdrant_client, supabase_client)
+                self._ready = True
+                logger.info(
+                    "✅ [MEMORY] Qdrant ready | collection=%s model=%s dims=%s",
+                    self._collection,
+                    EMBEDDING_MODEL,
+                    EMBEDDING_DIMS,
+                )
 
             except Exception as exc:
-                logger.error(f"⚠️ [MEMORY] mem0 init failed (memory disabled): {exc}", exc_info=True)
-                self._mem0 = None
+                logger.error("⚠️ [MEMORY] Qdrant init failed (memory disabled): %s", exc, exc_info=True)
+                self._qdrant_client = None
                 self._ready = False
+                self._memory_crud = None
 
             # ── Gemini (session summaries) ─────────────────────────────────
             try:
@@ -151,7 +134,20 @@ class MemoryStore:
             except Exception as exc:
                 logger.warning(f"⚠️ [MEMORY] Groq client init failed (importance scoring disabled): {exc}")
 
-            logger.debug("[MEMORY] Background init thread finished (mem0-init)")
+            # ── Anthropic client (structured extraction) ──────────────────
+            try:
+                anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+                if anthropic_key:
+                    from anthropic import Anthropic
+
+                    self._anthropic_client = Anthropic(api_key=anthropic_key)
+                    logger.info("✅ [MEMORY] Anthropic client ready for structured extraction")
+                else:
+                    logger.debug("[MEMORY] ANTHROPIC_API_KEY not set — structured extraction may be disabled")
+            except Exception as exc:
+                logger.warning(f"⚠️ [MEMORY] Anthropic init failed (structured extraction disabled): {exc}")
+
+            logger.debug("[MEMORY] Background init thread finished (memory-init)")
 
     # ── public: add memories ──────────────────────────────────────────────
 
@@ -166,12 +162,7 @@ class MemoryStore:
         """
         Extract and store memories from conversation messages.
 
-        This calls mem0.add() which uses Groq to extract facts from the
-        conversation, deduplicates against existing memories, and upserts
-        to Qdrant.  Should ALWAYS be called from a background thread.
-
-        After extraction, LLM-based importance scoring is applied to each
-        new memory and metadata is persisted to Supabase.
+        Legacy mem0.add path has been removed. Use add_structured instead.
 
         Args:
             messages: List of {"role": "user"|"assistant", "content": "..."} dicts.
@@ -182,46 +173,202 @@ class MemoryStore:
         Returns:
             {"results": [...]} on success, {"results": [], "error": "..."} on failure.
         """
-        if not self._ready or not self._mem0:
-            return {"results": [], "error": "mem0 not initialised"}
+        return {"results": [], "skipped": True, "error": "legacy_mem0_add_removed"}
+
+    # ── structured pipeline (Patch 3 — not wired to orchestrator yet) ────
+
+    def _fetch_recent_memories_for_structured(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Recent Qdrant payloads for this user (recency sort, best-effort)."""
+        if not self._qdrant_client:
+            return []
+        try:
+            from qdrant_client.models import FieldCondition, Filter, MatchValue
+
+            client = self._qdrant_client
+            coll = self._collection
+            fl = Filter(must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))])
+            res, _ = client.scroll(
+                collection_name=coll,
+                scroll_filter=fl,
+                limit=80,
+                with_payload=True,
+                with_vectors=False,
+            )
+            pts = sorted(
+                res,
+                key=lambda p: (p.payload or {}).get("created_at") or "",
+                reverse=True,
+            )[:limit]
+            out: List[Dict[str, Any]] = []
+            for p in pts:
+                pl = dict(p.payload or {})
+                out.append({"id": str(p.id), "data": pl.get("data", ""), "payload": pl})
+            return out
+        except Exception as exc:
+            logger.warning("[MEMORY-STRUCT] fetch recent memories failed: %s", exc)
+            return []
+
+    def _structured_similarity_search(self, vector: List[float], user_id: str, k: int) -> List[Any]:
+        if not self._qdrant_client:
+            return []
+        try:
+            from qdrant_client.models import FieldCondition, Filter, MatchValue
+
+            fl = Filter(must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))])
+            resp = self._qdrant_client.query_points(
+                collection_name=self._collection,
+                query=vector,
+                query_filter=fl,
+                limit=k,
+                with_payload=True,
+                with_vectors=False,
+            )
+            return list(getattr(resp, "points", []) or [])
+        except Exception as exc:
+            logger.warning("[MEMORY-STRUCT] similarity search failed: %s", exc)
+            return []
+
+    @staticmethod
+    def _map_structured_type_to_db(memory_type: str) -> str:
+        t = (memory_type or "").lower()
+        if t in ("identity", "preference", "behavioral", "emotional", "contextual"):
+            return t
+        if t in ("procedural", "semantic", "episodic", "affective", "relational", "reflection", "crisis"):
+            return t
+        return "contextual"
+
+    def add_structured(
+        self,
+        messages: List[Dict[str, str]],
+        user_id: str,
+        session_id: str,
+    ) -> Dict[str, Any]:
+        """
+        Structured extraction → quality gate → Qdrant + Supabase.
+        Canonical write path (mem0 removed).
+        """
+        empty = {"extracted": 0, "approved": 0, "rejected": 0, "contradictions": 0}
+        if not self._ready or not self._qdrant_client:
+            return {**empty, "error": "qdrant not initialised"}
+        if not self._anthropic_client and not self._groq_client:
+            return {**empty, "error": "no extraction client initialised"}
+        if not self._memory_crud:
+            return {**empty, "error": "memory crud not initialised"}
+
+        from ..core.embedder import get_embedding_service
+        from ..core.memory_extraction_providers import build_memory_extraction_provider
+        from ..core.memory_pipeline_types import MemoryCandidate
+        from ..core.quality_gate import QualityGate
+        from ..core.signal_classifier import SignalClassifier
+
+        import time as _time
+        _t0 = _time.monotonic()
+        logger.info(
+            "💾 [MEMORY-WRITE] add_structured start | user=%s session=%s msgs=%d",
+            str(user_id)[:12], str(session_id)[:8], len(messages),
+        )
+
+        sig = SignalClassifier().classify(messages, user_id)
+        if not sig.is_memory_worthy:
+            logger.info(
+                "📭 [MEMORY-WRITE] Skipped — not memory-worthy | user=%s session=%s",
+                str(user_id)[:12], str(session_id)[:8],
+            )
+            return empty
+
+        extractor = build_memory_extraction_provider(
+            groq_client=self._groq_client,
+            anthropic_client=self._anthropic_client,
+        )
+        candidates = extractor.extract(messages, sig, user_id, session_id)
+        extracted = len(candidates)
+        logger.info(
+            "🔍 [MEMORY-WRITE] Extraction complete | user=%s candidates=%d latency_ms=%.0f",
+            str(user_id)[:12], extracted, (_time.monotonic() - _t0) * 1000,
+        )
+
+        existing = self._fetch_recent_memories_for_structured(user_id, 20)
+
+        qg = QualityGate(
+            embed_document=lambda t: get_embedding_service().embed(t, is_query=False),
+            search_similar=self._structured_similarity_search,
+        )
+        qgr = qg.filter(candidates, user_id, existing)
+
+        pending_pair_logs: List[Tuple[MemoryCandidate, str]] = []
+        for cand, reason in qgr.contradictions:
+            if reason.startswith("contradicts:"):
+                parts = reason.split(":", 2)
+                ex_id = parts[1] if len(parts) > 1 else None
+                if ex_id:
+                    pending_pair_logs.append((cand, ex_id))
+
+        reinforced = 0
+        for _cand, point_id in qgr.reinforce:
+            try:
+                self._memory_crud.reinforce(point_id)
+                reinforced += 1
+            except Exception as exc:
+                logger.warning("[MEMORY-WRITE] reinforce failed id=%s: %s", point_id, exc)
+
+        inserted = 0
+        inserted_map: Dict[Tuple[str, str], str] = {}
+        for cand in qgr.approved:
+            try:
+                nid = self._memory_crud.insert(cand, user_id, session_id)
+                inserted += 1
+                inserted_map[(cand.content, cand.verbatim_anchor)] = nid
+                try:
+                    self._memory_crud.log_audit(
+                        user_id,
+                        "memory_insert",
+                        memory_id=nid,
+                        detail={"type": cand.type, "session_id": session_id},
+                    )
+                except Exception:
+                    pass
+            except Exception as exc:
+                logger.error("[MEMORY-WRITE] insert failed: %s", exc, exc_info=True)
+
+        for cand, old_id in pending_pair_logs:
+            key = (cand.content, cand.verbatim_anchor)
+            if key in inserted_map:
+                self._memory_crud.log_contradiction(old_id, inserted_map[key])
+
+        def _has_pair_contradiction() -> bool:
+            for _c, r in qgr.contradictions:
+                if r == "possible_duplicate":
+                    continue
+                if isinstance(r, str) and r.startswith("contradicts:"):
+                    return True
+            return False
 
         try:
-            # Build metadata payload
-            meta = metadata.copy() if metadata else {}
-            if session_id:
-                meta["session_id"] = session_id
-            meta.setdefault("source", "conversation")
-
-            with log_timing("Memorystore Add extraction", provider="groq", model="llama-3.1-8b-instant", user_id=user_id):
-                result = self._mem0.add(
-                    messages=messages,
-                    user_id=user_id,
-                    metadata=meta,
+            if _has_pair_contradiction():
+                self._memory_crud.merge_user_profile_patch(
+                    user_id, {"memory_clarification_pending": True}
                 )
-
-            count = len(result.get("results", []))
-            
-            # Fire-and-forget: importance scoring + metadata save to Supabase
-            if count > 0:
-                # Determine memory_type from metadata
-                category = meta.get("category", "general")
-                memory_type = "semantic"  # default
-                if category == "procedural":
-                    memory_type = "procedural"
-                elif category == "crisis":
-                    memory_type = "crisis"
-
-                threading.Thread(
-                    target=self._score_and_save_metadata,
-                    args=(user_id, result.get("results", []), session_id, memory_type),
-                    daemon=True,
-                ).start()
-
-            return result
-
+            else:
+                self._memory_crud.merge_user_profile_patch(
+                    user_id, {"memory_clarification_pending": False}
+                )
         except Exception as exc:
-            logger.error(f"❌ [MEMORY] add_memories failed: {exc}")
-            return {"results": [], "error": str(exc)}
+            logger.debug("[MEMORY-WRITE] profile contradiction flag merge failed: %s", exc)
+
+        _total_ms = (_time.monotonic() - _t0) * 1000
+        result = {
+            "extracted": extracted,
+            "approved": inserted + reinforced,
+            "rejected": len(qgr.rejected),
+            "contradictions": len(qgr.contradictions),
+        }
+        logger.info(
+            "✅ [MEMORY-WRITE] add_structured complete | user=%s extracted=%d approved=%d "
+            "rejected=%d contradictions=%d reinforced=%d total_ms=%.0f",
+            str(user_id)[:12], extracted, result["approved"],
+            result["rejected"], result["contradictions"], reinforced, _total_ms,
+        )
+        return result
 
     # ── public: retrieve memories ─────────────────────────────────────────
 
@@ -309,6 +456,9 @@ class MemoryStore:
 
             if not new_memories:
                 return
+            
+            logger.info(f"🎯 [MEMORY-SCORING] Quantifying {len(new_memories)} new fact(s) for User {user_id[-6:]} via Groq")
+            _t = time.monotonic()
 
             # Score importance for all new memories in one batch
             texts = [m.get("memory", "") for m in new_memories]
@@ -408,18 +558,29 @@ class MemoryStore:
 
     def get_all_memories(self, user_id: str, limit: int = 100) -> List[Dict[str, Any]]:
         """
-        Return all stored memories for a user from mem0.
+        Return stored memories for a user (debug helper).
 
         Returns a list of memory dicts, or [] on failure.
         """
-        if not self._ready or not self._mem0:
+        if not self._ready or not self._qdrant_client:
             return []
-
         try:
-            result = self._mem0.get_all(user_id=user_id, limit=limit)
-            return result.get("results", [])
+            from qdrant_client.models import FieldCondition, Filter, MatchValue
+
+            fl = Filter(must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))])
+            pts, _ = self._qdrant_client.scroll(
+                collection_name=self._collection,
+                scroll_filter=fl,
+                limit=max(1, min(int(limit), 200)),
+                with_payload=True,
+                with_vectors=False,
+            )
+            out: List[Dict[str, Any]] = []
+            for p in pts or []:
+                out.append({"id": str(p.id), "memory": (p.payload or {}).get("data", ""), "payload": dict(p.payload or {})})
+            return out
         except Exception as exc:
-            logger.error(f"❌ [MEMORY] get_all_memories failed: {exc}")
+            logger.error("❌ [MEMORY] get_all_memories failed: %s", exc)
             return []
 
     # ── public: crisis importance override ────────────────────────────────
@@ -430,37 +591,84 @@ class MemoryStore:
         Store a high-importance crisis memory.  Called from crisis fast-path.
         Runs in background — fire and forget.
         """
-        if not self._ready or not self._mem0:
+        if not self._ready:
             return
 
-        try:
-            meta = {
-                "importance": "critical",
-                "category": "crisis",
-                "source": "crisis_fast_path",
-            }
-            if session_id:
-                meta["session_id"] = session_id
+        if self._memory_crud:
+            try:
+                self._memory_crud.insert_restricted(
+                    user_id,
+                    message or "",
+                    session_id=session_id,
+                    structured_type="crisis",
+                    source="D-crisis-warm",
+                )
+            except Exception as exc:
+                logger.debug("[MEMORY] insert_restricted failed: %s", exc)
 
-            self._mem0.add(
-                messages=[{"role": "user", "content": message}],
-                user_id=user_id,
-                metadata=meta,
-            )
-            logger.info("✅ [MEMORY] Crisis memory saved")
-        except Exception as exc:
-            logger.error(f"❌ [MEMORY] add_crisis_memory failed: {exc}")
+        if self._memory_crud and (message or "").strip():
+            try:
+                from ..core.memory_pipeline_types import MemoryCandidate
+
+                det = LanguageDetector()
+                anchor = (message or "").strip()[:200]
+                cand = MemoryCandidate(
+                    type="emotional",
+                    content=(message or "").strip()[:4000],
+                    verbatim_anchor=anchor,
+                    confidence=1.0,
+                    emotional_valence=-0.6,
+                    emotional_intensity=0.95,
+                    tags=["crisis"],
+                    is_sensitive=True,
+                    language=det.detect(message),
+                    is_resolved=False,
+                    category="crisis",
+                )
+                mid = self._memory_crud.insert(
+                    cand,
+                    user_id,
+                    session_id or "crisis",
+                )
+                self._memory_crud.log_audit(
+                    user_id,
+                    "crisis_memory_structured",
+                    memory_id=mid,
+                    detail={"session_id": session_id},
+                )
+                logger.info("✅ [MEMORY] Crisis memory saved (structured)")
+            except Exception as exc:
+                logger.error("❌ [MEMORY] add_crisis_memory structured failed: %s", exc)
+                try:
+                    if supabase_client:
+                        supabase_client.table("crisis_dead_letter").insert(
+                            {
+                                "user_id": user_id,
+                                "session_id": session_id,
+                                "component": "memory_store",
+                                "action": "insert_crisis_memory_structured",
+                                "error": str(exc),
+                                "detail": {"source": "D-crisis-warm"},
+                            }
+                        ).execute()
+                except Exception:
+                    pass
 
     # ── public: procedural memory synthesis ───────────────────────────────
 
 
     def _count_user_memories(self, user_id: str) -> int:
-        """Count total memories for a user in mem0."""
-        if not self._ready or not self._mem0:
+        """Count total memories for a user (Supabase mirror)."""
+        if not supabase_client:
             return 0
         try:
-            result = self._mem0.get_all(user_id=user_id, limit=1000)
-            return len(result.get("results", []))
+            resp = (
+                supabase_client.table("memory_metadata")
+                .select("mem0_id", count="exact")
+                .eq("user_id", user_id)
+                .execute()
+            )
+            return int(resp.count or 0)
         except Exception:
             return 0
 
@@ -483,7 +691,12 @@ class MemoryStore:
 
     @property
     def is_ready(self) -> bool:
-        """True if mem0 is initialised and Qdrant is reachable."""
+        """True if Qdrant is initialised and reachable."""
         return self._ready
+
+    @property
+    def memory_crud(self) -> Optional[Any]:
+        """Structured-memory CRUD (None until Qdrant init succeeds)."""
+        return self._memory_crud
 
 

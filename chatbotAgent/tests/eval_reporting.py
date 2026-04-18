@@ -14,6 +14,36 @@ def _num(vals: List[Optional[float]]) -> List[float]:
     return [float(v) for v in vals if v is not None and isinstance(v, (int, float))]
 
 
+def _pct(vals: List[float], p: float) -> Optional[float]:
+    if not vals:
+        return None
+    xs = sorted(vals)
+    if len(xs) == 1:
+        return float(xs[0])
+    k = (len(xs) - 1) * (p / 100.0)
+    f = int(k)
+    c = min(f + 1, len(xs) - 1)
+    if f == c:
+        return float(xs[f])
+    d0 = xs[f] * (c - k)
+    d1 = xs[c] * (k - f)
+    return float(d0 + d1)
+
+
+def _stage_ms(row: Dict[str, Any], key: str) -> Optional[float]:
+    et = row.get("eval_trace") or {}
+    ed = et.get("stage_timings") or et.get("timings") or {}
+    if not isinstance(ed, dict):
+        return None
+    v = ed.get(key)
+    if v is None:
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 def classify_failure_types(row: Dict[str, Any]) -> List[str]:
     """High-level failure buckets for analytics (not mutually exclusive)."""
     types: List[str] = []
@@ -120,6 +150,14 @@ def aggregate(per_query: List[Dict[str, Any]]) -> Dict[str, Any]:
     total = len(rows) if rows else 0
     pass_rate = (len(passed) / total) if total else None
 
+    p50 = _pct(latencies, 50.0)
+    p95 = _pct(latencies, 95.0)
+
+    # Stage timings (when server includes them in eval_trace via _eval_data)
+    s1 = _num([_stage_ms(r, "stage1_ms") for r in rows])
+    cl = _num([_stage_ms(r, "cognitive_ms") for r in rows])
+    rg = _num([_stage_ms(r, "response_llm_ms") for r in rows])
+
     by_cat: Dict[str, Dict[str, Any]] = {}
     for r in rows:
         c = r.get("category") or "unknown"
@@ -135,6 +173,8 @@ def aggregate(per_query: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     return {
         "avg_latency_ms": round(mean(latencies), 2) if latencies else None,
+        "p50_latency_ms": round(p50, 2) if p50 is not None else None,
+        "p95_latency_ms": round(p95, 2) if p95 is not None else None,
         "avg_relevance": round(mean(rel), 3) if rel else None,
         "avg_correctness": round(mean(corr), 3) if corr else None,
         "avg_safety_score": round(mean(safety), 3) if safety else None,
@@ -147,6 +187,14 @@ def aggregate(per_query: List[Dict[str, Any]]) -> Dict[str, Any]:
         "crisis_case_count": len(crisis_cases),
         "pass_rate": round(pass_rate, 4) if pass_rate is not None else None,
         "total_cases": total,
+        "stage_latency_ms": {
+            "stage1_p50_ms": round(_pct(s1, 50.0), 2) if s1 else None,
+            "stage1_p95_ms": round(_pct(s1, 95.0), 2) if s1 else None,
+            "cognitive_p50_ms": round(_pct(cl, 50.0), 2) if cl else None,
+            "cognitive_p95_ms": round(_pct(cl, 95.0), 2) if cl else None,
+            "response_llm_p50_ms": round(_pct(rg, 50.0), 2) if rg else None,
+            "response_llm_p95_ms": round(_pct(rg, 95.0), 2) if rg else None,
+        },
     }
 
 

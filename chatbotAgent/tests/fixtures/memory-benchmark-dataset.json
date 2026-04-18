@@ -1,0 +1,188 @@
+{
+  "benchmark_version": "1.0",
+  "description": "Multi-turn memory stress benchmark: implicit dependencies, topic shifts, conflicting updates, cross-session isolation. Pair with tests/memory_benchmark_runner.py. Conversations avoid meta phrases about testing memory.",
+  "protocol": {
+    "recommended_user_turns": "15–16 per single-session case",
+    "memory_trigger_interval_backend": 12,
+    "memory_trigger_note": "chatbotAgent triggers mem0 extraction when hybrid session message count is divisible by 12. Place durable facts in early turns so they are inside the first extraction window when possible.",
+    "auth_and_trace": "Same as rag_evaluator: EVAL_BASE_URL, EVAL_AUTH_TOKEN or server SKIP_AUTH, ALLOW_EVAL_TRACE=true for memory_context_preview in eval_trace.",
+    "between_conversations_sleep_s": 6,
+    "evaluation_strictness": "Heuristic token/phrase match against eval_trace.memory_context_preview and assistant text on configured turns; supplement with human or LLM-as-judge for production gates.",
+    "groq_memory_judge": "With GROQ_API_KEY and MEMORY_BENCHMARK_USE_JUDGE not 0, memory_benchmark_runner attaches llm_deep_diagnostic per conversation (see docs/MEMORY_QUALITY_EVAL_PROTOCOL.md)."
+  },
+  "conversations": [
+    {
+      "id": "bench_reloc_partner_climate_dog_01",
+      "type": "single_session",
+      "domain": "life_planning_relationship",
+      "evaluation_focus": "Relocate offer, partner climate sensitivity, dog logistics; late turns ask for winter coping and pet move advice without restating Seattle or dog name.",
+      "turns": [
+        "It's been a heavy month — not a crisis, just a lot landing at once.",
+        "I finally got an offer for a role I've chased for two years. I'd need to move before the holidays.",
+        "The job's in the Pacific Northwest — basically Seattle metro if I accept.",
+        "My girlfriend says she's happy for me but I hear something else when she talks about the gray season.",
+        "She grew up in southern Arizona — sun every day — so months of drizzle aren't abstract to her.",
+        "We adopted a nervous little dog last year, Miso, who's only known our cramped Austin walk-up.",
+        "I've been doom-scrolling rental listings with fenced yards and feeling stupid for how much that calms me.",
+        "The new team feels competent. Less reorg theater than where I am now.",
+        "My boss took me out for coffee and danced around whether I'm leaving. Exhausting.",
+        "I swing between wanting to say yes tomorrow and lying awake wondering if I'm dragging someone into a mistake.",
+        "Can you help me separate what's normal big-decision noise from a signal I'm ignoring something important?",
+        "I don't need cheerleading — I want a frame for the tradeoffs that doesn't turn into me catastrophizing.",
+        "When I picture February I see her miserable in a rain shell waiting for me while I'm stuck on a late call.",
+        "If we go — what are a few concrete first-winter things that aren't just buy a lamp and hope?",
+        "Anything you'd actually do before moving a skittish dog halfway across the country?",
+        "I'm drafting a short note to myself about what I'm scared of losing if we go — can you suggest one honest sentence that doesn't use anyone's name?"
+      ],
+      "expected_memory_items": [
+        {
+          "id": "region_seattle",
+          "surface_forms": ["seattle", "pacific northwest", "northwest"],
+          "introduced_by_user_turn_1_indexed": 3,
+          "evaluate_on_user_turns_1_indexed": [13, 14, 15, 16],
+          "match_against": ["memory_preview", "assistant"]
+        },
+        {
+          "id": "partner_climate",
+          "surface_forms": ["arizona", "tucson", "sun", "rain", "gray", "drizzle"],
+          "introduced_by_user_turn_1_indexed": 5,
+          "evaluate_on_user_turns_1_indexed": [13, 14, 15, 16],
+          "match_against": ["memory_preview", "assistant"]
+        },
+        {
+          "id": "dog_miso",
+          "surface_forms": ["miso", "dog", "rescue", "austin"],
+          "introduced_by_user_turn_1_indexed": 6,
+          "evaluate_on_user_turns_1_indexed": [15, 16],
+          "match_against": ["memory_preview", "assistant"]
+        }
+      ],
+      "must_not_in_memory_preview_regex": [],
+      "implicit_dependency_notes": "Turns 13–16 should lean on prior context (climate, partner mood, dog) without user repeating full backstory."
+    },
+    {
+      "id": "bench_rust_deadline_wrist_01",
+      "type": "single_session",
+      "domain": "technical_health_planning",
+      "evaluation_focus": "Early technical goal and deadline; mid-topic shift to cooking; later implicit tie-back to injury and milestone without naming stack explicitly in the question.",
+      "turns": [
+        "I'm trying to ship a side project firmware tool in Rust — mostly evenings after work.",
+        "My self-imposed cutoff is end of day Friday this week for a demo I promised a friend.",
+        "The scary part isn't syntax — it's packaging and signing binaries for Windows without losing my mind.",
+        "Honestly last night I bailed and made soup instead of debugging. Zero regrets.",
+        "The soup was a coconut lentil thing — too thin at first, fixed it with peanut butter.",
+        "Kitchen victory made me realize I've been sitting like a gargoyle at the desk though.",
+        "My right wrist has been complaining for weeks — brace during the day, ice at night.",
+        "Typing through it feels stupid but I don't want to push the deadline again.",
+        "Work email is a separate dumpster fire — politics about a roadmap slide I didn't even own.",
+        "I took a long walk at lunch listening to a podcast about nothing related to code. Helped a little.",
+        "If I ignore the wrist entirely I'll pay for it — already dropped a coffee mug once.",
+        "Can you give me a brutally honest read on whether the Friday demo is realistic if I protect the wrist?",
+        "Assume I can only do two hours of deep focus a night — how would you sequence: build, package, test?",
+        "Also — any tiny habit between compile cycles that actually helps tendons instead of meme stretches?",
+        "Last thing: I'm hosting that friend Saturday — should I tell them the demo might slip or keep quiet until Thursday?",
+        "Forgot — the demo laptop is Windows 11 only. Does that change what you'd tackle first in packaging versus signing?"
+      ],
+      "expected_memory_items": [
+        {
+          "id": "rust_stack",
+          "surface_forms": ["rust", "firmware", "windows", "binary", "binaries"],
+          "introduced_by_user_turn_1_indexed": 1,
+          "evaluate_on_user_turns_1_indexed": [12, 13, 14],
+          "match_against": ["memory_preview", "assistant"]
+        },
+        {
+          "id": "deadline_friday",
+          "surface_forms": ["friday", "demo", "deadline"],
+          "introduced_by_user_turn_1_indexed": 2,
+          "evaluate_on_user_turns_1_indexed": [12, 13, 16],
+          "match_against": ["assistant"]
+        },
+        {
+          "id": "wrist_injury",
+          "surface_forms": ["wrist", "brace", "typing", "tendon"],
+          "introduced_by_user_turn_1_indexed": 7,
+          "evaluate_on_user_turns_1_indexed": [12, 13, 14],
+          "match_against": ["memory_preview", "assistant"]
+        }
+      ],
+      "must_not_in_memory_preview_regex": [],
+      "implicit_dependency_notes": "Turn 12 bundles injury + deadline without repeating Rust explicitly; model should infer from context."
+    },
+    {
+      "id": "bench_diet_conflict_brunch_01",
+      "type": "single_session",
+      "domain": "personal_identity_social",
+      "evaluation_focus": "User states long-term vegetarianism then later adds fish; final social scenario should follow updated diet not stale rule.",
+      "turns": [
+        "I've been vegetarian for about five years — mostly ethics, partly digestion.",
+        "Family holidays are fine; work lunches are where I get weird energy from people.",
+        "Someone always jokes I'm going to 'wither' without protein. Old joke, still annoying.",
+        "I started lifting heavier this year and got sloppy about meal planning.",
+        "Met with a dietitian who wasn't preachy — suggested tracking iron and B12 seriously.",
+        "For the last month I've actually been eating fish a couple times a week — mostly salmon, nothing dramatic.",
+        "I haven't updated my Slack bio or whatever — feels silly but also I'm dreading the commentary.",
+        "My running group does a big Saturday breakfast after long miles — bacon everywhere, you know the vibe.",
+        "I don't want to be the person with a speech at the table.",
+        "Also my partner eats everything — no conflict there, just me in my own head.",
+        "Work is slow this week so I'm over-rotating on this instead of doing something useful.",
+        "Can you help me script a one-liner if someone pushes the old vegetarian joke after they've seen me order fish?",
+        "I want it firm but not lecture-y — these are friends, not internet strangers.",
+        "If someone offers bacon at brunch and I say no, what's a casual line that doesn't invite a debate?",
+        "Separate question: any low-drama way to correct someone who still tells new people I'm strict veg?",
+        "Tiny check — based on what I said about fish, does 'strict vegetarian' even apply to me anymore, language-wise?"
+      ],
+      "expected_memory_items": [
+        {
+          "id": "fish_reintroduced",
+          "surface_forms": ["fish", "salmon", "seafood"],
+          "introduced_by_user_turn_1_indexed": 6,
+          "evaluate_on_user_turns_1_indexed": [14, 15, 16],
+          "match_against": ["assistant"]
+        },
+        {
+          "id": "legacy_veg",
+          "surface_forms": ["vegetarian", "veg"],
+          "introduced_by_user_turn_1_indexed": 1,
+          "evaluate_on_user_turns_1_indexed": [16],
+          "match_against": ["assistant"]
+        }
+      ],
+      "must_not_in_memory_preview_regex": [],
+      "implicit_dependency_notes": "Turn 16 checks updated self-description; assistant should not insist on strict vegetarian if user clarified fish.",
+      "conflict_turn_1_indexed": 6,
+      "conflict_description": "Earlier 'vegetarian five years' vs later fish — later turns should treat fish as current truth for social advice."
+    },
+    {
+      "id": "bench_cross_session_hobby_leak_01",
+      "type": "cross_session_pair",
+      "domain": "isolation_contamination",
+      "evaluation_focus": "Session A embeds an unusual hobby token; session B stays generic work stress — assistant replies in B should not invent hobby unless memory wrongly retrieves.",
+      "session_a": {
+        "turns": [
+          "Long day of back-to-back meetings — I feel like a human calendar.",
+          "I need a wind-down that isn't another screen.",
+          "Weird hobby alert: I thrift old ceramic power-line insulators from the 1950s. Just display them on a shelf.",
+          "It's niche enough that I don't mention it at work.",
+          "Anyway — any short walk-and-breathe idea before I crash?",
+          "Tomorrow is more of the same but I'll try to block lunch.",
+          "Thanks — I'll actually log off now."
+        ]
+      },
+      "session_b": {
+        "turns": [
+          "Different day, same open-plan headache.",
+          "I'm behind on a slide deck and getting snippy with teammates.",
+          "Can you give me a two-minute reset I can do between calls?",
+          "I want something grounded, not motivational poster language.",
+          "If you suggest journaling, keep it generic — three bullets max, no niche hobby examples.",
+          "Also how do I apologize without over-explaining?",
+          "I'll try the reset before the 4pm."
+        ]
+      },
+      "must_not_substrings_in_session_b_assistant": ["insulator", "insulators", "ceramic", "power-line", "1950s"],
+      "expected_memory_items": [],
+      "implicit_dependency_notes": "Tokens in must_not_substrings_in_session_b_assistant are unique to session A; appearance in B suggests cross-session retrieval leakage or hallucination."
+    }
+  ]
+}

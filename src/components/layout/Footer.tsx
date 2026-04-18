@@ -7,7 +7,6 @@ const helplines = [
   { name: "AASRA", info: "24/7", tel: "912227546669" },
   { name: "KIRAN", info: "24/7 · Toll-free", tel: "18005990019" },
 ];
-
 const Footer = ({ className }: { className?: string }) => {
   return (
     <footer className={cn("mx-auto mt-16 max-w-6xl px-4 pb-16 sm:px-6", className)}>

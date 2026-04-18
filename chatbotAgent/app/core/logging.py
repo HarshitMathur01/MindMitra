@@ -10,6 +10,30 @@ from contextlib import contextmanager
 # State for request tracing
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
 
+
+def _short_id(v: object, n: int = 12) -> str:
+    s = str(v or "")
+    return s[:n] if s else ""
+
+
+def log_event(logger: logging.Logger, message: str, **metrics) -> None:
+    """
+    Standard event logger.
+
+    - Uses `extra={"metrics": ...}` so JSON and colored formats capture fields.
+    - Avoids leaking full identifiers by default (callers should pass short ids).
+    """
+    try:
+        logger.info(message, extra={"metrics": {k: v for k, v in metrics.items() if v is not None}})
+    except Exception:
+        # Never let logging break the request path.
+        logger.info(message)
+
+
+def log_stage(logger: logging.Logger, stage: str, message: str, **metrics) -> None:
+    log_event(logger, f"[{stage}] {message}", stage=stage, **metrics)
+
+
 class CustomFormatter(logging.Formatter):
     """
     Production-grade JSON and Colored console formatter using pure Python.
@@ -86,7 +110,7 @@ def configure_logging():
 
     # Silence noisy loggers
     noisy = [
-        "httpx", "httpcore", "urllib3", "qdrant_client", "mem0", 
+        "httpx", "httpcore", "urllib3", "qdrant_client",
         "openai", "watchfiles", "uvicorn.access", "uvicorn.error", "fsevents"
     ]
     for n in noisy:

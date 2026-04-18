@@ -7,7 +7,7 @@ Why this exists
 With SKIP_AUTH=true, every /chat uses DEV_USER_ID (see app/core/auth.py). Retrieval first
 checks Supabase memory_metadata; if there are zero rows, retrieve_memories returns ""
 immediately (fast path). Short eval conversations (< MEMORY_TRIGGER_INTERVAL messages)
-also never call mem0.add — so nothing gets written during the eval run itself.
+also never write memories — so nothing gets written during the eval run itself.
 
 Run once (same env as your API: GROQ_API_KEY, Qdrant, Supabase):
 
@@ -60,13 +60,13 @@ def main() -> int:
             file=sys.stderr,
         )
 
-    # Wait for background mem0 init (same as a fresh shell importing the app)
+    # Wait for background memory init (same as a fresh shell importing the app)
     for _ in range(90):
         if memory_manager.is_ready:
             break
         time.sleep(0.5)
     else:
-        print("ERROR: memory_manager.is_ready never became True (GROQ_API_KEY / mem0 init).", file=sys.stderr)
+        print("ERROR: memory_manager.is_ready never became True (Qdrant init).", file=sys.stderr)
         return 1
 
     messages = [
@@ -91,14 +91,14 @@ def main() -> int:
         },
     ]
 
-    result = memory_manager.add_memories(
+    result = memory_manager.add_structured(
         messages,
         uid,
         session_id="eval-seed-session",
         metadata={"source": "eval_seed", "content_locale": "english"},
     )
     n = len(result.get("results") or [])
-    print(f"mem0.add returned {n} result row(s); waiting for metadata thread (8s)...")
+    print(f"add_structured returned {n} result row(s); waiting for background jobs (8s)...")
     time.sleep(8)
 
     probe = "Priya exams parents Mumbai cousin"

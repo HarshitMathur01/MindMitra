@@ -29,7 +29,7 @@ else:
     load_dotenv()
 
 # ── logging must be first ──────────────────────────────────────────────────
-from app.core.logging import configure_logging, request_id_var  # noqa: E402 (must be early)
+from app.core.logging import configure_logging, request_id_var, log_event  # noqa: E402 (must be early)
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -58,6 +58,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"   QDRANT_COLLECTION:        {os.getenv('QDRANT_COLLECTION', 'companion_memories (default)')}")
     logger.info(f"   ELEVENLABS_API_KEY:       {'✅' if os.getenv('ELEVENLABS_API_KEY') else '⚠️  Not set (gTTS fallback)'}")
     logger.info(f"   GOOGLE_CREDENTIALS:       {'✅ base64' if os.getenv('GOOGLE_CREDENTIALS_BASE64') else ('✅ file' if os.getenv('GOOGLE_APPLICATION_CREDENTIALS') else '⚠️  Not set (gTTS fallback)')}")
+    logger.info("   Response stack:           COMPASS (cognitive layer, v2 paths, post-stream hooks)")
+    logger.info("   Memory stack:             MEMOIR retrieval + structured extraction")
     logger.info("=" * 70)
     yield
 
@@ -72,22 +74,39 @@ async def request_logging_middleware(request: Request, call_next):
     request_id_var.set(req_id)
     
     start = time.perf_counter()
-    logger.info(f"==> [START] {request.method} {request.url.path}")
+    log_event(
+        logger,
+        "http_request_start",
+        method=request.method,
+        path=request.url.path,
+        query=str(request.url.query)[:2000] if request.url.query else "",
+    )
     
     try:
         response = await call_next(request)
         duration_ms = (time.perf_counter() - start) * 1000
-        logger.info(
-            f"<== [END] {request.method} {request.url.path} -> {response.status_code} ({duration_ms:.1f}ms)",
-            extra={"metrics": {"status_code": response.status_code, "duration_ms": round(duration_ms, 2)}}
+        log_event(
+            logger,
+            "http_request_end",
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=round(duration_ms, 2),
         )
         response.headers["X-Request-ID"] = req_id
         return response
     except Exception as e:
         duration_ms = (time.perf_counter() - start) * 1000
         logger.exception(
-            f"❌ [CRASH] {request.method} {request.url.path} -> 500 ({duration_ms:.1f}ms) | ERROR: {str(e)}",
-            extra={"metrics": {"status_code": 500, "duration_ms": round(duration_ms, 2)}}
+            "http_request_crash",
+            extra={
+                "metrics": {
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": 500,
+                    "duration_ms": round(duration_ms, 2),
+                }
+            },
         )
         raise
 

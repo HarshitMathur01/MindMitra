@@ -4,12 +4,12 @@ Use this file **before** large edits. It compresses architecture, invariants, an
 
 ## Single source of narrative
 
-1. **`docs/MASTER_DOCUMENTATION.md`** — hub: C4 view, lifecycle, ADRs, links to all modules.  
+1. **`docs/README.md`** — documentation hub: links, ADR summary, where to read next.  
 2. **`docs/api_contracts.md`** — request/response shapes (must stay aligned with FastAPI models).  
-3. **`docs/backend/ARCHITECTURE.md`** — backend deep dive (routes, screening, TTS notes).  
-4. **`docs/backend/MEMORY_ARCHITECTURE.md`** — memory truth: triggers, fast path, timeouts.
+3. **`docs/backend/ARCHITECTURE.md`** — backend deep dive (routes, COMPASS, screening, TTS notes).  
+4. **`docs/backend/MEMORY_ARCHITECTURE.md`** — memory truth: MEMOIR, triggers, timeouts.
 
-If `ai/claude.md` disagrees with this file, prefer **`CLAUDE.md`** + **`docs/MASTER_DOCUMENTATION.md`**.
+If `ai/claude.md` disagrees with this file, prefer **`CLAUDE.md`** + **`docs/README.md`**.
 
 ## What MindMitra is (one paragraph)
 
@@ -21,8 +21,9 @@ React/Vite SPA talks to **FastAPI** (`chatbotAgent`). Auth and relational data l
 2. **Auth on chat** — `validate_user_token`; `SKIP_AUTH` is dev-only; production must refuse `SKIP_AUTH` when `MINDMITRA_ENV` / platform flags indicate public production (`app/main.py`).
 3. **Memory scoped by `user_id`** — retrieval and Supabase message reads must not leak cross-tenant data; service-role code must filter `user_id` explicitly where RLS does not apply.
 4. **Post-response work is non-blocking** — memory extraction, summaries, game bridge run in daemon threads; do not move heavy sync work into the SSE hot path without measuring p95.
-5. **Conversation-memory RAG ≠ document KB** — “RAG” in evals means injected **user memory**, not citations to uploaded corpora (`docs/MEMORY_AND_RAG.md`).
+5. **Conversation-memory RAG ≠ document KB** — “RAG” in evals means injected **user memory**, not citations to uploaded corpora (`docs/MEMORY.md`).
 6. **eval_trace / pipeline debug** can include sensitive snippets — gated by env + headers; never assume safe for prod logging.
+7. **COMPASS + MEMOIR** — The chatbot agent always uses the cognitive-layer response stack (COMPASS) and MEMOIR retrieval with structured extraction; legacy env toggles were removed.
 
 ## Mental model: one chat turn
 
@@ -30,11 +31,10 @@ React/Vite SPA talks to **FastAPI** (`chatbotAgent`). Auth and relational data l
 HTTP → chat.py → rate limit → validate_user_token
      → fetch_user_context (Supabase)
      → parallel: retrieve_memories + emotional_trend
-     → IntentRouter (Groq)
-     → CrisisManager (may force Path D)
-     → Path A/B/C/D execution
-     → ResponseGenerator (GLM etc.) → stream / JSON
-     → async: mem0 extract, session jobs, …
+     → CrisisManager keyword/LLM gate (hard → warm template Path D, return)
+     → CognitiveLayer (COMPASS) — intent/risk are prompt-shaping only
+     → COMPASS-v2 → ResponseGenerator (GLM etc.) → stream / JSON
+     → async: add_structured / session jobs / game bridge / post-stream hooks
 ```
 
 ## Key file map (where to edit)
@@ -47,7 +47,7 @@ HTTP → chat.py → rate limit → validate_user_token
 | System prompts / caps | `chatbotAgent/app/core/prompts.py`, `response_agent.py` |
 | Memory IO | `memory_manager.py`, `memory_retriever.py`, `memory_store.py`, `memory_reflection.py` |
 | DB access | `chatbotAgent/app/services/supabase_service.py` |
-| Feature flags / prod safety | `chatbotAgent/app/core/env_flags.py`, `rate_limit.py` |
+| Response / memory | COMPASS + MEMOIR (no runtime flag switch; see `app/agents/README.md`, `COMPASS_CUTOVER.md`) |
 | Frontend chat | `src/components/chat/ChatGPTInterface.tsx` |
 | Product analytics | `src/lib/productAnalytics.ts`, `docs/EVALUATION.md` (Product metrics) |
 
@@ -63,7 +63,7 @@ HTTP → chat.py → rate limit → validate_user_token
 
 - **New API field:** Pydantic model + `docs/api_contracts.md` + contract test in `chatbotAgent/tests/test_api_chat_contract.py` (or sibling).
 - **New pipeline path:** orchestrator + workflow + eval fixtures; update `docs/backend/PIPELINE.md`.
-- **New memory type:** `docs/backend/MEMORY_ARCHITECTURE.md` + retriever injection + scoring tests; watch prompt token budget.
+- **New memory type:** `docs/MEMORY.md` + `docs/backend/MEMORY_ARCHITECTURE.md` + retriever injection + scoring tests; watch prompt token budget.
 - **New third-party SDK:** isolate in `services/` with timeouts and fallbacks.
 
 ## Testing commands (sanity)
@@ -77,3 +77,5 @@ Integration tests need a live server and `RUN_INTEGRATION=1`.
 ## Tone for this repo
 
 Mental-health adjacent: prefer **conservative** behavior on ambiguity, **explicit** logging for safety paths, and **small PRs** with doc updates in the same change set.
+
+- Always run all the pytest after code completion or task completion to verify the system is working fine. If new things are added to the system, make sure to add one of its test in either of the tests or make a new test file.

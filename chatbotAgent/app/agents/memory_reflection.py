@@ -43,8 +43,6 @@ class MemoryReflection:
     @property
     def _ready(self): return self.store._ready
     @property
-    def _mem0(self): return self.store._mem0
-    @property
     def _gemini_model(self): return self.store._gemini_model
     @property
     def _glm(self): return self.store._glm
@@ -139,6 +137,113 @@ class MemoryReflection:
             logger.error(f"❌ [MEMORY] save_session_summary failed: {exc}")
             return False
 
+    def generate_session_summary(
+        self,
+        user_id: str,
+        session_id: str,
+        messages: List[Dict[str, str]],
+    ) -> bool:
+        """Public alias for save_session_summary (session lifecycle / checkpoints)."""
+        return self.save_session_summary(user_id, session_id, messages)
+
+    def update_user_narrative(self, user_id: str) -> str:
+        """
+        Synthesize user_memory_profile.narrative_paragraph from recent session summaries
+        and top semantic/affective memories. Uses the shared Gemini model only.
+        """
+        if not self._gemini_model or not supabase_client or not user_id:
+            logger.warning("⚠️ [MEMORY] update_user_narrative skipped (Gemini or Supabase unavailable)")
+            return ""
+
+        try:
+            sum_resp = (
+                supabase_client.table("session_summaries")
+                .select("summary_text")
+                .eq("user_id", user_id)
+                .order("updated_at", desc=True)
+                .limit(10)
+                .execute()
+            )
+            summary_lines: List[str] = []
+            for row in sum_resp.data or []:
+                t = (row.get("summary_text") or "").strip()
+                if t:
+                    summary_lines.append(t)
+            summaries_block = "\n---\n".join(summary_lines) if summary_lines else "(no prior summaries)"
+
+            mem_resp = (
+                supabase_client.table("memory_metadata")
+                .select("memory_content, pipeline_memory_type, importance_score")
+                .eq("user_id", user_id)
+                .eq("is_active", True)
+                .in_("pipeline_memory_type", ["semantic", "affective"])
+                .order("importance_score", desc=True)
+                .limit(20)
+                .execute()
+            )
+            bullets: List[str] = []
+            for row in mem_resp.data or []:
+                c = (row.get("memory_content") or "").strip()
+                if c:
+                    bullets.append(f"- {c}")
+            memories_block = "\n".join(bullets) if bullets else "(no structured memories)"
+
+            system = (
+                "You are synthesizing a compassionate, concise psychological profile of a person "
+                "based on their conversation history with a mental health AI. Write in third person. "
+                "Be warm, specific, and accurate. Do not invent details."
+            )
+            user_prompt = (
+                f"Session summaries:\n{summaries_block}\n\nKey memories:\n{memories_block}\n\n"
+                "Write a 200-250 word paragraph describing who this person is, what they are going through, "
+                "what matters to them, and how they tend to engage emotionally. "
+                "This will be used as context for future conversations."
+            )
+
+            full_prompt = system + "\n\n" + user_prompt
+            response = self._gemini_model.generate_content(
+                full_prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.4,
+                    max_output_tokens=900,
+                ),
+            )
+            text = (getattr(response, "text", None) or "").strip()
+            if not text:
+                return ""
+
+            prof_resp = (
+                supabase_client.table("user_memory_profile")
+                .select("profile")
+                .eq("user_id", user_id)
+                .limit(1)
+                .execute()
+            )
+            prof: Dict[str, Any] = {}
+            if prof_resp.data:
+                p = prof_resp.data[0].get("profile") or {}
+                if isinstance(p, str):
+                    try:
+                        prof = json.loads(p)
+                    except json.JSONDecodeError:
+                        prof = {}
+                elif isinstance(p, dict):
+                    prof = dict(p)
+            prof["narrative_paragraph"] = text
+
+            supabase_client.table("user_memory_profile").upsert(
+                {
+                    "user_id": user_id,
+                    "profile": prof,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                },
+                on_conflict="user_id",
+            ).execute()
+            logger.info("✅ [MEMORY] narrative_paragraph updated for user %s...", user_id[:8])
+            return text
+        except Exception as exc:
+            logger.error("❌ [MEMORY] update_user_narrative failed: %s", exc, exc_info=True)
+            return ""
 
     def load_session_summary(self, session_id: str) -> Dict[str, Any]:
         """
@@ -221,19 +326,6 @@ class MemoryReflection:
 
             if resp and resp.content:
                 procedural_text = resp.content.strip()
-
-                # Store as a procedural-type memory in mem0
-                if self._ready and self._mem0:
-                    self._mem0.add(
-                        messages=[{"role": "assistant", "content": procedural_text}],
-                        user_id=user_id,
-                        metadata={
-                            "category": "procedural",
-                            "topic": topic,
-                            "source": "glm_synthesis",
-                            "importance": "high",
-                        },
-                    )
 
                 logger.info(f"✅ [MEMORY] Procedural memory synthesized: {procedural_text[:80]}...")
                 return procedural_text
@@ -337,51 +429,7 @@ class MemoryReflection:
                 logger.warning(f"⚠️ [MEMORY] Reflection returned non-list: {raw}")
                 return None
 
-            # Store each reflection as a memory
-            for insight in reflections:
-                if isinstance(insight, str) and insight.strip():
-                    self._mem0.add(
-                        messages=[{"role": "assistant", "content": insight.strip()}],
-                        user_id=user_id,
-                        metadata={
-                            "category": "reflection",
-                            "source": "reflection_synthesis",
-                            "importance": "critical",
-                        },
-                    )
-
-            # Save metadata for the reflections
-            # (we re-fetch to get the newly created mem0 IDs)
-            now = datetime.now(timezone.utc).isoformat()
-            # Insert metadata records for reflections — search for them in mem0
-            for insight in reflections:
-                if isinstance(insight, str) and insight.strip():
-                    try:
-                        # Search for the exact reflection we just added
-                        search_result = self._mem0.search(
-                            query=insight.strip(),
-                            user_id=user_id,
-                            limit=1,
-                        )
-                        found = search_result.get("results", [])
-                        if found and found[0].get("score", 0) > 0.9:
-                            mem0_id = found[0].get("id", "")
-                            if mem0_id:
-                                # Check if metadata already exists
-                                existing = supabase_client.table("memory_metadata").select("id").eq("mem0_id", mem0_id).limit(1).execute()
-                                if not existing.data:
-                                    supabase_client.table("memory_metadata").insert({
-                                        "user_id": user_id,
-                                        "mem0_id": mem0_id,
-                                        "category": "reflection",
-                                        "importance": "critical",
-                                        "importance_score": 9,
-                                        "memory_type": "reflection",
-                                        "last_accessed_at": now,
-                                        "source": "reflection_synthesis",
-                                    }).execute()
-                    except Exception as meta_exc:
-                        logger.warning(f"⚠️ [MEMORY] Reflection metadata save failed: {meta_exc}")
+            # Legacy mem0-based reflection storage removed; reflectors may still be used for analytics.
 
             elapsed = (time.monotonic() - _t) * 1000
             logger.info(
@@ -411,14 +459,12 @@ class MemoryReflection:
             )
             mem0_ids = [r["mem0_id"] for r in (resp.data or [])]
 
-            if not mem0_ids or not self._mem0:
+            if not mem0_ids:
                 return []
 
-            # Fetch actual memory texts from mem0
-            all_memories = self._mem0.get_all(user_id=user_id, limit=500)
-            memory_map = {m["id"]: m.get("memory", "") for m in all_memories.get("results", [])}
-
-            return [memory_map[mid] for mid in mem0_ids if mid in memory_map and memory_map[mid]]
+            # With mem0 removed, this method currently cannot fetch free-form memory text by id.
+            # Return empty to avoid blocking reflection generation on unavailable store.
+            return []
 
         except Exception as exc:
             logger.error(f"❌ [MEMORY] _fetch_top_memories_for_reflection failed: {exc}")

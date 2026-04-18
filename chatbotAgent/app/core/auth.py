@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 # Development auth bypass (SKIP_AUTH=true skips token validation locally)
 SKIP_AUTH: bool = os.getenv("SKIP_AUTH", "false").lower() in ("1", "true", "yes")
 DEV_USER_ID: str = os.getenv("DEV_USER_ID", "a0778b19-548f-47df-8413-296307566d0f")
+_ensured_dev_user_row: bool = False
 
 
 async def validate_user_token(
@@ -31,6 +32,17 @@ async def validate_user_token(
     """
     if SKIP_AUTH:
         logger.warning("⚠️ [AUTH] SKIP_AUTH enabled – bypassing token validation (local dev)")
+        global _ensured_dev_user_row
+        if not _ensured_dev_user_row and supabase_client:
+            try:
+                # Prevent downstream FK failures (e.g. crisis_events.user_id → users.id)
+                # when using a DEV_USER_ID that doesn't exist in the public users table.
+                supabase_client.table("users").upsert({"id": DEV_USER_ID}, on_conflict="id").execute()
+                _ensured_dev_user_row = True
+                logger.info("✅ [AUTH] Ensured DEV user row exists | user=%s", DEV_USER_ID[:12])
+            except Exception as exc:
+                # Best-effort: if schema differs or table missing, don't block dev chat.
+                logger.debug("[AUTH] DEV user row ensure failed: %s", exc)
         return DEV_USER_ID
 
     if not authorization:

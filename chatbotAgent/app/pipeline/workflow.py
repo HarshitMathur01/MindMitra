@@ -1,22 +1,21 @@
 """
-MindMitra Pipeline Workflow — intent-routed pipeline with mem0 memory.
+MindMitra Pipeline Workflow — COMPASS + MEMOIR orchestration entry point.
+
+Builds the UserContext envelope, dispatches to PipelineOrchestrator
+(COMPASS routing), and formats the result for callers.
 """
-import json
 import logging
 import os
 import threading
 import time
-from .analysis_engine import AnalysisEngine
 from .crisis_manager import CrisisManager
 from .pipeline_orchestrator import PipelineOrchestrator
 from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from supabase import Client, create_client, ClientOptions
 
-from ..agents.intent_router import IntentRouter
 from ..agents.analysis_agent import AnalysisAgent
 from ..agents.response_agent import ResponseGenerator
 from ..agents.memory_manager import memory_manager
@@ -25,20 +24,16 @@ from ..controllers.llm_controller import LLMController
 from ..controllers.azure_controller import AzureController
 from ..core.config import config
 from ..pipeline.context import create_empty_user_context
-from ..utils.json_utils import parse_json_from_llm_output
-
 logger = logging.getLogger(__name__)
 
 
 class MindMitraWorkflow:
     """
-    Orchestrates the intent-routed pipeline:
-      1. Build UserContext JSON
-      2. Fetch session memories
-      3. Route intent → Path A (casual) / B (emotional) / C (therapeutic) / D (crisis)
-      4. Each path runs only the analysis + agents it needs
-      5. mem0 memory retrieval injected at route time
-      6. Return result
+    Entry point for a single chat turn:
+      1. Build UserContext envelope
+      2. Dispatch to PipelineOrchestrator (COMPASS: cognitive layer → A/B/C/D paths)
+      3. Non-blocking: persist context to Supabase
+      4. Return formatted result dict
     """
 
     def __init__(self) -> None:
@@ -79,49 +74,18 @@ class MindMitraWorkflow:
         )
         self.response_gen = ResponseGenerator(self.glm)
 
-        # ── Intent router (reuses groq_nlp client — no new API key) ──────────
-        if self.groq_nlp and self.groq_nlp.client:
-            self.intent_router: Optional[IntentRouter] = IntentRouter(
-                groq_client=self.groq_nlp.client,
-                model=self.groq_nlp.model,
-            )
-        else:
-            self.intent_router = None
-            logger.warning("⚠️ [WORKFLOW] Intent router disabled (Groq client unavailable)")
-
         self._summarization_cache: Dict = {}
         self._last_summarization_count: Dict = {}
         self.crisis_manager = CrisisManager(self.groq_nlp, self.supabase)
         self.orchestrator = PipelineOrchestrator(
-            self.groq_nlp, self.glm, self.intent_router,
-            self.response_gen, self.crisis_manager, self.supabase
+            self.groq_nlp,
+            self.glm,
+            self.response_gen,
+            self.crisis_manager,
+            self.supabase,
         )
 
         logger.info("✅ [WORKFLOW] MindMitra v2 fully initialised\n")
-
-    # ── merge helpers ──────────────────────────────────────────────────────
-    def _merge_lists(self, old: List, new: List) -> List:
-        combined = old + new
-        seen: set = set()
-        result: List = []
-        for item in combined:
-            key = json.dumps(item, sort_keys=True)
-            if key not in seen:
-                seen.add(key)
-                result.append(item)
-        return result
-
-    def _merge_contexts_simple(self, old_ctx: Dict, new_ctx: Dict) -> Dict:
-        def _deep(a: Any, b: Any) -> Any:
-            if isinstance(a, dict) and isinstance(b, dict):
-                merged = {k: deepcopy(v) for k, v in a.items()}
-                for k, v in b.items():
-                    merged[k] = _deep(merged[k], v) if k in merged else deepcopy(v)
-                return merged
-            if isinstance(a, list) and isinstance(b, list):
-                return self._merge_lists(a, b)
-            return deepcopy(b if b is not None else a)
-        return _deep(old_ctx, new_ctx)
 
     # ── supabase helpers ───────────────────────────────────────────────────
     def _resolve_user_id_from_supabase(self, context: Dict) -> Optional[str]:
@@ -166,6 +130,12 @@ class MindMitraWorkflow:
             if "pgrst205" in err and "user_contexts" in err:
                 self._user_contexts_table_available = False
                 logger.warning("⚠️ [FILE] 'user_contexts' table missing; disabling upserts")
+            elif "23503" in err and "user_contexts" in err:
+                logger.debug(
+                    "⚠️ [FILE] user_contexts upsert skipped — user_id not in public.users "
+                    "(common with SKIP_AUTH and synthetic UUIDs): %s",
+                    e,
+                )
             else:
                 logger.warning(f"⚠️ [FILE] Supabase upsert failed: {e}")
 
@@ -265,7 +235,7 @@ class MindMitraWorkflow:
         processing_elapsed = time.monotonic() - _t0
         psych = ctx["psychological_analysis"]
         technique = ctx["technique_selection"]
-        _path_tag = ctx.get("_pipeline_path", "legacy")
+        _path_tag = ctx.get("_pipeline_path", "unknown")
         logger.info(
             "═" * 60 + "\n"
             f"  ✅ MINDMITRA PIPELINE COMPLETE\n"
@@ -281,16 +251,36 @@ class MindMitraWorkflow:
         eval_trace_payload: Optional[Dict[str, Any]] = None
         if ctx.get("_eval_trace_requested"):
             mem = ctx.get("memory_context") or ""
+            ed = ctx.get("_eval_data") or {}
+            stage_timings = {}
+            try:
+                s1 = (ed.get("stage1") or {}).get("latency_ms")
+                cl = (ed.get("cognitive_layer") or {}).get("latency_ms")
+                rg = (ed.get("response_gen") or {}).get("llm_ms")
+                if s1 is not None:
+                    stage_timings["stage1_ms"] = float(s1)
+                if cl is not None:
+                    stage_timings["cognitive_ms"] = float(cl)
+                if rg is not None:
+                    stage_timings["response_llm_ms"] = float(rg)
+            except Exception:
+                stage_timings = {}
             eval_trace_payload = {
                 "pipeline_path": ctx.get("_pipeline_path"),
-                "router_intent_raw": ctx.get("_eval_router_intent_raw"),
-                "routed_intent": ctx.get("_eval_routed_intent"),
+                "routed_intent": ctx.get("cl_intent"),
                 "memory_injected": bool(mem.strip()),
                 "memory_context_preview": mem[:8000],
                 "memory_char_len": len(mem),
                 "risk_assessment": psych.get("risk_assessment"),
                 "emotional_state": psych.get("emotional_state"),
+                "stage_timings": stage_timings,
             }
+            _eval_extra = ctx.get("_eval_data") or {}
+            if _eval_extra:
+                eval_trace_payload.update(_eval_extra)
+            for _ek, _ev in ctx.items():
+                if isinstance(_ek, str) and _ek.startswith("cl_"):
+                    eval_trace_payload[_ek] = _ev
 
         out: Dict[str, Any] = {
             "message": ctx["ai_response"],
@@ -321,6 +311,13 @@ class MindMitraWorkflow:
         }
         if eval_trace_payload is not None:
             out["eval_trace"] = eval_trace_payload
+
+        # Post-stream hooks (e.g. SSE safety audit / arc logging) read cl_* + ai_response from result
+        out["ai_response"] = ctx.get("ai_response", "")
+        for _k, _v in ctx.items():
+            if isinstance(_k, str) and _k.startswith("cl_"):
+                out[_k] = _v
+
         return out
 
 

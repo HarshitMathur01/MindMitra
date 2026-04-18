@@ -22,4 +22,7 @@ docker-compose.override.yml
 chatbotAgent/.venv_depcheck
 .venv_depcheck
 evaluations/history/runs.jsonl
-chatbotAgent/rag_evaluation_report.json
+# Generated eval / benchmark outputs (this directory = chatbotAgent/)
+rag_evaluation_report.json
+memory_benchmark_report.json
+memory_benchmark_report.isolated.json

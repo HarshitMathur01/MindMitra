@@ -32,7 +32,7 @@ async def root():
 @router.get("/debug/memory")
 async def debug_memory(user_id: str = "test_user"):
     """
-    Quick mem0 / Qdrant connectivity probe.
+    Quick memory / Qdrant connectivity probe.
     Returns memory system readiness + per-user stats.
     Usage: GET /debug/memory?user_id=<user_id>
     """
@@ -53,7 +53,7 @@ async def debug_memory(user_id: str = "test_user"):
                 pass
 
         return {
-            "mem0_ready": ready,
+            "memory_ready": ready,
             "qdrant_host": os.getenv("QDRANT_HOST", "localhost"),
             "qdrant_port": os.getenv("QDRANT_PORT", "6333"),
             "collection": os.getenv("QDRANT_COLLECTION", "companion_memories"),
@@ -64,7 +64,7 @@ async def debug_memory(user_id: str = "test_user"):
     except Exception as exc:
         logger.error(f"❌ [DEBUG/MEMORY] {exc}")
         return {
-            "mem0_ready": False,
+            "memory_ready": False,
             "error": str(exc),
             "user_id": user_id,
         }

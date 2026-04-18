@@ -12,6 +12,7 @@ const TOOL_COMPONENTS: Record<ToolId, ReturnType<typeof lazy>> = {
   "inner-critic": lazy(() => import("./tools/InnerCritic")),
   "gratitude-garden": lazy(() => import("./tools/GratitudeGarden")),
   "focus-flow": lazy(() => import("./tools/FocusFlow")),
+  "color-me-mindful": lazy(() => import("./tools/ColorMeMindful")),
 };
 
 function Loader() {

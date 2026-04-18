@@ -22,6 +22,7 @@ export const TOOL_IDS = [
   "inner-critic",
   "gratitude-garden",
   "focus-flow",
+  "color-me-mindful",
 ] as const;
 
 export type ToolId = (typeof TOOL_IDS)[number];

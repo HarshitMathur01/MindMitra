@@ -8,6 +8,7 @@ import {
   Gavel,
   Flower2,
   Timer,
+  Palette,
 } from "lucide-react";
 import type { MindGymTool, BadgeDefinition } from "./types";
 
@@ -110,6 +111,17 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 10,
     icon: Timer,
     gradient: ["#dc2626", "#f87171"] as const,
+  },
+  {
+    id: "color-me-mindful",
+    title: "Color Me Mindful",
+    shortDesc: "A calming coloring canvas with guided pause flow",
+    clinicalTag: "Creative Grounding",
+    clinicalBasis: "Creative coloring can lower cognitive load, regulate breath rhythm, and support present-moment attention through repetitive, low-pressure action.",
+    minutes: 7,
+    xp: 30,
+    icon: Palette,
+    gradient: ["#f59e0b", "#f97316"] as const,
   },
 ] as const;
 

@@ -103,8 +103,10 @@ const Header = () => {
                   {weCircleItems.some(i => location.pathname === i.path) && (
                     <motion.span
                       className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
-                      layoutId="activeNavUnderline"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      initial={{ scaleX: 0, opacity: 0 }}
+                      animate={{ scaleX: 1, opacity: 1 }}
+                      style={{ originX: 0.5 }}
+                      transition={{ duration: 0.2 }}
                     />
                   )}
                 </Button>
@@ -157,8 +159,10 @@ const Header = () => {
                   {moodArcadeItems.some(i => location.pathname === i.path) && (
                     <motion.span
                       className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
-                      layoutId="activeNavUnderline"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      initial={{ scaleX: 0, opacity: 0 }}
+                      animate={{ scaleX: 1, opacity: 1 }}
+                      style={{ originX: 0.5 }}
+                      transition={{ duration: 0.2 }}
                     />
                   )}
                 </Button>
@@ -211,8 +215,10 @@ const Header = () => {
                     {isActive && (
                       <motion.span
                         className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
-                        layoutId="activeNavUnderline"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                        initial={{ scaleX: 0, opacity: 0 }}
+                      animate={{ scaleX: 1, opacity: 1 }}
+                      style={{ originX: 0.5 }}
+                        transition={{ duration: 0.2 }}
                       />
                     )}
                   </Button>

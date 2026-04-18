@@ -1,160 +1,51 @@
-import { Phone, Shield, ArrowUpRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Phone, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const quickLinks = [
-  { label: "Chat", path: "/chat" },
-  { label: "Check in", path: "/wellness-checkin" },
-  { label: "A quiet practice", path: "/games" },
-  { label: "Find a therapist", path: "/therapist-bridge" },
+const helplines = [
+  { name: "iCall", info: "Mon–Sat · 8am–10pm", tel: "9152987821" },
+  { name: "Vandrevala Foundation", info: "24/7", tel: "18602662345" },
+  { name: "AASRA", info: "24/7", tel: "912227546669" },
+  { name: "KIRAN", info: "24/7 · Toll-free", tel: "18005990019" },
 ];
 
-const crisisResources = [
-  { name: "KIRAN Helpline", number: "1800-599-0019", note: "24/7 · toll-free" },
-  { name: "iCall", number: "9152987821", note: "Mon–Sat · 8am–10pm" },
-  { name: "Vandrevala Foundation", number: "1860-2662-345", note: "24/7" },
-  { name: "AASRA", number: "91-22-27546669", note: "24/7" },
-];
-
-const legal = [
-  { label: "Privacy", path: "#" },
-  { label: "Terms", path: "#" },
-  { label: "Accessibility", path: "#" },
-];
-
-/**
- * Footer — a warm goodbye, not a sitemap.
- * Crisis numbers are first and legible. Nothing is in caps tracking.
- * The closing line reads like a note slipped under a door.
- */
-const Footer = ({ className }: { className?: string } = {}) => {
-  const navigate = useNavigate();
-  const year = new Date().getFullYear();
-
+const Footer = ({ className }: { className?: string }) => {
   return (
-    <footer className={cn("relative mt-24 bg-[hsl(var(--ink-0))] text-ink-8", className)}>
-      <div className="mx-auto max-w-page px-gutter">
-        <div className="h-px bg-[hsl(var(--ink-3))]" aria-hidden />
-
-        {/* Crisis block — warm blush card, lifted above the rest */}
-        <div className="py-14 md:py-20">
-          <div className="mx-auto max-w-xl rounded-[28px] bg-[hsl(var(--warmth-50))] px-7 py-9 md:px-10 md:py-12">
-            <p className="text-center text-[13px] text-[hsl(var(--warmth-500))]">
-              If you need someone right now
-            </p>
-            <h2 className="mt-2 text-center font-display text-[24px] font-normal leading-[1.35] text-ink-8 md:text-[28px]">
-              A real human is a phone call away.
-              <br />
-              <span className="text-ink-6">You won't be a burden.</span>
-            </h2>
-
-            <ul className="mt-7 space-y-1">
-              {crisisResources.map((r) => (
-                <li key={r.name}>
-                  <a
-                    href={`tel:${r.number.replace(/[^0-9+]/g, "")}`}
-                    className="flex items-start justify-between gap-4 rounded-xl px-3 py-3 text-[14px] transition-colors hover:bg-[hsl(var(--warmth-100))]"
-                  >
-                    <div className="min-w-0">
-                      <div className="font-medium text-ink-8">{r.name}</div>
-                      <div className="mt-0.5 text-[12.5px] text-ink-5">
-                        {r.note}
-                      </div>
-                    </div>
-                    <span className="mt-0.5 inline-flex items-center gap-1.5 text-[13.5px] tabular-nums text-[hsl(var(--accent-700))]">
-                      <Phone className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      {r.number}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Soft sitemap + brand column */}
-        <div className="grid gap-10 border-t border-[hsl(var(--ink-3))] py-14 md:grid-cols-12 md:gap-8">
-          <div className="md:col-span-6">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-2.5 text-left"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]">
-                <img
-                  src="/image.png"
-                  alt=""
-                  aria-hidden
-                  className="h-5 w-5 object-contain opacity-90"
-                />
-              </span>
-              <span className="flex items-baseline gap-1.5">
-                <span className="font-display text-[18px] font-medium tracking-tight-1 text-ink-8">
-                  MindMitra
-                </span>
-                <span className="text-[12px] text-ink-5">· beta</span>
-              </span>
-            </button>
-
-            <p className="mt-6 max-w-prose text-[15.5px] leading-[1.75] text-ink-6">
-              A quiet companion for the moments no one sees — built alongside
-              clinicians, so you can be honest without consequence.
-            </p>
-
-            <div className="mt-6 inline-flex items-center gap-2 text-[12.5px] text-ink-5">
-              <Shield className="h-3.5 w-3.5 text-[hsl(var(--accent-500))]" strokeWidth={1.6} />
-              <span>Encrypted. DPDP compliant. Your words stay here.</span>
-            </div>
-          </div>
-
-          <div className="md:col-span-3">
-            <p className="text-[13.5px] text-ink-6">Visit</p>
-            <ul className="mt-4 space-y-2.5">
-              {quickLinks.map((link) => (
-                <li key={link.path}>
-                  <button
-                    onClick={() => navigate(link.path)}
-                    className="group inline-flex items-center gap-1.5 text-[14.5px] text-ink-7 transition-colors hover:text-ink-8"
-                  >
-                    <span>{link.label}</span>
-                    <ArrowUpRight
-                      className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70"
-                      strokeWidth={1.8}
-                    />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="md:col-span-3">
-            <p className="text-[13.5px] text-ink-6">Fine print</p>
-            <ul className="mt-4 space-y-2.5">
-              {legal.map((l) => (
-                <li key={l.label}>
-                  <button
-                    onClick={() => navigate(l.path)}
-                    className="text-[14.5px] text-ink-7 transition-colors hover:text-ink-8"
-                  >
-                    {l.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Closing line */}
-        <div className="border-t border-[hsl(var(--ink-3))] py-8">
-          <p className="mx-auto max-w-2xl text-center font-display text-[17px] font-normal italic leading-[1.55] text-ink-6">
-            It's okay to not be okay. What you feel matters — and so do you.
+    <footer className={cn("mx-auto mt-16 max-w-6xl px-4 pb-16 sm:px-6", className)}>
+      <div className="overflow-hidden rounded-[2rem] border border-border bg-card/60 p-8 shadow-soft sm:p-12">
+        <div className="flex flex-col items-start gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-primary">
+            <Heart className="h-3 w-3" /> If you need someone
+          </span>
+          <h3 className="font-display text-3xl text-foreground sm:text-4xl">
+            A real human is one call away.
+          </h3>
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+            You don't have to go through this alone. These are free, confidential
+            lines staffed by people trained to listen.
           </p>
         </div>
 
-        <div className="flex flex-col items-start justify-between gap-3 border-t border-[hsl(var(--ink-3))] py-6 text-[12.5px] text-ink-5 md:flex-row md:items-center">
-          <div>© {year} MindMitra. Made with care.</div>
-          <div>You can always come back.</div>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {helplines.map((h) => (
+            <a
+              key={h.name}
+              href={`tel:${h.tel}`}
+              className="group rounded-2xl border border-border bg-background/60 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-soft"
+            >
+              <div className="flex items-start justify-between">
+                <p className="text-sm font-medium text-foreground">{h.name}</p>
+                <Phone className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary" />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{h.info}</p>
+              <p className="mt-3 font-display text-lg text-primary">{h.tel}</p>
+            </a>
+          ))}
         </div>
       </div>
+
+      <p className="mt-10 text-center text-xs text-muted-foreground">
+        MindMitra · Made with care · Your words stay here.
+      </p>
     </footer>
   );
 };

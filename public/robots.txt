@@ -1,11 +1,14 @@
-User-agent: Googlebot
+# MindMitra — https://mindmitra.co.in
+# Submit this URL in Google Search Console: https://search.google.com/search-console
+
+User-agent: *
 Allow: /
 
-User-agent: Bingbot
-Allow: /
+# Account and preference surfaces (thin/duplicate for search; saves crawl budget)
+Disallow: /profile
+Disallow: /settings
 
-User-agent: ClaudeBot
-Allow: /
-
+# Dynamic booking pages — therapist-specific; avoid indexing parameterized URLs
+Disallow: /booking/
 
 Sitemap: https://mindmitra.co.in/sitemap.xml

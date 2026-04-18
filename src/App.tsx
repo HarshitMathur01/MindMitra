@@ -41,6 +41,7 @@ import StressControl from "./pages/StressControl";
 import Nutrition from "./pages/Nutrition";
 import MindGymHub from "./pages/mindgym/MindGymHub";
 import MindGymToolPage from "./pages/mindgym/MindGymToolPage";
+import { ProductAnalyticsProvider } from "@/components/analytics/ProductAnalyticsProvider";
 
 const queryClient = new QueryClient();
 
@@ -139,7 +140,9 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <AppContent />
+              <ProductAnalyticsProvider>
+                <AppContent />
+              </ProductAnalyticsProvider>
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>

@@ -319,7 +319,7 @@ export default function StressControl() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12 space-y-6">
 
         {/* ── Two-column grid on lg+ ── */}
         <div className="grid lg:grid-cols-2 gap-6">
@@ -564,7 +564,7 @@ export default function StressControl() {
             {/* ── Weekly Progress ── */}
             <motion.section {...fadeUp(0.10)} className="rounded-[24px] bg-card p-5 shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
               <h3 className="text-sm font-semibold text-foreground">This Week</h3>
-              <div className="mt-4 flex items-center gap-5">
+              <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:gap-5">
                 {/* SVG ring — 104px */}
                 <div className="relative shrink-0 flex items-center justify-center">
                   <svg width={ringSize} height={ringSize} className="-rotate-90">

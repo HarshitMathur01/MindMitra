@@ -475,7 +475,7 @@ const ReplyDrawer = ({
 
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-w-lg max-h-[85vh] flex flex-col bg-surface border-border/60 rounded-2xl p-0 overflow-hidden">
+            <DialogContent className="max-w-lg w-[calc(100%-2rem)] max-h-[85vh] flex flex-col bg-surface border-border/60 rounded-2xl p-0 overflow-hidden">
                 <DialogHeader className="px-5 pt-5 pb-3 border-b border-border/40">
                     <DialogTitle className="text-base font-bold text-foreground line-clamp-1">{post.title}</DialogTitle>
                     <p className="text-xs text-muted-foreground mt-1">Replies to {post.anonymous_name}'s post</p>
@@ -565,7 +565,7 @@ const PostComposer = ({
 
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-surface border-border/60 rounded-2xl">
+            <DialogContent className="max-w-lg w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto bg-surface border-border/60 rounded-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                         <PenLine className="h-5 w-5 text-primary" />

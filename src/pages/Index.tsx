@@ -145,16 +145,7 @@ const loggedWeekMoods: Array<string | null> = ["😊", "😌", "😰", "😐", "
 const sectionTitleClass = "text-[18px] font-semibold text-foreground";
 const sectionEyebrowClass = "text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5";
 const sectionDisplayTitleClass = "font-display text-2xl sm:text-3xl font-light tracking-tight text-ink-8";
-const getVisibleContentCardCount = (width: number) => {
-  if (width < 640) return 1;
-  if (width < 1024) return 2;
-  return 3;
-};
 
-const getContentCardColumnWidth = (visibleCount: number, peekPx: number, gapRem = 1) => {
-  if (visibleCount <= 1) return `calc(100% - ${peekPx}px)`;
-  return `calc((100% - ${(visibleCount - 1) * gapRem}rem - ${peekPx}px) / ${visibleCount})`;
-};
 
 const getContentCardActionLabel = (type: string) => {
   if (type === "Video") return "Watch now";
@@ -276,8 +267,7 @@ const Index = () => {
   const [isMoodToastVisible, setIsMoodToastVisible] = useState(false);
   const [isMoodCardVisible, setIsMoodCardVisible] = useState(true);
   const [currentTime, setCurrentTime] = useState(() => new Date());
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [visibleContentCardCount, setVisibleContentCardCount] = useState(() => getVisibleContentCardCount(window.innerWidth));
+
   const [contentCarouselIndex, setContentCarouselIndex] = useState(0);
   const [isContentCarouselAnimating, setIsContentCarouselAnimating] = useState(true);
   const [isContentCarouselDragging, setIsContentCarouselDragging] = useState(false);
@@ -328,19 +318,15 @@ const Index = () => {
     Boolean(affirmationParts.attribution) || affirmationParts.scripturalLines.length > 0;
   const resolvedWeekMoods = loggedWeekMoods.length > 0 ? loggedWeekMoods : dummyWeekMoods;
   const loopedContentCards = useMemo(
-    () => contentCards.length > visibleContentCardCount
-      ? [...contentCards, ...contentCards.slice(0, visibleContentCardCount)]
+    () => contentCards.length > 1
+      ? [...contentCards, ...contentCards.slice(0, 1)]
       : contentCards,
-    [visibleContentCardCount],
+    [],
   );
-  const isContentCarouselInteractive = contentCards.length > visibleContentCardCount;
+  const isContentCarouselInteractive = contentCards.length > 1;
   const activeContentCardIndex = contentCards.length > 0 ? contentCarouselIndex % contentCards.length : 0;
-  const contentCarouselPeekPx = viewportWidth < 1024 ? 36 : 0;
   const contentCarouselStyle = {
-    "--content-card-gap": "1rem",
-    "--content-card-width": getContentCardColumnWidth(visibleContentCardCount, contentCarouselPeekPx),
-    gridAutoColumns: "var(--content-card-width)",
-    transform: `translateX(calc(-${contentCarouselIndex} * (var(--content-card-width) + var(--content-card-gap)) + ${contentDragOffset}px))`,
+    transform: `translateX(calc(-${contentCarouselIndex} * (min(85vw, 320px) + 1rem) + ${contentDragOffset}px))`,
   } as CSSProperties;
   const showFloatingChatBubble = !isScrollingDown && !isTypingFocus;
 
@@ -356,21 +342,7 @@ const Index = () => {
     return () => window.clearTimeout(timer);
   }, [currentTime]);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const nextWidth = window.innerWidth;
-      const nextVisibleCount = getVisibleContentCardCount(nextWidth);
-      setViewportWidth(nextWidth);
-      setVisibleContentCardCount((prev) => {
-        if (prev === nextVisibleCount) return prev;
-        setIsContentCarouselAnimating(false);
-        setContentCarouselIndex(0);
-        return nextVisibleCount;
-      });
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+
 
   useEffect(() => {
     if (!selectedMood) { setIsMoodToastVisible(false); return; }
@@ -472,8 +444,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main
-        className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-5 sm:gap-10 sm:px-6 sm:pt-8 lg:px-8"
-        style={{ paddingBottom: "calc(10rem + env(safe-area-inset-bottom))" }}
+        className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-28 pt-5 sm:gap-10 sm:px-6 sm:pt-8 md:pb-16 lg:px-8"
+        style={{ paddingBottom: undefined }}
       >
         {/* Hero — photo-first; single warm scrim at bottom for legible ink type */}
         <section
@@ -806,14 +778,14 @@ const Index = () => {
           </div>
 
           <div
-            className="overflow-hidden pr-5 sm:pr-3 lg:pr-0"
+            className="overflow-x-auto overflow-y-hidden no-scrollbar sm:overflow-hidden sm:pr-0"
             onPointerDown={handleContentCarouselPointerDown}
             onPointerMove={handleContentCarouselPointerMove}
             onPointerUp={handleContentCarouselPointerEnd}
             onPointerCancel={handleContentCarouselPointerEnd}
           >
             <div
-              className={`grid grid-flow-col gap-4 touch-pan-y ${isContentCarouselAnimating && !isContentCarouselDragging ? "transition-transform duration-500 ease-out" : "transition-none"}`}
+              className={`flex gap-4 touch-pan-y sm:grid sm:grid-cols-2 lg:grid-cols-3 ${isContentCarouselAnimating && !isContentCarouselDragging ? "sm:transition-transform sm:duration-500 sm:ease-out" : "sm:transition-none"}`}
               style={contentCarouselStyle}
               onTransitionEnd={handleContentCarouselTransitionEnd}
             >
@@ -824,7 +796,7 @@ const Index = () => {
                   tabIndex={card.href ? 0 : undefined}
                   onClick={card.href ? () => { if (!suppressCardClick.current) navigate(card.href!); } : undefined}
                   onKeyDown={card.href ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(card.href!); } } : undefined}
-                  className={`group relative overflow-hidden rounded-2xl border border-ink-3/50 bg-[hsl(var(--card))] shadow-dashboard-soft transition-shadow duration-base ${card.href ? "cursor-pointer hover:shadow-dashboard-warm focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent-300))] focus-visible:ring-offset-2" : ""}`}
+                  className={`group relative w-[min(85vw,320px)] shrink-0 overflow-hidden rounded-2xl border border-ink-3/50 bg-[hsl(var(--card))] shadow-dashboard-soft transition-shadow duration-base sm:w-auto ${card.href ? "cursor-pointer hover:shadow-dashboard-warm focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent-300))] focus-visible:ring-offset-2" : ""}`}
                 >
                   <div className="relative h-40 w-full overflow-hidden">
                     <img src={card.image} alt={card.title} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]" />
@@ -888,29 +860,29 @@ const Index = () => {
             <h2 className={sectionDisplayTitleClass}>Your wellness toolkit</h2>
             <p className="mt-1 text-sm text-ink-5">Gentle tools, ready when you are.</p>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2">
             {featureCards.map((card, index) => (
               <article
                 key={card.title}
-                className={`mm-dashboard-stagger flex flex-col overflow-hidden rounded-3xl ${card.bg} p-6 shadow-dashboard-soft transition-shadow duration-base sm:p-8 hover:shadow-dashboard-warm`}
+                className={`mm-dashboard-stagger flex flex-col overflow-hidden rounded-3xl ${card.bg} p-5 shadow-dashboard-soft transition-shadow duration-base sm:p-8 hover:shadow-dashboard-warm`}
                 style={getDashboardRevealStyle(10 + index)}
               >
-                <div className="flex items-start justify-between gap-6">
-                  <div className="min-w-0 max-w-[58%] flex-1">
+                <div className="flex items-start justify-between gap-4 sm:gap-6">
+                  <div className="min-w-0 flex-1">
                     <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.18em] ${card.categoryClassName}`}>
                     {card.category}
                   </span>
-                    <h3 className="mt-3 font-display text-2xl font-normal text-ink-8">{card.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-ink-6">{card.description}</p>
+                    <h3 className="mt-3 font-display text-xl font-normal text-ink-8 sm:text-2xl">{card.title}</h3>
+                    <p className="mt-2 text-[13px] leading-relaxed text-ink-6 sm:text-sm">{card.description}</p>
                 <button
                       type="button"
-                      className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-base sm:w-auto ${card.buttonClassName}`}
+                      className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-base sm:mt-6 sm:w-auto ${card.buttonClassName}`}
                   onClick={() => navigate(card.route)}
                 >
                       {card.buttonLabel} <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                 </button>
                   </div>
-                  <img src={card.imageSrc} alt="" className="h-28 w-28 shrink-0 rounded-2xl object-cover sm:h-32 sm:w-32" />
+                  <img src={card.imageSrc} alt="" className="h-20 w-20 shrink-0 rounded-2xl object-cover sm:h-32 sm:w-32" />
                 </div>
               </article>
             ))}

@@ -21,6 +21,15 @@ import MessageRenderer from "./MessageRenderer"
 import QuickReplies from "./QuickReplies";
 import { AVATAR_OPTIONS } from "@/lib/avatarOptions";
 import { voiceForLocale, sttLocale as getSttLocale, LANGUAGE_LABELS, type SupportedLanguage } from "@/lib/locale";
+import { trackProductEvent } from "@/lib/productAnalytics";
+
+function messageLengthBand(len: number): string {
+  if (len <= 0) return "0";
+  if (len <= 80) return "1_80";
+  if (len <= 240) return "81_240";
+  if (len <= 600) return "241_600";
+  return "601_plus";
+}
 
 interface Message {
   id: string;
@@ -738,6 +747,12 @@ const ChatGPTInterface = () => {
       if (!session) {
         throw new Error('No active session found');
       }
+
+      trackProductEvent("chat_user_message_sent", {
+        length_band: messageLengthBand(textToSend.length),
+        voice: Boolean(pendingVoiceAnalysisRef.current),
+        avatar_visible: isAvatarVisible,
+      });
 
       // Ensure we have a session ID
       let sessionIdToUse = currentSessionId;

@@ -705,3 +705,14 @@ img {
         height: 14px;
     }
 }
+
+/* ── Tablet responsiveness ── */
+@media (min-width: 481px) and (max-width: 768px) {
+    .mm-bubble {
+        max-width: 84%;
+    }
+
+    .mm-bubble--user {
+        max-width: 78%;
+    }
+}

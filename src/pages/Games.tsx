@@ -156,7 +156,7 @@ const Games = () => {
           <div className="absolute bottom-20 left-20 w-40 h-40 bg-secondary/10 rounded-full" />
         </div>
 
-        <main className="container mx-auto px-4 relative z-10">
+        <main className="container mx-auto px-4 sm:px-6 relative z-10 pb-24 md:pb-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -191,7 +191,7 @@ const Games = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-5xl font-bold mb-4 text-foreground"
+                className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-foreground"
               >
                 Psychological Games
               </motion.h1>

@@ -25,7 +25,7 @@ const Footer = ({ className }: { className?: string }) => {
           </p>
         </div>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {helplines.map((h) => (
             <a
               key={h.name}

@@ -85,7 +85,7 @@ const Header = () => {
           </motion.div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {/* WeCircle Dropdown */}
             <div className="relative" ref={weCircleRef}>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -231,7 +231,7 @@ const Header = () => {
           <div className="flex items-center gap-3">
             {/* Mobile menu toggle */}
             <button
-              className="md:hidden p-2 rounded-lg hover:bg-background transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-background transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -251,7 +251,7 @@ const Header = () => {
                       {user.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="hidden md:block">
+                  <div className="hidden lg:block">
                     <p className="text-xs text-muted-foreground leading-none mb-0.5">Signed in as</p>
                     <span className="text-sm font-medium leading-none">
                       {user.email?.split('@')[0]}
@@ -281,13 +281,13 @@ const Header = () => {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            className="md:hidden border-t border-border bg-surface/95 backdrop-blur-md"
+            className="lg:hidden border-t border-border bg-surface/95 backdrop-blur-md max-h-[calc(100dvh-4rem)] overflow-y-auto"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="container mx-auto px-4 py-3 space-y-1">
+            <div className="container mx-auto px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-1">
               {/* WeCircle collapsible in mobile */}
               <div>
                 <button

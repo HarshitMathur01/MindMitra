@@ -259,8 +259,7 @@ export default function HealthyHabits() {
             </AnimatePresence>
 
             <main
-                className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8"
-                style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" }}
+                className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 pb-24 sm:px-6 md:pb-12 lg:px-8"
             >
                 <header className="flex items-start gap-3">
                     <Button
@@ -289,7 +288,7 @@ export default function HealthyHabits() {
                 <div className="flex flex-col gap-8">
                 {/* ── Hero stats ── */}
                 <div className="rounded-[1.75rem] border border-ink-3/40 bg-[hsl(var(--card))] p-6 shadow-dashboard-soft dark:border-ink-3/30">
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-4">
                         {/* Ring */}
                         <div className="relative shrink-0">
                             <svg className="-rotate-90" width={circleSize} height={circleSize} viewBox={`0 0 ${circleSize} ${circleSize}`}>
@@ -695,7 +694,7 @@ export default function HealthyHabits() {
                             {/* Category */}
                             <div>
                                 <p className="mb-2 text-xs font-medium text-muted-foreground">Category</p>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     {categoryOptions.map((cat) => (
                                         <button
                                             key={cat}

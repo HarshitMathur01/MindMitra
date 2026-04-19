@@ -29,14 +29,8 @@ import { DURATION, EASE } from "@/lib/redesign/tokens";
  *   2. Continue      — return to the conversation + a single suggested ritual
  *   3. Library       — Resources / Mind Gym pick / Therapist Bridge (low key)
  *
- * Drops:
- *   - Unsplash hero photo
- *   - Generic Mandela / Jobs / Disney quote pool
- *   - Duplicated "Your rhythm" + "This week" sections
- *   - Hardcoded "6-day streak"
- *   - Carousel + drag handlers (~100 LOC of UI state)
- *
  * Keeps:
+ *   - Refresh-aware nature backdrop behind the Now band
  *   - useAuth gating + DashboardSkeleton + PublicLanding fallback
  *   - Mood selection persisted in localStorage so chat empty-state can read it
  */
@@ -85,27 +79,92 @@ function getGreeting(date: Date): string {
 }
 
 function todayKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+type HeroScene = {
+  image: string;
+  overlay: string;
+  glow: string;
+  copy: string;
+  copyColor: string;
+};
+
+const heroScenes: HeroScene[] = [
+  {
+    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&auto=format&fit=crop&q=85",
+    overlay:
+      "linear-gradient(180deg, hsl(var(--background) / 0.10) 0%, hsl(var(--background) / 0.30) 56%, hsl(var(--background) / 0.86) 100%)",
+    glow:
+      "radial-gradient(ellipse 72% 60% at 50% 8%, hsl(var(--accent-100) / 0.38) 0%, transparent 66%)",
+    copy: "Ease into the morning. Tell Mitra one true thing about today.",
+    copyColor: "hsl(var(--accent-700))",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1600&auto=format&fit=crop&q=85",
+    overlay:
+      "linear-gradient(180deg, hsl(var(--background) / 0.14) 0%, hsl(var(--background) / 0.36) 56%, hsl(var(--background) / 0.88) 100%)",
+    glow:
+      "radial-gradient(ellipse 72% 60% at 50% 8%, hsl(var(--accent-100) / 0.32) 0%, transparent 66%)",
+    copy: "Hold this afternoon gently. Tell Mitra one true thing about today.",
+    copyColor: "hsl(var(--accent-600))",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&auto=format&fit=crop&q=85",
+    overlay:
+      "linear-gradient(180deg, hsl(var(--background) / 0.18) 0%, hsl(var(--background) / 0.44) 56%, hsl(var(--background) / 0.90) 100%)",
+    glow:
+      "radial-gradient(ellipse 72% 60% at 50% 8%, hsl(var(--warmth-100) / 0.30) 0%, transparent 66%)",
+    copy: "Let the evening soften. Tell Mitra one true thing about today.",
+    copyColor: "hsl(var(--warmth-500))",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=1600&auto=format&fit=crop&q=85",
+    overlay:
+      "linear-gradient(180deg, hsl(var(--background) / 0.26) 0%, hsl(var(--background) / 0.50) 56%, hsl(var(--background) / 0.94) 100%)",
+    glow:
+      "radial-gradient(ellipse 72% 60% at 50% 8%, hsl(var(--accent-100) / 0.24) 0%, transparent 66%)",
+    copy: "Set the night down softly. Tell Mitra one true thing before you rest.",
+    copyColor: "hsl(var(--accent-100))",
+  },
+];
+
+function pickHeroScene(): HeroScene {
+  const index = Math.floor(Math.random() * heroScenes.length);
+  return heroScenes[index];
 }
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [now] = useState(() => new Date());
+  const [now, setNow] = useState(() => new Date());
   const [mood, setMood] = useState<MoodChip | null>(null);
+  const [heroScene] = useState<HeroScene>(() => pickHeroScene());
+
+  useEffect(() => {
+    const syncNow = () => setNow(new Date());
+    const intervalId = window.setInterval(syncNow, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const currentDayKey = todayKey(now);
+  const currentUtcDayKey = now.toISOString().slice(0, 10);
 
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(MOOD_STORAGE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as { date: string; mood: MoodChip };
-      if (parsed?.date === todayKey(now)) {
+      if (parsed?.date === currentDayKey || parsed?.date === currentUtcDayKey) {
         setMood(parsed.mood);
       }
     } catch {
       /* ignore corrupted storage */
     }
-  }, [now]);
+  }, [currentDayKey, currentUtcDayKey]);
 
   const displayName = useMemo(() => {
     const raw =
@@ -119,17 +178,14 @@ const Index = () => {
       .replace(/^./, (c) => c.toUpperCase());
   }, [user]);
 
-  const ritual = useMemo(() => {
-    const idx = (now.getDate() + now.getMonth()) % dailyRituals.length;
-    return dailyRituals[idx];
-  }, [now]);
+  const ritual = dailyRituals[(now.getDate() + now.getMonth()) % dailyRituals.length];
 
   const handleMoodSelect = (next: MoodChip) => {
     setMood(next);
     try {
       window.localStorage.setItem(
         MOOD_STORAGE_KEY,
-        JSON.stringify({ date: todayKey(now), mood: next }),
+        JSON.stringify({ date: currentDayKey, mood: next }),
       );
     } catch {
       /* ignore */
@@ -144,13 +200,30 @@ const Index = () => {
       <Header />
       <PageShell tone="page" width="page" as="main">
         {/* ── Band 1 — Now ───────────────────────────────── */}
-        <section className="relative isolate flex flex-col items-center pt-16 text-center sm:pt-24">
+        <section className="relative isolate flex min-h-[68vh] flex-col items-center overflow-hidden pt-16 text-center sm:min-h-[72vh] sm:pt-24 lg:min-h-[78vh]">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-20"
+          >
+            <img
+              src={heroScene.image}
+              alt=""
+              aria-hidden
+              className="h-full w-full scale-[1.08] object-cover object-center"
+            />
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{
+              backgroundImage: heroScene.overlay,
+            }}
+          />
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px]"
             style={{
-              backgroundImage:
-                "radial-gradient(ellipse 70% 60% at 50% 10%, hsl(var(--accent-100) / 0.55) 0%, transparent 65%)",
+              backgroundImage: heroScene.glow,
             }}
           />
 
@@ -159,7 +232,7 @@ const Index = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: DURATION.long, ease: EASE.outExpo }}
           >
-            <Pulse size={148} state={mood ? "warm" : "idle"} intensity={0.8} />
+            <Pulse size={1} state={mood ? "warm" : "idle"} intensity={0.8} />
           </motion.div>
 
           <motion.div
@@ -176,10 +249,13 @@ const Index = () => {
             <h1 className="mt-4 font-display text-[clamp(2rem,4.5vw,3rem)] leading-[1.1] tracking-tight text-foreground">
               Hello, {displayName}.
             </h1>
-            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+            <p
+              className="mt-3 text-base leading-relaxed transition-colors duration-300"
+              style={{ color: heroScene.copyColor }}
+            >
               {mood
                 ? `Noted that today feels ${mood.label.toLowerCase()}. We'll go from there.`
-                : "Take a breath. When you're ready, tell Mitra one true thing about today."}
+                : heroScene.copy}
             </p>
           </motion.div>
 
@@ -201,11 +277,10 @@ const Index = () => {
                     key={m.label}
                     type="button"
                     onClick={() => handleMoodSelect(m)}
-                    className={`group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition-colors ${
-                      isActive
-                        ? "border-[hsl(var(--accent-300))] bg-[hsl(var(--accent-50))] text-[hsl(var(--accent-700))]"
-                        : "border-border/60 bg-background text-muted-foreground hover:border-border hover:text-foreground"
-                    }`}
+                    className={`group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition-colors ${isActive
+                      ? "border-[hsl(var(--accent-300))] bg-[hsl(var(--accent-50))] text-[hsl(var(--accent-700))]"
+                      : "border-border/60 bg-background text-muted-foreground hover:border-border hover:text-foreground"
+                      }`}
                   >
                     <span className="text-base leading-none">{m.emoji}</span>
                     <span>{m.label}</span>

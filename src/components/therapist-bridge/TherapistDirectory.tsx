@@ -9,6 +9,13 @@ interface TherapistDirectoryProps {
   onBook: (therapist: Therapist) => void;
   booking: boolean;
   userTopics?: Array<{ topic: string; frequency: number }>;
+  /** Filters seeded from the intake form. Updates re-apply the filter state. */
+  initialFilters?: TherapistFilters;
+  /**
+   * Bumped whenever the parent wants to force-sync `initialFilters` into
+   * the local filter state (e.g. after an intake "Apply" or "Reset").
+   */
+  filtersRevision?: number;
 }
 
 const matchesFilter = (therapist: Therapist, filters: TherapistFilters) => {
@@ -23,10 +30,27 @@ const matchesFilter = (therapist: Therapist, filters: TherapistFilters) => {
   return languagePass && specializationPass && locationPass && availabilityPass && pricePass;
 };
 
-const TherapistDirectory = ({ therapists, onBook, booking, userTopics }: TherapistDirectoryProps) => {
-  const [filters, setFilters] = useState<TherapistFilters>(defaultFilters);
-  const [debouncedFilters, setDebouncedFilters] = useState<TherapistFilters>(defaultFilters);
+const TherapistDirectory = ({
+  therapists,
+  onBook,
+  booking,
+  userTopics,
+  initialFilters,
+  filtersRevision = 0,
+}: TherapistDirectoryProps) => {
+  const [filters, setFilters] = useState<TherapistFilters>(initialFilters ?? defaultFilters);
+  const [debouncedFilters, setDebouncedFilters] = useState<TherapistFilters>(initialFilters ?? defaultFilters);
   const [visibleCount, setVisibleCount] = useState(6);
+
+  // When the parent pushes a new intake-derived filter set (revision bumps),
+  // adopt it instantly so the directory reflects the user's stated intent.
+  useEffect(() => {
+    if (!initialFilters) return;
+    setFilters(initialFilters);
+    setDebouncedFilters(initialFilters);
+    setVisibleCount(6);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersRevision]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {

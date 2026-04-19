@@ -198,6 +198,27 @@
     line-height: 1.65;
     letter-spacing: -0.01em;
     font-weight: 400;
+    /* Defensive — prevents accidental horizontal scroll from any
+       single overflowing child (gradients, fixed-width art, etc.).
+       We always want vertical scroll to feel native. */
+    overflow-x: hidden;
+  }
+
+  html,
+  body {
+    /* Belt-and-braces: width clamping on the document itself. */
+    max-width: 100vw;
+  }
+
+  /* Prevent iOS Safari from auto-zooming when an input is focused
+     (it does that whenever input font-size < 16px). Keeps mobile
+     forms from looking like the page is misbehaving. */
+  @media (max-width: 640px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
   }
 
   /* Display font utility */

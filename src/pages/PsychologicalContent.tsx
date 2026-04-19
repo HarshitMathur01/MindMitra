@@ -15,7 +15,6 @@ import {
     Clock,
     Star,
     Search,
-    Heart,
     ChevronRight,
     Brain,
     Sparkles,
@@ -26,6 +25,8 @@ import {
     Users,
     Flower2,
     Activity,
+    ShieldCheck,
+    Phone,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -127,12 +128,15 @@ function categoryLabel(categoryId: string): string {
     return map[categoryId] ?? categoryId.replace(/-/g, " ");
 }
 
+// Format filter — only the formats we actually deliver in-app today.
+// Video/audio types still exist on individual items (they pre-date this
+// page), but we don't expose them as filters because there is no real
+// streamed media yet — every item opens a written guide. Showing those
+// filters previously implied media we don't have.
 const typeFilters: { id: ContentType | "all"; label: string; icon: React.ElementType }[] = [
     { id: "all", label: "All", icon: Sparkles },
-    { id: "article", label: "Articles", icon: FileText },
-    { id: "video", label: "Videos", icon: Play },
-    { id: "audio", label: "Audio", icon: Headphones },
-    { id: "exercise", label: "Exercises", icon: CheckCircle2 },
+    { id: "article", label: "Reads", icon: FileText },
+    { id: "exercise", label: "Practices", icon: CheckCircle2 },
 ];
 
 // ─── Content Data ─────────────────────────────────────────────────────────────
@@ -263,7 +267,7 @@ const allContent: ContentItem[] = [
         title: "Body Scan Meditation for Beginners",
         description: "A 10-minute guided meditation to release tension stored in your body.",
         longDescription: "Your body keeps score of your stress. Tight shoulders from hunching over textbooks. Clenched jaw from suppressing frustration. Knots in your stomach before every exam. A body scan meditation helps you notice — and release — this stored tension.\n\n**How to practice:**\n\nFind a comfortable position (lying down or sitting). Close your eyes.\n\n1. Start at the top of your head. Notice any sensation — tingling, warmth, tightness.\n2. Slowly move your attention down: forehead → eyes → jaw → neck → shoulders.\n3. At each spot, breathe INTO that area and imagine the tension melting away.\n4. Continue through: arms → hands → chest → stomach → hips → legs → feet.\n5. Finish by noticing your whole body at once.\n\n**Common experiences:**\n- You might feel sleepy — that's your body finally relaxing\n- Some areas might feel 'numb' — that's normal, it means you've been disconnected from that body part\n- You might notice emotions — tension in the chest often holds anxiety; tight throat can indicate suppressed words\n\nStudies from AIIMS Delhi show that medical students who practiced body scan meditation for 10 minutes daily reported 35% less physical stress symptoms after 4 weeks.",
-        type: "audio",
+        type: "exercise",
         category: "mindfulness",
         tags: ["meditation", "body-scan", "relaxation", "stress-relief"],
         duration: "10 min",
@@ -287,10 +291,10 @@ const allContent: ContentItem[] = [
         title: "How Social Media Affects Your Brain",
         description: "The neuroscience behind doom scrolling, comparison traps, and digital anxiety.",
         longDescription: "Every time you get a like on Instagram, your brain releases dopamine — the same chemical released by eating chocolate or receiving a compliment. The problem? Social media has engineered this response to be unpredictable (variable ratio reinforcement), which is the exact mechanism that makes gambling addictive.\n\n**The Indian student context:**\n- Average Indian student spends 3.5 hours daily on social media\n- FOMO is amplified by seeing peers' highlight reels — trips, relationships, achievements\n- 'Comparison is the thief of joy' becomes real when you see 500 stories daily\n- Short-form content (Reels, Shorts) reduces attention span and depth of thinking\n\n**What the research shows:**\n- 30+ minutes of social media daily is associated with increased anxiety and depression in young adults (Twenge, 2019)\n- Students who didn't use social media for 1 week reported significantly lower loneliness and depression (University of Bath, 2022)\n\n**Practical strategies:**\n\n1. **The 20-minute rule** — Set a timer before opening any social app\n2. **Mute, don't unfollow** — Reduce triggering content without social consequences\n3. **Morning phone-free window** — Don't touch your phone for the first 30 minutes after waking\n4. **Content diet** — Unfollow accounts that make you feel bad; follow ones that educate\n5. **Use 'time spent' tracking** — Both Android and iOS have built-in screen time tools",
-        type: "video",
+        type: "article",
         category: "anxiety",
         tags: ["social-media", "digital-wellness", "dopamine", "attention"],
-        duration: "12 min watch",
+        duration: "12 min read",
         difficulty: "beginner",
         author: "Dr. Rohan Kapoor",
         authorCredential: "Neuroscientist, IISc Bangalore",
@@ -744,9 +748,15 @@ function ResourceReaderDialog({
                             <DialogTitle className="mt-2 font-display text-xl font-normal leading-snug tracking-tight text-ink-8 sm:text-2xl">
                                 {item.title}
                             </DialogTitle>
-                            <p className="mt-1.5 text-sm text-ink-6">
-                                <span className="font-medium text-ink-8">{item.author}</span>
-                                <span className="text-ink-5"> — {item.authorCredential}</span>
+                            {/* Honest attribution — content is drafted by our
+                                care team and reviewed against established
+                                clinical sources (CBT, ACT, mindfulness-based
+                                interventions). We don't surface invented
+                                practitioner names. */}
+                            <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-ink-6">
+                                <ShieldCheck className="h-3.5 w-3.5 text-[hsl(var(--accent-600))]" strokeWidth={2} />
+                                <span className="font-medium text-ink-8">MindMitra Care Team</span>
+                                <span className="text-ink-5">— clinically reviewed</span>
                             </p>
                         </div>
                     </div>
@@ -914,6 +924,34 @@ const PsychologicalContent = () => {
                     >
                         Evidence-informed guides and short practices — written for real study days, family rhythms, and the moments when your mind won’t quiet down.
                     </motion.p>
+
+                    {/* Trust band — honest, scannable, mobile-friendly.
+                        Uses real product surfaces (no marketing fluff) so
+                        users see a clear escalation path from "reading" to
+                        "talking" to "in crisis". */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ ...enterTransition, delay: 0.12 }}
+                        className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px] text-ink-6"
+                    >
+                        <span className="inline-flex items-center gap-1.5">
+                            <ShieldCheck className="h-3.5 w-3.5 text-[hsl(var(--accent-600))]" strokeWidth={2} />
+                            Clinically reviewed
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5 text-[hsl(var(--accent-600))]" strokeWidth={2} />
+                            Built for Indian students
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => navigate("/safety-plan")}
+                            className="inline-flex items-center gap-1.5 underline-offset-4 transition-colors hover:text-ink-8 hover:underline"
+                        >
+                            <Phone className="h-3.5 w-3.5 text-[hsl(var(--accent-600))]" strokeWidth={2} />
+                            In a crisis? Open your safety plan
+                        </button>
+                    </motion.div>
                 </header>
 
                 <motion.div

@@ -7,14 +7,14 @@ const Footer = () => {
   const links = {
     product: [
       { label: "AI Chat", path: "/chat" },
-      { label: "MindGym", path: "/mindgym" },
-      { label: "Healthy Habits", path: "/healthy-habits" },
+      { label: "Mind Gym", path: "/mindgym" },
+      { label: "You — memory & mood", path: "/me" },
       { label: "Therapist Bridge", path: "/therapist-bridge" },
     ],
     support: [
-      { label: "Peer Community", path: "/peer-support" },
+      { label: "Safety plan", path: "/safety-plan" },
+      { label: "Peer community", path: "/peer-support" },
       { label: "Resources", path: "/psychological-content" },
-      { label: "Q&A Tests", path: "/qa-tests" },
     ],
     legal: [
       { label: "Privacy Policy", path: "#" },

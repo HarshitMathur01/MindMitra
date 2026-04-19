@@ -37,17 +37,21 @@ const Header = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const navItems = user
+  // Nav surface — kept to 5 destinations max so the bar stays calm on
+  // laptop widths. Therapy is highlighted (one of the product MVPs that
+  // users miss when it lives only in /chat or in the footer).
+  const navItems: { label: string; path: string; highlight?: boolean }[] = user
     ? [
-        { label: "Home", path: "/" },
         { label: "Chat", path: "/chat" },
         { label: "Mind Gym", path: "/mindgym" },
+        { label: "Therapy", path: "/therapist-bridge", highlight: true },
         { label: "Resources", path: "/psychological-content" },
+        { label: "You", path: "/me" },
       ]
     : [
         { label: "How it holds you", path: "#how-it-works" },
         { label: "A live look", path: "#features" },
-        { label: "In your words", path: "#about" },
+        { label: "Therapy", path: "/therapist-bridge", highlight: true },
         { label: "Resources", path: "/psychological-content" },
       ];
 
@@ -86,16 +90,18 @@ const Header = () => {
           <nav className="hidden items-center gap-1 lg:flex">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
+              const baseClasses = "rounded-full px-4 py-2 text-sm font-medium transition-colors";
+              const stateClasses = isActive
+                ? "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
+                : item.highlight
+                  ? "text-[hsl(var(--accent-700))] hover:bg-[hsl(var(--accent-100))]/60"
+                  : "text-muted-foreground hover:text-foreground";
               return (
                 <button
                   key={item.path}
                   type="button"
                   onClick={() => handleNavClick(item.path)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`${baseClasses} ${stateClasses}`}
                 >
                   {item.label}
                 </button>
@@ -188,16 +194,17 @@ const Header = () => {
               <div className="mx-auto max-w-page space-y-1 px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path;
+                  const stateClasses = isActive
+                    ? "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
+                    : item.highlight
+                      ? "text-[hsl(var(--accent-700))] hover:bg-[hsl(var(--accent-100))]/60"
+                      : "text-muted-foreground hover:bg-[hsl(var(--ink-2))] hover:text-foreground";
                   return (
                     <button
                       key={item.path}
                       type="button"
                       onClick={() => handleNavClick(item.path)}
-                      className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
-                          : "text-muted-foreground hover:bg-[hsl(var(--ink-2))] hover:text-foreground"
-                      }`}
+                      className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors ${stateClasses}`}
                     >
                       {item.label}
                     </button>

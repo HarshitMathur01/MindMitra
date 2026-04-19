@@ -14,13 +14,11 @@ import {
   MessageSquare,
   Heart,
   Brain,
-  Shield,
+  ShieldCheck,
   Phone,
   Users,
   GraduationCap,
   Dumbbell,
-  Puzzle,
-  BookOpen,
   User,
   Settings,
   Sun,
@@ -53,15 +51,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       <CommandList>
         <CommandEmpty>No matches. Try "chat", "breathe", "help".</CommandEmpty>
 
-        <CommandGroup heading="Conversations">
+        <CommandGroup heading="Talk">
           <CommandItem onSelect={() => go("/chat")}>
             <MessageSquare />
-            <span>Open AI chat</span>
+            <span>Open chat</span>
             <CommandShortcut>⌘ C</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => go("/wellness-checkin")}>
+          <CommandItem onSelect={() => go("/me")}>
             <Heart />
-            <span>Wellness check-in</span>
+            <span>You — memory &amp; mood</span>
           </CommandItem>
         </CommandGroup>
 
@@ -70,24 +68,24 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandGroup heading="Practice">
           <CommandItem onSelect={() => go("/mindgym")}>
             <Dumbbell />
-            <span>MindGym</span>
+            <span>Mind Gym</span>
           </CommandItem>
-          <CommandItem onSelect={() => go("/games")}>
-            <Puzzle />
-            <span>Mindfulness games</span>
+          <CommandItem onSelect={() => go("/mindgym/breath-sphere")}>
+            <Heart />
+            <span>Breathe with me</span>
           </CommandItem>
-          <CommandItem onSelect={() => go("/qa-tests")}>
-            <BookOpen />
-            <span>Q&A assessments</span>
+          <CommandItem onSelect={() => go("/journal")}>
+            <GraduationCap />
+            <span>Journal</span>
           </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
 
-        <CommandGroup heading="WeCircle">
+        <CommandGroup heading="People">
           <CommandItem onSelect={() => go("/therapist-bridge")}>
             <Phone />
-            <span>Therapist bridge</span>
+            <span>Talk to a therapist</span>
           </CommandItem>
           <CommandItem onSelect={() => go("/peer-support")}>
             <Users />
@@ -95,7 +93,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </CommandItem>
           <CommandItem onSelect={() => go("/psychological-content")}>
             <GraduationCap />
-            <span>Psychology library</span>
+            <span>Resources library</span>
           </CommandItem>
         </CommandGroup>
 
@@ -123,7 +121,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <CommandSeparator />
 
-        <CommandGroup heading="Support">
+        <CommandGroup heading="If you need help right now">
+          <CommandItem onSelect={() => go("/safety-plan")}>
+            <ShieldCheck />
+            <span>Open my safety plan</span>
+          </CommandItem>
           <CommandItem
             onSelect={() => {
               window.location.href = "tel:18005990019";
@@ -132,10 +134,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           >
             <LifeBuoy />
             <span>KIRAN helpline · 1800-599-0019</span>
-          </CommandItem>
-          <CommandItem onSelect={() => go("/crisis-support")}>
-            <Shield />
-            <span>Crisis support resources</span>
           </CommandItem>
           <CommandItem onSelect={() => go("/")}>
             <Brain />

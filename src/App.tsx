@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -11,13 +11,10 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
 import QATests from "./pages/QATests";
-import WellnessCheckIn from "./pages/WellnessCheckIn";
-import Games from "./pages/Games";
 import MemoryChallenge from "./pages/MemoryChallenge";
 import EmojiMatch from "./pages/EmojiMatch";
 import EmotionMatch from "./pages/EmotionMatch";
 import MoodMountain from "./pages/MoodMountain";
-import HealthyHabits from "./pages/HealthyHabits";
 import ThoughtDetective from "./pages/ThoughtDetective";
 import NotFound from "./pages/NotFound";
 import BalloonPositivityGame from "./pages/BalloonPositivityGame";
@@ -33,14 +30,11 @@ import BedtimeRoutineArticle from "./pages/BedtimeRoutineArticle";
 import MountainResetGuideArticle from "./pages/MountainResetGuideArticle";
 import NatureFocusVisualGroundingArticle from "./pages/NatureFocusVisualGroundingArticle";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
-import Breathe from "./pages/Breathe";
-import Meditate from "./pages/Meditate";
 import Journal from "./pages/Journal";
-import Gratitude from "./pages/Gratitude";
-import StressControl from "./pages/StressControl";
-import Nutrition from "./pages/Nutrition";
 import MindGymHub from "./pages/mindgym/MindGymHub";
 import MindGymToolPage from "./pages/mindgym/MindGymToolPage";
+import Me from "./pages/Me";
+import SafetyPlan from "./pages/SafetyPlan";
 import { ProductAnalyticsProvider } from "@/components/analytics/ProductAnalyticsProvider";
 
 const queryClient = new QueryClient();
@@ -86,15 +80,30 @@ function AppContent() {
           <Route path="/therapist-bridge" element={<TherapistBridge />} />
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/qa-tests" element={<QATests />} />
-          <Route path="/wellness-checkin" element={<WellnessCheckIn />} />
-          <Route path="/games" element={<Games />} />
+          <Route path="/me" element={<Me />} />
+          <Route path="/safety-plan" element={<SafetyPlan />} />
+
+          {/* ─── Legacy IA → consolidated into Mind Gym / Me ──────────────── */}
+          {/* These URLs may live in old links, search results, and bookmarks. */}
+          {/* We preserve them via redirect rather than 404 to protect SEO and */}
+          {/* trust. Standalone wellness pages are subsumed by Mind Gym tools. */}
+          <Route path="/wellness-checkin" element={<Navigate to="/me" replace />} />
+          <Route path="/healthy-habits" element={<Navigate to="/me" replace />} />
+          <Route path="/games" element={<Navigate to="/mindgym" replace />} />
+          <Route path="/breathe" element={<Navigate to="/mindgym/breath-sphere" replace />} />
+          <Route path="/meditate" element={<Navigate to="/mindgym" replace />} />
+          <Route path="/gratitude" element={<Navigate to="/mindgym/gratitude-garden" replace />} />
+          <Route path="/stress-control" element={<Navigate to="/mindgym" replace />} />
+          <Route path="/nutrition" element={<Navigate to="/" replace />} />
+
+          {/* Game leaves — kept reachable but removed from primary nav */}
           <Route path="/memory-challenge" element={<MemoryChallenge />} />
           <Route path="/emoji-match" element={<EmojiMatch />} />
           <Route path="/emotion-match" element={<EmotionMatch />} />
           <Route path="/mood-mountain" element={<MoodMountain />} />
-          <Route path="/healthy-habits" element={<HealthyHabits />} />
           <Route path="/thought-detective" element={<ThoughtDetective />} />
           <Route path="/balloon-pop" element={<BalloonPositivityGame />} />
+
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/peer-support" element={<PeerSupport />} />
@@ -119,12 +128,7 @@ function AppContent() {
             path="/articles/nature-focus-visual-grounding"
             element={<NatureFocusVisualGroundingArticle />}
           />
-          <Route path="/breathe" element={<Breathe />} />
-          <Route path="/meditate" element={<Meditate />} />
           <Route path="/journal" element={<Journal />} />
-          <Route path="/gratitude" element={<Gratitude />} />
-          <Route path="/stress-control" element={<StressControl />} />
-          <Route path="/nutrition" element={<Nutrition />} />
           <Route path="/mindgym" element={<MindGymHub />} />
           <Route path="/mindgym/:toolId" element={<MindGymToolPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

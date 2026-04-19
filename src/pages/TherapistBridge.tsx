@@ -11,6 +11,8 @@ import ConsentForm from "@/components/therapist-bridge/ConsentForm";
 import TherapistDirectory from "@/components/therapist-bridge/TherapistDirectory";
 import ProcessTimeline from "@/components/therapist-bridge/ProcessTimeline";
 import DashboardPreview from "@/components/therapist-bridge/DashboardPreview";
+import IntakeForm from "@/components/therapist-bridge/IntakeForm";
+import HandoffExplainer from "@/components/therapist-bridge/HandoffExplainer";
 import MoodChart from "@/components/therapist-bridge/MoodChart";
 import PatternsCard from "@/components/therapist-bridge/PatternsCard";
 import TopicCloud from "@/components/therapist-bridge/TopicCloud";
@@ -21,7 +23,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { createReferral, fetchEmotionalProfile, fetchTherapists, hasMinimumConsentForBooking } from "@/lib/api/therapist-bridge";
-import { defaultConsentState, EmotionalProfile as EmotionalProfileType, Therapist } from "@/lib/types/therapist-bridge";
+import {
+  defaultConsentState,
+  defaultFilters,
+  EmotionalProfile as EmotionalProfileType,
+  Therapist,
+  TherapistFilters,
+} from "@/lib/types/therapist-bridge";
 import { triggerMindGymClinicalSync } from "@/lib/api/syncMindGymClinicalData";
 import { exportClinicalBriefToPDF } from "@/lib/utils/exportClinicalPDF";
 import { Download, RefreshCw } from "lucide-react";
@@ -38,6 +46,13 @@ const TherapistBridge = () => {
   const [consentModalOpen, setConsentModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [consentState, setConsentState] = useState(defaultConsentState);
+  const [intakeFilters, setIntakeFilters] = useState<TherapistFilters>(defaultFilters);
+  const [intakeRevision, setIntakeRevision] = useState(0);
+
+  const handleIntakeApply = (filters: TherapistFilters) => {
+    setIntakeFilters(filters);
+    setIntakeRevision((rev) => rev + 1);
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -116,8 +131,10 @@ const TherapistBridge = () => {
       <PageContainer width="wide" className="max-w-6xl py-8 pb-24 md:pb-12">
         <HeroSection
           onViewProfile={() => document.getElementById("emotional-profile")?.scrollIntoView({ behavior: "smooth" })}
-          onFindTherapist={() => document.getElementById("find-therapist")?.scrollIntoView({ behavior: "smooth" })}
+          onFindTherapist={() => document.getElementById("intake")?.scrollIntoView({ behavior: "smooth" })}
         />
+
+        <IntakeForm onApply={handleIntakeApply} />
 
         {loadingTherapists ? (
           <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -136,8 +153,12 @@ const TherapistBridge = () => {
             onBook={handleBooking}
             booking={booking}
             userTopics={profile?.topics}
+            initialFilters={intakeFilters}
+            filtersRevision={intakeRevision}
           />
         )}
+
+        <HandoffExplainer />
 
         {loadingProfile ? (
           <Card className={cn(profileSectionCard, "mb-12 p-6")}>

@@ -26,7 +26,7 @@ const NotFound = () => {
         className="text-center relative z-10 max-w-lg mx-auto px-6"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, type: "spring" }}
+        transition={{ duration: 0.3, type: "spring" }}
       >
         {/* Icon cluster */}
         <motion.div

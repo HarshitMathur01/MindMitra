@@ -545,7 +545,7 @@ export default function StressControl() {
                               style={{ left: `${p.x}%`, width: 8, height: 8, backgroundColor: p.color }}
                               initial={{ y: 0, opacity: 1, scale: 1 }}
                               animate={{ y: -80, opacity: 0, scale: 0.6, x: (p.x % 2 === 0 ? 1 : -1) * 20 }}
-                              transition={{ duration: 1.2, ease: "easeOut" }}
+                              transition={{ duration: 0.3, ease: "easeOut" }}
                             />
                           ))}
                         </AnimatePresence>
@@ -578,7 +578,7 @@ export default function StressControl() {
                       fill="none" stroke="#f59e0b" strokeWidth="7" strokeLinecap="round"
                       style={{ strokeDasharray: circ }}
                       animate={{ strokeDashoffset: dashOffset }}
-                      transition={{ duration: 0.9, ease: "easeOut" }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
                     />
                   </svg>
                   <div className="absolute text-center">

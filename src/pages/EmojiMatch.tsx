@@ -250,7 +250,7 @@ const EmojiMatch = () => {
                 onClick={() => handleCardClick(card.id)}
               >
                 <div
-                  className="w-full h-full transition-transform duration-500 ease-out"
+                  className="w-full h-full transition-transform duration-300 ease-out"
                   style={{
                     transformStyle: "preserve-3d",
                     transform: card.isFlipped || card.isMatched ? "rotateY(180deg)" : "rotateY(0deg)"

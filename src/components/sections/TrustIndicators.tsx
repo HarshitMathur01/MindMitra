@@ -41,7 +41,7 @@ const TrustIndicators = () => {
                     className="flex flex-wrap justify-center gap-4 md:gap-8"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.3 }}
                     viewport={{ once: true }}
                 >
                     {indicators.map((item, i) => (

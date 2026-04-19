@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Send, Mic, User, Plus, Search, MessageSquare, Settings, Download, MoreVertical, Copy, ThumbsUp, ThumbsDown, Menu, Home, Trash2, Edit3, PanelLeftClose, PanelLeftOpen, Eye, EyeOff, ChevronDown, Globe } from "lucide-react";
+import Pulse from "@/components/identity/Pulse";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +69,17 @@ const suggestedPrompts = [
   "How can I improve my mental wellness?",
 ];
 
+/**
+ * Three calm, contextual starters for the empty state.
+ * Intentionally non-clinical phrasing (no "anxiety", "depression", etc.)
+ * — those live in the broader sidebar suggestions below.
+ */
+const emptyStateStarters: { label: string; prompt: string }[] = [
+  { label: "Catch me up on today", prompt: "Catch me up on today — what should I tell you about?" },
+  { label: "Sit with me for a minute", prompt: "I just want to sit for a minute. Can you keep me company?" },
+  { label: "Help me name what I'm feeling", prompt: "Help me name what I'm feeling right now. I'll start." },
+];
+
 const quickCategories = [
   // Token-first calm chips (avoid bespoke per-topic colors)
   { label: "Mental Health", icon: "🧠", color: "bg-primary/10 text-primary" },
@@ -84,18 +96,18 @@ const loadingPhases = [
   "Putting it into words",
 ];
 
-/** Slow, low-bounce spring for message bubbles — readable, not performative */
+/** Fast, precise spring for message bubbles */
 const CHAT_MESSAGE_SPRING = {
   type: "spring" as const,
-  stiffness: 38,
-  damping: 38,
-  mass: 1.25,
+  stiffness: 400,
+  damping: 32,
+  mass: 0.8,
 };
 const CHAT_SOFT_SPRING = {
   type: "spring" as const,
-  stiffness: 44,
-  damping: 40,
-  mass: 1.15,
+  stiffness: 350,
+  damping: 30,
+  mass: 1,
 };
 
 type MoodOption = {
@@ -247,7 +259,7 @@ const RecentChatItem = ({
     <motion.div
       layout="position"
       initial={false}
-      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
     >
       <Button
         variant="ghost"
@@ -305,7 +317,7 @@ const ChatGPTInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [recentChats, setRecentChats] = useState<RecentChatPreview[]>([]);
   const [transcribingMsgId, setTranscribingMsgId] = useState<string | null>(null);
@@ -1284,7 +1296,50 @@ const ChatGPTInterface = () => {
 
   return (
     <div className="flex h-dvh max-h-dvh min-h-0 bg-background text-foreground relative overflow-hidden">
-      {/* Sidebar */}
+      {/* Slim rail — visible whenever the full sidebar is collapsed. */}
+      {sidebarCollapsed && (
+        <aside className="hidden lg:flex w-14 shrink-0 flex-col items-center gap-1 border-r border-border bg-[hsl(var(--ink-1))] py-3">
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed(false)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+            aria-label="Expand conversations"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={startNewChat}
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+            aria-label="Start new conversation"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSidebarCollapsed(false);
+              setSearchQuery("");
+            }}
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+            aria-label="Past conversations"
+          >
+            <MessageSquare className="h-4 w-4" />
+          </button>
+          <div className="mt-auto">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+              aria-label="Home"
+            >
+              <Home className="h-4 w-4" />
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* Full Sidebar */}
       <motion.div
         initial={{ x: -24, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -1644,9 +1699,43 @@ const ChatGPTInterface = () => {
             }}
           >
             <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-              {/* ── Mood check-in widget (new session only) ──────────────── */}
+              {/* ── Empty state — Pulse + three calm starters ────────────── */}
               <AnimatePresence>
-                {filteredMessages.length <= 1 && !moodSelected && (
+                {filteredMessages.length === 0 && !isLoading && !loadingSession && (
+                  <motion.div
+                    key="empty-state"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={CHAT_MESSAGE_SPRING}
+                    className="mx-auto flex max-w-md flex-col items-center pt-10 text-center"
+                  >
+                    <Pulse size={120} state="idle" intensity={0.85} />
+                    <p className="mt-8 font-display text-2xl tracking-tight text-foreground">
+                      Whenever you're ready.
+                    </p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      No script. Pick a way in, or just start typing.
+                    </p>
+                    <div className="mt-6 flex w-full flex-col gap-2">
+                      {emptyStateStarters.map((s) => (
+                        <button
+                          key={s.label}
+                          type="button"
+                          onClick={() => handleSendMessage(s.prompt)}
+                          className="rounded-2xl border border-border/50 bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-border hover:bg-[hsl(var(--ink-1))]"
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ── Mood check-in widget (after first AI greeting only) ──── */}
+              <AnimatePresence>
+                {filteredMessages.length === 1 && !moodSelected && (
                   <motion.div
                     key="mood-widget"
                     initial={{ opacity: 0, y: 12 }}
@@ -1845,28 +1934,19 @@ const ChatGPTInterface = () => {
                 </AnimatePresence>
               )}
 
-              {/* Typing Indicator */}
+              {/* Thinking indicator — Pulse instead of dot loaders */}
               {isLoading && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
                   transition={CHAT_MESSAGE_SPRING}
-                  className="flex gap-3 items-start"
+                  className="flex gap-3 items-center"
                 >
                   <div className="flex-shrink-0">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 border border-border flex items-center justify-center">
-                      <img src="/image6.png" alt="AI companion" className="h-7 w-7 rounded-full object-cover" />
-                    </div>
+                    <Pulse size={48} state="thinking" intensity={0.9} />
                   </div>
-                  <div className="px-2 py-2 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
-                    <p className="text-[12px] text-ink-5">{loadingPhase}</p>
-                    <div className="mt-2 flex items-center gap-1.5" aria-hidden="true">
-                      <motion.div className="h-1.5 w-1.5 rounded-full bg-ink-5" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0 }} />
-                      <motion.div className="h-1.5 w-1.5 rounded-full bg-ink-5" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }} />
-                      <motion.div className="h-1.5 w-1.5 rounded-full bg-ink-5" animate={{ opacity: [0.3, 0.9, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }} />
-                    </div>
-                  </div>
+                  <p className="text-[12.5px] text-muted-foreground">{loadingPhase}</p>
                 </motion.div>
               )}
 

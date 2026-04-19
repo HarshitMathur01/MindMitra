@@ -320,7 +320,7 @@ const MoodMountain = () => {
                         key={el}
                         initial={{ opacity: 0, y: 10, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.6 }}
+                        transition={{ duration: 0.3 }}
                         style={{ position: "absolute", pointerEvents: "none", ...cfg.style }}
                       >
                         {ElementComponent}

@@ -1,23 +1,15 @@
-import { Suspense, lazy } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import WelcomeHero from "@/components/sections/WelcomeHero";
-import DailyAffirmation from "@/components/sections/DailyAffirmation";
+import HowItWorks from "@/components/sections/HowItWorks";
 import FeaturesPreview from "@/components/sections/FeaturesPreview";
 import TestimonialCarousel from "@/components/sections/TestimonialCarousel";
-import CrisisSafetyBadge from "@/components/sections/CrisisSafetyBadge";
-import BreathingWidget from "@/components/sections/BreathingWidget";
-import ScrollToTop from "@/components/sections/ScrollToTop";
-
-const AvatarShowcase = lazy(() => import("@/components/sections/AvatarShowcase"));
+import CTABanner from "@/components/sections/CTABanner";
 
 /**
- * Public landing — "a room with a lamp on".
+ * Public landing — "a room with a warm lamp on".
  *
- * Flow intent: a single greeting, a small set of invitations, a soft
- * daily affirmation, a look at the companion, and one human voice.
- * No stats section — numbers create comparison anxiety in a mental
- * wellness context.
+ * Flow: Hero → How it works → Features → Testimonials → CTA → Footer
  */
 const PublicLanding = () => {
   return (
@@ -25,21 +17,12 @@ const PublicLanding = () => {
       <Header />
       <main>
         <WelcomeHero />
+        <HowItWorks />
         <FeaturesPreview />
-        <DailyAffirmation />
-        <Suspense
-          fallback={
-            <div className="mx-auto my-16 h-72 max-w-page rounded-2xl bg-ink-1" />
-          }
-        >
-          <AvatarShowcase />
-        </Suspense>
         <TestimonialCarousel />
+        <CTABanner />
       </main>
       <Footer />
-      <CrisisSafetyBadge />
-      <BreathingWidget />
-      <ScrollToTop />
     </div>
   );
 };

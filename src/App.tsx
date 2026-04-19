@@ -66,14 +66,18 @@ function AppContent() {
     });
   }, []);
 
+  // Pure cross-fade (no y bump) for transitions inside the MindGym surface,
+  // so /mindgym ⇄ /mindgym/:toolId feels like one continuous space.
+  const isMindGymRoute = location.pathname === "/mindgym" || location.pathname.startsWith("/mindgym/");
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 6 }}
+        initial={{ opacity: 0, y: isMindGymRoute ? 0 : 6 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4 }}
-        transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+        exit={{ opacity: 0, y: isMindGymRoute ? 0 : -4 }}
+        transition={{ duration: isMindGymRoute ? 0.32 : 0.22, ease: [0.22, 1, 0.36, 1] }}
       >
         <Routes location={location}>
           <Route path="/" element={<Index />} />

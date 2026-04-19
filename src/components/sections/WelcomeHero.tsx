@@ -1,130 +1,111 @@
-import { HeartHandshake, Phone } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ease, duration } from "@/lib/motion";
+import Pulse from "@/components/identity/Pulse";
+import { DURATION, EASE } from "@/lib/redesign/tokens";
 
 /**
- * Pre-auth hero — aligns rhythm with signed-in dashboard: same max-width band,
- * eyebrow / display hierarchy, rounded sage CTA (not generic "xl" marketing button).
+ * WelcomeHero — first impression for the public landing.
+ *
+ * "Quiet Companion" direction: the brand presence (Pulse) is the only
+ * decorative element. Copy is direct, not "AI-marketing". One primary
+ * CTA, one quiet secondary, one trust line. No floating chat preview
+ * here — the live preview lives further down the page.
  */
 const WelcomeHero = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative pb-24 pt-16 md:pb-32 md:pt-24">
+    <section
+      className="relative isolate flex min-h-[88vh] items-center overflow-hidden pt-[var(--header-height)]"
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           backgroundImage:
-            "radial-gradient(780px 460px at 50% -15%, hsl(var(--warmth-50)) 0%, transparent 58%), radial-gradient(640px 380px at 12% 100%, hsl(var(--accent-50)) 0%, transparent 55%)",
+            "radial-gradient(ellipse 70% 50% at 50% 18%, hsl(var(--accent-100) / 0.55) 0%, transparent 65%), radial-gradient(ellipse 55% 40% at 80% 90%, hsl(var(--warmth-100) / 0.35) 0%, transparent 60%)",
         }}
       />
 
-      <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl rounded-[1.75rem] border border-ink-3/25 bg-[hsl(var(--card))]/55 px-6 py-12 shadow-dashboard-soft backdrop-blur-[8px] dark:border-ink-3/20 dark:bg-[hsl(var(--ink-2))]/40 md:px-10 md:py-14">
-          <div className="text-center">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: duration.long, ease: ease.outExpo }}
-              className="mx-auto mb-8 flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))] breathe-slow dark:bg-[hsl(var(--accent-100))]/25 dark:text-[hsl(var(--accent-300))]"
-              aria-hidden
-            >
-              <HeartHandshake className="h-6 w-6" strokeWidth={1.6} />
-            </motion.div>
+      <div className="relative mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: DURATION.long, ease: EASE.outExpo }}
+            className="mb-12"
+          >
+            <Pulse size={184} state="idle" intensity={0.85} />
+          </motion.div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: duration.long, ease: ease.outExpo, delay: 0.05 }}
-              className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5"
-            >
-              Welcome
-            </motion.p>
+          <motion.span
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: DURATION.long, delay: 0.05, ease: EASE.outExpo }}
+            className="quiet-label"
+          >
+            MindMitra
+          </motion.span>
 
-            <motion.p
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: duration.long, ease: ease.outExpo, delay: 0.08 }}
-              className="mt-3 text-sm text-ink-5"
-            >
-              You don&apos;t have to know what to say.
-            </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: DURATION.long, delay: 0.1, ease: EASE.outExpo }}
+            className="mt-5 font-display text-[clamp(2.4rem,5.4vw,4rem)] leading-[1.06] tracking-tight text-foreground"
+          >
+            A quiet companion
+            <br />
+            for the loud days.
+          </motion.h1>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: duration.long, ease: ease.outExpo, delay: 0.1 }}
-              className="mt-4 text-balance font-display text-[clamp(1.85rem,4.6vw,2.75rem)] font-normal leading-[1.18] tracking-tight text-ink-8"
-            >
-              Whatever today feels like,
-              <br />
-              <span className="text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">there&apos;s a space for it here.</span>
-            </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: DURATION.long, delay: 0.18, ease: EASE.outExpo }}
+            className="mt-6 max-w-xl text-balance text-lg leading-relaxed text-muted-foreground"
+          >
+            A private place to think out loud, return to the same conversation
+            tomorrow, and reach a real therapist when you want to. Built for the
+            way young people in India actually talk.
+          </motion.p>
 
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: duration.long, ease: ease.outExpo, delay: 0.15 }}
-              className="mx-auto mt-6 max-w-lg text-[15px] leading-[1.7] text-ink-6"
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: DURATION.long, delay: 0.26, ease: EASE.outExpo }}
+            className="mt-10 flex flex-col items-center gap-3 sm:flex-row"
+          >
+            <Button
+              size="lg"
+              onClick={() => navigate("/auth")}
+              className="gap-2 rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-[var(--shadow-dashboard-warm)] hover:bg-[hsl(var(--accent-600))]"
             >
-              MindMitra is a quiet place to talk when things feel heavy, foggy, or just a lot. No right way to start.
-              No timer. No one watching.
-            </motion.p>
+              Open MindMitra
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={() => {
+                const el = document.querySelector("#how-it-works");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              How it holds you
+            </Button>
+          </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: duration.long, ease: ease.outExpo, delay: 0.2 }}
-              className="mt-10 flex flex-col items-center gap-4"
-            >
-              <Button
-                type="button"
-                onClick={() => navigate("/chat")}
-                className="h-11 rounded-full bg-[hsl(var(--accent-500))] px-8 text-[15px] font-semibold text-white shadow-md hover:bg-[hsl(var(--accent-600))]"
-              >
-                When you&apos;re ready
-              </Button>
-              <button
-                type="button"
-                onClick={() => navigate("/wellness-checkin")}
-                className="text-[14px] text-ink-6 underline-offset-4 transition-colors hover:text-[hsl(var(--accent-600))] hover:underline dark:hover:text-[hsl(var(--accent-400))]"
-              >
-                Or check in with yourself for a minute
-              </button>
-            </motion.div>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: duration.long, delay: 0.35 }}
-              className="mt-12 text-[13px] text-ink-5"
-            >
-              Your words stay here. You can close this page at any time.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: duration.long, delay: 0.45 }}
-              className="mx-auto mt-5 inline-flex max-w-md items-center gap-2 rounded-full border border-[hsl(var(--warmth-300))]/40 bg-[hsl(var(--warmth-50))] px-4 py-2.5 text-left text-[13px] leading-snug text-[hsl(var(--warmth-600))] dark:border-[hsl(var(--warmth-400))]/25 dark:bg-[hsl(var(--warmth-50))]/12 dark:text-[hsl(var(--warmth-400))]"
-            >
-              <Phone className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-              <span>
-                If you need someone right now,{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate("/therapist-bridge")}
-                  className="font-medium underline underline-offset-4 hover:no-underline"
-                >
-                  a human is a tap away
-                </button>
-                .
-              </span>
-            </motion.div>
-          </div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: DURATION.long, delay: 0.4 }}
+            className="mt-10 text-xs text-muted-foreground"
+          >
+            Private by default. Crisis support is one tap away on every screen.
+          </motion.p>
         </div>
       </div>
     </section>

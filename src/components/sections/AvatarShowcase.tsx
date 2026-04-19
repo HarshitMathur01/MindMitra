@@ -134,7 +134,7 @@ const AvatarShowcase = () => {
                     className="text-center mb-14"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.3 }}
                     viewport={{ once: true }}
                 >
                     <div className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-100 to-rose-100 dark:from-surface dark:to-surface px-5 py-2 rounded-full text-sm text-violet-700 dark:text-primary font-medium mb-4 border border-violet-200/50 dark:border-border">
@@ -167,7 +167,7 @@ const AvatarShowcase = () => {
                                         }`}
                                     initial={{ opacity: 0, x: -30 }}
                                     whileInView={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                                    transition={{ duration: 0.3, delay: i * 0.1 }}
                                     viewport={{ once: true }}
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
@@ -261,7 +261,7 @@ const AvatarShowcase = () => {
                                                                         animate={{ height: [`${h * 2}px`, `${h * 4}px`, `${h * 2}px`] }}
                                                                         transition={{
                                                                             repeat: Infinity,
-                                                                            duration: 0.8 + Math.random() * 0.4,
+                                                                            duration: 0.3 + Math.random() * 0.4,
                                                                             delay: i * 0.05,
                                                                             ease: 'easeInOut',
                                                                         }}
@@ -365,7 +365,7 @@ const AvatarShowcase = () => {
                         className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12"
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
+                        transition={{ duration: 0.3 }}
                         viewport={{ once: true }}
                     >
                         {[

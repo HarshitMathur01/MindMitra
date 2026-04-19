@@ -206,7 +206,7 @@ export default function Meditate() {
             initial={{ opacity: 0, scale: 1.06 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           />
         </AnimatePresence>
         {/* Dark gradient overlay — bottom-heavy so controls are readable */}
@@ -272,7 +272,7 @@ export default function Meditate() {
                   fill="none" stroke="white" strokeWidth="5" strokeLinecap="round"
                   style={{ strokeDasharray: circumference }}
                   animate={{ strokeDashoffset: dashOffset }}
-                  transition={{ duration: 1, ease: "linear" }}
+                  transition={{ duration: 0.3, ease: "linear" }}
                 />
               </svg>
               <div className="absolute flex flex-col items-center">
@@ -292,7 +292,7 @@ export default function Meditate() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: 0.3 }}
                 className="max-w-[260px] text-center text-sm italic text-white/75 leading-relaxed"
               >
                 "{AFFIRMATIONS[affirmIdx]}"

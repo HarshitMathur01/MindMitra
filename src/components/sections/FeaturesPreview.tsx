@@ -1,106 +1,132 @@
-import { ArrowUpRight, MessageCircle, Leaf, HandHelping } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { duration, ease } from "@/lib/motion";
+import { Wind } from "lucide-react";
+import Pulse from "@/components/identity/Pulse";
+import { DURATION, EASE } from "@/lib/redesign/tokens";
 
-type Offering = {
-  kicker: string;
-  title: string;
-  description: string;
-  cta: string;
-  path: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-};
+/**
+ * FeaturesPreview — replaced with a single "Live preview" strip:
+ * a static chat snippet on the left, an animated breath demo on the
+ * right. Token-driven; no extra deps; respects reduced motion via
+ * the global CSS rule.
+ */
 
-const offerings: Offering[] = [
+const conversation = [
   {
-    kicker: "When you want to talk",
-    title: "A quiet conversation, whenever",
-    description:
-      "Tell it what's on your mind — in whatever shape it's in. No prompts to fill, no tone to perform.",
-    cta: "Start a conversation",
-    path: "/chat",
-    icon: MessageCircle,
+    role: "mitra" as const,
+    text:
+      "It's been a while. Last we spoke, exams were the thing on your mind — how did the week land?",
   },
   {
-    kicker: "When your body is tense",
-    title: "Small practices that settle you",
-    description:
-      "Breathing, grounding, and short reflections for the moments where your thoughts are moving too fast.",
-    cta: "Try a 2-minute practice",
-    path: "/wellness-checkin",
-    icon: Leaf,
+    role: "you" as const,
+    text:
+      "Honestly bad. I keep waking up at 4am and thinking about the chemistry paper.",
   },
   {
-    kicker: "When you want a person",
-    title: "A warm hand-off to a therapist",
-    description:
-      "When and if you're ready, we can connect you with a real clinician — someone who speaks your language, on your terms.",
-    cta: "See how it works",
-    path: "/therapist-bridge",
-    icon: HandHelping,
+    role: "mitra" as const,
+    text:
+      "That early-morning loop is exhausting. Want to try a two-minute breath together, or first say more about what 4am feels like?",
   },
 ];
 
 const FeaturesPreview = () => {
-  const navigate = useNavigate();
-
   return (
-    <section className="relative py-28 md:py-36">
-      <div className="mx-auto max-w-3xl px-gutter">
-        <div className="text-center">
-          <span className="text-[13.5px] text-ink-6">a few things that help</span>
-          <h2 className="mt-4 font-display text-[clamp(28px,3.6vw,44px)] font-normal leading-[1.2] tracking-tight-1 text-ink-8">
-            You don't have to use all of it.
-            <br />
-            <span className="font-display-soft text-[hsl(var(--accent-600))]">
-              Take what feels useful today.
-            </span>
+    <section
+      id="features"
+      className="relative bg-[hsl(var(--ink-1))] py-20 sm:py-28"
+    >
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: DURATION.long, ease: EASE.outExpo }}
+          className="max-w-2xl"
+        >
+          <span className="quiet-label">A live look</span>
+          <h2 className="mt-4 font-display text-balance text-3xl tracking-tight text-foreground sm:text-4xl">
+            What it actually feels like.
           </h2>
-        </div>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
+            Two surfaces you'll use most: a continuous conversation that
+            remembers, and small in-the-moment rituals you can finish in two
+            minutes.
+          </p>
+        </motion.div>
 
-        <div className="mt-20 flex flex-col gap-5">
-          {offerings.map((o, i) => {
-            const Icon = o.icon;
-            return (
-              <motion.button
-                key={o.title}
-                type="button"
-                onClick={() => navigate(o.path)}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{
-                  duration: duration.long,
-                  ease: ease.outExpo,
-                  delay: i * 0.06,
-                }}
-                className="group relative w-full rounded-[28px] bg-[hsl(var(--ink-1))] px-7 py-8 text-left transition-colors duration-base ease-out-expo hover:bg-[hsl(var(--ink-2))] md:px-10 md:py-10"
-              >
-                <div className="flex items-start gap-6">
-                  <span
-                    aria-hidden
-                    className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
-                  >
-                    <Icon className="h-5 w-5" strokeWidth={1.6} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] text-ink-5">{o.kicker}</div>
-                    <h3 className="mt-1.5 font-display text-[22px] font-normal leading-[1.3] tracking-tight-1 text-ink-8 md:text-[26px]">
-                      {o.title}
-                    </h3>
-                    <p className="mt-3 max-w-xl text-[15.5px] leading-[1.7] text-ink-6">
-                      {o.description}
-                    </p>
-                    <span className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-medium text-[hsl(var(--accent-600))] transition-colors group-hover:text-[hsl(var(--accent-700))]">
-                      {o.cta}
-                      <ArrowUpRight className="h-4 w-4" strokeWidth={1.6} />
-                    </span>
-                  </div>
+        <div className="mt-14 grid gap-6 lg:grid-cols-5">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: DURATION.long, ease: EASE.outExpo }}
+            className="rounded-3xl border border-border/40 bg-background p-6 sm:p-8 lg:col-span-3"
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--accent-100))]">
+                  <img src="/image.png" alt="" className="h-5 w-5" />
                 </div>
-              </motion.button>
-            );
-          })}
+                <div>
+                  <p className="text-sm font-medium text-foreground">Mitra</p>
+                  <p className="text-xs text-muted-foreground">
+                    Continuous conversation
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-full bg-[hsl(var(--accent-100))] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-[hsl(var(--accent-600))]">
+                Today
+              </span>
+            </div>
+
+            <ul className="space-y-3">
+              {conversation.map((m, i) =>
+                m.role === "mitra" ? (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="mt-0.5 h-7 w-7 shrink-0 rounded-full bg-[hsl(var(--accent-100))]" />
+                    <div className="max-w-[88%] rounded-2xl rounded-tl-md bg-[hsl(var(--ink-2))] px-4 py-3 text-sm leading-relaxed text-foreground">
+                      {m.text}
+                    </div>
+                  </li>
+                ) : (
+                  <li key={i} className="flex justify-end">
+                    <div className="max-w-[80%] rounded-2xl rounded-tr-md bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground">
+                      {m.text}
+                    </div>
+                  </li>
+                ),
+              )}
+            </ul>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{
+              duration: DURATION.long,
+              delay: 0.08,
+              ease: EASE.outExpo,
+            }}
+            className="relative flex flex-col items-center justify-between gap-6 overflow-hidden rounded-3xl border border-border/40 bg-background p-8 lg:col-span-2"
+          >
+            <div className="flex w-full items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <Wind className="h-3.5 w-3.5" />
+              Two-minute breath
+            </div>
+
+            <div className="relative flex flex-1 items-center justify-center py-4">
+              <Pulse size={180} state="listening" intensity={0.95} />
+            </div>
+
+            <div className="w-full text-center">
+              <p className="font-display text-base text-foreground">
+                Inhale 4 — hold 2 — exhale 6.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Resonant breathing, six cycles per minute.
+              </p>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

@@ -142,7 +142,7 @@ const QATests = () => {
       scale: 1.2,
       rotate: [0, -5, 5, 0],
       transition: {
-        duration: 0.6,
+        duration: 0.3,
         ease: "easeInOut" as const
       }
     }
@@ -158,7 +158,7 @@ const QATests = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.3 }}
           >
             <Button
               variant="ghost"
@@ -173,7 +173,7 @@ const QATests = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
                 className="mb-12"
               >
                 <div className="flex items-center justify-center gap-3 mb-4">
@@ -249,7 +249,7 @@ const QATests = () => {
                   <Card className="p-6 h-full bg-surface/90 border-2 border-border hover:border-primary/40 transition-all duration-300 hover:shadow-theme-lg relative overflow-hidden wellness-card">
 
                     {/* Background Glow Effect */}
-                    <div className={`absolute inset-0 ${test.bgGlow} opacity-0 group-hover:opacity-20 transition-opacity duration-500`} />
+                    <div className={`absolute inset-0 ${test.bgGlow} opacity-0 group-hover:opacity-20 transition-opacity duration-300`} />
 
                     {/* Lock overlay for unavailable items */}
                     {!test.available && (
@@ -362,7 +362,7 @@ const QATests = () => {
           className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-8 sm:mt-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
+          transition={{ delay: 0.8, duration: 0.3 }}
         >
           <Card className="p-6 bg-surface/70 backdrop-blur-sm border border-border shadow-theme">
             <div className="flex items-center gap-4 mb-4">
@@ -398,7 +398,7 @@ const QATests = () => {
           className="text-center mt-12 p-6 bg-surface/90 rounded-2xl border border-border shadow-theme"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 0.6 }}
+          transition={{ delay: 1, duration: 0.3 }}
         >
           <p className="text-muted-foreground text-sm leading-relaxed">
             🌟 Take your time with each assessment. There are no right or wrong answers -

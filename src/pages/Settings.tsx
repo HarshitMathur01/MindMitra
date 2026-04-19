@@ -33,7 +33,7 @@ const Settings = () => {
                 <div className="flex min-h-screen items-center justify-center px-6">
                     <motion.div
                         animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
+                        transition={{ duration: 0.3, repeat: Infinity }}
                         className="text-center text-base font-normal text-ink-6"
                     >
                         Loading your settings…

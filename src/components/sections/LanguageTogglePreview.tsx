@@ -28,7 +28,7 @@ const LanguageTogglePreview = () => {
             className="py-10 bg-gradient-to-r from-indigo-50/50 via-blue-50/50 to-purple-50/50"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.3 }}
             viewport={{ once: true }}
         >
             <div className="container mx-auto px-4">

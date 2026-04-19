@@ -33,44 +33,41 @@
 }
 
 :root {
-    /* Warm oat — held space, sunlit paper */
-    --background: 34 38% 95%;
-    --surface: 32 30% 92%;
-    --crushed-silk: 30 22% 88%;
+    /* Aligned with index.css design system — fresh cream */
+    --background: 40 30% 97%;
+    --surface: 40 20% 95%;
+    --crushed-silk: 38 16% 92%;
 
-    /* Soft sage — calm, alive, never clinical teal */
-    --primary: 144 20% 38%;
-    --secondary: 144 16% 60%;
-    --accent: 18 50% 96%;       /* blush warmth */
+    --primary: 160 34% 36%;
+    --secondary: 160 20% 60%;
+    --accent: 38 16% 92%;
 
-    /* Warm walnut text — never cool grey */
-    --text-primary: 24 18% 18%;
-    --text-secondary: 22 12% 40%;
+    --text-primary: 20 18% 16%;
+    --text-secondary: 28 10% 42%;
 
-    --border: 26 12% 84%;
+    --border: 34 10% 82%;
 
-    /* Semantic — muted, warm coral for crisis */
-    --danger: 10 48% 56%;
-    --success: 148 24% 38%;
-    --warning: 30 44% 54%;
-    --shadow: hsla(24, 18%, 18%, 0.06);
+    --danger: 0 55% 55%;
+    --success: 160 30% 40%;
+    --warning: 36 60% 50%;
+    --shadow: hsla(220, 20%, 10%, 0.06);
 }
 
 [data-theme="dark"] {
-    /* Warm dim lamp light, not OLED black */
-    --background: 24 14% 9%;
-    --surface: 24 12% 12%;
-    --crushed-silk: 24 10% 16%;
-    --primary: 144 22% 64%;
-    --secondary: 144 18% 54%;
-    --accent: 14 26% 28%;
-    --text-primary: 32 18% 90%;
-    --text-secondary: 28 9% 62%;
-    --border: 24 9% 24%;
-    --danger: 10 56% 66%;
-    --success: 148 24% 56%;
-    --warning: 30 44% 62%;
-    --shadow: hsla(24, 50%, 2%, 0.55);
+    /* Deep charcoal — premium dark mode */
+    --background: 220 16% 8%;
+    --surface: 220 14% 11%;
+    --crushed-silk: 220 12% 14%;
+    --primary: 160 40% 58%;
+    --secondary: 160 36% 50%;
+    --accent: 220 12% 14%;
+    --text-primary: 220 12% 90%;
+    --text-secondary: 220 6% 58%;
+    --border: 220 8% 24%;
+    --danger: 0 60% 65%;
+    --success: 160 30% 55%;
+    --warning: 36 60% 60%;
+    --shadow: hsla(220, 50%, 2%, 0.55);
 }
 
 *,

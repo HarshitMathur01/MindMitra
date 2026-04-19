@@ -16,10 +16,10 @@ export const ease = {
 } as const;
 
 export const duration = {
-  micro: 0.12,
-  quick: 0.18,
-  base: 0.26,
-  long: 0.52,
+  micro: 0.08,
+  quick: 0.12,
+  base: 0.18,
+  long: 0.28,
 } as const;
 
 /** Default transition for page/element entrance. */

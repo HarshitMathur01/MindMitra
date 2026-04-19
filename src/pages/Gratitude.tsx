@@ -87,7 +87,7 @@ function ConfettiParticle({ delay }: { delay: number }) {
     <motion.div
       initial={{ opacity: 1, y: 0, x: 0, rotate: 0, scale: 1 }}
       animate={{ opacity: 0, y: -200, x, rotate: 360, scale: 0.5 }}
-      transition={{ duration: 1.2, delay, ease: "easeOut" }}
+      transition={{ duration: 0.3, delay, ease: "easeOut" }}
       className="absolute left-1/2 top-1/2 h-3 w-3 rounded-sm"
       style={{ backgroundColor: color }}
     />
@@ -146,7 +146,7 @@ export default function Gratitude() {
         aria-hidden
         className="pointer-events-none absolute top-[40%] -left-28 h-72 w-72 rounded-full bg-[hsl(15,65%,82%)] opacity-30 blur-3xl dark:bg-[hsl(15,40%,18%)] dark:opacity-20"
         animate={{ scale: [1, 1.12, 1], opacity: [0.25, 0.40, 0.25] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+        transition={{ duration: 0.3, repeat: Infinity, ease: "easeInOut", delay: 3 }}
       />
       <motion.div
         aria-hidden
@@ -180,7 +180,7 @@ export default function Gratitude() {
           className="text-center pt-2 pb-1"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
         >
           <div className="serene-float mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/50 backdrop-blur-sm shadow-sm dark:bg-white/10">
             <Heart className="h-7 w-7 text-[hsl(188,51%,38%)] dark:text-[hsl(188,55%,62%)]" />
@@ -197,7 +197,7 @@ export default function Gratitude() {
             key={i}
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 + i * 0.12, ease: "easeOut" }}
+            transition={{ duration: 0.3, delay: 0.15 + i * 0.12, ease: "easeOut" }}
             whileHover={{ y: -2, transition: { duration: 0.2 } }}
             className={`relative rounded-[22px] border p-5 ${CARD_COLORS[i]}`}
           >

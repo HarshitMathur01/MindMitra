@@ -180,7 +180,7 @@ const EmotionMatch = () => {
     visible: {
       y: 0,
       opacity: 1,
-      transition: { duration: 0.5 }
+      transition: { duration: 0.3 }
     }
   };
 
@@ -228,7 +228,7 @@ const EmotionMatch = () => {
               className="bg-teal-400 h-1.5 rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${((currentImageIndex + 1) / emotionImages.length) * 100}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             />
           </div>
         </motion.div>
@@ -249,7 +249,7 @@ const EmotionMatch = () => {
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.3 }}
                     src={currentImage.src}
                     alt={currentImage.alt}
                     className="w-full h-64 object-cover rounded-2xl"
@@ -301,7 +301,7 @@ const EmotionMatch = () => {
             <Button
               onClick={handleNext}
               disabled={!selectedEmotion}
-              className={`w-full py-6 rounded-2xl transition-all duration-500 ${
+              className={`w-full py-6 rounded-2xl transition-all duration-300 ${
                 selectedEmotion
                   ? "bg-teal-500 hover:bg-teal-600 text-white shadow-[0_0_20px_rgba(20,184,166,0.3)]"
                   : "bg-white/5 text-white/30 cursor-not-allowed border border-white/10"

@@ -299,7 +299,7 @@ export default function HealthyHabits() {
                                     strokeWidth="7" strokeLinecap="round"
                                     strokeDasharray={circleCircumference}
                                     animate={{ strokeDashoffset: circleCircumference - (completionPercent / 100) * circleCircumference }}
-                                    transition={{ duration: 0.6, ease: "easeOut" }}
+                                    transition={{ duration: 0.3, ease: "easeOut" }}
                                 />
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -604,7 +604,7 @@ export default function HealthyHabits() {
                                         className={cn("h-full rounded-full", categoryStyles[item.category].bar)}
                                         initial={{ width: 0 }}
                                         animate={{ width: `${item.percent}%` }}
-                                        transition={{ duration: 0.6, ease: "easeOut" }}
+                                        transition={{ duration: 0.3, ease: "easeOut" }}
                                     />
                                 </div>
                             </div>

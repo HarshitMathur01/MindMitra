@@ -258,7 +258,7 @@ export default function Breathe() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.4, ease: "easeInOut" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
           />
         </AnimatePresence>
 
@@ -304,7 +304,7 @@ export default function Breathe() {
         <motion.h1
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
           className="text-lg font-light tracking-[0.25em] text-white/90 uppercase"
         >
           Breathe
@@ -375,7 +375,7 @@ export default function Breathe() {
               key="done"
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="flex flex-col items-center gap-7 text-center px-4 pb-8"
             >
               {/* Glowing orb */}
@@ -515,7 +515,7 @@ export default function Breathe() {
                     strokeOpacity="0.55"
                     style={{ strokeDasharray: RING_C }}
                     animate={{ strokeDashoffset: ringOffset }}
-                    transition={{ duration: 1, ease: "linear" }}
+                    transition={{ duration: 0.3, ease: "linear" }}
                   />
                 </svg>
 
@@ -610,7 +610,7 @@ export default function Breathe() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.55 }}
+                  transition={{ duration: 0.3 }}
                   className="text-center text-[13px] text-white/45 font-light leading-relaxed max-w-[250px]"
                 >
                   {PHASE_GUIDE[phase] ?? PHASE_GUIDE.idle}
@@ -625,7 +625,7 @@ export default function Breathe() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.8 }}
+                    transition={{ duration: 0.3 }}
                     className="max-w-[280px] text-center text-[11px] italic text-white/25 leading-relaxed font-light"
                   >
                     &ldquo;{BREATHING_TIPS[tipIdx]}&rdquo;
@@ -642,7 +642,7 @@ export default function Breathe() {
                       background: `linear-gradient(90deg, ${pal.from}88, ${pal.to}55)`,
                     }}
                     animate={{ width: `${progress * 100}%` }}
-                    transition={{ duration: 0.8, ease: "linear" }}
+                    transition={{ duration: 0.3, ease: "linear" }}
                   />
                 </div>
                 <p className="mt-2 text-center text-[10px] text-white/25 font-light tracking-wider">

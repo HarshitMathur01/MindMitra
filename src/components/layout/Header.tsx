@@ -1,424 +1,284 @@
-import { MessageSquare, Puzzle, BookOpen, LogOut, User, Stethoscope, Menu, X, Settings, Users, GraduationCap, ChevronDown, CircleUserRound, Gamepad2, Dumbbell } from "lucide-react";
+import { LogOut, Menu, X, ArrowRight, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
-import { useScrollAnimations } from "@/hooks/useScrollAnimations";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CommandPalette } from "@/components/layout/CommandPalette";
+import { DURATION, EASE } from "@/lib/redesign/tokens";
 
+/**
+ * Header — slim glass bar.
+ *
+ * Nav reduced to 4 items per surface (signed-in vs public). A ⌘K
+ * pill on desktop opens the global CommandPalette; same shortcut
+ * also works via keyboard listener registered here so the palette is
+ * reachable from any route.
+ */
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { scrollY, scrollDirection } = useScrollAnimations();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [weCircleOpen, setWeCircleOpen] = useState(false);
-  const [mobileWeCircleOpen, setMobileWeCircleOpen] = useState(false);
-  const [moodArcadeOpen, setMoodArcadeOpen] = useState(false);
-  const [mobileMoodArcadeOpen, setMobileMoodArcadeOpen] = useState(false);
-  const weCircleRef = useRef<HTMLDivElement>(null);
-  const moodArcadeRef = useRef<HTMLDivElement>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (weCircleRef.current && !weCircleRef.current.contains(e.target as Node)) {
-        setWeCircleOpen(false);
-      }
-      if (moodArcadeRef.current && !moodArcadeRef.current.contains(e.target as Node)) {
-        setMoodArcadeOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      const isToggle =
+        (e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey);
+      if (isToggle) {
+        e.preventDefault();
+        setPaletteOpen((prev) => !prev);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const weCircleItems = [
-    { label: 'Therapist Bridge', icon: Stethoscope, path: '/therapist-bridge' },
-    { label: 'Peer Support', icon: Users, path: '/peer-support' },
-    { label: 'Resources', icon: GraduationCap, path: '/psychological-content' },
-  ];
+  const navItems = user
+    ? [
+        { label: "Home", path: "/" },
+        { label: "Chat", path: "/chat" },
+        { label: "Mind Gym", path: "/mindgym" },
+        { label: "Resources", path: "/psychological-content" },
+      ]
+    : [
+        { label: "How it holds you", path: "#how-it-works" },
+        { label: "A live look", path: "#features" },
+        { label: "In your words", path: "#about" },
+        { label: "Resources", path: "/psychological-content" },
+      ];
 
-  const moodArcadeItems = [
-    { label: 'MindGym', icon: Dumbbell, path: '/mindgym' },
-    { label: 'Games', icon: Puzzle, path: '/games' },
-    { label: 'Q&A Tests', icon: BookOpen, path: '/qa-tests' },
-  ];
-
-  const navItems = [
-    { label: 'Chat', icon: MessageSquare, path: '/chat' },
-  ];
+  const handleNavClick = (path: string) => {
+    setMobileMenuOpen(false);
+    if (path.startsWith("#")) {
+      const el = document.querySelector(path);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      navigate(path);
+    }
+  };
 
   return (
-    <motion.header
-      className="border-b bg-card/95 sticky top-0 z-50 transition-all duration-300"
-      initial={{ y: 0, opacity: 1 }}
-      animate={{
-        y: scrollDirection === 'down' && scrollY > 100 ? -100 : 0,
-        opacity: scrollDirection === 'down' && scrollY > 100 ? 0.95 : 1
-      }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-    >
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          {/* Enhanced Logo with hover animation */}
-          <motion.div
-            className="flex items-center gap-3 cursor-pointer"
-            onClick={() => navigate('/')}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+    <>
+      <motion.header
+        className="fixed inset-x-0 top-0 z-50 glass"
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: DURATION.long, ease: EASE.outExpo }}
+      >
+        <div className="mx-auto flex max-w-page items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+            onClick={() => navigate("/")}
           >
-            <motion.div
-              className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden"
-              whileHover={{ rotate: 5, scale: 1.1 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <img src="/image.png" alt="MindMitra Logo" className="w-10 h-10 object-contain" />
-            </motion.div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">
-                MindMitra
-              </h1>
-              <p className="text-xs text-muted-foreground">Your Wellness Companion</p>
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl">
+              <img src="/image.png" alt="MindMitra" className="h-9 w-9 object-contain" />
             </div>
-          </motion.div>
+            <span className="font-display text-lg tracking-tight text-foreground">
+              MindMitra
+            </span>
+          </button>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {/* WeCircle Dropdown */}
-            <div className="relative" ref={weCircleRef}>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  variant="ghost"
-                  className={`gap-2 transition-all duration-300 text-sm relative ${weCircleItems.some(i => location.pathname === i.path)
-                    ? 'bg-primary/15 text-primary font-semibold'
-                    : 'hover:bg-primary/10'
-                    }`}
-                  onClick={() => setWeCircleOpen(prev => !prev)}
-                >
-                  <CircleUserRound className="h-4 w-4" />
-                  WeCircle
-                  <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${weCircleOpen ? 'rotate-180' : ''}`} />
-                  {weCircleItems.some(i => location.pathname === i.path) && (
-                    <motion.span
-                      className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
-                      initial={{ scaleX: 0, opacity: 0 }}
-                      animate={{ scaleX: 1, opacity: 1 }}
-                      style={{ originX: 0.5 }}
-                      transition={{ duration: 0.2 }}
-                    />
-                  )}
-                </Button>
-              </motion.div>
-              <AnimatePresence>
-                {weCircleOpen && (
-                  <motion.div
-                    className="absolute top-full left-0 mt-1 w-48 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg z-50 overflow-hidden"
-                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                  >
-                    {weCircleItems.map((item) => {
-                      const isActive = location.pathname === item.path;
-                      return (
-                        <button
-                          key={item.path}
-                          onClick={() => { navigate(item.path); setWeCircleOpen(false); }}
-                          className={`flex items-center gap-3 w-full px-4 py-3 text-sm transition-colors ${isActive
-                            ? 'bg-primary/15 text-primary font-semibold'
-                            : 'text-muted-foreground hover:bg-primary/10'
-                            }`}
-                        >
-                          <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
-                          {item.label}
-                          {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </button>
-                      );
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Mood Arcade Dropdown */}
-            <div className="relative" ref={moodArcadeRef}>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  variant="ghost"
-                  className={`gap-2 transition-all duration-300 text-sm relative ${moodArcadeItems.some(i => location.pathname === i.path)
-                    ? 'bg-primary/15 text-primary font-semibold'
-                    : 'hover:bg-primary/10'
-                    }`}
-                  onClick={() => setMoodArcadeOpen(prev => !prev)}
-                >
-                  <Gamepad2 className="h-4 w-4" />
-                  Mood Arcade
-                  <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${moodArcadeOpen ? 'rotate-180' : ''}`} />
-                  {moodArcadeItems.some(i => location.pathname === i.path) && (
-                    <motion.span
-                      className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
-                      initial={{ scaleX: 0, opacity: 0 }}
-                      animate={{ scaleX: 1, opacity: 1 }}
-                      style={{ originX: 0.5 }}
-                      transition={{ duration: 0.2 }}
-                    />
-                  )}
-                </Button>
-              </motion.div>
-              <AnimatePresence>
-                {moodArcadeOpen && (
-                  <motion.div
-                    className="absolute top-full left-0 mt-1 w-48 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg z-50 overflow-hidden"
-                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                  >
-                    {moodArcadeItems.map((item) => {
-                      const isActive = location.pathname === item.path;
-                      return (
-                        <button
-                          key={item.path}
-                          onClick={() => { navigate(item.path); setMoodArcadeOpen(false); }}
-                          className={`flex items-center gap-3 w-full px-4 py-3 text-sm transition-colors ${isActive
-                            ? 'bg-primary/15 text-primary font-semibold'
-                            : 'text-muted-foreground hover:bg-primary/10'
-                            }`}
-                        >
-                          <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
-                          {item.label}
-                          {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </button>
-                      );
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
+          <nav className="hidden items-center gap-1 lg:flex">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
-                <motion.div key={item.path} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant="ghost"
-                    className={`gap-2 transition-all duration-300 text-sm relative ${isActive
-                      ? 'bg-primary/15 text-primary font-semibold'
-                      : 'hover:bg-primary/10'
-                      }`}
-                    onClick={() => navigate(item.path)}
-                  >
-                    <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : ''}`} />
-                    {item.label}
-                    {isActive && (
-                      <motion.span
-                        className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary"
-                        initial={{ scaleX: 0, opacity: 0 }}
-                      animate={{ scaleX: 1, opacity: 1 }}
-                      style={{ originX: 0.5 }}
-                        transition={{ duration: 0.2 }}
-                      />
-                    )}
-                  </Button>
-                </motion.div>
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => handleNavClick(item.path)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </button>
               );
             })}
           </nav>
 
-          {/* Right: Auth + Mobile Toggle */}
-          <div className="flex items-center gap-3">
-            {/* Mobile menu toggle */}
+          <div className="flex items-center gap-2">
             <button
-              className="lg:hidden p-2 rounded-lg hover:bg-background transition-colors"
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="hidden items-center gap-2 rounded-full border border-border/50 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground lg:flex"
+              aria-label="Open command palette"
+            >
+              <span>Search</span>
+              <span className="flex items-center gap-0.5 rounded border border-border/60 bg-background/60 px-1.5 py-0.5 font-mono text-[10px]">
+                <Command className="h-2.5 w-2.5" />K
+              </span>
+            </button>
+
+            <ThemeToggle />
+
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-[hsl(var(--ink-2))] lg:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <ThemeToggle />
+
             {user ? (
-              <div className="flex items-center gap-3">
-                <motion.div
-                  className="flex items-center gap-2 cursor-pointer rounded-xl px-2 py-1 hover:bg-primary/10 transition-colors duration-200"
-                  onClick={() => navigate('/profile')}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  title="View your profile"
+              <div className="hidden items-center gap-2 lg:flex">
+                <button
+                  type="button"
+                  onClick={() => navigate("/profile")}
+                  className="flex items-center gap-2 rounded-full px-2 py-1.5 transition-colors hover:bg-[hsl(var(--ink-2))]"
                 >
-                  <Avatar className="h-8 w-8 ring-2 ring-primary/20 hover:ring-primary/50 transition-all duration-200">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
                       {user.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="hidden lg:block">
-                    <p className="text-xs text-muted-foreground leading-none mb-0.5">Signed in as</p>
-                    <span className="text-sm font-medium leading-none">
-                      {user.email?.split('@')[0]}
-                    </span>
-                  </div>
-                </motion.div>
-                <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
+                  <span className="hidden text-sm font-medium text-foreground xl:inline">
+                    {user.email?.split("@")[0]}
+                  </span>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={signOut}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">Sign out</span>
                 </Button>
               </div>
             ) : (
-              <>
-                <Button variant="outline" size="sm" onClick={() => navigate('/auth')}>
-                  Sign In
+              <div className="hidden items-center gap-2 lg:flex">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/auth")}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Sign in
                 </Button>
-                <Button size="sm" className="gradient-primary hover-glow" onClick={() => navigate('/auth')}>
-                  Get Started
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/auth")}
+                  className="gap-1.5 rounded-full bg-primary px-5 text-primary-foreground hover:bg-[hsl(var(--accent-600))]"
+                >
+                  Open MindMitra
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Mobile Navigation Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            className="lg:hidden border-t border-border bg-surface/95 backdrop-blur-md max-h-[calc(100dvh-4rem)] overflow-y-auto"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="container mx-auto px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-1">
-              {/* WeCircle collapsible in mobile */}
-              <div>
-                <button
-                  onClick={() => setMobileWeCircleOpen(prev => !prev)}
-                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${weCircleItems.some(i => location.pathname === i.path)
-                    ? 'bg-primary/15 text-primary font-semibold'
-                    : 'text-muted-foreground hover:bg-primary/10'
-                    }`}
-                >
-                  <CircleUserRound className="h-4 w-4 text-primary/70" />
-                  WeCircle
-                  <ChevronDown className={`h-3 w-3 ml-auto transition-transform duration-200 ${mobileWeCircleOpen ? 'rotate-180' : ''}`} />
-                </button>
-                <AnimatePresence>
-                  {mobileWeCircleOpen && (
-                    <motion.div
-                      className="ml-4 mt-0.5 space-y-0.5 border-l-2 border-primary/20 pl-3"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              className="border-t border-border/40 lg:hidden glass-strong"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: DURATION.base, ease: EASE.outExpo }}
+            >
+              <div className="mx-auto max-w-page space-y-1 px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <button
+                      key={item.path}
+                      type="button"
+                      onClick={() => handleNavClick(item.path)}
+                      className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                        isActive
+                          ? "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
+                          : "text-muted-foreground hover:bg-[hsl(var(--ink-2))] hover:text-foreground"
+                      }`}
                     >
-                      {weCircleItems.map((item) => {
-                        const isActive = location.pathname === item.path;
-                        return (
-                          <button
-                            key={item.path}
-                            onClick={() => { navigate(item.path); setMobileMenuOpen(false); setMobileWeCircleOpen(false); }}
-                            className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors ${isActive
-                              ? 'bg-primary/15 text-primary font-semibold'
-                              : 'text-muted-foreground hover:bg-primary/10'
-                              }`}
-                          >
-                            <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
-                            {item.label}
-                            {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                      {item.label}
+                    </button>
+                  );
+                })}
 
-              {/* Mood Arcade collapsible in mobile */}
-              <div>
                 <button
-                  onClick={() => setMobileMoodArcadeOpen(prev => !prev)}
-                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${moodArcadeItems.some(i => location.pathname === i.path)
-                    ? 'bg-primary/15 text-primary font-semibold'
-                    : 'text-muted-foreground hover:bg-primary/10'
-                    }`}
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setPaletteOpen(true);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-[hsl(var(--ink-2))] hover:text-foreground"
                 >
-                  <Gamepad2 className="h-4 w-4 text-primary/70" />
-                  Mood Arcade
-                  <ChevronDown className={`h-3 w-3 ml-auto transition-transform duration-200 ${mobileMoodArcadeOpen ? 'rotate-180' : ''}`} />
+                  <span>Search</span>
+                  <span className="flex items-center gap-0.5 rounded border border-border/60 px-1.5 py-0.5 font-mono text-[10px]">
+                    <Command className="h-2.5 w-2.5" />K
+                  </span>
                 </button>
-                <AnimatePresence>
-                  {mobileMoodArcadeOpen && (
-                    <motion.div
-                      className="ml-4 mt-0.5 space-y-0.5 border-l-2 border-primary/20 pl-3"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {moodArcadeItems.map((item) => {
-                        const isActive = location.pathname === item.path;
-                        return (
-                          <button
-                            key={item.path}
-                            onClick={() => { navigate(item.path); setMobileMenuOpen(false); setMobileMoodArcadeOpen(false); }}
-                            className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors ${isActive
-                              ? 'bg-primary/15 text-primary font-semibold'
-                              : 'text-muted-foreground hover:bg-primary/10'
-                              }`}
-                          >
-                            <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
-                            {item.label}
-                            {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
 
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
-                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive
-                      ? 'bg-primary/15 text-primary font-semibold'
-                      : 'text-muted-foreground hover:bg-primary/10'
-                      }`}
-                  >
-                    <item.icon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-primary/70'}`} />
-                    {item.label}
-                    {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
-                  </button>
-                );
-              })}
-              {user && (
-                <>
-                  <div className="border-t border-border my-1" />
-                  <button
-                    onClick={() => { navigate('/profile'); setMobileMenuOpen(false); }}
-                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${location.pathname === '/profile' ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:bg-primary/10'
-                      }`}
-                  >
-                    <User className="h-4 w-4 text-primary/70" />
-                    My Profile
-                  </button>
-                  <button
-                    onClick={() => { navigate('/settings'); setMobileMenuOpen(false); }}
-                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors ${location.pathname === '/settings' ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:bg-primary/10'
-                      }`}
-                  >
-                    <Settings className="h-4 w-4 text-primary/70" />
-                    Settings
-                  </button>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.header>
+                <div className="mt-2 border-t border-border/30 pt-3">
+                  {user ? (
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate("/profile");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2 rounded-xl px-4 py-2"
+                      >
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
+                            {user.email?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">
+                          {user.email?.split("@")[0]}
+                        </span>
+                      </button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={signOut}
+                        className="gap-1.5 text-muted-foreground"
+                      >
+                        <LogOut className="h-3.5 w-3.5" /> Sign out
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-center"
+                        onClick={() => {
+                          navigate("/auth");
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        Sign in
+                      </Button>
+                      <Button
+                        className="w-full justify-center gap-1.5 rounded-full bg-primary text-primary-foreground hover:bg-[hsl(var(--accent-600))]"
+                        onClick={() => {
+                          navigate("/auth");
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        Open MindMitra <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.header>
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+    </>
   );
 };
 

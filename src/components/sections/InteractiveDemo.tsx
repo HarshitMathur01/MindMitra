@@ -144,7 +144,7 @@ const InteractiveDemo = () => {
                     className="text-center mb-12"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.3 }}
                     viewport={{ once: true }}
                 >
                     <div className="inline-flex items-center gap-2 bg-purple-100 px-4 py-2 rounded-full text-sm text-purple-700 font-medium mb-4">
@@ -166,7 +166,7 @@ const InteractiveDemo = () => {
                             <React.Fragment key={i}>
                                 <div className="flex flex-col items-center gap-2">
                                     <motion.div
-                                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${currentStage > i
+                                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${currentStage > i
                                             ? `bg-gradient-to-r ${stage.color} text-white shadow-lg`
                                             : currentStage === i + 1
                                                 ? `bg-gradient-to-r ${stage.color} text-white shadow-lg ring-4 ring-offset-2 ring-primary/30`
@@ -183,7 +183,7 @@ const InteractiveDemo = () => {
                                     </span>
                                 </div>
                                 {i < stages.length - 1 && (
-                                    <div className={`flex-1 h-1 mx-2 rounded-full transition-all duration-500 ${currentStage > i + 1 ? 'bg-gradient-to-r from-primary to-accent' : 'bg-gray-200'
+                                    <div className={`flex-1 h-1 mx-2 rounded-full transition-all duration-300 ${currentStage > i + 1 ? 'bg-gradient-to-r from-primary to-accent' : 'bg-gray-200'
                                         }`} />
                                 )}
                             </React.Fragment>
@@ -341,7 +341,7 @@ const InteractiveDemo = () => {
                             className="bg-crushed-silk rounded-xl border border-gray-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5 }}
+                            transition={{ duration: 0.3 }}
                             viewport={{ once: true }}
                         >
                             <h4 className="font-semibold text-sm text-gray-800 mb-3 flex items-center gap-2">
@@ -357,7 +357,7 @@ const InteractiveDemo = () => {
                                             : 'bg-gradient-to-r from-green-400 to-emerald-500'
                                         }`}
                                     animate={{ width: `${lastAiMessage?.stressLevel || 0}%` }}
-                                    transition={{ duration: 1 }}
+                                    transition={{ duration: 0.3 }}
                                 />
                             </div>
                             <div className="flex justify-between text-xs text-gray-500">
@@ -372,7 +372,7 @@ const InteractiveDemo = () => {
                             className="bg-crushed-silk rounded-xl border border-gray-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.1 }}
+                            transition={{ duration: 0.3, delay: 0.1 }}
                             viewport={{ once: true }}
                         >
                             <h4 className="font-semibold text-sm text-gray-800 mb-3 flex items-center gap-2">
@@ -405,7 +405,7 @@ const InteractiveDemo = () => {
                             className="bg-crushed-silk rounded-xl border border-gray-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
+                            transition={{ duration: 0.3, delay: 0.2 }}
                             viewport={{ once: true }}
                         >
                             <h4 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
@@ -433,7 +433,7 @@ const InteractiveDemo = () => {
                             className="bg-crushed-silk rounded-xl border border-gray-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.3 }}
+                            transition={{ duration: 0.3, delay: 0.3 }}
                             viewport={{ once: true }}
                         >
                             <h4 className="font-semibold text-sm text-gray-800 mb-3 flex items-center gap-2">
@@ -463,7 +463,7 @@ const InteractiveDemo = () => {
                             className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-200 p-5 shadow-sm"
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.4 }}
+                            transition={{ duration: 0.3, delay: 0.4 }}
                             viewport={{ once: true }}
                         >
                             <h4 className="font-semibold text-sm text-gray-800 mb-2 flex items-center gap-2">

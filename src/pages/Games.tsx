@@ -160,7 +160,7 @@ const Games = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.3 }}
           >
             <Button
               variant="ghost"
@@ -180,7 +180,7 @@ const Games = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
                 className="inline-flex items-center gap-2 bg-surface/60 backdrop-blur-sm rounded-full px-4 py-2 mb-4 border border-border"
               >
                 <Sparkles className="h-4 w-4 text-primary" />
@@ -190,7 +190,7 @@ const Games = () => {
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
                 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-foreground"
               >
                 Psychological Games
@@ -199,7 +199,7 @@ const Games = () => {
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
                 className="text-lg text-muted-foreground max-w-2xl mb-6"
               >
                 Engage with interactive games designed to provide insights into your cognitive
@@ -210,7 +210,7 @@ const Games = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
                 className="flex flex-wrap gap-6 text-sm"
               >
                 <div className="flex items-center gap-2 bg-surface/80 rounded-lg px-4 py-2 border border-border">
@@ -233,7 +233,7 @@ const Games = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
         >
           <h2 className="text-2xl font-bold mb-6 text-foreground">Available Now</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12">
@@ -248,7 +248,7 @@ const Games = () => {
                   key={game.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.6 + index * 0.08 }}
+                  transition={{ duration: 0.3, delay: 0.6 + index * 0.08 }}
                   onMouseEnter={() => setHoveredCard(game.id)}
                   onMouseLeave={() => setHoveredCard(null)}
                   whileHover={{ scale: 1.02 }}
@@ -283,7 +283,7 @@ const Games = () => {
                             rotate: [0, -5, 5, 0],
                             scale: 1.1
                           }}
-                          transition={{ duration: 0.5 }}
+                          transition={{ duration: 0.3 }}
                         >
                           <Icon className="h-7 w-7 text-white" />
                         </motion.div>
@@ -351,7 +351,7 @@ const Games = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1 }}
+            transition={{ duration: 0.3, delay: 1 }}
           >
             <h2 className="text-2xl font-bold mb-6 text-foreground">Coming Soon</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -365,7 +365,7 @@ const Games = () => {
                     key={game.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 1.1 + index * 0.08 }}
+                    transition={{ duration: 0.3, delay: 1.1 + index * 0.08 }}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
                     className="group"

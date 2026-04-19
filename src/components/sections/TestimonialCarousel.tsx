@@ -1,105 +1,84 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { duration, ease } from "@/lib/motion";
-
-type Note = {
-    quote: string;
-    attribution: string;
-};
-
-const notes: Note[] = [
-    {
-        quote:
-            "It didn't tell me not to stress. It actually helped me sit with why I was stressed in the first place.",
-        attribution: "Priya, class 12",
-    },
-    {
-        quote:
-            "I didn't want to talk to anyone after my breakup. But talking here at 2 a.m. — something about it made space.",
-        attribution: "Sneha, 19",
-    },
-    {
-        quote:
-            "It felt culturally aware in a way I didn't know I needed. The part about family pressure — it just got it.",
-        attribution: "Arjun, engineering student",
-    },
-    {
-        quote:
-            "As a clinician, what I appreciate is how thoughtfully it escalates. It knows when to hand off — and it does so warmly.",
-        attribution: "Dr. Kavitha, psychologist",
-    },
-    {
-        quote:
-            "I come back because it doesn't try to fix me every time. Sometimes it just lets me be heard.",
-        attribution: "Vikram, 24",
-    },
-];
+import { motion } from "framer-motion";
+import { DURATION, EASE } from "@/lib/redesign/tokens";
 
 /**
- * Testimonial — a single overheard voice at a time.
- * No star ratings (performance pressure). No institution logos
- * (status pressure). No filter tabs (choice overload). Just a
- * quiet quote and a first name.
+ * "In your words" — typographic quote stack. Replaces the previous
+ * star-rating testimonial grid. No headshots, no five-star theatre;
+ * just three voices that match the calm direction.
+ *
+ * Component name kept as `TestimonialCarousel` to preserve the public
+ * import path used by `PublicLanding.tsx`.
  */
+
+const voices = [
+  {
+    quote:
+      "It actually remembered what I told it last week. That sounds small but I've never had that with an app.",
+    attribution: "Priya, second-year undergrad",
+  },
+  {
+    quote:
+      "I open it at 2am instead of doom-scrolling. Within ten minutes my chest feels less tight.",
+    attribution: "Arjun, first job",
+  },
+  {
+    quote:
+      "When I finally booked a counsellor through MindMitra, she already knew the shape of my month. We skipped the awkward part.",
+    attribution: "Sneha, graduate student",
+  },
+];
+
 const TestimonialCarousel = () => {
-    const [current, setCurrent] = useState(0);
+  return (
+    <section
+      id="about"
+      className="relative py-20 sm:py-28"
+    >
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: DURATION.long, ease: EASE.outExpo }}
+          className="max-w-2xl"
+        >
+          <span className="quiet-label">In your words</span>
+          <h2 className="mt-4 font-display text-balance text-3xl tracking-tight text-foreground sm:text-4xl">
+            Quiet wins, mostly.
+          </h2>
+        </motion.div>
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrent((prev) => (prev + 1) % notes.length);
-        }, 7000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const note = notes[current];
-
-    return (
-        <section className="py-24 md:py-32">
-            <div className="mx-auto max-w-2xl px-gutter">
-                <p className="text-center text-[13.5px] text-ink-6">
-                    a few notes from people who've been here
+        <ul className="mt-14 space-y-10 sm:mt-16 sm:space-y-14">
+          {voices.map((v, i) => (
+            <motion.li
+              key={v.attribution}
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{
+                duration: DURATION.long,
+                delay: i * 0.06,
+                ease: EASE.outExpo,
+              }}
+              className="grid gap-4 border-b border-border/40 pb-10 last:border-b-0 last:pb-0 sm:grid-cols-[auto_1fr] sm:gap-12 sm:pb-14"
+            >
+              <span className="text-sm tabular text-muted-foreground sm:pt-2">
+                0{i + 1}
+              </span>
+              <div className="max-w-2xl">
+                <p className="font-display text-balance text-2xl leading-snug tracking-tight text-foreground sm:text-3xl">
+                  &ldquo;{v.quote}&rdquo;
                 </p>
-
-                <div className="mt-10 min-h-[220px]">
-                    <AnimatePresence mode="wait">
-                        <motion.figure
-                            key={current}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{
-                                duration: duration.long,
-                                ease: ease.outExpo,
-                            }}
-                            className="text-center"
-                        >
-                            <blockquote className="font-display text-[22px] font-normal leading-[1.5] text-ink-8 md:text-[26px]">
-                                &ldquo;{note.quote}&rdquo;
-                            </blockquote>
-                            <figcaption className="mt-6 text-[13.5px] text-ink-5">
-                                — {note.attribution}
-                            </figcaption>
-                        </motion.figure>
-                    </AnimatePresence>
-                </div>
-
-                <div className="mt-10 flex justify-center gap-1.5">
-                    {notes.map((_, i) => (
-                        <button
-                            key={i}
-                            onClick={() => setCurrent(i)}
-                            aria-label={`Show note ${i + 1}`}
-                            className={`h-1 rounded-full transition-all duration-base ease-out-expo ${
-                                i === current
-                                    ? "w-8 bg-[hsl(var(--accent-500))]"
-                                    : "w-1.5 bg-[hsl(var(--ink-4))]"
-                            }`}
-                        />
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
+                <p className="mt-4 text-sm text-muted-foreground">
+                  {v.attribution}
+                </p>
+              </div>
+            </motion.li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
 };
 
 export default TestimonialCarousel;

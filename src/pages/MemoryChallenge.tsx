@@ -136,7 +136,7 @@ const MemoryChallenge = () => {
 
   const getCardStyle = (index: number) => {
     const baseStyle =
-      "w-full aspect-square rounded-2xl border-2 transition-all duration-500 cursor-pointer flex items-center justify-center text-2xl font-bold shadow-lg backdrop-blur-md";
+      "w-full aspect-square rounded-2xl border-2 transition-all duration-300 cursor-pointer flex items-center justify-center text-2xl font-bold shadow-lg backdrop-blur-md";
 
     if (activeCard === index) {
       return `${baseStyle} bg-gradient-to-br from-cyan-200 via-blue-200 to-indigo-200 

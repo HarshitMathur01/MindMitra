@@ -380,7 +380,7 @@ const ThoughtDetective = () => {
         className="container mx-auto px-4 py-6 max-w-6xl"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -485,7 +485,7 @@ const ThoughtDetective = () => {
                   className="h-full rounded-full bg-gradient-to-r from-primary via-purple-500 to-indigo-500"
                   initial={{ width: '10%' }}
                   animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.7, ease: 'easeOut' }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
                 />
               </div>
             </motion.div>
@@ -671,7 +671,7 @@ const ThoughtDetective = () => {
                                   initial={{ opacity: 1, y: 0 }}
                                   animate={{ opacity: 0, y: -40 }}
                                   exit={{ opacity: 0 }}
-                                  transition={{ duration: 1.2 }}
+                                  transition={{ duration: 0.3 }}
                                   className="absolute -top-6 left-1/2 -translate-x-1/2 text-lg font-bold text-primary pointer-events-none"
                                 >
                                   +{lastScoreDelta}
@@ -761,7 +761,7 @@ const ThoughtDetective = () => {
                                   initial={{ opacity: 1, y: 0, scale: 0.8 }}
                                   animate={{ opacity: 0, y: -50, scale: 1.2 }}
                                   exit={{ opacity: 0 }}
-                                  transition={{ duration: 1.5, ease: "easeOut" }}
+                                  transition={{ duration: 0.3, ease: "easeOut" }}
                                   className="absolute -top-10 left-1/2 -translate-x-1/2 text-2xl font-black text-indigo-600 dark:text-indigo-400 pointer-events-none drop-shadow-md"
                                 >
                                   +{lastScoreDelta}
@@ -895,7 +895,7 @@ const ThoughtDetective = () => {
           <div className="text-center py-12">
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
               className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"
             />
             <p className="mt-3 text-sm text-muted-foreground">Loading case file...</p>

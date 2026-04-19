@@ -355,7 +355,7 @@ export default function BalloonPositivityGame() {
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.7 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 
                  rounded-xl bg-crushed-silk/90 px-4 py-2 text-base font-semibold 
                  text-indigo-600 shadow-lg backdrop-blur-md"

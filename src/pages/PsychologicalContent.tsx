@@ -23,9 +23,7 @@ import {
     Bookmark,
     BookmarkCheck,
     CheckCircle2,
-    Lightbulb,
     Users,
-    GraduationCap,
     Flower2,
     Activity,
 } from "lucide-react";
@@ -58,26 +56,76 @@ interface ContentItem {
     relatedIds: string[];
 }
 
-interface ContentCategory {
-    id: string;
+type CollectionId = "all" | "calm-now" | "understand" | "live-well";
+
+interface Collection {
+    id: CollectionId;
     label: string;
+    short: string;
     icon: React.ElementType;
     description: string;
-    color: string;
 }
 
-// ─── Categories ───────────────────────────────────────────────────────────────
+// ─── Collections ──────────────────────────────────────────────────────────────
+// Three calm collections instead of 8 noisy categories. Each existing item is
+// still classified by its `category` and `type`, then mapped into a collection
+// via `deriveCollection` below.
 
-const contentCategories: ContentCategory[] = [
-    { id: "all", label: "All Topics", icon: Sparkles, description: "Browse everything", color: "primary" },
-    { id: "stress-management", label: "Stress Management", icon: Activity, description: "Cope with daily pressures", color: "teal" },
-    { id: "anxiety", label: "Understanding Anxiety", icon: Brain, description: "Learn about anxiety patterns", color: "blue" },
-    { id: "self-esteem", label: "Self-Esteem", icon: Heart, description: "Build confidence from within", color: "pink" },
-    { id: "study-skills", label: "Study & Focus", icon: GraduationCap, description: "Study smarter, not harder", color: "amber" },
-    { id: "relationships", label: "Relationships", icon: Users, description: "Healthy connection skills", color: "violet" },
-    { id: "mindfulness", label: "Mindfulness", icon: Flower2, description: "Present-moment awareness", color: "green" },
-    { id: "cbt-techniques", label: "CBT Techniques", icon: Lightbulb, description: "Cognitive behavioral tools", color: "orange" },
+const collections: Collection[] = [
+    {
+        id: "all",
+        label: "All resources",
+        short: "All",
+        icon: Sparkles,
+        description: "Everything in the library",
+    },
+    {
+        id: "calm-now",
+        label: "Calm yourself now",
+        short: "Calm now",
+        icon: Flower2,
+        description: "Quick exercises, breathing, and grounding for hard moments.",
+    },
+    {
+        id: "understand",
+        label: "Understand your mind",
+        short: "Understand",
+        icon: Brain,
+        description: "Plain-language reads on anxiety, self-talk, and CBT tools.",
+    },
+    {
+        id: "live-well",
+        label: "Live well day to day",
+        short: "Day to day",
+        icon: Activity,
+        description: "Sleep, study, and relationships — gentle habits that stick.",
+    },
 ];
+
+function deriveCollection(item: ContentItem): Exclude<CollectionId, "all"> {
+    if (item.category === "study-skills" || item.category === "relationships") return "live-well";
+    if (
+        item.type === "exercise" ||
+        item.type === "audio" ||
+        item.category === "mindfulness" ||
+        item.category === "stress-management"
+    )
+        return "calm-now";
+    return "understand";
+}
+
+function categoryLabel(categoryId: string): string {
+    const map: Record<string, string> = {
+        "stress-management": "Stress",
+        anxiety: "Anxiety",
+        "self-esteem": "Self-esteem",
+        "study-skills": "Study & focus",
+        relationships: "Relationships",
+        mindfulness: "Mindfulness",
+        "cbt-techniques": "CBT",
+    };
+    return map[categoryId] ?? categoryId.replace(/-/g, " ");
+}
 
 const typeFilters: { id: ContentType | "all"; label: string; icon: React.ElementType }[] = [
     { id: "all", label: "All", icon: Sparkles },
@@ -480,7 +528,7 @@ const RatingStars = ({ rating }: { rating: number }) => {
 };
 
 function categoryLabelFor(categoryId: string): string {
-    return contentCategories.find((c) => c.id === categoryId)?.label ?? categoryId.replace(/-/g, " ");
+    return categoryLabel(categoryId);
 }
 
 function formatContentTypeLabel(type: ContentType): string {
@@ -754,11 +802,26 @@ const PsychologicalContent = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState("");
-    const [activeTab, setActiveTab] = useState<string>("all");
+    const [activeCollection, setActiveCollection] = useState<CollectionId>("all");
     const [typeFilter, setTypeFilter] = useState<ContentType | "all">("all");
     const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
     const [savedItems, setSavedItems] = useState<string[]>([]);
     const [showBookmarks, setShowBookmarks] = useState(false);
+
+    const itemsWithCollection = useMemo(
+        () => allContent.map((c) => ({ ...c, collection: deriveCollection(c) })),
+        [],
+    );
+
+    const collectionCounts = useMemo(() => {
+        const counts: Record<Exclude<CollectionId, "all">, number> = {
+            "calm-now": 0,
+            understand: 0,
+            "live-well": 0,
+        };
+        for (const item of itemsWithCollection) counts[item.collection] += 1;
+        return counts;
+    }, [itemsWithCollection]);
 
     useEffect(() => {
         try {
@@ -778,23 +841,23 @@ const PsychologicalContent = () => {
     }, [savedItems]);
 
     const filteredContent = useMemo(() => {
-        return allContent.filter((item) => {
+        return itemsWithCollection.filter((item) => {
             const q = searchQuery.toLowerCase();
             const matchesSearch =
                 item.title.toLowerCase().includes(q) ||
                 item.description.toLowerCase().includes(q) ||
                 item.tags.some((t) => t.toLowerCase().includes(q));
-            const matchesTab = activeTab === "all" || item.category === activeTab;
+            const matchesCollection = activeCollection === "all" || item.collection === activeCollection;
             const matchesType = typeFilter === "all" || item.type === typeFilter;
             const matchesSaved = !showBookmarks || savedItems.includes(item.id);
-            return matchesSearch && matchesTab && matchesType && matchesSaved;
+            return matchesSearch && matchesCollection && matchesType && matchesSaved;
         });
-    }, [searchQuery, activeTab, typeFilter, showBookmarks, savedItems]);
+    }, [itemsWithCollection, searchQuery, activeCollection, typeFilter, showBookmarks, savedItems]);
 
     const spotlightItem = useMemo(() => {
-        if (showBookmarks || searchQuery.trim() || activeTab !== "all" || typeFilter !== "all") return null;
+        if (showBookmarks || searchQuery.trim() || activeCollection !== "all" || typeFilter !== "all") return null;
         return allContent.find((c) => c.featured) ?? allContent[0] ?? null;
-    }, [showBookmarks, searchQuery, activeTab, typeFilter]);
+    }, [showBookmarks, searchQuery, activeCollection, typeFilter]);
 
     const gridItems = useMemo(() => {
         if (!spotlightItem) return filteredContent;
@@ -885,6 +948,59 @@ const PsychologicalContent = () => {
                     </Button>
                 </motion.div>
 
+                {/* Three calm collections — primary navigation for the library */}
+                <section aria-labelledby="resources-collections-heading" className="mx-auto mt-12 max-w-5xl">
+                    <p id="resources-collections-heading" className={`${sectionEyebrow} mb-3 text-center sm:text-left`}>
+                        Collections
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                        {collections
+                            .filter((c) => c.id !== "all")
+                            .map((c) => {
+                                const Icon = c.icon;
+                                const active = activeCollection === c.id;
+                                const count = collectionCounts[c.id as Exclude<CollectionId, "all">];
+                                return (
+                                    <button
+                                        key={c.id}
+                                        type="button"
+                                        onClick={() => setActiveCollection(active ? "all" : c.id)}
+                                        aria-pressed={active}
+                                        className={cn(
+                                            "group relative flex flex-col items-start gap-3 overflow-hidden rounded-[1.25rem] border p-5 text-left transition-all",
+                                            active
+                                                ? "border-[hsl(var(--accent-400))]/45 bg-[hsl(var(--accent-50))]/55 shadow-md dark:border-[hsl(var(--accent-500))]/35 dark:bg-[hsl(var(--accent-100))]/15"
+                                                : "border-ink-3/25 bg-[hsl(var(--card))] hover:-translate-y-0.5 hover:border-[hsl(var(--accent-400))]/30 hover:shadow-md dark:border-ink-3/20",
+                                        )}
+                                    >
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--accent-100))]/55 text-[hsl(var(--accent-600))] dark:bg-[hsl(var(--accent-100))]/15 dark:text-[hsl(var(--accent-400))]">
+                                            <Icon className="h-4 w-4" strokeWidth={1.8} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-display text-[1.05rem] font-medium leading-snug text-ink-8">
+                                                {c.label}
+                                            </p>
+                                            <p className="mt-1 text-[13px] leading-snug text-ink-6">{c.description}</p>
+                                        </div>
+                                        <span className="mt-auto text-[11.5px] font-medium uppercase tracking-[0.18em] text-ink-5">
+                                            {count} {count === 1 ? "item" : "items"}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                    </div>
+                    {activeCollection !== "all" ? (
+                        <button
+                            type="button"
+                            onClick={() => setActiveCollection("all")}
+                            className="mt-3 text-[12.5px] font-medium text-[hsl(var(--accent-600))] underline-offset-4 hover:underline dark:text-[hsl(var(--accent-400))]"
+                        >
+                            ← Back to all resources
+                        </button>
+                    ) : null}
+                </section>
+
+                {/* Secondary format filter */}
                 <div className="mx-auto mt-6 max-w-3xl">
                     <p className={`${sectionEyebrow} mb-2 text-center sm:text-left`}>Format</p>
                     <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:justify-center">
@@ -905,33 +1021,6 @@ const PsychologicalContent = () => {
                                 >
                                     <Icon className="mr-1.5 inline h-3.5 w-3.5 align-[-2px]" />
                                     {tf.label}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div className="mx-auto mt-6 max-w-4xl">
-                    <p className={`${sectionEyebrow} mb-2 text-center sm:text-left`}>Topics</p>
-                    <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
-                        {contentCategories.map((cat) => {
-                            const Icon = cat.icon;
-                            const isActive = activeTab === cat.id;
-                            return (
-                                <button
-                                    key={cat.id}
-                                    type="button"
-                                    onClick={() => setActiveTab(cat.id)}
-                                    title={cat.description}
-                                    className={cn(
-                                        "flex shrink-0 snap-start items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all",
-                                        isActive
-                                            ? "bg-[hsl(var(--accent-500))] text-white shadow-md"
-                                            : "border border-ink-3/25 bg-[hsl(var(--card))]/70 text-ink-7 hover:border-ink-3/40",
-                                    )}
-                                >
-                                    <Icon className="h-4 w-4 opacity-80" />
-                                    {cat.label}
                                 </button>
                             );
                         })}
@@ -1021,7 +1110,7 @@ const PsychologicalContent = () => {
                                     className="mt-6 rounded-full"
                                     onClick={() => {
                                         setSearchQuery("");
-                                        setActiveTab("all");
+                                        setActiveCollection("all");
                                         setTypeFilter("all");
                                         setShowBookmarks(false);
                                     }}

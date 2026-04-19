@@ -19,6 +19,13 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				display: ['DM Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+				sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+			},
+			maxWidth: {
+				page: 'var(--max-page)',
+			},
 			colors: {
 				border: 'hsl(var(--border) / <alpha-value>)',
 				input: 'hsl(var(--input))',
@@ -70,48 +77,66 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Named palette access
+				'ink-0': 'hsl(var(--ink-0))',
+				'ink-1': 'hsl(var(--ink-1))',
+				'ink-2': 'hsl(var(--ink-2))',
+				'ink-3': 'hsl(var(--ink-3))',
+				'ink-4': 'hsl(var(--ink-4))',
+				'ink-5': 'hsl(var(--ink-5))',
+				'ink-6': 'hsl(var(--ink-6))',
+				'ink-7': 'hsl(var(--ink-7))',
+				'ink-8': 'hsl(var(--ink-8))',
+				'ink-9': 'hsl(var(--ink-9))',
+				'calm-blue': 'hsl(var(--calm-blue))',
+				'serene-green': 'hsl(var(--serene-green))',
+				'warm-purple': 'hsl(var(--warm-purple))',
+				'soft-pink': 'hsl(var(--soft-pink))',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				'2xl': 'var(--radius-2xl)',
+				'xl': 'var(--radius-xl)',
 			},
 			spacing: {
 				header: 'var(--header-height)',
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
-				}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				'fade-up': {
+					from: { opacity: '0', transform: 'translateY(20px)' },
+					to: { opacity: '1', transform: 'translateY(0)' }
+				},
+				'fade-in': {
+					from: { opacity: '0' },
+					to: { opacity: '1' }
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-up': 'fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
+				'fade-in': 'fade-in 0.5s ease both',
 			},
 			boxShadow: {
-				// Design-system elevation scale (E0–E3)
-				// Use shadow-card for resting cards, shadow-card-hover on hover,
-				// shadow-overlay for dialogs/popovers
 				theme: '0 4px 24px var(--shadow)',
 				'theme-lg': '0 8px 40px var(--shadow)',
 				card: '0 1px 4px var(--shadow), 0 0 0 1px hsl(var(--border) / 0.5)',
 				'card-hover': '0 4px 16px var(--shadow)',
 				overlay: '0 8px 32px var(--shadow), 0 0 0 1px hsl(var(--border) / 0.5)',
 				xs: '0 1px 2px var(--shadow)',
+				'dashboard-soft': 'var(--shadow-dashboard-soft)',
+				'dashboard-warm': 'var(--shadow-dashboard-warm)',
 			}
 		}
 	},

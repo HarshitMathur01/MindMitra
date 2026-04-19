@@ -4,6 +4,7 @@
 
 | Start here | Purpose |
 |------------|---------|
+| [`MITRA_ARCHITECTURE_VISUAL.md`](MITRA_ARCHITECTURE_VISUAL.md) | **Plain-language architecture overview** with diagrams |
 | [`MASTER_DOCUMENTATION.md`](MASTER_DOCUMENTATION.md) | Hub: C4-style overview, ADRs, workflows, links |
 | [`architecture.md`](architecture.md) | System-level architecture |
 | [`api_contracts.md`](api_contracts.md) | HTTP/JSON contracts |

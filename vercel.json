@@ -1,5 +1,4 @@
 {
-  "_doc": "MindMitra production deploy config. Headers below are documented in docs/product.md — do NOT add _comment keys here, Vercel rejects them.",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",

@@ -30,4 +30,4 @@ CREATE POLICY "product_events_select_own"
   TO authenticated
   USING (auth.uid() = user_id);
 
-COMMENT ON TABLE public.product_events IS 'Explicit client funnel events; no message bodies (see docs/PRODUCT_ANALYTICS_MIXPANEL_AND_SQL.md).';
+COMMENT ON TABLE public.product_events IS 'Explicit client funnel events; no message bodies (see docs/product.md).';

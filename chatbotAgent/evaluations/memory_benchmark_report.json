@@ -1,0 +1,405 @@
+{
+  "generated_at": "2026-04-20T02:00:47.396467+00:00",
+  "meta": {
+    "fixture": "/Users/harshitmathur/Desktop/MindMitra/chatbotAgent/tests/fixtures/memory_benchmark_dataset.json",
+    "dataset_version": "1.0",
+    "evaluation_design": {
+      "retrieval_metrics": {
+        "precision_at_k": "Fraction of top-k retrieved slots labelled relevant (binary labels via hidden theme tags).",
+        "recall_at_k": "Fraction of all gold-relevant memories that appear in top-k.",
+        "hit_at_k": "1 if at least one relevant memory appears in top-k (0 if none).",
+        "reciprocal_rank": "1/rank of first relevant retrieved item; 0 if none.",
+        "ndcg_at_k": "Normalized DCG with binary gains; ideal = all relevant items at top (Jarvelin & Kekalainen, 2002)."
+      },
+      "limitations": [
+        "Stub hash embeddings differ from production sentence embeddings — run periodic smoke tests against real Qdrant + embedder.",
+        "Binary relevance tags are coarse; LLM judge adds a second signal but is not ground truth.",
+        "off_topic_same_user penalises any retrieval — embedding models often still return near-neighbours; read false_positive_retrieval."
+      ],
+      "judge_usage": "Set MEMORY_BENCH_USE_JUDGE=true; GROQ_API_KEY is read from the environment. The retrieval judge module loads chatbotAgent/.env then repo-root .env (override=false), same pattern as tests/llm_judge.py."
+    },
+    "stub_embedder": "tests.memory_retrieval_benchmark._StubEmbedder",
+    "use_groq_judge": true,
+    "notes": [
+      "IR metrics are gold-label based; they do not depend on LLM self-evaluation.",
+      "Groq judge is a secondary signal — compare against hit_at_k when numbers disagree."
+    ]
+  },
+  "summary_metrics": {
+    "mean_hit_at_k": 0.8889,
+    "mean_precision_at_k": 0.5083,
+    "mean_reciprocal_rank": 0.8,
+    "by_difficulty_mean_hit_at_k": {
+      "simple": 0.6667,
+      "medium": 1.0,
+      "complex": 1.0
+    },
+    "total_queries": 10,
+    "mean_judge_retrieval_quality": 3.4444
+  },
+  "per_query": [
+    {
+      "case_id": "ret_simple_two_memories",
+      "difficulty": "simple",
+      "case_description": "Two distinct topics; query should pull work stress not hobby.",
+      "query_id": "q1",
+      "query_text": "I'm still exhausted from work — what did I say about my job situation?",
+      "k": 5,
+      "retrieved_count": 2,
+      "retrieved_summaries_preview": [
+        "User feels burned out from night shifts at the hospital residency program.",
+        "User enjoys weekend birdwatching at Okhla sanctuary with a new pair of binoculars."
+      ],
+      "relevance_vector": [
+        true,
+        false
+      ],
+      "metrics": {
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "hit_at_k": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 4,
+        "top_result_on_topic": true,
+        "noise_in_top_k": true,
+        "notes": "one relevant, one irrelevant",
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "ret_simple_paraphrase",
+      "difficulty": "simple",
+      "case_description": "Single memory; paraphrased query.",
+      "query_id": "q1",
+      "query_text": "What name should you use when talking to me?",
+      "k": 4,
+      "retrieved_count": 1,
+      "retrieved_summaries_preview": [
+        "User prefers being called Riya instead of their legal name on documents."
+      ],
+      "relevance_vector": [
+        true
+      ],
+      "metrics": {
+        "precision_at_k": 1.0,
+        "recall_at_k": 1.0,
+        "hit_at_k": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 5,
+        "top_result_on_topic": true,
+        "noise_in_top_k": false,
+        "notes": "Directly relevant memory retrieved",
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "ret_simple_user_isolation",
+      "difficulty": "simple",
+      "case_description": "Cross-user isolation: same text corpus for two users; other user must get empty retrieval.",
+      "query_id": "q_cross_user",
+      "query_text": "What exam am I preparing for?",
+      "k": 5,
+      "retrieved_count": 0,
+      "retrieved_summaries_preview": [],
+      "relevance_vector": [],
+      "metrics": {
+        "precision_at_k": 1.0,
+        "recall_at_k": 1.0,
+        "hit_at_k": 0.0,
+        "reciprocal_rank": 0.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": true,
+        "empty_retrieval": true
+      },
+      "judge": {
+        "skipped": true
+      }
+    },
+    {
+      "case_id": "ret_medium_multi_relevant",
+      "difficulty": "medium",
+      "case_description": "Several memories; query should surface two related to family conflict.",
+      "query_id": "q_family",
+      "query_text": "Remind me what tension came up with my parents about studies.",
+      "k": 6,
+      "retrieved_count": 4,
+      "retrieved_summaries_preview": [
+        "User said their mother supports studying abroad but father wants local college.",
+        "User argued with their father about career choice after dinner.",
+        "User tracks sleep with a phone app averaging six hours.",
+        "User joined a weekend cricket league to decompress."
+      ],
+      "relevance_vector": [
+        true,
+        true,
+        false,
+        false
+      ],
+      "metrics": {
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "hit_at_k": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 4,
+        "top_result_on_topic": true,
+        "noise_in_top_k": true,
+        "notes": "some irrelevant memories",
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "ret_medium_stress_disambiguation",
+      "difficulty": "medium",
+      "case_description": "Two stress topics — query targets workplace not relationship.",
+      "query_id": "q_work",
+      "query_text": "Why am I stressed at work specifically?",
+      "k": 4,
+      "retrieved_count": 2,
+      "retrieved_summaries_preview": [
+        "User's manager moved deadlines forward twice this sprint and they feel panicky.",
+        "User had a tense phone call with their partner about festival plans."
+      ],
+      "relevance_vector": [
+        true,
+        false
+      ],
+      "metrics": {
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "hit_at_k": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 4,
+        "top_result_on_topic": true,
+        "noise_in_top_k": true,
+        "notes": "first result is relevant to work stress",
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "ret_medium_hinglish_query",
+      "difficulty": "medium",
+      "case_description": "Memory in mixed Hindi-English; English query.",
+      "query_id": "q_rent",
+      "query_text": "What did I say about rent and savings in Delhi?",
+      "k": 5,
+      "retrieved_count": 2,
+      "retrieved_summaries_preview": [
+        "User bola ki Dilli me PG rent bahut zyada hai aur savings nahi bachti.",
+        "User started cooking daal more often to save money."
+      ],
+      "relevance_vector": [
+        true,
+        false
+      ],
+      "metrics": {
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "hit_at_k": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 4,
+        "top_result_on_topic": true,
+        "noise_in_top_k": true,
+        "notes": "first result is relevant, second is somewhat related",
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "ret_medium_off_topic_penalty",
+      "difficulty": "medium",
+      "case_description": "Off-topic query vs on-topic memories — expect silence_preferred; may fail with stub embedder (documented).",
+      "query_id": "q_mars",
+      "query_text": "What is the orbital period of Mars in Earth days?",
+      "k": 5,
+      "retrieved_count": 2,
+      "retrieved_summaries_preview": [
+        "User worried about CBSE board marks.",
+        "User likes monsoon drives to Lonavala."
+      ],
+      "relevance_vector": [],
+      "metrics": {
+        "precision_at_k": 0.0,
+        "recall_at_k": 1.0,
+        "hit_at_k": null,
+        "reciprocal_rank": 0.0,
+        "ndcg_at_k": 0.0,
+        "expects_no_relevant_retrieval": true,
+        "off_topic_same_user": true,
+        "false_positive_retrieval": true,
+        "silence_preferred": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 0,
+        "top_result_on_topic": false,
+        "noise_in_top_k": true,
+        "notes": "completely off-topic",
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "ret_complex_many_distractors",
+      "difficulty": "complex",
+      "case_description": "Many distractors; two gold memories about therapy boundary.",
+      "query_id": "q_therapy_privacy",
+      "query_text": "What were my concerns about getting support while staying private from family?",
+      "k": 8,
+      "retrieved_count": 8,
+      "retrieved_summaries_preview": [
+        "User asked whether messages to the bot are confidential when parents check the phone.",
+        "User said they want a therapist who understands queer identity in small towns.",
+        "User skipped breakfast often during exam week.",
+        "User plans to visit grandparents in Pune next month.",
+        "User's friend moved to Bengaluru for a startup job.",
+        "User bought noise-cancelling earphones for metro commute.",
+        "User is learning tabla on weekends.",
+        "User watches comfort shows before sleep."
+      ],
+      "relevance_vector": [
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "metrics": {
+        "precision_at_k": 0.25,
+        "recall_at_k": 1.0,
+        "hit_at_k": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 2,
+        "top_result_on_topic": true,
+        "noise_in_top_k": true,
+        "notes": "Most retrieved items are irrelevant",
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "ret_complex_similar_entities",
+      "difficulty": "complex",
+      "case_description": "Two people with similar roles — query must pick correct sister.",
+      "query_id": "q_riya",
+      "query_text": "Where is my sister applying for medical school?",
+      "k": 5,
+      "retrieved_count": 3,
+      "retrieved_summaries_preview": [
+        "User's younger sister Riya is applying to medical schools in Karnataka.",
+        "User's cousin Priya works as a dental hygienist in Chennai.",
+        "User is studying for NEET themselves in the evenings."
+      ],
+      "relevance_vector": [
+        true,
+        false,
+        false
+      ],
+      "metrics": {
+        "precision_at_k": 0.3333333333333333,
+        "recall_at_k": 1.0,
+        "hit_at_k": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 4,
+        "top_result_on_topic": true,
+        "noise_in_top_k": true,
+        "notes": "First result is relevant, but second is not",
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "ret_complex_affective_probe",
+      "difficulty": "complex",
+      "case_description": "Optional VAD passed to retrieve (if supported) — emotional resonance path.",
+      "query_id": "q_grief",
+      "query_text": "I feel heavy tonight thinking about loss — what did I share before?",
+      "k": 4,
+      "retrieved_count": 2,
+      "retrieved_summaries_preview": [
+        "User described grief after losing their grandmother last winter.",
+        "User felt relieved after finishing internal exams."
+      ],
+      "relevance_vector": [
+        true,
+        false
+      ],
+      "metrics": {
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "hit_at_k": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg_at_k": 1.0,
+        "expects_no_relevant_retrieval": false,
+        "empty_retrieval": false
+      },
+      "judge": {
+        "skipped": false,
+        "source": "groq_retrieval_judge",
+        "model": "llama-3.3-70b-versatile",
+        "retrieval_quality": 4,
+        "top_result_on_topic": true,
+        "noise_in_top_k": true,
+        "notes": "first result is relevant, second is not",
+        "attempts": 1
+      }
+    }
+  ]
+}

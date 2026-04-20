@@ -1,18 +1,17 @@
-# AI Skills and Change Permissions
+# AI skills and change permissions
 
-## Purpose
-Define what AI can change autonomously and what requires explicit human approval.
+## Allowed without additional permission
 
-## Allowed Without Additional Permission
 - Internal refactors that do not change public API behavior
 - Bug fixes with clear root cause and low blast radius
 - Test additions and test maintenance
-- Documentation updates that align with already-implemented behavior
+- Documentation updates that align with implemented behavior
 - Logging/observability improvements without sensitive data exposure
 - Non-breaking developer experience improvements
 
-## Requires Explicit Permission
-- Any breaking API contract change
+## Requires explicit permission
+
+- Breaking API contract changes
 - Crisis and safety policy changes
 - Authentication/authorization model changes
 - Database schema changes and destructive migrations
@@ -21,47 +20,42 @@ Define what AI can change autonomously and what requires explicit human approval
 - Memory scoring formula changes
 - Data retention/privacy behavior changes
 
-## Requires Approval + Rollout Plan
+## Requires approval + rollout plan
+
 - Changes affecting user-visible therapeutic behavior
-- Changes to Therapist Profile Builder metrics or PDF exporter formatting
-- Changes to streaming semantics/event names
-- Changes to routing path semantics
-- Changes to onboarding crisis logic
+- Therapist Profile Builder metrics or PDF exporter formatting
+- Streaming semantics/event names
+- Routing path semantics
+- Onboarding crisis logic
 
-## Mandatory Review Checklist for Sensitive Changes
-- Safety impact assessed
-- Contract changes documented
-- Migration and rollback plan defined
-- Monitoring and alerting updates included
-- Backward compatibility validated
+## Task playbooks
 
-## Task Playbooks
+### Add API endpoint
 
-### Add API Endpoint
 1. Define request/response schema
-2. Implement route and auth behavior
+2. Implement route and auth
 3. Add tests
-4. Update /docs/api_contracts.md
+4. Update `/docs/api_contracts.md`
 
-### Change Memory Logic
+### Change memory logic
+
 1. Define retrieval/write impact
-2. Validate safety and latency impact
-3. Update /docs/rag.md and /docs/memory.md
-4. Add regression checks
+2. Validate safety and latency
+3. Update `/docs/platform.md` and relevant tests
 
-### Provider/Model Changes
-1. Document rationale and fallback path
-2. Validate config and secrets impact
-3. Run behavior and cost checks
-4. Update /docs/architecture.md and /README.md
+### Provider/model changes
 
-### Change Clinical Profile Metrics or PDF Output
-1. Define explicitly which offline arrays or backend metrics are parsed.
-2. Verify JS/Python object structure equivalence across `App.tsx`, `therapist_profile_builder.py`, and `exportClinicalPDF.ts`.
-3. Add safety disclaimers to ensure LLM content cannot be construed as a diagnosis.
-4. Update /docs/therapist_bridge.md.
+1. Document rationale and fallbacks
+2. Validate config and secrets
+3. Update `/docs/platform.md` and `/README.md` if workflow changes
 
-## Non-Negotiables
+### Clinical profile metrics or PDF output
+
+1. Align Python (`therapist_profile_builder.py`), frontend types, and `exportClinicalPDF.ts`
+2. Update `/docs/product.md`
+
+## Non-negotiables
+
 - Do not silently change contracts.
 - Do not remove safety gates.
 - Do not ship undocumented behavior.

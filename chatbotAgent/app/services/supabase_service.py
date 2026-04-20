@@ -61,15 +61,29 @@ _SCREENING_CACHE_TTL_S: float = 300.0  # 5 minutes
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
-def get_session_message_count(session_id: str) -> int:
-    """Return total message count for a session from the database."""
+def get_session_message_count(session_id: str, user_id: Optional[str] = None) -> int:
+    """Return total message count for a session from the database.
+
+    SECURITY: When ``user_id`` is provided the query is constrained to rows
+    owned by that user. The backend uses the Supabase service-role key, which
+    bypasses RLS, so we must enforce ownership in the application layer to
+    prevent cross-user reads (IDOR) of chat history. ``user_id`` should always
+    be supplied; the optional signature exists only so historical call sites
+    fail safe with an empty count instead of crashing during deploy.
+    """
     if not supabase_client or not session_id:
+        return 0
+    if not user_id:
+        logger.warning(
+            "⚠️ [DB_COUNT] called without user_id — refusing to query by session_id alone"
+        )
         return 0
     try:
         response = (
             supabase_client.table("chat_messages")
             .select("id", count="exact")
             .eq("session_id", session_id)
+            .eq("user_id", user_id)
             .execute()
         )
         count = response.count if hasattr(response, "count") else len(response.data or [])
@@ -80,12 +94,15 @@ def get_session_message_count(session_id: str) -> int:
         return 0
 
 
-def get_hybrid_message_count(session_id: str) -> int:
+def get_hybrid_message_count(session_id: str, user_id: Optional[str] = None) -> int:
     """Return message count using both DB and in-memory counter (whichever is higher).
 
     Optimization: when the in-memory counter is warm (non-zero), skip the DB
     COUNT(*) query entirely — the local counter is incremented per message and
     is reliable within the same process lifetime.
+
+    SECURITY: ``user_id`` is forwarded to the underlying DB query. See
+    :func:`get_session_message_count` for the rationale.
     """
     if not session_id:
         return 0
@@ -94,7 +111,7 @@ def get_hybrid_message_count(session_id: str) -> int:
         logger.debug(f"🔢 [HYBRID_COUNT] session={session_id[:8]} warm-counter={mem_count} (DB skip)")
         return mem_count
     # Cold start — fall back to DB
-    db_count = get_session_message_count(session_id)
+    db_count = get_session_message_count(session_id, user_id)
     logger.info(f"🔢 [HYBRID_COUNT] session={session_id[:8]} cold-start db={db_count}")
     return db_count
 
@@ -117,13 +134,25 @@ def _fetch_activities_sync(user_id: str) -> List[Dict]:
 
 
 def _fetch_messages_sync(session_id: str, user_id: str) -> List[Dict]:
-    """Synchronous helper — fetch last 10 chat messages for the session."""
+    """Synchronous helper — fetch last 10 chat messages for the session.
+
+    SECURITY: filters on both ``session_id`` AND ``user_id``. The service-role
+    Supabase client bypasses RLS, so application-level ownership enforcement
+    prevents IDOR — a user who learns another user's ``session_id`` cannot
+    pull their messages through normal chat flows.
+    """
     if not supabase_client or not session_id:
+        return []
+    if not user_id:
+        logger.warning(
+            "⚠️ [CONTEXT] _fetch_messages_sync called without user_id — returning empty"
+        )
         return []
     resp = (
         supabase_client.table("chat_messages")
         .select("*")
         .eq("session_id", session_id)
+        .eq("user_id", user_id)
         .order("created_at", desc=True)
         .limit(10)
         .execute()
@@ -164,15 +193,29 @@ async def fetch_user_context(user_id: str, session_id: str) -> Dict[str, Any]:
         return {"user_activities": [], "recent_messages": [], "conversation_summary": {}}
 
 
-def fetch_last_n_messages(session_id: str, n: int = 10) -> List[Dict[str, str]]:
-    """Return the last *n* messages for a session in chronological order."""
+def fetch_last_n_messages(
+    session_id: str, user_id: Optional[str] = None, n: int = 10
+) -> List[Dict[str, str]]:
+    """Return the last *n* messages for a session in chronological order.
+
+    SECURITY: ``user_id`` must be the authenticated user. The query filters on
+    both ``session_id`` AND ``user_id`` to prevent IDOR via the service-role
+    Supabase client (which bypasses RLS). Calls without a user_id are refused
+    with an empty list rather than silently leaking another user's transcript.
+    """
     if not supabase_client or not session_id:
+        return []
+    if not user_id:
+        logger.warning(
+            "⚠️ [CONTEXT] fetch_last_n_messages called without user_id — refusing query"
+        )
         return []
     try:
         resp = (
             supabase_client.table("chat_messages")
             .select("role, content, created_at")
             .eq("session_id", session_id)
+            .eq("user_id", user_id)
             .order("created_at", desc=True)
             .limit(n)
             .execute()

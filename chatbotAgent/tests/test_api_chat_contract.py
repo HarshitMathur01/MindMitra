@@ -16,11 +16,13 @@ def client():
 @pytest.fixture(autouse=True)
 def bypass_chat_auth(monkeypatch):
     """Avoid real Supabase JWT validation during contract tests."""
+    monkeypatch.setenv("MITRA_STACK_ENABLED", "1")
 
     async def _fake_validate(_authorization, _client):
         return "pytest-user-id"
 
     monkeypatch.setattr("app.api.chat.validate_user_token", _fake_validate)
+    monkeypatch.setenv("MITRA_STACK_ENABLED", "1")
 
 
 def _fake_chat_result():
@@ -53,7 +55,7 @@ def _fake_chat_result():
     }
 
 
-@patch("app.api.chat.process_user_chat")
+@patch("app.api.chat.mitra_dispatch.run_mitra_turn", new_callable=AsyncMock)
 @patch("app.api.chat.fetch_user_context", new_callable=AsyncMock)
 def test_post_chat_response_schema(mock_ctx, mock_chat, client):
     mock_ctx.return_value = {
@@ -85,7 +87,7 @@ def test_post_chat_response_schema(mock_ctx, mock_chat, client):
     assert data.get("eval_trace") is None
 
 
-@patch("app.api.chat.process_user_chat")
+@patch("app.api.chat.mitra_dispatch.run_mitra_turn", new_callable=AsyncMock)
 @patch("app.api.chat.fetch_user_context", new_callable=AsyncMock)
 def test_eval_trace_passed_when_env_and_header(mock_ctx, mock_chat, client, monkeypatch):
     monkeypatch.setenv("ALLOW_EVAL_TRACE", "true")

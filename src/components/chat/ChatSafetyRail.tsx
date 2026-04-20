@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { LifeBuoy } from "lucide-react";
+import { ROUND_THE_CLOCK_HELPLINE, helplineHref } from "@/lib/helplines";
 
 /**
  * Always-present, deliberately quiet rail under the composer.
@@ -34,10 +35,10 @@ const ChatSafetyRail = () => {
             </button>
             <span aria-hidden="true">·</span>
             <a
-                href="tel:18005990019"
+                href={helplineHref(ROUND_THE_CLOCK_HELPLINE)}
                 className="underline-offset-2 transition-colors hover:text-ink-7 hover:underline"
             >
-                Call KIRAN · 1800-599-0019
+                Call {ROUND_THE_CLOCK_HELPLINE.name} · {ROUND_THE_CLOCK_HELPLINE.display}
             </a>
         </div>
     );

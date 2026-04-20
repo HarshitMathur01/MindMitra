@@ -5,7 +5,7 @@ interface ImportMetaEnv {
     readonly VITE_AZURE_TTS_KEY?: string;
     readonly VITE_AZURE_TTS_REGION?: string;
     readonly VITE_GOOGLE_TTS_KEY?: string;
-    /** Set to `1` to enable Mixpanel + `product_events` (see docs/PRODUCT_ANALYTICS_MIXPANEL_AND_SQL.md). */
+    /** Set to `1` to enable Mixpanel + `product_events` (see docs/product.md). */
     readonly VITE_ENABLE_PRODUCT_ANALYTICS?: string;
     readonly VITE_MIXPANEL_TOKEN?: string;
     /** Optional. Default US: `https://api.mixpanel.com`. EU project: `https://api-eu.mixpanel.com`. */

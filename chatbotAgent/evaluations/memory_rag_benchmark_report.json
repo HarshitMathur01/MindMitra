@@ -1,0 +1,222 @@
+{
+  "generated_at": "2026-04-20T01:42:21.959275+00:00",
+  "fixture": "/Users/harshitmathur/Desktop/MindMitra/chatbotAgent/tests/fixtures/memory_rag_benchmark.json",
+  "dataset_version": "1.0",
+  "evaluation_design": {
+    "deterministic_metrics": {
+      "recall_at_k": "For a query, |gold relevant ∩ top-k retrieved| / |gold relevant|. Undefined if no gold relevant set.",
+      "precision_at_k": "|gold relevant ∩ top-k| / k.",
+      "hit_rate_at_k": "1 if any gold relevant appears in top-k else 0.",
+      "reciprocal_rank": "1/rank of first gold-relevant retrieved id, else 0.",
+      "mean_reciprocal_rank": "Mean of reciprocal_rank over tasks (single gold set per task here).",
+      "ndcg_at_k_binary": "nDCG@K with binary relevance; ideal DCG places all relevant docs at top.",
+      "contamination_rate": "Among top-k, fraction of ids marked as distractors (lower is better)."
+    },
+    "llm_judge_metrics_optional": {
+      "retrieval_set_relevance": "0-5 Groq judge: does the retrieved summary set address the query?",
+      "ranking_sensibility": "0-5 Groq judge: are the most on-topic items ranked first?"
+    },
+    "references_note": "Recall@K, Precision@K, MRR, and nDCG are standard ranking / retrieval metrics (information retrieval literature and RAG evaluation surveys). LLM judges are approximate and complement—not replace—label-based metrics."
+  },
+  "settings": {
+    "k": 5,
+    "embedder": "stub_hash_16d",
+    "memory_bench_use_judge": false
+  },
+  "summary": {
+    "mean_recall_at_k": 1.0,
+    "mean_precision_at_k": 0.5667,
+    "mean_hit_rate_at_k": 1.0,
+    "mean_reciprocal_rank": 1.0,
+    "mean_ndcg_at_k": 1.0,
+    "mean_contamination_rate": 0.4333,
+    "all_user_isolation_ok": true,
+    "groq_avg_retrieval_set_relevance": null,
+    "groq_avg_ranking_sensibility": null,
+    "groq_judge_tasks_scored": 0,
+    "mrr": 1.0
+  },
+  "scenarios": [
+    {
+      "scenario_id": "bench_semantic_paraphrase_01",
+      "description": "Query paraphrases stored summary; should rank therapy goal memory above filler.",
+      "tasks": [
+        {
+          "query_id": "q_par_1",
+          "query": "What relaxation habit did I say I wanted to try at night?",
+          "k": 5,
+          "relevant_fixture_ids": [
+            "m_par_1"
+          ],
+          "relevant_qdrant_ids": [
+            "36db2f52-632d-425e-9b70-7d3fb540068d"
+          ],
+          "ranked_qdrant_ids": [
+            "36db2f52-632d-425e-9b70-7d3fb540068d",
+            "85e24e13-c28c-4e32-9ec5-5f39c1eab8c9",
+            "365b3c92-ff04-4e6a-8476-1b472839e92e"
+          ],
+          "ranked_summaries_preview": [
+            "User wants to practice a five-minute breathing exercise before sleep to reduce anxiety.",
+            "User mentioned liking rainy weather and drinking chai on weekends.",
+            "User cancelled gym membership due to schedule conflict."
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "precision_at_k": 0.3333,
+            "hit_rate_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "contamination_rate": 0.6667
+          },
+          "user_isolation_ok": true,
+          "llm_judge": {}
+        }
+      ]
+    },
+    {
+      "scenario_id": "bench_multi_relevant_02",
+      "description": "Two distinct memories are both relevant to a composite query.",
+      "tasks": [
+        {
+          "query_id": "q_mr_1",
+          "query": "Remind me what family health stress and academic deadlines I'm juggling.",
+          "k": 5,
+          "relevant_fixture_ids": [
+            "m_mr_1",
+            "m_mr_2"
+          ],
+          "relevant_qdrant_ids": [
+            "27c48bcb-7bc8-42a1-afb2-2deaea99f58f",
+            "bcc7c19f-560d-4b51-ab72-e3d91a490c53"
+          ],
+          "ranked_qdrant_ids": [
+            "bcc7c19f-560d-4b51-ab72-e3d91a490c53",
+            "27c48bcb-7bc8-42a1-afb2-2deaea99f58f",
+            "41ead75d-fd80-4d4e-bde8-03b9275b2c5f"
+          ],
+          "ranked_summaries_preview": [
+            "User is worried about mother hospitalization in Pune next month.",
+            "User has final dissertation submission on the same week as mother's procedure.",
+            "User enjoys playing tabla on Sundays."
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "precision_at_k": 0.6667,
+            "hit_rate_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "contamination_rate": 0.3333
+          },
+          "user_isolation_ok": true,
+          "llm_judge": {}
+        }
+      ]
+    },
+    {
+      "scenario_id": "bench_distractor_similar_03",
+      "description": "Two similar-sounding memories; only one matches the named entity.",
+      "tasks": [
+        {
+          "query_id": "q_sim_1",
+          "query": "What happened with Ravi at work regarding deadlines?",
+          "k": 5,
+          "relevant_fixture_ids": [
+            "m_sim_1"
+          ],
+          "relevant_qdrant_ids": [
+            "7e190c60-e60d-464c-9d74-e4593ba858cc"
+          ],
+          "ranked_qdrant_ids": [
+            "7e190c60-e60d-464c-9d74-e4593ba858cc",
+            "e90c00b4-9714-4888-afc8-b64c2ca05ecc",
+            "de7d9def-805b-4480-8fbf-f3d30bcd8eaa"
+          ],
+          "ranked_summaries_preview": [
+            "User argued with colleague Ravi about project deadlines.",
+            "User's friend Ravi from college is visiting next week for a wedding.",
+            "User prefers video calls over email for team updates."
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "precision_at_k": 0.3333,
+            "hit_rate_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "contamination_rate": 0.6667
+          },
+          "user_isolation_ok": true,
+          "llm_judge": {}
+        }
+      ]
+    },
+    {
+      "scenario_id": "bench_user_isolation_04",
+      "description": "Same text as another user's memory must not leak; corpus for this user has one item.",
+      "tasks": [
+        {
+          "query_id": "q_iso_1",
+          "query": "What exam subject am I scared about?",
+          "k": 5,
+          "relevant_fixture_ids": [
+            "m_iso_1"
+          ],
+          "relevant_qdrant_ids": [
+            "fee001c0-59ec-46bd-9670-32aefb533cb1"
+          ],
+          "ranked_qdrant_ids": [
+            "fee001c0-59ec-46bd-9670-32aefb533cb1"
+          ],
+          "ranked_summaries_preview": [
+            "User disclosed fear of failing organic chemistry retake."
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "precision_at_k": 1.0,
+            "hit_rate_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "contamination_rate": 0.0
+          },
+          "user_isolation_ok": true,
+          "llm_judge": {}
+        }
+      ]
+    },
+    {
+      "scenario_id": "bench_low_signal_query_05",
+      "description": "Very short query; measures stability / contamination rather than high recall.",
+      "tasks": [
+        {
+          "query_id": "q_ls_1",
+          "query": "bakery",
+          "k": 5,
+          "relevant_fixture_ids": [
+            "m_ls_1"
+          ],
+          "relevant_qdrant_ids": [
+            "20389c71-34a8-479c-a3b1-2aa91a482d23"
+          ],
+          "ranked_qdrant_ids": [
+            "20389c71-34a8-479c-a3b1-2aa91a482d23",
+            "b6164833-f699-441f-ae26-c41ba504e416"
+          ],
+          "ranked_summaries_preview": [
+            "User runs a small bakery in Indore and feels burnt out from early shifts.",
+            "User mentioned liking baking as a hobby during holidays."
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "precision_at_k": 0.5,
+            "hit_rate_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "contamination_rate": 0.5
+          },
+          "user_isolation_ok": true,
+          "llm_judge": {}
+        }
+      ]
+    }
+  ]
+}

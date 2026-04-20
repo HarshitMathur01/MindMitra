@@ -37,8 +37,13 @@ const ChatComposer = ({
     isProcessing,
     showSafetyRail = true,
 }: ChatComposerProps) => {
-    const onKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && !e.shiftKey) {
+    // `onKeyPress` is deprecated in React and has inconsistent IME / mobile
+    // behaviour (notably broken Enter handling on some Android keyboards).
+    // `onKeyDown` is the supported, widely-tested handler. We also guard
+    // against IME composition so users typing Hindi/Tamil via a soft
+    // keyboard don't accidentally submit mid-character.
+    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             onSubmit();
         }
@@ -56,16 +61,28 @@ const ChatComposer = ({
                     <Input
                         value={inputValue}
                         onChange={(e) => onInputChange(e.target.value)}
-                        onKeyPress={onKeyPress}
+                        onKeyDown={onKeyDown}
                         placeholder="Take your time…"
-                        className="pr-24 h-12 text-[15px] rounded-full bg-transparent border-0 text-foreground placeholder:text-ink-5 shadow-none focus-visible:outline-none focus-visible:ring-0"
+                        // h-14 on mobile gives the input enough vertical
+                        // air to clear the larger touch targets and feels
+                        // less cramped under thumbs. h-12 stays on sm+.
+                        className="pr-[6.5rem] sm:pr-24 h-14 sm:h-12 text-[16px] sm:text-[15px] rounded-full bg-transparent border-0 text-foreground placeholder:text-ink-5 shadow-none focus-visible:outline-none focus-visible:ring-0"
                         disabled={isLoading}
+                        // Calmer mobile keyboard — no autocorrect surprises
+                        // when typing emotionally charged content; no
+                        // capitalize-every-sentence quirks. Users who want
+                        // them can override at the OS level.
+                        autoComplete="off"
+                        autoCapitalize="sentences"
+                        spellCheck={true}
                     />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <div className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                         <Button
                             size="sm"
                             variant="ghost"
-                            className={`h-9 w-9 p-0 rounded-full transition-all duration-200 ${
+                            // 44×44 px on mobile (Apple HIG / WCAG 2.5.5
+                            // minimum tap target), 36×36 on sm+.
+                            className={`h-11 w-11 sm:h-9 sm:w-9 p-0 rounded-full transition-all duration-200 ${
                                 isRecording
                                     ? "text-[hsl(var(--warmth-500))] bg-[hsl(var(--warmth-100))] hover:bg-[hsl(var(--warmth-200))]"
                                     : "hover:bg-muted/40"
@@ -75,18 +92,18 @@ const ChatComposer = ({
                             aria-label={isRecording ? "Stop recording" : "Speak instead"}
                         >
                             {isProcessing ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[hsl(var(--accent-500))] border-t-transparent" />
+                                <div className="h-5 w-5 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-[hsl(var(--accent-500))] border-t-transparent" />
                             ) : (
-                                <Mic className="h-4 w-4" strokeWidth={1.8} />
+                                <Mic className="h-5 w-5 sm:h-4 sm:w-4" strokeWidth={1.8} />
                             )}
                         </Button>
                         <Button
                             onClick={onSubmit}
                             disabled={!inputValue.trim() || isLoading}
-                            className="h-9 w-9 p-0 rounded-full transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="h-11 w-11 sm:h-9 sm:w-9 p-0 rounded-full transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Send"
                         >
-                            <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            <Send className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={1.8} />
                         </Button>
                     </div>
                 </div>

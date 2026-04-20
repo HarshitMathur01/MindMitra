@@ -221,6 +221,30 @@
     }
   }
 
+  /* Faster, more responsive taps across the whole app:
+       - Removes the 300ms double-tap-to-zoom delay on touch devices.
+       - Disables iOS tap highlight (we render our own focus ring).
+     We exclude `select` because some Android browsers misrender native
+     pickers when touch-action is restricted. */
+  button,
+  a,
+  [role="button"],
+  input,
+  textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Long, unbroken Hindi/Telugu/Tamil words can blow out chat bubbles
+     on narrow screens. `overflow-wrap: anywhere` is more aggressive than
+     `break-word` and prevents an entire bubble from forcing horizontal
+     scroll on mobile. Scoped via a utility class consumed by the chat
+     bubbles in ChatMessageList (and any future bubble component). */
+  .chat-bubble-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   /* Display font utility */
   .font-display {
     font-family: var(--font-display);

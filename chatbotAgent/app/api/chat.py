@@ -1,15 +1,27 @@
 """
-Chat routes — POST /chat, POST /chat/stream, GET /chat/greeting, POST /transcribe.
+app.api.chat — Chat HTTP routes (MITRA v2 only).
+
+Endpoints
+---------
+GET    /chat/greeting          — time-aware greeting for a fresh session
+POST   /chat                   — single-shot turn (JSON in, JSON out)
+POST   /chat/stream            — Server-Sent Events stream of the response
+POST   /chat/end-session       — explicit close (kicks the consolidation worker)
+POST   /transcribe             — Groq Whisper STT fallback (used when Azure
+                                 SDK returns an empty transcript)
+
+All chat traffic flows through the MITRA pipeline (`mitra_dispatch.run_mitra_turn`).
+The legacy `process_user_chat` workflow has been removed; if `MITRA_STACK_ENABLED`
+is off the route returns 503 rather than silently falling back to dead code.
 """
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import os
-import queue
-import re
 import tempfile
-import threading
-from typing import Any, Dict, Optional
+from typing import Any, AsyncIterator, Dict, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -17,49 +29,30 @@ from groq import Groq
 from pydantic import BaseModel
 
 from ..core.auth import validate_user_token
-from ..core.logging import log_timing
+from ..core.logging import log_banner, log_timing, spawn_correlated_thread
+from ..core.pii import redact_text
 from ..models.request_models import ChatRequest, EndSessionRequest
 from ..models.response_models import ChatResponse
-from ..pipeline.workflow import get_workflow_instance, process_user_chat
-from ..agents.memory_manager import memory_manager
+from ..pipeline.mitra import dispatch as mitra_dispatch
 from ..services.greeting_service import generate_greeting
-from ..services.voice_prosody import analyze_prosody, decode_audio_data
 from ..services.supabase_service import (
     fetch_last_n_messages,
-    fetch_latest_screening_scores,
     fetch_previous_session_summary,
     fetch_user_context,
     get_hybrid_message_count,
-    save_screening_scores,
     session_message_counters,
     supabase_client,
 )
-from ..utils.constants import (
-    MEMORY_TRIGGER_INTERVAL,
-    SCREENING_EMA_ALPHA,
-    SCREENING_MIN_MESSAGES,
-    STAGE_TRUST_WINDOW_MAX,
-    STAGE_DEEPENING_MAX,
-    STAGE_INSIGHT_MAX,
-    QUESTION_CAP_TRUST,
-    QUESTION_CAP_DEEPENING,
-    QUESTION_CAP_INSIGHT,
-    QUESTION_CAP_COMPANION,
-)
+from ..services.voice_prosody import decode_audio_data
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.api.chat")
 
-# ── Compiled regex for sentence-boundary detection in SSE chunk buffer ──────
-# Matches end of a sentence: punctuation followed by a space.
-_SENTENCE_BOUNDARY_RE = re.compile(r'[.!?]\s')
-
-# ── Module-level Groq singleton for /transcribe (avoids reconnect per call) ─
+# Module-level Groq singleton for /transcribe (avoids reconnect per call).
 _groq_transcribe_client: Optional[Groq] = None
 
 
 def _get_groq_transcribe_client() -> Optional[Groq]:
-    """Return a cached Groq client for transcription, creating it once."""
     global _groq_transcribe_client
     if _groq_transcribe_client is None:
         api_key = os.getenv("GROQ_API_KEY")
@@ -70,31 +63,22 @@ def _get_groq_transcribe_client() -> Optional[Groq]:
 
 # ── Pydantic models ────────────────────────────────────────────────────────
 class TranscribeRequest(BaseModel):
-    """Request body for the /transcribe endpoint."""
     audio_data: str  # Base64-encoded WAV audio
 
 
-# ── /transcribe — Groq Whisper STT fallback ────────────────────────────────
+# ── /transcribe ────────────────────────────────────────────────────────────
 @router.post("/transcribe")
 async def transcribe_audio(
     request: TranscribeRequest,
     authorization: str = Header(None),
 ):
-    """
-    Fallback speech-to-text via Groq Whisper (whisper-large-v3-turbo).
-
-    Called by the frontend when Azure Speech SDK returns an empty transcript
-    despite audio being captured (typically caused by heavy background noise).
-
-    Accepts a base64-encoded WAV payload, writes it to a temporary file, and
-    calls the Groq audio-transcriptions API.  Returns the transcript text.
-    """
+    """Fallback STT via Groq Whisper (whisper-large-v3-turbo)."""
     try:
         await validate_user_token(authorization, supabase_client)
 
         wav_bytes = decode_audio_data(request.audio_data)
         if not wav_bytes:
-            logger.warning("⚠️ [TRANSCRIBE] Empty audio data received")
+            logger.warning("⚠️  [TRANSCRIBE] empty audio payload")
             raise HTTPException(status_code=400, detail="audio_data is empty or invalid")
 
         groq_client = _get_groq_transcribe_client()
@@ -102,14 +86,13 @@ async def transcribe_audio(
             logger.error("❌ [TRANSCRIBE] GROQ_API_KEY not configured")
             raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
 
-        # Write to a temp file — Groq SDK requires a real file object
         tmp_path: str | None = None
         try:
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                 tmp.write(wav_bytes)
                 tmp_path = tmp.name
 
-            logger.info(f"🔄 [TRANSCRIBE] Sending {len(wav_bytes)//1024}KB WAV to Groq Whisper")
+            logger.info(f"🎙️  [TRANSCRIBE] forwarding {len(wav_bytes)//1024}KB WAV to Groq Whisper")
 
             with open(tmp_path, "rb") as f:
                 result = groq_client.audio.transcriptions.create(
@@ -123,12 +106,11 @@ async def transcribe_audio(
             transcript = (transcript or "").strip()
 
             if transcript:
-                logger.info(f"✅ [TRANSCRIBE] Whisper transcript ({len(transcript)} chars): \"{transcript[:80]}\"")
+                logger.info(f"✅ [TRANSCRIBE] Whisper transcript {redact_text(transcript)}")
             else:
-                logger.warning("⚠️ [TRANSCRIBE] Groq Whisper returned empty transcript")
+                logger.warning("⚠️  [TRANSCRIBE] Whisper returned empty transcript")
 
             return {"transcript": transcript, "model": "groq-whisper-large-v3-turbo"}
-
         finally:
             if tmp_path:
                 try:
@@ -138,264 +120,164 @@ async def transcribe_audio(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"❌ [TRANSCRIBE] {e}")
-        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+    except Exception as exc:
+        logger.exception(f"❌ [TRANSCRIBE] failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {exc}")
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
 def _detect_emotion(text: str) -> Dict[str, str]:
-    """Detect therapeutic emotion from AI response text.
+    """Light, deterministic emotion classifier used by the avatar.
 
-    Returns facial_expression aligned with MindMitraBridge mood names:
-    empathy, concern, encouragement, acknowledgment, calm, listening, or default.
+    Maps a few therapeutic phrases to facial expressions consumed by the
+    TalkingHead component. Pure heuristics, no LLM call.
     """
-    t = text.lower()
+    t = (text or "").lower()
 
-    # ── Therapeutic emotions (multi-word phrases → more specific, check first) ──
-    if any(p in t for p in [
+    if any(p in t for p in (
         "i understand", "i hear you", "that must be", "i'm sorry you",
         "your feelings", "it makes sense", "you're not alone",
         "i can see how", "must have been", "that sounds really",
-    ]):
+    )):
         return {"emotion": "empathy", "facial_expression": "empathy"}
 
-    if any(p in t for p in [
+    if any(p in t for p in (
         "i'm concerned", "worried about", "that sounds serious",
         "be careful", "important to note", "want to make sure",
         "pay attention to",
-    ]):
+    )):
         return {"emotion": "concern", "facial_expression": "concern"}
 
-    if any(p in t for p in [
+    if any(p in t for p in (
         "great job", "well done", "proud of", "wonderful progress",
         "that's wonderful", "that's amazing", "congratulations",
         "you did it", "keep it up", "brilliant",
-    ]):
+    )):
         return {"emotion": "encouragement", "facial_expression": "encouragement"}
 
-    if any(p in t for p in [
+    if any(p in t for p in (
         "tell me more", "go on", "can you share", "what happened",
         "how did that", "i'd like to hear", "continue",
-    ]):
+    )):
         return {"emotion": "acknowledgment", "facial_expression": "acknowledgment"}
 
-    if any(p in t for p in [
+    if any(p in t for p in (
         "take a deep breath", "let's breathe", "let's slow down",
         "grounding exercise", "at your own pace", "gentle reminder",
-    ]):
+    )):
         return {"emotion": "calm", "facial_expression": "calm"}
 
-    if any(p in t for p in [
+    if any(p in t for p in (
         "can you describe", "what was that like", "tell me about",
         "how does that feel", "what comes to mind",
-    ]):
+    )):
         return {"emotion": "listening", "facial_expression": "listening"}
 
-    # ── Standard emotions → map to closest therapeutic expression ──
-    if any(w in t for w in ["happy", "great", "wonderful", "amazing", "excited", "proud", "joy"]):
+    if any(w in t for w in ("happy", "great", "wonderful", "amazing", "excited", "proud", "joy")):
         return {"emotion": "happy", "facial_expression": "encouragement"}
-    if any(w in t for w in ["sad", "sorry", "difficult", "hard", "anxious", "worried"]):
+    if any(w in t for w in ("sad", "sorry", "difficult", "hard", "anxious", "worried")):
         return {"emotion": "sad", "facial_expression": "empathy"}
-    if any(w in t for w in ["angry", "frustrated", "annoyed"]):
+    if any(w in t for w in ("angry", "frustrated", "annoyed")):
         return {"emotion": "angry", "facial_expression": "concern"}
-    if any(w in t for w in ["wow", "really", "surprised", "incredible"]):
+    if any(w in t for w in ("wow", "really", "surprised", "incredible")):
         return {"emotion": "surprised", "facial_expression": "acknowledgment"}
 
     return {"emotion": "neutral", "facial_expression": "default"}
 
 
-def _build_avatar_package(
-    ai_text: str,
-    result: Dict[str, Any],
-    avatar_visible: bool,
-    personality_id: str | None = None,
-) -> Dict[str, Any]:
-    """Return avatar animation + emotion fields. TTS/lipsync handled by TalkingHead internally."""
+def _build_avatar_package(ai_text: str, avatar_visible: bool) -> Dict[str, Any]:
+    """Animation + facial expression for the TalkingHead avatar."""
     if not avatar_visible:
-        logger.info("⚡ [AVATAR] Avatar hidden — skipping emotion detection")
         return {"animation": "Idle", "facial_expression": "default"}
-
     if ai_text:
         mood = _detect_emotion(ai_text)
         return {"animation": "Talking_0", "facial_expression": mood["facial_expression"]}
-
     return {"animation": "Idle", "facial_expression": "default"}
 
 
-def _maybe_trigger_memory(session_id: str, user_id: str, content_locale: str | None = None) -> None:
-    """Increment counter and trigger memory extraction every MEMORY_TRIGGER_INTERVAL messages."""
-    try:
-        session_message_counters[session_id] += 1
-        count = get_hybrid_message_count(session_id)
-        logger.info(f"📊 [MEMORY] Session count: {count}")
-        if count > 0 and count % MEMORY_TRIGGER_INTERVAL == 0:
-            logger.info(f"🔔 [MEMORY] Triggering mem0 extraction at message #{count}")
-            messages = fetch_last_n_messages(session_id, n=MEMORY_TRIGGER_INTERVAL)
-            if messages:
-                meta = {"content_locale": content_locale} if content_locale else None
-                threading.Thread(
-                    target=memory_manager.add_memories,
-                    args=(messages, user_id, session_id, meta),
-                    daemon=True,
-                ).start()
-    except Exception as e:
-        logger.error(f"❌ [MEMORY] Trigger failed: {e}")
+def _maybe_kick_consolidation(session_id: str, user_id: str, message_count: int) -> None:
+    """Every N messages, fire the consolidation worker for this user.
 
-
-def _run_session_end_jobs(session_id: str, user_id: str) -> None:
-    """Background: save session summary + run PHQ-9/GAD-7 screening + reflections at session-end intervals."""
-    try:
-        messages = fetch_last_n_messages(session_id, n=30)
-        if messages and len(messages) >= 5:
-            memory_manager.save_session_summary(user_id, session_id, messages)
-
-            # ── Procedural memory synthesis ──────────────────────────────
-            # Extract coping strategies / techniques from therapeutic conversations
-            try:
-                _trigger_procedural_synthesis(user_id, messages)
-            except Exception as proc_exc:
-                logger.error(f"❌ [PROCEDURAL] Synthesis failed: {proc_exc}")
-
-            # ── Reflection generation (every N sessions) ─────────────────
-            try:
-                if memory_manager.should_generate_reflections(user_id):
-                    threading.Thread(
-                        target=memory_manager.generate_reflections,
-                        args=(user_id,),
-                        daemon=True,
-                    ).start()
-                    logger.info("🔮 [REFLECTION] Triggered reflection generation")
-            except Exception as ref_exc:
-                logger.error(f"❌ [REFLECTION] Trigger failed: {ref_exc}")
-
-        # PHQ-9/GAD-7 session-level screening with EMA
-        if messages and len(messages) >= SCREENING_MIN_MESSAGES:
-            try:
-                workflow = get_workflow_instance()
-                if workflow.screening_agent:
-                    previous = fetch_latest_screening_scores(user_id)
-                    scores = workflow.screening_agent.generate_session_assessment(
-                        messages, previous_scores=previous, ema_alpha=SCREENING_EMA_ALPHA
-                    )
-                    if scores:
-                        save_screening_scores(user_id, session_id, scores)
-                        logger.info(
-                            f"\u2705 [SCREENING] Session assessment complete | "
-                            f"PHQ-9={scores.get('phq9',{}).get('score','?')} "
-                            f"GAD-7={scores.get('gad7',{}).get('score','?')}"
-                        )
-            except Exception as screen_exc:
-                logger.error(f"\u274c [SCREENING] Session assessment failed: {screen_exc}")
-    except Exception as e:
-        logger.error(f"❌ [SESSION-END] Summary job failed: {e}")
-
-
-def _trigger_procedural_synthesis(user_id: str, messages: list) -> None:
+    The worker pulls candidate memories from the latest turns, dedupes them
+    against existing episodics, applies Ebbinghaus decay, and (nightly) runs
+    the higher-order reflection pass. Always non-blocking — failures only
+    affect future recall, never the live response.
     """
-    Analyze recent conversation for coping strategies / therapeutic techniques
-    and store as procedural memories. Runs only if substantive therapeutic
-    content is detected (keywords: breathe, exercise, journal, cope, strategy, etc.)
-    """
-    _PROCEDURAL_KEYWORDS = (
-        "breathing", "breathe", "exercise", "journal", "meditat",
-        "technique", "strategy", "cope", "coping", "grounding",
-        "mindful", "relax", "calm", "practice", "routine", "habit",
-        "sleep", "self-care", "selfcare", "walk", "yoga",
-    )
-
-    # Quick scan: only synthesize if therapeutic techniques were discussed
-    full_text = " ".join(m.get("content", "").lower() for m in messages[-15:])
-    if not any(kw in full_text for kw in _PROCEDURAL_KEYWORDS):
+    interval = int(os.getenv("MITRA_CONSOLIDATION_INTERVAL", "12"))
+    if message_count <= 0 or message_count % interval != 0:
         return
 
-    # Determine topic from message content
-    topic = "coping strategies"
-    for kw_pair in [("breathing", "breathing exercises"), ("journal", "journaling"),
-                    ("meditat", "meditation"), ("grounding", "grounding techniques"),
-                    ("sleep", "sleep hygiene"), ("exercise", "physical exercise")]:
-        if kw_pair[0] in full_text:
-            topic = kw_pair[1]
-            break
-
-    memory_manager.synthesize_procedural_memory(user_id, topic, messages[-15:])
-
-
-def _extract_game_insights_for_memory(activities: list, user_id: str) -> None:
-    """
-    Extract therapeutic insights from game/assessment activities and store as mem0 memories.
-    Bridges the gap between the game data system and the memory system so that
-    game-derived observations persist beyond the 24h activity window.
-    Runs in a background thread — fire and forget.
-    """
-    if not activities or not memory_manager.is_ready:
-        return
-
-    insight_messages = []
-    for act in activities:
-        atype = act.get("activity_type", "")
-        insights = act.get("insights_generated", {}) if isinstance(act.get("insights_generated"), dict) else {}
-        eval_data = act.get("evaluation_data", {}) if isinstance(act.get("evaluation_data"), dict) else {}
-        user_resp = act.get("user_response_data", {}) if isinstance(act.get("user_response_data"), dict) else {}
-
-        if atype == "emotion_match":
-            confusion = user_resp.get("confusion_patterns", [])
-            if confusion:
-                patterns = ", ".join(
-                    f"{c.get('expected', '?')} mistaken for {c.get('chosen', '?')}"
-                    for c in confusion[:3]
-                )
-                insight_messages.append({
-                    "role": "assistant",
-                    "content": f"In the Emotion Match game, the user struggled with: {patterns}. "
-                               f"This may indicate difficulty distinguishing these emotions in real life.",
-                })
-        elif atype == "thought_detective":
-            distortions = user_resp.get("identified_distortions", [])
-            if distortions:
-                insight_messages.append({
-                    "role": "assistant",
-                    "content": f"In the Thought Detective CBT game, the user identified cognitive distortions: "
-                               f"{', '.join(distortions[:5])}. They show awareness of these thinking patterns.",
-                })
-        elif atype == "wellness_checkin":
-            wellness_level = eval_data.get("wellness_level", "")
-            focus_areas = eval_data.get("focus_areas", [])
-            if wellness_level:
-                msg = f"User completed a wellness check-in. Overall wellness level: {wellness_level}."
-                if focus_areas:
-                    msg += f" Areas needing attention: {', '.join(focus_areas[:5])}."
-                insight_messages.append({"role": "assistant", "content": msg})
-        elif atype == "mood_mountain":
-            emotions = user_resp.get("emotional_vocabulary", [])
-            if emotions:
-                insight_messages.append({
-                    "role": "assistant",
-                    "content": f"User's recent mood self-report: {', '.join(emotions[:3])}.",
-                })
-        elif atype == "balloon_positivity":
-            discrimination = eval_data.get("emotional_discrimination", "")
-            resilience = eval_data.get("resilience_indicator", "")
-            if discrimination or resilience:
-                parts = []
-                if discrimination:
-                    parts.append(f"emotional discrimination: {discrimination}")
-                if resilience:
-                    parts.append(f"resilience: {resilience}")
-                insight_messages.append({
-                    "role": "assistant",
-                    "content": f"Balloon Positivity game results — {', '.join(parts)}.",
-                })
-
-    if insight_messages:
+    def _run() -> None:
         try:
-            memory_manager.add_memories(
-                insight_messages, user_id,
-                metadata={"source": "game_insights", "category": "therapeutic"},
+            from ..core.models import ModelRegistry, Role
+            from ..jobs.consolidation_worker import ConsolidationWorker
+            from ..jobs.extractor import build_extractor
+            from ..memory.episodic import EpisodicService
+            from ..memory.qdrant_v2 import get_qdrant
+            from ..memory.repositories import EpisodicRepo
+            from ..providers import get_embeddings_provider, get_llm_provider
+
+            cfg = ModelRegistry.for_role(Role.EXTRACTOR)
+            provider = get_llm_provider(cfg.provider.value)
+
+            async def _llm_complete(
+                *,
+                system: str,
+                user: str,
+                model: Optional[str] = None,
+                json_mode: bool = False,
+                **kwargs: Any,
+            ) -> str:
+                """Adapter matching `build_extractor`'s expected signature.
+
+                The extractor calls `llm_complete(system=..., user=...,
+                model=..., json_mode=True)`. We translate that into the
+                provider's `complete(messages, ...)` shape and request
+                JSON-object response format when the extractor asks for it.
+                """
+                messages = [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ]
+                call_kwargs: Dict[str, Any] = {
+                    "model": model or cfg.model,
+                    "max_tokens": cfg.max_tokens,
+                    "temperature": cfg.temperature,
+                    "timeout_s": cfg.timeout_s,
+                }
+                if json_mode:
+                    call_kwargs["response_format"] = {"type": "json_object"}
+                call_kwargs.update(kwargs)
+                result = await provider.complete(messages, **call_kwargs)
+                return result if isinstance(result, str) else str(result or "")
+
+            embed_cfg = ModelRegistry.for_role(Role.EMBEDDINGS)
+            embedder = get_embeddings_provider(embed_cfg.provider.value)
+
+            async def _embed(texts):
+                return await embedder.embed(texts)
+
+            qdrant = get_qdrant()
+            if not (qdrant and supabase_client):
+                logger.info("🧪 [CONSOLIDATE] skipped (qdrant or supabase unavailable)")
+                return
+
+            episodic = EpisodicService(sb=supabase_client, qdrant=qdrant, embed_fn=_embed)
+            repo = EpisodicRepo(supabase_client)
+            extractor = build_extractor(llm_complete=_llm_complete, model=cfg.model)
+            worker = ConsolidationWorker(
+                episodic=episodic, episodic_repo=repo, extract_fn=extractor,
             )
-            logger.info(f"✅ [GAME→MEM0] Stored {len(insight_messages)} game insight(s) as memories")
-        except Exception as exc:
-            logger.error(f"❌ [GAME→MEM0] Failed: {exc}")
+            report = asyncio.run(worker.run_once_for_user(user_id, session_id=session_id))
+            logger.info(
+                f"🧪 [CONSOLIDATE] user={user_id[:8]} candidates={report.n_candidates} "
+                f"written={report.n_written} archived={report.n_archived} "
+                f"reflections={report.n_reflections}"
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"⚠️  [CONSOLIDATE] worker failed: {exc}")
+
+    spawn_correlated_thread(_run, name="consolidation-worker")
 
 
 # ── routes ─────────────────────────────────────────────────────────────────
@@ -411,22 +293,55 @@ async def get_greeting(
     """Generate a personalised greeting for a new chat session."""
     try:
         authenticated_user_id = await validate_user_token(authorization, supabase_client)
-
         if not session_id:
-            return {"greeting": "Hey! What's on your mind?", "show_greeting": True, "language_used": "english", "time_slot": "day"}
-
-        greeting_data = generate_greeting(
+            return {
+                "greeting": "Hey! What's on your mind?",
+                "show_greeting": True,
+                "language_used": "english",
+                "time_slot": "day",
+            }
+        return generate_greeting(
             authenticated_user_id, session_id,
-            personality=personality, companion_name=companion_name,
-            language=language,
+            personality=personality, companion_name=companion_name, language=language,
         )
-        return greeting_data
-
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"❌ [GREETING] {e}")
-        return {"greeting": "Hey! What's on your mind?", "show_greeting": True, "language_used": "english", "time_slot": "day"}
+    except Exception as exc:
+        logger.error(f"❌ [GREETING] {exc}")
+        return {
+            "greeting": "Hey! What's on your mind?",
+            "show_greeting": True,
+            "language_used": "english",
+            "time_slot": "day",
+        }
+
+
+def _ensure_mitra_enabled() -> None:
+    """Refuse to serve chat traffic when the new pipeline is disabled."""
+    if not mitra_dispatch.is_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "MITRA stack disabled (set MITRA_STACK_ENABLED=1). "
+                "Legacy workflow has been removed in v2."
+            ),
+        )
+
+
+def _annotate_voice_analysis(request: ChatRequest) -> Dict[str, Any]:
+    """Synchronous passthrough — prosody extraction is OFF on the chat path.
+
+    Returns the frontend-supplied ``voice_analysis`` dict (Azure SDK metrics
+    such as WPM, pause counts, clarity) with ``acoustic_status`` stamped to
+    document that no Praat features were extracted server-side. See
+    `docs/MITRA.md` → "Future Work" for the recipe to
+    re-enable on-line prosody via a sandboxed subprocess.
+    """
+    voice_analysis = dict(request.voice_analysis or {})
+    if request.audio_data:
+        voice_analysis["audio_received_bytes_b64"] = len(request.audio_data)
+    voice_analysis["acoustic_status"] = "not_extracted"
+    return voice_analysis
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -435,117 +350,68 @@ async def process_chat(
     authorization: str = Header(None),
     x_mindmitra_eval_trace: Optional[str] = Header(None, alias="X-MindMitra-Eval-Trace"),
 ):
-    """Main chat endpoint — executes full pipeline and returns response with optional avatar data."""
-    try:
-        logger.info("=" * 70)
-        logger.info("🚀 [CHAT] New request received")
-        user_id = await validate_user_token(authorization, supabase_client)
-        logger.info(f"👤 [CHAT] user={user_id} session={request.session_id}")
+    """Single-shot chat turn — runs the MITRA pipeline and returns one JSON body.
 
-        # Prewarm emotional trend cache (same pattern as /chat/stream) so orchestrator often hits cache.
-        threading.Thread(
-            target=memory_manager.get_emotional_trend,
-            args=(user_id,),
-            daemon=True,
-            name="trend-prewarm-chat",
-        ).start()
+    Use this for non-streaming clients (curl, mobile) or for evaluation runs
+    where the eval-trace header is set. For interactive UIs use `/chat/stream`.
+    """
+    _ensure_mitra_enabled()
+    user_id = await validate_user_token(authorization, supabase_client)
+    log_banner(
+        "📥 POST /chat",
+        [
+            f"user        : {user_id[:8]}",
+            f"session     : {(request.session_id or '-')[:8]}",
+            f"persona     : {request.personality or 'mitra'}",
+            f"language    : {request.language or 'en'}",
+            f"msg_len     : {len(request.user_message)} chars",
+        ],
+        logger=logger,
+    )
 
-        def _load_session_summary_safe(sid: Optional[str]) -> Dict[str, Any]:
-            if not sid:
-                return {}
-            try:
-                return memory_manager.load_session_summary(sid)
-            except Exception as sum_exc:
-                logger.warning(f"⚠️ [CHAT] Session summary load failed: {sum_exc}")
-                return {}
+    # Voice metadata is a sync passthrough; only DB fetches need parallelism.
+    context, prev_summary = await asyncio.gather(
+        fetch_user_context(user_id, request.session_id),
+        asyncio.to_thread(fetch_previous_session_summary, user_id, request.session_id),
+    )
+    voice_analysis = _annotate_voice_analysis(request)
+    if voice_analysis:
+        context.setdefault("voice_analysis", voice_analysis)
 
-        def _prev_summary_safe(uid: str, sid: Optional[str]) -> Dict[str, Any]:
-            try:
-                return fetch_previous_session_summary(uid, sid)
-            except Exception as prev_exc:
-                logger.warning(f"\u26a0\ufe0f [CHAT] Previous session summary load failed: {prev_exc}")
-                return {}
+    allow_eval = os.getenv("ALLOW_EVAL_TRACE", "").lower() in ("1", "true", "yes")
+    want_trace = allow_eval and (x_mindmitra_eval_trace or "").strip().lower() in ("1", "true", "yes")
 
-        context, session_summary, prev_session_summary = await asyncio.gather(
-            fetch_user_context(user_id, request.session_id),
-            asyncio.to_thread(_load_session_summary_safe, request.session_id),
-            asyncio.to_thread(_prev_summary_safe, user_id, request.session_id),
-        )
-
-        conv_summary = context["conversation_summary"]
-        if session_summary:
-            conv_summary = {**conv_summary, **session_summary}
-
-        # ── Prosodic analysis: enrich voice_analysis with Praat features ──
-        voice_analysis = dict(request.voice_analysis or {})
-        if request.audio_data:
-            try:
-                wav_bytes = decode_audio_data(request.audio_data)
-                if wav_bytes:
-                    prosody = analyze_prosody(wav_bytes)
-                    if prosody:
-                        voice_analysis["prosody"] = prosody
-                        logger.info(f"✅ [CHAT] Prosodic analysis added to voice_analysis")
-            except Exception as prosody_exc:
-                logger.warning(f"⚠️ [CHAT] Prosody analysis failed: {prosody_exc}")
-
-        allow_eval = os.getenv("ALLOW_EVAL_TRACE", "").lower() in ("1", "true", "yes")
-        _hdr = (x_mindmitra_eval_trace or "").strip().lower()
-        want_trace = allow_eval and _hdr in ("1", "true", "yes")
-
-        with log_timing("Workflow Pipeline: process_user_chat", session_id=request.session_id, user_id=user_id):
-            result = process_user_chat(
+    with log_timing("chat_turn", session_id=request.session_id, user_id=user_id[:8]):
+        try:
+            result = await mitra_dispatch.run_mitra_turn(
                 user_message=request.user_message,
-                recent_messages=context["recent_messages"],
-                conversation_summary=conv_summary,
-                user_activities=context["user_activities"],
-                user_patterns={},
-                voice_analysis=voice_analysis,
                 user_id=user_id,
-                session_id=request.session_id,
-                personality=request.personality,
-                companion_name=request.companion_name,
-                language=request.language,
-                previous_session_summary=prev_session_summary,
-                eval_trace=want_trace,
+                session_id=request.session_id or "",
+                recent_messages=context.get("recent_messages") or [],
+                persona=(request.personality or "mitra"),
+                language=(request.language or "en"),
             )
+        except Exception as exc:
+            logger.exception(f"❌ [CHAT] MITRA pipeline failed: {exc}")
+            raise HTTPException(status_code=500, detail=f"Chat processing failed: {exc}")
 
-        ai_text = result.get("message", "")
-        avatar = _build_avatar_package(ai_text, result, request.avatar_visible, request.personality)
+    ai_text = result.get("message", "")
+    avatar = _build_avatar_package(ai_text, request.avatar_visible)
 
-        if request.session_id:
-            _maybe_trigger_memory(request.session_id, user_id, content_locale=request.language)
-            count = get_hybrid_message_count(request.session_id)
-            if count > 0 and count % (MEMORY_TRIGGER_INTERVAL * 3) == 0:
-                threading.Thread(
-                    target=_run_session_end_jobs,
-                    args=(request.session_id, user_id),
-                    daemon=True,
-                ).start()
+    if request.session_id:
+        session_message_counters[request.session_id] += 1
+        count = get_hybrid_message_count(request.session_id, user_id)
+        _maybe_kick_consolidation(request.session_id, user_id, count)
 
-            # Game → mem0 memory bridge (extract therapeutic insights from activities)
-            if context["user_activities"]:
-                threading.Thread(
-                    target=_extract_game_insights_for_memory,
-                    args=(context["user_activities"], user_id),
-                    daemon=True,
-                ).start()
-
-        return ChatResponse(
-            message=ai_text,
-            animation=avatar["animation"],
-            facial_expression=avatar["facial_expression"],
-            modality=result.get("modality", "therapy"),
-            confidence=result.get("confidence", 0.8),
-            session_insights=result.get("session_insights"),
-            eval_trace=result.get("eval_trace") if want_trace else None,
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ [CHAT] {e}")
-        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
+    return ChatResponse(
+        message=ai_text,
+        animation=avatar["animation"],
+        facial_expression=avatar["facial_expression"],
+        modality=result.get("modality", "therapy"),
+        confidence=result.get("confidence", 0.85),
+        session_insights=result.get("session_insights"),
+        eval_trace=result.get("eval_trace") if want_trace else None,
+    )
 
 
 @router.post("/chat/stream")
@@ -553,174 +419,153 @@ async def process_chat_stream(
     request: ChatRequest,
     authorization: str = Header(None),
 ):
-    """
-    Streaming endpoint (SSE) — sends AI text immediately, then TTS/lipsync asynchronously.
-    Events: text_chunk | audio_ready | lipsync_ready | complete | error
-    """
-    try:
-        user_id = await validate_user_token(authorization, supabase_client)
-        logger.info(f"🚀 [STREAM] user={user_id} session={request.session_id} avatar={request.avatar_visible}")
+    """Streaming chat turn (Server-Sent Events).
 
-        async def event_generator():
+    Event protocol::
+
+        event: text_chunk_delta   { "chunk": "...partial text..." }
+        event: text_chunk         { "message": "...full final text..." }
+        event: avatar_ready       { "animation": "Talking_0", "facial_expression": "..." }
+        event: complete           { "status": "success" }
+        event: error              { "error": "..." }
+
+    The pipeline runs as an asyncio task; tokens are pushed onto an
+    `asyncio.Queue` and flushed to the SSE stream at sentence boundaries.
+    """
+    _ensure_mitra_enabled()
+    user_id = await validate_user_token(authorization, supabase_client)
+    log_banner(
+        "📥 POST /chat/stream",
+        [
+            f"user        : {user_id[:8]}",
+            f"session     : {(request.session_id or '-')[:8]}",
+            f"persona     : {request.personality or 'mitra'}",
+            f"language    : {request.language or 'en'}",
+            f"avatar      : {request.avatar_visible}",
+            f"msg_len     : {len(request.user_message)} chars",
+        ],
+        logger=logger,
+    )
+
+    async def _zero() -> int:
+        return 0
+
+    # Voice metadata is a sync passthrough (no Praat on the chat path);
+    # only DB fetches need parallelism. See voice_prosody.py docstring.
+    context, prev_summary, message_count = await asyncio.gather(
+        fetch_user_context(user_id, request.session_id),
+        asyncio.to_thread(fetch_previous_session_summary, user_id, request.session_id),
+        (
+            asyncio.to_thread(get_hybrid_message_count, request.session_id, user_id)
+            if request.session_id
+            else _zero()
+        ),
+    )
+    voice_analysis = _annotate_voice_analysis(request)
+    if voice_analysis:
+        context.setdefault("voice_analysis", voice_analysis)
+
+    async def event_generator() -> AsyncIterator[str]:
+        chunk_q: asyncio.Queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+
+        def on_chunk(chunk: str) -> None:
+            # Called from the LLM provider's worker thread or the orchestrator.
             try:
+                loop.call_soon_threadsafe(chunk_q.put_nowait, chunk)
+            except RuntimeError:
+                pass  # event loop closed — request was cancelled
 
-                # Pre-warm emotional trend cache immediately — the pipeline will need it
-                # ~500ms later (after intent routing + memory retrieval). Firing a daemon
-                # thread here ensures the 8b Groq call completes before route_and_execute
-                # calls get_emotional_trend(), turning a blocking call into a cache hit.
-                threading.Thread(
-                    target=memory_manager.get_emotional_trend,
-                    args=(user_id,),
-                    daemon=True,
-                    name="trend-prewarm",
-                ).start()
-
-                # Fetch context, previous session summary, and message count in parallel
-                async def _zero():
-                    return 0
-
-                context, prev_session_summary, _stream_msg_count = await asyncio.gather(
-                    fetch_user_context(user_id, request.session_id),
-                    asyncio.to_thread(fetch_previous_session_summary, user_id, request.session_id),
-                    asyncio.to_thread(get_hybrid_message_count, request.session_id) if request.session_id else _zero(),
+        async def _run_pipeline() -> Dict[str, Any]:
+            try:
+                return await mitra_dispatch.run_mitra_turn(
+                    user_message=request.user_message,
+                    user_id=user_id,
+                    session_id=request.session_id or "",
+                    recent_messages=context.get("recent_messages") or [],
+                    persona=(request.personality or "mitra"),
+                    language=(request.language or "en"),
+                    stream_callback=on_chunk,
                 )
-
-                # ── Prosodic analysis: enrich voice_analysis with Praat features ──
-                voice_analysis = dict(request.voice_analysis or {})
-                if request.audio_data:
-                    try:
-                        wav_bytes = decode_audio_data(request.audio_data)
-                        if wav_bytes:
-                            prosody = analyze_prosody(wav_bytes)
-                            if prosody:
-                                voice_analysis["prosody"] = prosody
-                    except Exception as prosody_exc:
-                        logger.warning(f"⚠️ [STREAM] Prosody analysis failed: {prosody_exc}")
-
-                # Determine question cap for stream-time filtering (count already fetched above)
-                if _stream_msg_count <= STAGE_TRUST_WINDOW_MAX:
-                    _stream_q_cap = QUESTION_CAP_TRUST
-                elif _stream_msg_count <= STAGE_DEEPENING_MAX:
-                    _stream_q_cap = QUESTION_CAP_DEEPENING
-                elif _stream_msg_count <= STAGE_INSIGHT_MAX:
-                    _stream_q_cap = QUESTION_CAP_INSIGHT
-                else:
-                    _stream_q_cap = QUESTION_CAP_COMPANION
-
-                q = queue.Queue()
-
-                def bg_process():
-                    try:
-                        def on_chunk(chunk):
-                            q.put(("chunk", chunk))
-                        res = process_user_chat(
-                            user_message=request.user_message,
-                            recent_messages=context["recent_messages"],
-                            conversation_summary=context["conversation_summary"],
-                            user_activities=context["user_activities"],
-                            user_patterns={},
-                            voice_analysis=voice_analysis,
-                            user_id=user_id,
-                            session_id=request.session_id,
-                            personality=request.personality,
-                            companion_name=request.companion_name,
-                            language=request.language,
-                            previous_session_summary=prev_session_summary,
-                            chunk_callback=on_chunk,
-                            message_count=_stream_msg_count,
-                        )
-                        q.put(("done", res))
-                    except Exception as e:
-                        q.put(("error", str(e)))
-
-                thread = threading.Thread(target=bg_process)
-                thread.start()
-
-                result = {}
-                _chunk_buffer = ""  # Buffer for sentence-boundary streaming
-                while True:
-                    try:
-                        item = q.get_nowait()
-                    except queue.Empty:
-                        await asyncio.sleep(0.002)  # 2ms polling — was 10ms
-                        continue
-
-                    kind, data = item
-                    if kind == "chunk":
-                        _chunk_buffer += data
-                        # Emit only complete sentences (up to the last sentence boundary)
-                        _last_boundary = -1
-                        for _m in _SENTENCE_BOUNDARY_RE.finditer(_chunk_buffer):
-                            _last_boundary = _m.end() - 1  # position of the space after punctuation
-                        if _last_boundary > 0:
-                            _emit_text = _chunk_buffer[:_last_boundary + 1]
-                            _chunk_buffer = _chunk_buffer[_last_boundary + 1:]
-                            # Quick question scrub for zero-question stages
-                            if _stream_q_cap == 0 and "?" in _emit_text:
-                                _emit_text = _emit_text.replace("?", ".")
-                                _emit_text = re.sub(r"\.{2,}", ".", _emit_text)
-                            yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': _emit_text})}\n\n"
-                    elif kind == "error":
-                        raise Exception(data)
-                    elif kind == "done":
-                        # Flush remaining buffer
-                        if _chunk_buffer.strip():
-                            _flush = _chunk_buffer
-                            if _stream_q_cap == 0 and "?" in _flush:
-                                _flush = _flush.replace("?", ".")
-                                _flush = re.sub(r"\.{2,}", ".", _flush)
-                            yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': _flush})}\n\n"
-                        result = data
-                        break
-
-                ai_text = result.get("message", "")
-                logger.info(f"✅ [STREAM] Full text ready ({len(ai_text)} chars)")
-
-                yield (
-                    f"event: text_chunk\ndata: {json.dumps({'message': ai_text, 'modality': result.get('modality'), 'confidence': result.get('confidence', 0.8)})}\n\n"
-                )
-
-                if request.avatar_visible and ai_text:
-                    mood = _detect_emotion(ai_text)
-                    yield (
-                        f"event: avatar_ready\ndata: {json.dumps({'animation': 'Talking_0', 'facial_expression': mood['facial_expression']})}\n\n"
-                    )
-
-                if request.session_id:
-                    _maybe_trigger_memory(request.session_id, user_id, content_locale=request.language)
-                    count = get_hybrid_message_count(request.session_id)
-                    if count > 0 and count % (MEMORY_TRIGGER_INTERVAL * 3) == 0:
-                        threading.Thread(
-                            target=_run_session_end_jobs,
-                            args=(request.session_id, user_id),
-                            daemon=True,
-                        ).start()
-
-                    # Game → mem0 memory bridge
-                    if context["user_activities"]:
-                        threading.Thread(
-                            target=_extract_game_insights_for_memory,
-                            args=(context["user_activities"], user_id),
-                            daemon=True,
-                        ).start()
-
-                yield f"event: complete\ndata: {json.dumps({'status': 'success'})}\n\n"
-
             except Exception as exc:
-                logger.error(f"❌ [STREAM] Generator error: {exc}")
+                logger.exception(f"❌ [STREAM] MITRA pipeline error: {exc}")
+                raise
+
+        pipeline_task = asyncio.create_task(_run_pipeline())
+
+        try:
+            # Forward every provider delta straight to the client. Frontends
+            # that need sentence-level dispatch (Presence avatar TTS) do
+            # their own Unicode-aware sentence segmentation client-side.
+            # Doing it here as well only delays the first audible byte by
+            # the length of a sentence (often 5-9 s on `gpt-5-mini`).
+            while True:
+                if pipeline_task.done() and chunk_q.empty():
+                    break
+                try:
+                    chunk = await asyncio.wait_for(chunk_q.get(), timeout=0.05)
+                except asyncio.TimeoutError:
+                    continue
+                yield f"event: text_chunk_delta\ndata: {json.dumps({'chunk': chunk})}\n\n"
+
+            try:
+                result = await pipeline_task
+            except Exception as exc:
                 yield f"event: error\ndata: {json.dumps({'error': str(exc)})}\n\n"
+                return
 
-        return StreamingResponse(
-            event_generator(),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
-        )
+            ai_text = result.get("message", "")
+            insights = result.get("session_insights") or {}
+            logger.info(
+                f"✅ [STREAM] response ready chars={len(ai_text)} "
+                f"intent={insights.get('intent')} stance={insights.get('stance')}"
+            )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ [STREAM] Setup failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Streaming failed: {str(e)}")
+            yield (
+                "event: text_chunk\ndata: "
+                + json.dumps({
+                    "message": ai_text,
+                    "modality": result.get("modality", "therapy"),
+                    "confidence": result.get("confidence", 0.85),
+                    "session_insights": insights,
+                })
+                + "\n\n"
+            )
+
+            if request.avatar_visible and ai_text:
+                mood = _detect_emotion(ai_text)
+                yield (
+                    "event: avatar_ready\ndata: "
+                    + json.dumps({
+                        "animation": "Talking_0",
+                        "facial_expression": mood["facial_expression"],
+                    })
+                    + "\n\n"
+                )
+
+            if request.session_id:
+                session_message_counters[request.session_id] += 1
+                count = get_hybrid_message_count(request.session_id, user_id)
+                _maybe_kick_consolidation(request.session_id, user_id, count)
+
+            yield "event: complete\ndata: " + json.dumps({"status": "success"}) + "\n\n"
+
+        except Exception as exc:
+            logger.exception(f"❌ [STREAM] generator crashed: {exc}")
+            yield f"event: error\ndata: {json.dumps({'error': str(exc)})}\n\n"
+        finally:
+            if not pipeline_task.done():
+                pipeline_task.cancel()
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @router.post("/chat/end-session")
@@ -728,23 +573,13 @@ async def end_session(
     request: EndSessionRequest,
     authorization: str = Header(None),
 ):
-    """Trigger session-end jobs (save summary, procedural synthesis, reflections) explicitly when chat closes."""
-    try:
-        user_id = await validate_user_token(authorization, supabase_client)
-        logger.info(f"🏁 [END-SESSION] Explicit user closure: user={user_id}, session={request.session_id}")
-        
-        # Fire-and-forget background jobs normally deferred by Modulo 36
-        import threading
-        threading.Thread(
-            target=_run_session_end_jobs,
-            args=(request.session_id, user_id),
-            daemon=True,
-        ).start()
-
-        return {"status": "queued", "session_id": request.session_id, "message": "Session wrap-up jobs initiated successfully."}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ [END-SESSION] Failed to queue jobs: {e}")
-        raise HTTPException(status_code=500, detail=f"End session failed: {str(e)}")
+    """Explicit session close — kicks the consolidation worker right now."""
+    user_id = await validate_user_token(authorization, supabase_client)
+    logger.info(f"🏁 [END-SESSION] user={user_id[:8]} session={(request.session_id or '-')[:8]}")
+    if request.session_id:
+        # Force a consolidation regardless of the message-count modulo.
+        spawn_correlated_thread(
+            target=lambda: _maybe_kick_consolidation(request.session_id, user_id, 12),
+            name="end-session-consolidation",
+        )
+    return {"status": "queued", "session_id": request.session_id}

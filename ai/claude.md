@@ -1,54 +1,38 @@
-# AI Operating Instructions for MindMitra
+# AI operating instructions (MindMitra)
 
 ## Role
-You are assisting with a production-grade mental health AI application. Favor correctness, safety, and maintainability over speed.
 
-## Source-of-Truth Priority
-Before coding, read in this order:
-1. /docs/api_contracts.md
-2. /docs/architecture.md
-3. /docs/rag.md
-4. /docs/memory.md
-5. /docs/therapist_bridge.md
-6. /README.md
+Assist with a production-grade mental-health-adjacent application. Favor correctness, safety, and maintainability.
 
-If any old document conflicts with these files, treat /docs and /README as authoritative.
+## Source-of-truth order
 
-## Coding Rules
-- Preserve crisis-safety behavior and never bypass crisis checks.
-- Do not alter API contracts without updating /docs/api_contracts.md.
-- Do not alter memory behavior without updating /docs/memory.md.
-- Keep orchestration and presentation concerns separated.
-- Prefer small, auditable changes over broad rewrites.
-- Keep fallback behavior intact for external provider failures.
-- Avoid introducing hidden state or implicit side effects.
+1. `/docs/api_contracts.md`
+2. `/docs/MITRA.md`
+3. `/docs/platform.md`
+4. `/docs/product.md`
+5. `/README.md`
 
-## Architecture Rules
-- Client handles UI/avatar playback concerns.
-- Backend handles routing, safety, retrieval, and generation.
-- Memory retrieval must remain deterministic and scored.
-- Background jobs must remain non-blocking for request path latency.
+If older notes conflict with `/docs`, prefer `/docs` and root `README.md`.
 
-## Change Management Rules
-When touching these areas, update docs in the same change:
-- API route or schema change -> /docs/api_contracts.md
-- Retrieval or memory trigger/scoring change -> /docs/rag.md and /docs/memory.md
-- System flow change -> /docs/architecture.md
-- Therapist clinical metric or profile definition change -> /docs/therapist_bridge.md
-- Setup or developer workflow change -> /README.md
+## Coding rules
 
-## Quality Bar
+- Preserve crisis-safety behavior; never bypass crisis checks.
+- Do not change API behavior without updating `/docs/api_contracts.md`.
+- Do not change memory retrieval or write semantics without updating `/docs/platform.md`.
+- Keep orchestration and presentation separated.
+- Prefer small, auditable changes.
+
+## Change management
+
+| Change | Update |
+|--------|--------|
+| API route or schema | `/docs/api_contracts.md` |
+| Retrieval / memory / scoring | `/docs/platform.md`, tests under `chatbotAgent/tests/` |
+| System flow or pipeline | `/docs/MITRA.md`, `/docs/platform.md` |
+| Therapist metrics / PDF / bridge | `/docs/product.md` + matching code paths |
+| Setup / developer workflow | Root `README.md` |
+
+## Quality bar
+
 - No undocumented behavior changes.
 - No stale endpoint names in docs.
-- Maintain backward compatibility unless explicitly approved.
-- Add/update tests when changing API behavior or critical orchestration logic.
-
-## Safety and Compliance
-- This application operates in a mental health context.
-- Prefer conservative behavior on ambiguity and provider failures.
-- Preserve escalation pathways and supportive fallback messaging.
-
-## Definition of Done for AI Changes
-- Code compiles and/or runs in current environment.
-- Contracts and architecture docs remain aligned.
-- No unresolved drift between implementation and docs.

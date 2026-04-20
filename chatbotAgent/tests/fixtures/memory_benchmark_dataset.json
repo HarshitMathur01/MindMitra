@@ -1,0 +1,384 @@
+{
+  "version": "1.0",
+  "description": "Gold-label episodic retrieval scenarios for MITRA memory v2 (offline stub embeddings).",
+  "evaluation_design": {
+    "retrieval_metrics": {
+      "precision_at_k": "Fraction of top-k retrieved slots labelled relevant (binary labels via hidden theme tags).",
+      "recall_at_k": "Fraction of all gold-relevant memories that appear in top-k.",
+      "hit_at_k": "1 if at least one relevant memory appears in top-k (0 if none).",
+      "reciprocal_rank": "1/rank of first relevant retrieved item; 0 if none.",
+      "ndcg_at_k": "Normalized DCG with binary gains; ideal = all relevant items at top (Jarvelin & Kekalainen, 2002)."
+    },
+    "limitations": [
+      "Stub hash embeddings differ from production sentence embeddings — run periodic smoke tests against real Qdrant + embedder.",
+      "Binary relevance tags are coarse; LLM judge adds a second signal but is not ground truth.",
+      "off_topic_same_user penalises any retrieval — embedding models often still return near-neighbours; read false_positive_retrieval."
+    ],
+    "judge_usage": "Set MEMORY_BENCH_USE_JUDGE=true; GROQ_API_KEY is read from the environment. The retrieval judge module loads chatbotAgent/.env then repo-root .env (override=false), same pattern as tests/llm_judge.py."
+  },
+  "cases": [
+    {
+      "id": "ret_simple_two_memories",
+      "difficulty": "simple",
+      "user_id": "bench_ret_simple_two_memories",
+      "description": "Two distinct topics; query should pull work stress not hobby.",
+      "corpus": [
+        {
+          "memory_id": "m_work",
+          "summary": "User feels burned out from night shifts at the hospital residency program.",
+          "themes": ["work", "burnout"],
+          "importance": 0.75,
+          "affect_label": "tired"
+        },
+        {
+          "memory_id": "m_hobby",
+          "summary": "User enjoys weekend birdwatching at Okhla sanctuary with a new pair of binoculars.",
+          "themes": ["hobby", "nature"],
+          "importance": 0.5
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q1",
+          "text": "I'm still exhausted from work — what did I say about my job situation?",
+          "relevant_memory_ids": ["m_work"],
+          "k": 5
+        }
+      ]
+    },
+    {
+      "id": "ret_simple_paraphrase",
+      "difficulty": "simple",
+      "user_id": "bench_ret_simple_paraphrase",
+      "description": "Single memory; paraphrased query.",
+      "corpus": [
+        {
+          "memory_id": "m1",
+          "summary": "User prefers being called Riya instead of their legal name on documents.",
+          "themes": ["identity", "name"],
+          "importance": 0.6
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q1",
+          "text": "What name should you use when talking to me?",
+          "relevant_memory_ids": ["m1"],
+          "k": 4
+        }
+      ]
+    },
+    {
+      "id": "ret_simple_user_isolation",
+      "difficulty": "simple",
+      "user_id": "bench_user_a_isolation",
+      "description": "Cross-user isolation: same text corpus for two users; other user must get empty retrieval.",
+      "corpus": [
+        {
+          "memory_id": "secret",
+          "summary": "User disclosed they are preparing for UPSC mains in Hindi medium.",
+          "themes": ["exams", "career"],
+          "importance": 0.8
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q_cross_user",
+          "text": "What exam am I preparing for?",
+          "retrieve_as_user_id": "bench_user_b_no_data",
+          "relevant_memory_ids": [],
+          "expects_no_relevant_retrieval": true,
+          "k": 5
+        }
+      ]
+    },
+    {
+      "id": "ret_medium_multi_relevant",
+      "difficulty": "medium",
+      "user_id": "bench_ret_medium_multi",
+      "description": "Several memories; query should surface two related to family conflict.",
+      "corpus": [
+        {
+          "memory_id": "fam1",
+          "summary": "User argued with their father about career choice after dinner.",
+          "themes": ["family", "conflict"],
+          "importance": 0.7
+        },
+        {
+          "memory_id": "fam2",
+          "summary": "User said their mother supports studying abroad but father wants local college.",
+          "themes": ["family", "parents"],
+          "importance": 0.72
+        },
+        {
+          "memory_id": "sport",
+          "summary": "User joined a weekend cricket league to decompress.",
+          "themes": ["sport"],
+          "importance": 0.45
+        },
+        {
+          "memory_id": "sleep",
+          "summary": "User tracks sleep with a phone app averaging six hours.",
+          "themes": ["sleep"],
+          "importance": 0.5
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q_family",
+          "text": "Remind me what tension came up with my parents about studies.",
+          "relevant_memory_ids": ["fam1", "fam2"],
+          "k": 6
+        }
+      ]
+    },
+    {
+      "id": "ret_medium_stress_disambiguation",
+      "difficulty": "medium",
+      "user_id": "bench_ret_medium_disambig",
+      "description": "Two stress topics — query targets workplace not relationship.",
+      "corpus": [
+        {
+          "memory_id": "job",
+          "summary": "User's manager moved deadlines forward twice this sprint and they feel panicky.",
+          "themes": ["work", "stress"],
+          "importance": 0.78
+        },
+        {
+          "memory_id": "partner",
+          "summary": "User had a tense phone call with their partner about festival plans.",
+          "themes": ["relationship", "stress"],
+          "importance": 0.65
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q_work",
+          "text": "Why am I stressed at work specifically?",
+          "relevant_memory_ids": ["job"],
+          "k": 4
+        }
+      ]
+    },
+    {
+      "id": "ret_medium_hinglish_query",
+      "difficulty": "medium",
+      "user_id": "bench_ret_hinglish",
+      "description": "Memory in mixed Hindi-English; English query.",
+      "corpus": [
+        {
+          "memory_id": "h1",
+          "summary": "User bola ki Dilli me PG rent bahut zyada hai aur savings nahi bachti.",
+          "themes": ["money", "housing"],
+          "importance": 0.7
+        },
+        {
+          "memory_id": "h2",
+          "summary": "User started cooking daal more often to save money.",
+          "themes": ["food"],
+          "importance": 0.4
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q_rent",
+          "text": "What did I say about rent and savings in Delhi?",
+          "relevant_memory_ids": ["h1"],
+          "k": 5
+        }
+      ]
+    },
+    {
+      "id": "ret_medium_off_topic_penalty",
+      "difficulty": "medium",
+      "user_id": "bench_ret_off_topic",
+      "description": "Off-topic query vs on-topic memories — expect silence_preferred; may fail with stub embedder (documented).",
+      "corpus": [
+        {
+          "memory_id": "a",
+          "summary": "User worried about CBSE board marks.",
+          "themes": ["school"],
+          "importance": 0.6
+        },
+        {
+          "memory_id": "b",
+          "summary": "User likes monsoon drives to Lonavala.",
+          "themes": ["travel"],
+          "importance": 0.5
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q_mars",
+          "text": "What is the orbital period of Mars in Earth days?",
+          "relevant_memory_ids": [],
+          "expects_no_relevant_retrieval": true,
+          "off_topic_same_user": true,
+          "k": 5
+        }
+      ]
+    },
+    {
+      "id": "ret_complex_many_distractors",
+      "difficulty": "complex",
+      "user_id": "bench_ret_complex_many",
+      "description": "Many distractors; two gold memories about therapy boundary.",
+      "corpus": [
+        {
+          "memory_id": "g1",
+          "summary": "User asked whether messages to the bot are confidential when parents check the phone.",
+          "themes": ["privacy", "therapy"],
+          "importance": 0.85
+        },
+        {
+          "memory_id": "g2",
+          "summary": "User said they want a therapist who understands queer identity in small towns.",
+          "themes": ["therapy", "identity"],
+          "importance": 0.82
+        },
+        {
+          "memory_id": "d1",
+          "summary": "User bought noise-cancelling earphones for metro commute.",
+          "themes": ["shopping"],
+          "importance": 0.35
+        },
+        {
+          "memory_id": "d2",
+          "summary": "User is learning tabla on weekends.",
+          "themes": ["music"],
+          "importance": 0.4
+        },
+        {
+          "memory_id": "d3",
+          "summary": "User's friend moved to Bengaluru for a startup job.",
+          "themes": ["friends"],
+          "importance": 0.38
+        },
+        {
+          "memory_id": "d4",
+          "summary": "User skipped breakfast often during exam week.",
+          "themes": ["health"],
+          "importance": 0.42
+        },
+        {
+          "memory_id": "d5",
+          "summary": "User watches comfort shows before sleep.",
+          "themes": ["routine"],
+          "importance": 0.33
+        },
+        {
+          "memory_id": "d6",
+          "summary": "User plans to visit grandparents in Pune next month.",
+          "themes": ["travel"],
+          "importance": 0.36
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q_therapy_privacy",
+          "text": "What were my concerns about getting support while staying private from family?",
+          "relevant_memory_ids": ["g1", "g2"],
+          "k": 8
+        }
+      ]
+    },
+    {
+      "id": "ret_complex_similar_entities",
+      "difficulty": "complex",
+      "user_id": "bench_ret_complex_entities",
+      "description": "Two people with similar roles — query must pick correct sister.",
+      "corpus": [
+        {
+          "memory_id": "sis_riya",
+          "summary": "User's younger sister Riya is applying to medical schools in Karnataka.",
+          "themes": ["family", "sister", "education"],
+          "importance": 0.7
+        },
+        {
+          "memory_id": "sis_priya",
+          "summary": "User's cousin Priya works as a dental hygienist in Chennai.",
+          "themes": ["family", "cousin", "work"],
+          "importance": 0.68
+        },
+        {
+          "memory_id": "self_exam",
+          "summary": "User is studying for NEET themselves in the evenings.",
+          "themes": ["education"],
+          "importance": 0.65
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q_riya",
+          "text": "Where is my sister applying for medical school?",
+          "relevant_memory_ids": ["sis_riya"],
+          "k": 5
+        }
+      ]
+    },
+    {
+      "id": "ret_complex_affective_probe",
+      "difficulty": "complex",
+      "user_id": "bench_ret_affective",
+      "description": "Optional VAD passed to retrieve (if supported) — emotional resonance path.",
+      "corpus": [
+        {
+          "memory_id": "loss",
+          "summary": "User described grief after losing their grandmother last winter.",
+          "themes": ["grief", "family"],
+          "importance": 0.9,
+          "affect_label": "sad"
+        },
+        {
+          "memory_id": "exam",
+          "summary": "User felt relieved after finishing internal exams.",
+          "themes": ["school"],
+          "importance": 0.5
+        }
+      ],
+      "queries": [
+        {
+          "query_id": "q_grief",
+          "text": "I feel heavy tonight thinking about loss — what did I share before?",
+          "relevant_memory_ids": ["loss"],
+          "k": 4,
+          "current_vad": { "v": -0.7, "a": 0.4, "d": -0.3 }
+        }
+      ]
+    }
+  ],
+  "extraction_scenarios": [
+    {
+      "id": "ext_simple_chit_chat",
+      "difficulty": "simple",
+      "description": "Generic opener — importance scorer should not flag as durable episodic memory.",
+      "user_turns": [
+        "Hi",
+        "Thanks",
+        "Ok"
+      ],
+      "expect_memorable_turns": false
+    },
+    {
+      "id": "ext_medium_self_disclosure",
+      "difficulty": "medium",
+      "description": "Clear self-disclosure — should be memorable by heuristics.",
+      "user_turns": [
+        "I haven't told anyone but I self-harmed last week after a fight at home."
+      ],
+      "expect_memorable_turns": true,
+      "keywords_any": ["harm", "home", "fight"]
+    },
+    {
+      "id": "ext_complex_named_commitment",
+      "difficulty": "complex",
+      "description": "Named person + commitment — extractor prompt targets these (validate via integration with mocked JSON).",
+      "user_turns": [
+        "I promised my therapist Dr. Mehta that I would text a friend before acting on impulses.",
+        "Also I'm trying to call my brother Arjun once a week."
+      ],
+      "expect_memorable_turns": true,
+      "keywords_any": ["therapist", "promised", "Arjun"]
+    }
+  ]
+}

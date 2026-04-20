@@ -58,7 +58,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"   QDRANT_COLLECTION:        {os.getenv('QDRANT_COLLECTION', 'companion_memories (default)')}")
     logger.info(f"   ELEVENLABS_API_KEY:       {'✅' if os.getenv('ELEVENLABS_API_KEY') else '⚠️  Not set (gTTS fallback)'}")
     logger.info(f"   GOOGLE_CREDENTIALS:       {'✅ base64' if os.getenv('GOOGLE_CREDENTIALS_BASE64') else ('✅ file' if os.getenv('GOOGLE_APPLICATION_CREDENTIALS') else '⚠️  Not set (gTTS fallback)')}")
+    logger.info(f"   OTEL_SERVICE_NAME:        {os.getenv('OTEL_SERVICE_NAME', '⚠️  Not set (spans no-op)')}")
     logger.info("=" * 70)
+
+    # Lazy-initialise telemetry; safe even when opentelemetry-sdk is absent.
+    try:
+        from app.core.telemetry import init_telemetry
+        init_telemetry()
+    except Exception as exc:  # noqa: BLE001
+        logger.info("telemetry init skipped: %s", exc)
+
+    # NOTE: Praat (parselmouth) is intentionally NOT imported here. Native
+    # libraries that may stall under macOS Gatekeeper or hold the GIL must
+    # never be loaded inside the FastAPI lifespan or the request hot path.
+    # See docs/MITRA.md → "Future Work" for the
+    # subprocess-based recipe to re-enable prosody safely.
+
     yield
 
 
@@ -150,10 +165,12 @@ app.add_middleware(
 from app.api.chat import router as chat_router
 from app.api.onboarding import router as onboarding_router
 from app.api.therapist_bridge import router as therapist_bridge_router
+from app.api.me_memory import router as me_memory_router
 
 app.include_router(chat_router)
 app.include_router(onboarding_router)
 app.include_router(therapist_bridge_router)
+app.include_router(me_memory_router)
 
 
 

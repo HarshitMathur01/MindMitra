@@ -8,6 +8,7 @@ import {
     Download,
     User,
     Globe,
+    Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,13 @@ interface ChatHeaderBarProps {
     onToggleSidebar: () => void;
     isAvatarVisible: boolean;
     onToggleAvatar: () => void;
+    /**
+     * Phase 1 entry point for full-screen Presence Mode.
+     * Distinct from `onToggleAvatar` (legacy half-pane mount) so we
+     * can deprecate the half-pane gracefully without breaking existing
+     * users mid-transition.
+     */
+    onEnterPresenceMode: () => void;
     selectedAvatar: AvatarOption;
     selectedAvatarId: string;
     onSelectAvatar: (id: string) => void;
@@ -56,6 +64,7 @@ const ChatHeaderBar = ({
     onToggleSidebar,
     isAvatarVisible,
     onToggleAvatar,
+    onEnterPresenceMode,
     selectedAvatar,
     selectedAvatarId,
     onSelectAvatar,
@@ -127,24 +136,41 @@ const ChatHeaderBar = ({
             </div>
 
             <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
-                {/* Avatar eye-toggle — visible on every breakpoint. */}
+                {/* Be with Mitra — full-screen Presence Mode entry. (Phase 1)
+                    Surfaced as the primary visual call-to-action; the
+                    legacy half-pane avatar toggle moves into the overflow
+                    menu in a future phase but stays here for continuity. */}
                 <Button
                     variant="outline"
                     size="sm"
-                    className={`flex-shrink-0 bg-card border-border gap-2 transition-all duration-200 ${
+                    className="flex-shrink-0 gap-1.5 sm:gap-2 border-[hsl(var(--accent-300))]/40 bg-[hsl(var(--accent-100))]/30 text-[hsl(var(--accent-700))] hover:bg-[hsl(var(--accent-100))]/50 hover:border-[hsl(var(--accent-400))]/50 transition-all duration-200"
+                    onClick={onEnterPresenceMode}
+                    aria-label="Open Presence Mode — full-screen voice conversation"
+                >
+                    <Sparkles className="h-4 w-4" />
+                    <span className="font-medium hidden sm:inline">Be with Mitra</span>
+                </Button>
+
+                {/* Avatar eye-toggle (legacy half-pane). Hidden on the
+                    smallest screens to keep the header readable; long-term
+                    this collapses into the overflow menu. */}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className={`hidden md:inline-flex flex-shrink-0 bg-card border-border gap-2 transition-all duration-200 ${
                         isAvatarVisible ? "border-primary/30" : ""
                     }`}
                     onClick={onToggleAvatar}
                     aria-pressed={isAvatarVisible}
-                    aria-label={isAvatarVisible ? "Hide avatar" : "Show avatar"}
+                    aria-label={isAvatarVisible ? "Hide avatar pane" : "Show avatar pane"}
                 >
                     {isAvatarVisible ? (
                         <Eye className="h-4 w-4 text-primary" />
                     ) : (
                         <EyeOff className="h-4 w-4 text-muted-foreground" />
                     )}
-                    <span className="font-medium hidden sm:inline">
-                        {isAvatarVisible ? "Hide avatar" : "Show avatar"}
+                    <span className="font-medium hidden lg:inline">
+                        {isAvatarVisible ? "Hide pane" : "Side avatar"}
                     </span>
                 </Button>
 

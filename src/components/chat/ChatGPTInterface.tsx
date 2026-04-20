@@ -38,6 +38,7 @@ import ChatComposer from "./ChatComposer";
 import ChatEmptyState from "./ChatEmptyState";
 import ChatThinking from "./ChatThinking";
 import ChatContinueRibbon from "./ChatContinueRibbon";
+import PresenceMode from "./PresenceMode";
 
 import {
     CHAT_MESSAGE_SPRING,
@@ -105,6 +106,7 @@ const ChatGPTInterface = () => {
         isRecording,
         isProcessing,
         toggleRecording,
+        cancelRecording,
         currentTranscript,
         lastVoiceAnalysis,
     } = useVoiceRecording(getSttLocale(settings?.language));
@@ -113,7 +115,13 @@ const ChatGPTInterface = () => {
         toggleAvatar,
         addAvatarMessage,
         message: avatarCurrentMessage,
+        isPresenceMode,
+        enterPresenceMode,
     } = useChat();
+    // Azure TTS key gates voice — mirror the check in useVoiceRecording so
+    // we can render a "disabled" MicFAB instead of letting the user tap into
+    // a silent failure inside Presence Mode.
+    const voiceSupported = Boolean(import.meta.env.VITE_AZURE_TTS_KEY);
 
     const navigate = useNavigate();
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -123,6 +131,23 @@ const ChatGPTInterface = () => {
     const voiceSilenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastTranscriptRef = useRef("");
     const isAutoStoppingRef = useRef(false);
+    // ── Stream lifecycle guards ─────────────────────────────────────────────
+    // The chat stream is a long-running SSE `fetch` whose `while`-loop can
+    // outlive the React component (or worse, the active session). Without
+    // these guards we'd write to a stale `messages` array, push tokens into
+    // the avatar pipeline for a session the user already left, or trigger
+    // toasts on an unmounted component.
+    //
+    //   - `streamAbortRef` lets us cancel the in-flight fetch on unmount,
+    //     "New chat", or session switch.
+    //   - `mountedRef` is consulted before every state update inside the
+    //     stream loop so post-unmount writes are no-ops.
+    //   - `consecutiveSaveFailuresRef` debounces persistence-failure
+    //     toasts so a transient Supabase outage doesn't spam the user.
+    const streamAbortRef = useRef<AbortController | null>(null);
+    const mountedRef = useRef(true);
+    const consecutiveSaveFailuresRef = useRef(0);
+    const lastSaveFailureToastAtRef = useRef(0);
 
     // ── Derived ─────────────────────────────────────────────────────────────
     const moodOptions = useMemo(
@@ -309,8 +334,14 @@ const ChatGPTInterface = () => {
         }
     };
 
+    // Auto-stop voice + send. Fires when the user pauses for 1.5s during
+    // an avatar-driven conversation (legacy half-pane OR Presence Mode).
+    // The 1.5s threshold is a deliberate, research-backed choice for the
+    // mental-health context: users in distress frequently take longer
+    // pauses than in transactional voice UI (see CITATIONS.md, IJERT 2024).
     useEffect(() => {
-        if (!isRecording || !isAvatarVisible) {
+        const voiceLoopActive = isRecording && (isAvatarVisible || isPresenceMode);
+        if (!voiceLoopActive) {
             clearVoiceSilenceTimer();
             lastTranscriptRef.current = "";
             return;
@@ -329,7 +360,7 @@ const ChatGPTInterface = () => {
             clearVoiceSilenceTimer();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isRecording, isAvatarVisible, currentTranscript, currentSessionId, voiceTempMsgId]);
+    }, [isRecording, isAvatarVisible, isPresenceMode, currentTranscript, currentSessionId, voiceTempMsgId]);
 
     useEffect(() => {
         return () => {
@@ -337,16 +368,46 @@ const ChatGPTInterface = () => {
         };
     }, []);
 
+    // Mount/unmount sentinel + stream cancellation. We MUST abort any
+    // in-flight SSE on unmount so the loop doesn't keep `setMessages`-ing
+    // a dead component (React 18 will warn, but more importantly the
+    // avatar pipeline would still fire for a session the user has left).
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            if (streamAbortRef.current) {
+                streamAbortRef.current.abort();
+                streamAbortRef.current = null;
+            }
+        };
+    }, []);
+
+    // Helper used inside async flows so we can break out cleanly when
+    // the user navigates away mid-request.
+    const abortActiveStream = () => {
+        if (streamAbortRef.current) {
+            streamAbortRef.current.abort();
+            streamAbortRef.current = null;
+        }
+    };
+
     // Reset the dismiss state when the session changes — each restored
     // session decides on its own merits whether to show the ribbon.
     useEffect(() => {
         setContinueDismissed(false);
     }, [currentSessionId]);
 
-    // ── Data layer (unchanged behavior) ────────────────────────────────────
-    const saveMessage = async (message: Message, sessionId: string) => {
+    // ── Data layer ─────────────────────────────────────────────────────────
+    // Persistence is the contract that lets MindMitra honor "memory" —
+    // dropping it silently breaks the entire personalisation loop. We
+    // therefore (a) attempt the insert, (b) count consecutive failures, and
+    // (c) surface a *single* calm toast after two back-to-back failures so
+    // the user knows their words may not be remembered, without screaming
+    // on every transient hiccup. Returns `true` on success.
+    const saveMessage = async (message: Message, sessionId: string): Promise<boolean> => {
+        if (!user) return false;
         try {
-            if (!user) return;
             const { error } = await supabase.from("chat_messages").insert({
                 user_id: user.id,
                 session_id: sessionId,
@@ -355,8 +416,28 @@ const ChatGPTInterface = () => {
                 role: message.sender === "user" ? "user" : "assistant",
             });
             if (error) throw error;
+            consecutiveSaveFailuresRef.current = 0;
+            return true;
         } catch (error) {
+            consecutiveSaveFailuresRef.current += 1;
             console.error("❌ Failed to save message:", error);
+            // Debounced user-facing notice: only after two consecutive
+            // failures, and at most once per 30s, so a flaky network
+            // doesn't drown the conversation in red toasts.
+            const now = Date.now();
+            if (
+                mountedRef.current &&
+                consecutiveSaveFailuresRef.current >= 2 &&
+                now - lastSaveFailureToastAtRef.current > 30_000
+            ) {
+                lastSaveFailureToastAtRef.current = now;
+                toast({
+                    title: "Couldn't save just now",
+                    description:
+                        "Your conversation is still on screen, but we're having trouble remembering it. We'll keep trying.",
+                });
+            }
+            return false;
         }
     };
 
@@ -445,6 +526,10 @@ const ChatGPTInterface = () => {
         if (currentSessionId === chatId && messages.length > 0) return;
         if (loadingSession) return;
 
+        // Cancel any in-flight chat stream from the previous session so
+        // its tokens don't bleed into the newly-loaded one.
+        abortActiveStream();
+        setIsLoading(false);
         setLoadingSession(true);
         try {
             setMessages([]);
@@ -503,6 +588,11 @@ const ChatGPTInterface = () => {
         setInputValue("");
         setIsLoading(true);
 
+        // Hoisted so the `finally` block can decide whether the stream
+        // it's cleaning up is still the active one (a newer send may
+        // have replaced it during the await chain below).
+        let streamController: AbortController | null = null;
+
         try {
             const {
                 data: { session },
@@ -531,6 +621,14 @@ const ChatGPTInterface = () => {
                 throw new Error("VITE_BACKEND_URL environment variable is not configured");
             }
 
+            // Abort any prior in-flight stream so a fast double-send (or a
+            // session switch mid-stream) cannot cross the wires. Then
+            // install a fresh controller that this loop can be cancelled
+            // by from anywhere — unmount, "New chat", `selectRecentChat`.
+            abortActiveStream();
+            streamController = new AbortController();
+            streamAbortRef.current = streamController;
+
             const response = await fetch(`${backendUrl}/chat/stream`, {
                 method: "POST",
                 headers: {
@@ -541,7 +639,10 @@ const ChatGPTInterface = () => {
                     user_message: textToSend,
                     session_id: sessionIdToUse,
                     voice_analysis: pendingVoiceAnalysisRef.current || null,
-                    audio_data: pendingAudioDataRef.current || null,
+                    // audio_data intentionally omitted — the chat path
+                    // doesn't consume raw audio; sending ~250KB base64
+                    // per voice turn is wasted bandwidth. The /transcribe
+                    // Whisper fallback uses its own POST when needed.
                     avatar_visible: isAvatarVisible,
                     personality:
                         settings?.companion_personality ||
@@ -550,6 +651,7 @@ const ChatGPTInterface = () => {
                     companion_name: settings?.companion_name || "Mitra",
                     language: settings?.language || "english",
                 }),
+                signal: streamController.signal,
             });
 
             if (!response.ok) {
@@ -574,10 +676,35 @@ const ChatGPTInterface = () => {
             let isFirstChunk = true;
             let sseLineBuffer = "";
 
+            // Presence mode: chat bubble still updates token-by-token below;
+            // avatar TTS/lip-sync is deferred until the full reply is known
+            // (single addAvatarMessage after the stream) so the iframe gets
+            // one coherent speakTextStream batch instead of staggered
+            // sentence queue entries that caused gaps between clips.
+
+            // `isStreamLive` collapses three "is the loop still relevant?"
+            // checks into one expression so each branch below stays tidy:
+            //   1. Component still mounted.
+            //   2. Stream not aborted (new send / unmount / session switch).
+            //   3. The session this stream was started for is still active.
+            const isStreamLive = () =>
+                mountedRef.current &&
+                streamController != null &&
+                !streamController.signal.aborted &&
+                localStorage.getItem(CHAT_STORAGE_KEYS.activeSessionId) === sessionIdToUse;
+
             if (reader) {
                 while (true) {
                     const { value, done: readerDone } = await reader.read();
                     if (readerDone) break;
+                    if (!isStreamLive()) {
+                        try {
+                            await reader.cancel();
+                        } catch {
+                            /* reader may already be released */
+                        }
+                        break;
+                    }
                     if (value) {
                         sseLineBuffer += decoder.decode(value, { stream: true });
                         const rawLines = sseLineBuffer.split("\n");
@@ -591,39 +718,37 @@ const ChatGPTInterface = () => {
                                 if (isFirstChunk && (sseData.chunk || sseData.message)) {
                                     isFirstChunk = false;
                                     setIsLoading(false);
-                                    const currentSessionCheck = localStorage.getItem(
-                                        CHAT_STORAGE_KEYS.activeSessionId,
-                                    );
-                                    if (currentSessionCheck === sessionIdToUse) {
+                                    if (isStreamLive()) {
                                         setMessages((prev) => [...prev, aiResponse]);
                                     }
                                 }
 
                                 if (sseData.chunk) {
                                     fullMessage += sseData.chunk;
-                                    setMessages((prev) =>
-                                        prev.map((msg) =>
-                                            msg.id === tempId ? { ...msg, content: fullMessage } : msg,
-                                        ),
-                                    );
+                                    if (isStreamLive()) {
+                                        setMessages((prev) =>
+                                            prev.map((msg) =>
+                                                msg.id === tempId ? { ...msg, content: fullMessage } : msg,
+                                            ),
+                                        );
+                                    }
                                 } else if (sseData.message) {
                                     if (isFirstChunk) {
                                         isFirstChunk = false;
                                         setIsLoading(false);
-                                        const currentSessionCheck = localStorage.getItem(
-                                            CHAT_STORAGE_KEYS.activeSessionId,
-                                        );
-                                        if (currentSessionCheck === sessionIdToUse) {
+                                        if (isStreamLive()) {
                                             setMessages((prev) => [...prev, aiResponse]);
                                         }
                                     }
                                     finalData = sseData;
                                     fullMessage = sseData.message;
-                                    setMessages((prev) =>
-                                        prev.map((msg) =>
-                                            msg.id === tempId ? { ...msg, content: fullMessage } : msg,
-                                        ),
-                                    );
+                                    if (isStreamLive()) {
+                                        setMessages((prev) =>
+                                            prev.map((msg) =>
+                                                msg.id === tempId ? { ...msg, content: fullMessage } : msg,
+                                            ),
+                                        );
+                                    }
                                 } else if (sseData.error) {
                                     console.error("SSE Error:", sseData.error);
                                 }
@@ -633,6 +758,15 @@ const ChatGPTInterface = () => {
                         }
                     }
                 }
+            }
+
+            // If the stream was abandoned (unmount, session switch, new
+            // send) bail out before doing any of the post-stream work.
+            // Otherwise we'd push a final message into the avatar pipeline
+            // for a session the user has already left — exactly the bug
+            // the AbortController is here to prevent.
+            if (!isStreamLive()) {
+                return;
             }
 
             const data = finalData;
@@ -651,20 +785,115 @@ const ChatGPTInterface = () => {
                 console.error("❌ Background save failed:", err),
             );
 
-            setTimeout(async () => {
-                await loadRecentChats();
+            // `loadRecentChats` updates sidebar state — only schedule it
+            // if the component is still mounted, and capture the timer so
+            // it can be cleared on unmount via the controller.
+            const refreshTimer = window.setTimeout(() => {
+                if (mountedRef.current) loadRecentChats();
             }, 1000);
+            streamController?.signal.addEventListener("abort", () =>
+                window.clearTimeout(refreshTimer),
+            );
         } catch (error) {
+            // A user-initiated abort is *not* an error — silently swallow it.
+            if (error instanceof DOMException && error.name === "AbortError") {
+                return;
+            }
             console.error("❌ Error sending message:", error);
+            if (!mountedRef.current) return;
             toast({
                 title: "Error",
                 description: "Failed to get AI response. Please try again.",
                 variant: "destructive",
             });
         } finally {
-            setIsLoading(false);
+            // Match the loading flag to component liveness so unmounted
+            // components don't try to flip state.
+            if (mountedRef.current) setIsLoading(false);
+            // Clear the controller only if it's still ours — a newer
+            // request may have replaced it during this call.
+            if (streamController && streamAbortRef.current === streamController) {
+                streamAbortRef.current = null;
+            }
+            // Drop the captured voice payload so the next (possibly typed)
+            // turn doesn't re-attach stale Azure metrics or audio.
+            pendingVoiceAnalysisRef.current = null;
+            pendingAudioDataRef.current = null;
         }
     };
+
+    /**
+     * Voice handler dedicated to Presence Mode.
+     *
+     * Differs from `handleVoiceInput` in two ways:
+     *   1. It does NOT add a "🎤 Recording…" temporary chat bubble — the
+     *      MicFAB + interim transcript caption inside the overlay are the
+     *      visual feedback channel for Presence Mode.
+     *   2. On stop, it sends through `handleSendMessage` directly and
+     *      relies on the existing avatar pipeline to play the response.
+     */
+    const handlePresenceMicTap = async () => {
+        if (!voiceSupported) return;
+        try {
+            if (isRecording) {
+                await stopVoiceRecordingAndSend();
+            } else {
+                clearVoiceSilenceTimer();
+                lastTranscriptRef.current = "";
+                await toggleRecording(currentSessionId || undefined, undefined);
+            }
+        } catch (err) {
+            console.error("❌ [Presence] Mic tap error:", err);
+        }
+    };
+
+    /**
+     * Derive a single MicState for the FAB. Order matters — `processing`
+     * must trump `speaking` so the loader doesn't disappear while the
+     * round-trip is still mid-flight.
+     */
+    const micState = (() => {
+        if (!voiceSupported) return "disabled" as const;
+        if (isProcessing || (isLoading && !avatarCurrentMessage)) return "processing" as const;
+        if (isRecording) return "listening" as const;
+        if (avatarCurrentMessage) return "speaking" as const;
+        return "idle" as const;
+    })();
+
+    /**
+     * Auto-start the mic ~1.5s after entering Presence Mode.
+     * The pause is intentional: it gives the user a "breath" to see
+     * the avatar and feel oriented before the mic engages — this is
+     * the difference between "pleasant" and "jarring" voice UI.
+     * On exit, ensure any in-flight recording is stopped cleanly.
+     */
+    useEffect(() => {
+        if (!isPresenceMode) return;
+        if (!voiceSupported) return;
+
+        const startDelay = window.setTimeout(() => {
+            if (isPresenceMode && !isRecording && !isProcessing) {
+                handlePresenceMicTap();
+            }
+        }, 1500);
+
+        return () => {
+            window.clearTimeout(startDelay);
+            // If user is exiting and we're still recording, cancel
+            // cleanly — don't auto-send half a sentence the user
+            // didn't intend to be heard.
+            clearVoiceSilenceTimer();
+            isAutoStoppingRef.current = false;
+            if (isRecording) {
+                try {
+                    cancelRecording();
+                } catch (err) {
+                    console.warn("⚠️ [Presence] cancelRecording on exit failed:", err);
+                }
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPresenceMode]);
 
     const handleVoiceInput = async () => {
         try {
@@ -704,6 +933,10 @@ const ChatGPTInterface = () => {
     };
 
     const startNewChat = async () => {
+        // "New chat" must hard-cancel any pending stream so its trailing
+        // tokens don't show up in the freshly minted session.
+        abortActiveStream();
+        setIsLoading(false);
         const newSessionId = crypto.randomUUID();
         setMessages([]);
         setCurrentSessionId(newSessionId);
@@ -800,6 +1033,12 @@ const ChatGPTInterface = () => {
                         toggleAvatar();
                         if (isAvatarVisible) setTranscribingMsgId(null);
                     }}
+                    onEnterPresenceMode={() => {
+                        trackProductEvent("presence_mode_entered", {
+                            from: "chat_header",
+                        });
+                        enterPresenceMode();
+                    }}
                     selectedAvatar={selectedAvatar}
                     selectedAvatarId={selectedAvatarId}
                     onSelectAvatar={(id) => {
@@ -849,7 +1088,10 @@ const ChatGPTInterface = () => {
                 />
 
                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
-                    {isAvatarVisible && (
+                    {/* Half-pane avatar (legacy). Suppressed while
+                        Presence Mode is active so we don't mount two
+                        TalkingHeadAvatar iframes simultaneously. */}
+                    {isAvatarVisible && !isPresenceMode && (
                         <div className="relative bg-background border-b border-border lg:border-b-0 lg:border-r lg:w-5/12 min-h-0 shrink-0 overflow-hidden max-h-[38vh] lg:max-h-none">
                             <TalkingHeadAvatar
                                 key={`${selectedAvatarId}-${settings?.language}`}
@@ -1022,6 +1264,20 @@ const ChatGPTInterface = () => {
                     showSafetyRail
                 />
             </div>
+
+            {/* Phase 1 — Presence Mode full-screen overlay.
+                Mounts a single TalkingHeadAvatar inside a calm sage
+                bust-shot frame. Phase 2 adds VAD + MicFAB; Phase 3
+                adds bust camera + sentence streaming + subtitles;
+                Phase 4 adds polish (PiP, emotion badge, safety overlay). */}
+            <PresenceMode
+                avatarUrl={selectedAvatar.url}
+                ttsLang={voiceForLocale(settings?.language).ttsLang}
+                ttsVoice={voiceForLocale(settings?.language).ttsVoice}
+                micState={micState}
+                onMicTap={handlePresenceMicTap}
+                interimTranscript={currentTranscript}
+            />
 
             {/* Reference unused-but-kept hook returns to avoid silent
                 regressions if upstream refactors them — analytics layer

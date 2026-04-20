@@ -30,6 +30,17 @@ Unlike existing solutions, MindMitra is not a chatbot—it is a long-term conver
 A deeply personalized conversational buddy that users can talk to anytime—especially in moments of vulnerability.  
 It adapts to the user’s tone, emotional patterns, and communication style over time, creating a sense of being understood rather than “handled.”
 
+ --nHUMAN-CENTERED DESIGN (IMPORTANT)
+Design the system so it feels like:
+ “Someone who genuinely remembers and cares about you”
+ "Must feel like talking to real human. Have all qualities."
+Include:
+- emotional continuity across sessions
+- relationship evolution (avoid overfamiliarity early)
+- tone personalization
+- when to reference memory vs stay silent
+- Low Latency 
+
 ### 2. Human-like Interaction Layer
 A 3D avatar with voice-based interaction enhances emotional connection and engagement, making conversations feel natural and less clinical.
 

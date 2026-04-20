@@ -1,6 +1,15 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 const ChatContext = createContext(null);
+
+// Dev-only logger. We were previously logging full message previews on
+// every assistant turn to the production console — that's a low-grade
+// PII leak on a shared device and clutters Sentry/console signal. Use
+// this helper to keep the diagnostics during local development without
+// shipping them to users.
+const devLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) console.log(...args);
+};
 
 // ✅ EXPORTED - Helper function to detect sentiment from text for facial expressions
 export const detectSentiment = (text: string): string => {
@@ -80,14 +89,14 @@ export const detectSentiment = (text: string): string => {
 export const transformToAvatarMessage = (backendResponse: any) => {
   const text = backendResponse.message || backendResponse.text || backendResponse.content || "I'm here to help.";
   
-  console.log('🔄 [Transform] Backend response structure:', {
+  devLog('🔄 [Transform] Backend response structure:', {
     hasMessage: 'message' in backendResponse,
     hasAnimation: 'animation' in backendResponse,
     hasFacialExpression: 'facial_expression' in backendResponse,
   });
   
   const detectedSentiment = detectSentiment(text);
-  console.log(`🔄 [Transform] Detected sentiment from text: "${detectedSentiment}"`);
+  devLog(`🔄 [Transform] Detected sentiment from text: "${detectedSentiment}"`);
   
   const avatarMsg = {
     text: text,
@@ -95,7 +104,7 @@ export const transformToAvatarMessage = (backendResponse: any) => {
     facialExpression: backendResponse.facial_expression || detectedSentiment
   };
   
-  console.log('🔄 [Transform] Final avatar message:', {
+  devLog('🔄 [Transform] Final avatar message:', {
     textLength: avatarMsg.text.length,
     animation: avatarMsg.animation,
     facialExpression: avatarMsg.facialExpression
@@ -110,42 +119,68 @@ export const ChatProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [cameraZoomed, setCameraZoomed] = useState(true);
   const [isAvatarVisible, setIsAvatarVisible] = useState(false);
+  // ✅ Presence Mode — full-screen voice + face surface (Phase 1 skeleton).
+  // Distinct from `isAvatarVisible` (legacy half-pane avatar). When
+  // Presence Mode is active, the avatar is rendered ONLY inside the
+  // PresenceMode overlay (the half-pane is suppressed) to ensure we
+  // never mount two TalkingHeadAvatar iframes.
+  const [isPresenceMode, setIsPresenceMode] = useState(false);
+  // Remember whether avatar was visible before entering presence mode,
+  // so we can restore that state on exit (don't surprise the user).
+  const [avatarVisibleBeforePresence, setAvatarVisibleBeforePresence] = useState(false);
 
-  // ✅ NEW - Manually add message to avatar queue (for ChatGPTInterface to use)
-  // Replaces the queue with the latest message (discards backlog).
-  const addAvatarMessage = (messageContent: string | any) => {
-    console.log('🎭 [Avatar Queue] ═══════════════════════════════');
-    console.log('🎭 [Avatar Queue] Adding message to avatar');
-    
-    // Handle both string (legacy) and object (full backend response) inputs
-    const inputData = typeof messageContent === 'string' 
-      ? { content: messageContent } 
+  // We mirror `isAvatarVisible` and `avatarVisibleBeforePresence` in refs
+  // so callbacks below can read the latest values without listing them in
+  // their dep arrays. Without this, every flip of `isAvatarVisible` would
+  // cause `enterPresenceMode`/`toggleAvatar` to get a new identity, which
+  // in turn forces every consumer of the chat context to re-render —
+  // including the TalkingHead iframe wrapper, on every avatar token.
+  const isAvatarVisibleRef = useRef(isAvatarVisible);
+  const avatarVisibleBeforePresenceRef = useRef(avatarVisibleBeforePresence);
+  useEffect(() => {
+    isAvatarVisibleRef.current = isAvatarVisible;
+  }, [isAvatarVisible]);
+  useEffect(() => {
+    avatarVisibleBeforePresenceRef.current = avatarVisibleBeforePresence;
+  }, [avatarVisibleBeforePresence]);
+
+  // ── Avatar queue API ───────────────────────────────────────────────────
+  // All callbacks below are stable across renders so memoised consumers
+  // (e.g. TalkingHeadAvatar wrapped in React.memo in the future) don't
+  // re-render whenever the queue mutates.
+
+  /** Replaces the avatar queue with the latest message (discards backlog). */
+  const addAvatarMessage = useCallback((messageContent: string | any) => {
+    devLog('🎭 [Avatar Queue] ═══════════════════════════════');
+    devLog('🎭 [Avatar Queue] Adding message to avatar');
+
+    const inputData = typeof messageContent === 'string'
+      ? { content: messageContent }
       : messageContent;
-    
-    const textPreview = typeof messageContent === 'string' 
+
+    const textPreview = typeof messageContent === 'string'
       ? messageContent.substring(0, 100)
       : (messageContent.message || messageContent.content || '').substring(0, 100);
-    
-    console.log('🎭 [Avatar Queue] Message preview:', textPreview);
-    console.log('🎭 [Avatar Queue] Input type:', typeof messageContent);
-    
+
+    devLog('🎭 [Avatar Queue] Message preview:', textPreview);
+    devLog('🎭 [Avatar Queue] Input type:', typeof messageContent);
+
     const avatarMessage = transformToAvatarMessage(inputData);
-    
+
     setMessages((prevMessages) => {
-      // Option C: Keep only latest message, discard old backlog
-      const newQueue = [avatarMessage]; // Always replace with latest
-      console.log('🎭 [Avatar Queue] Replaced queue with latest message');
-      console.log('🎭 [Avatar Queue] Discarded', prevMessages.length, 'old messages');
-      console.log('🎭 [Avatar Queue] New queue size:', newQueue.length);
+      const newQueue = [avatarMessage];
+      devLog('🎭 [Avatar Queue] Replaced queue with latest message');
+      devLog('🎭 [Avatar Queue] Discarded', prevMessages.length, 'old messages');
+      devLog('🎭 [Avatar Queue] New queue size:', newQueue.length);
       return newQueue;
     });
-    console.log('🎭 [Avatar Queue] ═══════════════════════════════');
-  };
+    devLog('🎭 [Avatar Queue] ═══════════════════════════════');
+  }, []);
 
-  // ✅ Append to avatar queue without replacing — used for sentence-by-sentence streaming.
-  // The first sentence is enqueued immediately (early TTS start), subsequent sentences
-  // are appended so the avatar speaks them back-to-back without gaps.
-  const appendAvatarMessage = (messageContent: string | any) => {
+  /** Appends a sentence to the avatar queue without replacing it.
+   * Used for sentence-by-sentence streaming so the avatar speaks
+   * back-to-back without gaps. */
+  const appendAvatarMessage = useCallback((messageContent: string | any) => {
     const inputData = typeof messageContent === 'string'
       ? { content: messageContent }
       : messageContent;
@@ -157,88 +192,135 @@ export const ChatProvider = ({ children }) => {
     const avatarMessage = transformToAvatarMessage(inputData);
     setMessages((prev) => {
       const updated = [...prev, avatarMessage];
-      console.log('🎭 [Avatar Queue] Appended sentence — queue size:', updated.length);
+      devLog('🎭 [Avatar Queue] Appended sentence — queue size:', updated.length);
       return updated;
     });
-  };
+  }, []);
 
-  // ✅ NEW - Clear avatar message queue
-  const clearAvatarMessages = () => {
-    console.log('🎭 [Avatar Queue] Clearing all messages');
+  const clearAvatarMessages = useCallback(() => {
+    devLog('🎭 [Avatar Queue] Clearing all messages');
     setMessages([]);
     setMessage(null);
-  };
+  }, []);
 
-  const chat = async (_message: string, _opts?: { personality?: string; companion_name?: string; language?: string }) => {
+  const chat = useCallback(async (_message: string, _opts?: { personality?: string; companion_name?: string; language?: string }) => {
     // No-op: chat is handled directly by ChatGPTInterface → FastAPI /chat.
-  };
+  }, []);
 
-
-
-  // ✅ Called when avatar finishes playing a message
-  const onMessagePlayed = () => {
-    console.log('🎭 [Avatar Queue] Message playback complete');
+  /** Called by the avatar after a message finishes playing — pops the head
+   * of the queue so the next sentence can begin. */
+  const onMessagePlayed = useCallback(() => {
+    devLog('🎭 [Avatar Queue] Message playback complete');
     setMessages((messages) => {
       const newQueue = messages.slice(1);
-      console.log('🎭 [Avatar Queue] Removing message from queue');
-      console.log('🎭 [Avatar Queue] Remaining messages:', newQueue.length);
-      
+      devLog('🎭 [Avatar Queue] Removing message from queue');
+      devLog('🎭 [Avatar Queue] Remaining messages:', newQueue.length);
+
       if (newQueue.length > 0) {
-        console.log('🎭 [Avatar Queue] Next message will play automatically');
+        devLog('🎭 [Avatar Queue] Next message will play automatically');
       } else {
-        console.log('🎭 [Avatar Queue] Queue empty - avatar will return to idle');
+        devLog('🎭 [Avatar Queue] Queue empty - avatar will return to idle');
       }
-      
+
       return newQueue;
     });
-  };
+  }, []);
 
-  // ✅ Toggle avatar visibility
-  const toggleAvatar = () => {
-    const newState = !isAvatarVisible;
-    setIsAvatarVisible(newState);
-    console.log('🎭 [Avatar] Visibility toggled:', newState);
-    
-    // Clear messages when hiding avatar
-    if (!newState) {
-      clearAvatarMessages();
-    }
-  };
+  const toggleAvatar = useCallback(() => {
+    setIsAvatarVisible((prev) => {
+      const next = !prev;
+      devLog('🎭 [Avatar] Visibility toggled:', next);
+      if (!next) {
+        // Clearing inside the setter is a deliberate side-effect — calling
+        // clearAvatarMessages from outside would race with React batching.
+        setMessages([]);
+        setMessage(null);
+      }
+      return next;
+    });
+  }, []);
 
-  const closeAvatar = () => {
-    console.log('🎭 [Avatar] Closed');
+  const closeAvatar = useCallback(() => {
+    devLog('🎭 [Avatar] Closed');
     setIsAvatarVisible(false);
-    clearAvatarMessages();
-  };
+    setMessages([]);
+    setMessage(null);
+  }, []);
+
+  /** Enter Presence Mode (full-screen voice + face). Records the prior
+   * `isAvatarVisible` state via ref so exit can restore it. */
+  const enterPresenceMode = useCallback(() => {
+    devLog('🎭 [Presence] Entering full-screen Presence Mode');
+    setAvatarVisibleBeforePresence(isAvatarVisibleRef.current);
+    setIsAvatarVisible(true);
+    setIsPresenceMode(true);
+  }, []);
+
+  /** Exit Presence Mode and restore the prior avatar visibility state. */
+  const exitPresenceMode = useCallback(() => {
+    devLog('🎭 [Presence] Exiting Presence Mode');
+    setIsPresenceMode(false);
+    setMessages([]);
+    setMessage(null);
+    if (!avatarVisibleBeforePresenceRef.current) {
+      setIsAvatarVisible(false);
+    }
+  }, []);
 
   // Update current message when queue changes
   useEffect(() => {
     if (messages.length > 0) {
       setMessage(messages[0]);
-      console.log('🎭 [Avatar] Current message updated:', messages[0].text?.substring(0, 50));
+      devLog('🎭 [Avatar] Current message updated:', messages[0].text?.substring(0, 50));
     } else {
       setMessage(null);
-      console.log('🎭 [Avatar] No messages in queue');
+      devLog('🎭 [Avatar] No messages in queue');
     }
   }, [messages]);
 
+  // The provider value is memoised so consumers that rely only on
+  // (say) `isPresenceMode` don't re-render when only `message` changes.
+  // Stability of the callbacks above is what makes this useful — without
+  // useCallback, the value object would still get a fresh function ref
+  // on every render and defeat the memoisation.
+  const value = useMemo(
+    () => ({
+      chat,
+      message,
+      onMessagePlayed,
+      loading,
+      cameraZoomed,
+      setCameraZoomed,
+      isAvatarVisible,
+      toggleAvatar,
+      closeAvatar,
+      addAvatarMessage,
+      appendAvatarMessage,
+      clearAvatarMessages,
+      isPresenceMode,
+      enterPresenceMode,
+      exitPresenceMode,
+    }),
+    [
+      chat,
+      message,
+      onMessagePlayed,
+      loading,
+      cameraZoomed,
+      isAvatarVisible,
+      toggleAvatar,
+      closeAvatar,
+      addAvatarMessage,
+      appendAvatarMessage,
+      clearAvatarMessages,
+      isPresenceMode,
+      enterPresenceMode,
+      exitPresenceMode,
+    ],
+  );
+
   return (
-    <ChatContext.Provider
-      value={{
-        chat,
-        message,
-        onMessagePlayed,
-        loading,
-        cameraZoomed,
-        setCameraZoomed,
-        isAvatarVisible,
-        toggleAvatar,
-        closeAvatar,
-        addAvatarMessage,        // ✅ Replaces queue with latest message
-        appendAvatarMessage,     // ✅ Appends to queue for sentence-by-sentence TTS
-        clearAvatarMessages,     // ✅ Expose for cleanup
-      }}
-    >
+    <ChatContext.Provider value={value}>
       {children}
     </ChatContext.Provider>
   );

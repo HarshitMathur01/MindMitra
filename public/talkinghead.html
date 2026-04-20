@@ -61,22 +61,35 @@
         import { TalkingHead } from "talkinghead";
         import { MindMitraBridge } from "mindmitra-bridge";
 
-        // -- Config from URL params --------------------------------------------------------
+        // -- Config: secrets via postMessage, public via URL --------------------------------
+        // Security note: TTS API keys USED to be passed via URL search params,
+        // which leaked them into:
+        //   - browser history (visible in History UI / sync to other devices)
+        //   - the Referer header on any third-party fetch made from this iframe
+        //   - DevTools "Network" panel for anyone with brief device access
+        //
+        // The keys are now sent via `postMessage` from the React parent AFTER
+        // the iframe loads. The URL only carries non-sensitive presentation
+        // config (avatar model, voice name, BCP-47 language tag, camera
+        // framing). `init()` is gated on receipt of the config message so
+        // TalkingHead is constructed with the correct credentials on the
+        // first frame — no race, no second init.
         const params = new URLSearchParams(window.location.search);
-        let googleKey   = params.get("googleKey")   || "";
-        const azureKey   = params.get("azureKey")   || "";
-        
-        // Force the fallback logic to prioritize the native Azure SDK bypassing Google 
-        // HTTP REST endpoints if an Azure key is supplied. This resolves 400 Bad Request
-        // when both environment variables are leaked into prod simultaneously.
-        if (azureKey) {
-            googleKey = "";
-        }
-        
-        const azureRegion= params.get("azureRegion")|| "eastasia";
+        let googleKey   = "";   // populated from postMessage("config")
+        let azureKey    = "";   // populated from postMessage("config")
+        let azureRegion = "eastasia";
+
         const ttsVoice   = params.get("ttsVoice")   || "en-IN-Neural2-A";
         const ttsLang    = params.get("ttsLang")    || "en-IN";
         const avatarUrl  = params.get("avatarUrl")  || "/talkinghead/avatars/brunette.glb";
+        // Camera framing preset — supplied by the React wrapper. Defaults to "mid"
+        // (legacy behavior) when absent. PresenceMode passes "upper" for a
+        // bust-shot that fills the screen and reads as face-to-face.
+        const cameraView = params.get("cameraView") || "mid";
+        // When the React wrapper is composing the avatar over its own gradient
+        // backdrop (Presence Mode), ask the document to be transparent so the
+        // backdrop shows through and the seam between iframe + parent disappears.
+        const transparent = params.get("transparent") === "1";
 
         // Table-driven Azure voice map keyed by BCP-47 prefix
         const AZURE_VOICE_TABLE = {
@@ -113,32 +126,23 @@
         const GOOGLE_TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1beta1/text:synthesize";
         const SENTINEL_ENDPOINT   = "https://eu-texttospeech.googleapis.com/v1beta1/text:synthesize";
 
-        const ttsEndpoint = googleKey ? GOOGLE_TTS_ENDPOINT : SENTINEL_ENDPOINT;
-        const ttsApikey   = googleKey ? googleKey           : "";
-        const TTS_MODE    = googleKey ? "google-cloud-tts"
-                          : azureKey ? "azure-tts"
-                          :            "webspeech-fallback";
+        // These get set after the parent's `config` postMessage arrives.
+        let ttsEndpoint = SENTINEL_ENDPOINT;
+        let ttsApikey   = "";
+        let TTS_MODE    = "pending-config";
 
-        console.info(
-            `%c[MindMitra Avatar] Startup%c\n` +
-            `  TTS mode    : ${TTS_MODE}\n` +
-            `  Google key  : ${googleKey ? googleKey.slice(0,8) + "…(" + googleKey.length + " chars)" : "NOT SET"}\n` +
-            `  Azure key   : ${azureKey ? azureKey.slice(0,8) + "…(" + azureKey.length + " chars)" : "NOT SET"}\n` +
-            `  Azure region: ${azureRegion}\n` +
-            `  Voice       : ${ttsVoice}\n` +
-            `  Avatar URL  : ${avatarUrl}`,
-            "background:#0d1117;color:#58c4dc;font-weight:bold",
-            "background:#0d1117;color:#e2e8f0"
-        );
-
-        // ── "No-key" fallback intercept ───────────────────────────────────────────────────
-        // Intercept sentinel calls → return empty 200 so TalkingHead skips audio but still
-        // runs its lipsync animation queue. Web Speech API handles audio separately.
-        if (!googleKey) {
+        // ── Sentinel fetch interceptor ────────────────────────────────────
+        // When the iframe ends up in webspeech-fallback mode, TalkingHead
+        // still issues a fetch to its configured endpoint. We intercept the
+        // sentinel URL and return an empty 200 so TH skips audio but keeps
+        // its lipsync animation queue. Installed unconditionally — the
+        // interceptor is a pure URL-prefix check and a no-op for any other
+        // request, so it's safe even when Google is the active provider.
+        (function installSentinelInterceptor() {
             const _origFetch = window.fetch.bind(window);
             window.fetch = async function patchedFetch(input, init) {
                 const url = typeof input === "string" ? input : input?.url;
-                if (url && url.startsWith(SENTINEL_ENDPOINT)) {
+                if (url && url.startsWith(SENTINEL_ENDPOINT) && !googleKey) {
                     return new Response(
                         JSON.stringify({}),
                         { status: 200, headers: { "Content-Type": "application/json" } }
@@ -146,6 +150,14 @@
                 }
                 return _origFetch(input, init);
             };
+        })();
+
+        function recomputeTtsMode() {
+            ttsEndpoint = googleKey ? GOOGLE_TTS_ENDPOINT : SENTINEL_ENDPOINT;
+            ttsApikey   = googleKey ? googleKey           : "";
+            TTS_MODE    = googleKey ? "google-cloud-tts"
+                        : azureKey  ? "azure-tts"
+                        :             "webspeech-fallback";
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────────────────
@@ -304,7 +316,40 @@
         }
 
         function postToParent(data) {
-            window.parent.postMessage(data, "*");
+            // The iframe is same-origin (`/talkinghead.html`), so this is
+            // safe to scope to our own origin instead of "*". Prevents
+            // any future re-host of the iframe from leaking events to a
+            // third-party document.
+            window.parent.postMessage(data, window.location.origin);
+        }
+
+        // Tell the parent we're ready to RECEIVE the secret-bearing config.
+        // The parent listens for { type: "needConfig" } and responds with
+        // { type: "config", googleKey, azureKey, azureRegion }.
+        postToParent({ type: "needConfig" });
+
+        // ── Config gate ────────────────────────────────────────────────
+        // `init()` cannot run until we know which TTS provider to use,
+        // because TalkingHead's constructor takes the API key. We collect
+        // the gate state here; both DOMContentLoaded and the config
+        // message try to fire it. Whichever happens last wins.
+        let _configReceived = false;
+        let _domReady = false;
+        async function maybeInit() {
+            if (!_configReceived || !_domReady) return;
+            recomputeTtsMode();
+            console.info(
+                `%c[MindMitra Avatar] Startup%c\n` +
+                `  TTS mode    : ${TTS_MODE}\n` +
+                `  Google key  : ${googleKey ? googleKey.slice(0,8) + "…(" + googleKey.length + " chars)" : "NOT SET"}\n` +
+                `  Azure key   : ${azureKey ? azureKey.slice(0,8) + "…(" + azureKey.length + " chars)" : "NOT SET"}\n` +
+                `  Azure region: ${azureRegion}\n` +
+                `  Voice       : ${ttsVoice}\n` +
+                `  Avatar URL  : ${avatarUrl}`,
+                "background:#0d1117;color:#58c4dc;font-weight:bold",
+                "background:#0d1117;color:#e2e8f0"
+            );
+            await init();
         }
 
         async function init() {
@@ -317,10 +362,30 @@
                 ttsEndpoint: ttsEndpoint,
                 ttsApikey:   ttsApikey,
                 lipsyncModules: ["en"],
-                cameraView: "mid",
+                cameraView: cameraView,
                 avatarIdleEyeContact: 0.6,      // default 0.2 — hold gaze 60% of idle/listening time
                 avatarSpeakingEyeContact: 0.85, // default 0.5 — hold gaze 85% while speaking
             });
+
+            // Transparent canvas / page background so the React wrapper's
+            // backdrop (sage gradient in Presence Mode) bleeds through
+            // continuously. Applied AFTER TalkingHead init so the renderer
+            // has already created the canvas.
+            if (transparent) {
+                document.documentElement.style.background = "transparent";
+                document.body.style.background = "transparent";
+                const stage = document.getElementById("avatar");
+                if (stage) stage.style.background = "transparent";
+                try {
+                    if (head?.renderer) {
+                        head.renderer.setClearColor(0x000000, 0);
+                        head.renderer.setClearAlpha?.(0);
+                    }
+                    if (head?.scene) head.scene.background = null;
+                } catch (e) {
+                    console.warn("[MindMitra Avatar] transparent renderer setup failed", e);
+                }
+            }
 
             try {
                 await head.showAvatar(
@@ -380,10 +445,24 @@
                 v.lang.startsWith("en") && /female|woman|zira|emma|aria|susan|hazel|karen/i.test(v.name)
             ) || voices.find(v => v.lang.startsWith("en"));
             if (femaleVoice) utter.voice = femaleVoice;
-            utter.onend   = () => { clearSpeakEndPoll(); postToParent({ type: "speakingEnd" }); };
-            utter.onerror = () => { clearSpeakEndPoll(); postToParent({ type: "speakingEnd" }); };
+            const finish = () => {
+                clearSpeakEndPoll();
+                try {
+                    if (bridge) bridge.onAvatarFinishedSpeaking();
+                } catch (e) { /* noop */ }
+                postToParent({ type: "speakingEnd" });
+            };
+            utter.onend   = finish;
+            utter.onerror = finish;
             window.speechSynthesis.speak(utter);
             return true;
+        }
+
+        /** Match enqueueSpeakAudio: neutral mouth before text-driven / Web Speech paths. */
+        function neutralMoodForLipSync() {
+            try {
+                if (head && typeof head.setMood === "function") head.setMood("neutral");
+            } catch (e) { /* noop */ }
         }
 
         // ── Resume AudioContext on first user interaction (browser autoplay policy) ──────
@@ -604,6 +683,32 @@
             return config;
         }
 
+        /**
+         * Single entry for all speakAudio calls (met4citizen/TalkingHead README):
+         * - speakAudio(opt) with isRaw skips queued breaks/eye-contact that can skew timing.
+         * - Built-in neutral mood clears mouth morphs from MindMitra therapeutic moods so
+         *   Oculus viseme phoneme tracks are not blended with a smiling/puckered baseline.
+         * - bridge.onAvatarStartSpeaking + decoded AudioBuffer enables amplitude jaw assist
+         *   and state === "speaking" in MindMitraBridge._perFrameUpdate.
+         */
+        function enqueueSpeakAudio(audioPayload, decodedForBridge, fullTextForCue) {
+            const payload = addSyntheticVisemesIfNeeded(audioPayload);
+            try {
+                if (head && typeof head.setMood === "function") {
+                    head.setMood("neutral");
+                }
+            } catch (e) { /* noop */ }
+            if (bridge && decodedForBridge) {
+                try {
+                    const cue = [{ text: (fullTextForCue && fullTextForCue.trim()) ? fullTextForCue : " ", emotion: "neutral" }];
+                    bridge.onAvatarStartSpeaking(cue, decodedForBridge);
+                } catch (e) {
+                    console.warn("[MindMitra Avatar] bridge.onAvatarStartSpeaking:", e);
+                }
+            }
+            head.speakAudio(payload, { isRaw: true });
+        }
+
         // ── Parallel TTS fetch + audio concatenation ─────────────────────────────────────
         //
         // KEY DESIGN PRINCIPLE:
@@ -622,6 +727,8 @@
                 .map(s => stripMarkdown(s).trim())
                 .filter(s => s.length > 1);
             if (cleanSentences.length === 0) return false;
+
+            const joinedForBridge = cleanSentences.join(" ");
 
             if (googleKey) {
                 // ── Google TTS path ───────────────────────────────────────────────────────
@@ -670,15 +777,20 @@
                     console.log("[MindMitra Avatar] Google TTS ✔ combined " + audioBuffers.length
                         + " sentence(s), total " + combined.duration.toFixed(2) + "s, "
                         + allWords.length + " words");
-                    head.speakAudio(addSyntheticVisemesIfNeeded({ audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations }));
+                    enqueueSpeakAudio(
+                        { audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations },
+                        combined,
+                        joinedForBridge
+                    );
                     postToParent({ type: "speakingStart" });
                     startSpeakEndPoll();
                 } else {
-                    // All TTS fetches failed — fall back to TalkingHead native speakText.
-                    console.warn("[MindMitra Avatar] Google TTS: all fetches failed, using native speakText");
-                    head.speakText(cleanSentences.join(' '));
+                    // All TTS fetches failed — sentinel speakText (viseme lipsync) + Web Speech audio.
+                    console.warn("[MindMitra Avatar] Google TTS: all fetches failed — speakText + Web Speech");
+                    neutralMoodForLipSync();
+                    head.speakText(joinedForBridge);
+                    speakWithWebSpeech(joinedForBridge);
                     postToParent({ type: "speakingStart" });
-                    startSpeakEndPoll();
                 }
                 return true;
 
@@ -747,13 +859,13 @@
                             audioConfig.vtimes = sdkVtimes;
                             audioConfig.vdurations = sdkVdurs;
                         }
-                        head.speakAudio(addSyntheticVisemesIfNeeded(audioConfig));
+                        enqueueSpeakAudio(audioConfig, audioBuf, fullText);
                     } else {
                         // SDK returned no word boundaries — use evenly-distributed fallback.
                         console.warn("[MindMitra Avatar] Azure SDK: no word boundaries received, using even distribution");
                         const plainWords = tokenizeForTTS(fullText);
                         const { words: fw, wtimes: ft, wdurations: fd } = buildWordTimingsFromTimepoints(plainWords, [], durationMs);
-                        head.speakAudio(addSyntheticVisemesIfNeeded({ audio: audioBuf, words: fw, wtimes: ft, wdurations: fd }));
+                        enqueueSpeakAudio({ audio: audioBuf, words: fw, wtimes: ft, wdurations: fd }, audioBuf, fullText);
                     }
                     postToParent({ type: "speakingStart" });
                     startSpeakEndPoll();
@@ -802,15 +914,19 @@
 
                     if (audioBuffers.length > 0) {
                         const combined = concatAudioBuffers(head.audioCtx, audioBuffers);
-                        head.speakAudio(addSyntheticVisemesIfNeeded({ audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations }));
+                        enqueueSpeakAudio(
+                            { audio: combined, words: allWords, wtimes: allWtimes, wdurations: allWdurations },
+                            combined,
+                            joinedForBridge
+                        );
                         postToParent({ type: "speakingStart" });
                         startSpeakEndPoll();
                     } else {
-                        console.warn("[MindMitra Avatar] Azure REST: all fetches failed, using Web Speech fallback");
+                        console.warn("[MindMitra Avatar] Azure REST: all fetches failed — speakText + Web Speech");
+                        neutralMoodForLipSync();
                         head.speakText(fullText);
                         speakWithWebSpeech(fullText);
                         postToParent({ type: "speakingStart" });
-                        startSpeakEndPoll();
                     }
                 }
                 return true;
@@ -820,6 +936,7 @@
                 // No TTS key — TalkingHead runs text-based lipsync while Web Speech
                 // provides the audio.  Join all sentences to avoid multiple cancel() calls.
                 const joinedText = cleanSentences.join(' ');
+                neutralMoodForLipSync();
                 head.speakText(joinedText);
                 const fireWebSpeech = () => speakWithWebSpeech(joinedText);
                 if (window.speechSynthesis.getVoices().length === 0) {
@@ -828,15 +945,46 @@
                     fireWebSpeech();
                 }
                 postToParent({ type: "speakingStart" });
-                startSpeakEndPoll();
                 return true;
             }
         }
 
         // ── PostMessage bridge (React ↔ iframe) ──────────────────────────────────────────
         window.addEventListener("message", async (event) => {
-            if (!head) return;
+            // Origin check — only accept messages from the page that hosts
+            // us. Same-origin in production; stays loose in local dev where
+            // event.origin can legitimately differ between localhost ports.
+            if (event.origin !== window.location.origin && event.origin !== "null") {
+                // "null" can occur during sandboxed dev contexts; tolerated.
+                return;
+            }
+
             const { type, text, mood } = event.data || {};
+
+            // ── Config gate: keys arrive here, NOT in the URL ────────────
+            // Parent posts { type:"config", googleKey, azureKey, azureRegion }
+            // immediately after the iframe loads. We accept the message
+            // exactly once; later config posts (e.g. user changed settings
+            // mid-session) are ignored to avoid mid-flight TalkingHead
+            // reconfiguration. Implement live key rotation as a separate
+            // feature if/when needed.
+            if (type === "config" && !_configReceived) {
+                if (typeof event.data.googleKey === "string") googleKey = event.data.googleKey;
+                if (typeof event.data.azureKey === "string") azureKey = event.data.azureKey;
+                if (typeof event.data.azureRegion === "string" && event.data.azureRegion) {
+                    azureRegion = event.data.azureRegion;
+                }
+                // Mirror the legacy precedence: if Azure is supplied, force
+                // Google off so we don't flap between providers and trip a
+                // 400 from the TTS API when both are set.
+                if (azureKey) googleKey = "";
+                _configReceived = true;
+                maybeInit();
+                return;
+            }
+
+            // Everything below requires the avatar to be initialised.
+            if (!head) return;
 
             switch (type) {
                 // ── speakTextStream: sentence-parallel TTS (primary path) ──────────────
@@ -928,7 +1076,14 @@
             document.visibilityState === "visible" ? head.start() : head.stop();
         });
 
-        document.addEventListener("DOMContentLoaded", init);
+        document.addEventListener("DOMContentLoaded", () => {
+            _domReady = true;
+            // Re-announce we need config — handles the case where the parent
+            // attached its listener AFTER our initial postToParent above
+            // (iframe `load` event timing race).
+            postToParent({ type: "needConfig" });
+            maybeInit();
+        });
     </script>
 </head>
 

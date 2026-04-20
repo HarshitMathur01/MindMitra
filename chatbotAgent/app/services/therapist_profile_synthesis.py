@@ -11,7 +11,6 @@ import json
 import logging
 import re
 from typing import Any, Dict, List, Tuple
-from ..core.prompts import THERAPIST_SYNTHESIS_SYSTEM_PROMPT
 
 from ..core.config import config
 from ..utils.json_utils import parse_json_from_llm_output
@@ -109,7 +108,7 @@ def synthesize_narrative_bundle(
         "allowed_evidence_refs": allowed,
     }
     user_msg = json.dumps(compact, ensure_ascii=False)[:6000]
-    prompt_full = THERAPIST_SYNTHESIS_SYSTEM_PROMPT + "\n\n" + user_msg
+    prompt_full = SYSTEM + "\n\n" + user_msg
     prompt_hash = hashlib.sha256(prompt_full.encode("utf-8")).hexdigest()[:16]
 
     model = config.get_model("screening") or config.get_model("nlp")
@@ -120,7 +119,7 @@ def synthesize_narrative_bundle(
             temperature=0.2,
             max_tokens=700,
             messages=[
-                {"role": "system", "content": THERAPIST_SYNTHESIS_SYSTEM_PROMPT},
+                {"role": "system", "content": SYSTEM},
                 {"role": "user", "content": user_msg},
             ],
         )

@@ -53,20 +53,33 @@ export function loadAzureSpeechSDK(): Promise<AzureSpeechSDKGlobal> {
         document.head.appendChild(el);
       }
 
+      // Cache the script handle so the cleanup helpers can reference the
+      // same node even if the loader is re-entered.
+      const scriptEl = el;
       const onLoad = () => {
+        cleanup();
         if (!tryResolve()) {
           reject(new Error('Azure Speech SDK global not found after script load'));
         }
       };
+      const onError = () => {
+        cleanup();
+        reject(new Error('Failed to load Azure Speech SDK from CDN'));
+      };
+      // Both listeners are removed once we resolve/reject so the <script>
+      // tag doesn't accumulate handlers across HMR cycles or repeated
+      // loader entries.
+      const cleanup = () => {
+        scriptEl.removeEventListener('load', onLoad);
+        scriptEl.removeEventListener('error', onError);
+      };
 
-      el.addEventListener('load', onLoad);
-      el.addEventListener('error', () =>
-        reject(new Error('Failed to load Azure Speech SDK from CDN')),
-      );
+      scriptEl.addEventListener('load', onLoad);
+      scriptEl.addEventListener('error', onError);
 
       // Defer script may have finished before listeners were attached
       queueMicrotask(() => {
-        tryResolve();
+        if (tryResolve()) cleanup();
       });
     });
   }

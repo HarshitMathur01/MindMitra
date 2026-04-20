@@ -118,19 +118,37 @@ const ChatMessageList = ({
                             className="group"
                         >
                             {message.sender === "ai" ? (
-                                <div className="flex gap-3 items-start">
+                                <div className="flex gap-2 sm:gap-3 items-start">
                                     <div className="flex-shrink-0">
-                                        <div className="h-9 w-9 rounded-full bg-primary/10 border border-border flex items-center justify-center">
+                                        <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10 border border-border flex items-center justify-center">
                                             <img
                                                 src="/image6.png"
                                                 alt="AI companion"
-                                                className="h-7 w-7 rounded-full object-cover"
+                                                className="h-6 w-6 sm:h-7 sm:w-7 rounded-full object-cover"
                                             />
                                         </div>
                                     </div>
                                     <div className="flex-1 flex flex-col items-start space-y-2 min-w-0">
-                                        <div className="rounded-[18px] rounded-tl-md bg-ink-1 px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
-                                            <div className="text-[15px] leading-[1.55] text-ink-8 break-words">
+                                        {/*
+                                          Accessibility: while a message is actively
+                                          streaming we expose it as a polite live
+                                          region with aria-busy=true so screen
+                                          readers announce updates without hijacking
+                                          focus. Older AI messages are static and
+                                          intentionally NOT live regions to avoid
+                                          re-announcement on re-render.
+                                        */}
+                                        <div
+                                            className="rounded-[18px] rounded-tl-md bg-ink-1 px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[94%] sm:max-w-[80%] lg:max-w-[70%]"
+                                            {...(isLastAi && isLoading
+                                                ? {
+                                                      "aria-live": "polite" as const,
+                                                      "aria-busy": true,
+                                                      "aria-atomic": false,
+                                                  }
+                                                : {})}
+                                        >
+                                            <div className="chat-bubble-text text-[15px] leading-[1.55] text-ink-8">
                                                 <MessageRenderer content={message.content} />
                                             </div>
                                         </div>
@@ -202,10 +220,10 @@ const ChatMessageList = ({
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex gap-3 justify-end items-start">
-                                    <div className="flex-1 flex flex-col items-end">
-                                        <div className="bg-ink-2 text-ink-8 rounded-[18px] rounded-tr-md px-4 py-3 max-w-[92%] sm:max-w-[80%] lg:max-w-[70%]">
-                                            <span className="text-[15px] leading-[1.55] whitespace-pre-wrap break-words">
+                                <div className="flex gap-2 sm:gap-3 justify-end items-start">
+                                    <div className="flex-1 flex flex-col items-end min-w-0">
+                                        <div className="bg-ink-2 text-ink-8 rounded-[18px] rounded-tr-md px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[94%] sm:max-w-[80%] lg:max-w-[70%]">
+                                            <span className="chat-bubble-text text-[15px] leading-[1.55] whitespace-pre-wrap">
                                                 {message.content}
                                             </span>
                                         </div>
@@ -242,10 +260,10 @@ const ChatMessageList = ({
                                             <img
                                                 src={userAvatarUrl}
                                                 alt={userDisplayName}
-                                                className="h-9 w-9 rounded-full object-cover border border-border"
+                                                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover border border-border"
                                             />
                                         ) : (
-                                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[13px] font-medium text-[hsl(var(--accent-600))]">
+                                            <span className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[13px] font-medium text-[hsl(var(--accent-600))]">
                                                 {userInitial}
                                             </span>
                                         )}

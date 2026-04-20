@@ -9,8 +9,34 @@ from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
-# Development auth bypass (SKIP_AUTH=true skips token validation locally)
-SKIP_AUTH: bool = os.getenv("SKIP_AUTH", "false").lower() in ("1", "true", "yes")
+# Development auth bypass (SKIP_AUTH=true skips token validation locally).
+#
+# SECURITY: a stray ``SKIP_AUTH=true`` in production trivially turns every
+# request into ``DEV_USER_ID``. We accept the bypass only when the deployment
+# environment is clearly non-production, OR when the operator explicitly
+# acknowledges the risk via ``ALLOW_INSECURE_SKIP_AUTH=true``. In every other
+# case we ignore the flag and force real JWT validation, with a loud log so
+# misconfigurations are immediately visible in startup output.
+_RAW_SKIP_AUTH: bool = os.getenv("SKIP_AUTH", "false").lower() in ("1", "true", "yes")
+_ENV_NAME: str = os.getenv("ENV", os.getenv("ENVIRONMENT", "")).strip().lower()
+_IS_NON_PROD_ENV: bool = _ENV_NAME in ("", "dev", "development", "local", "test", "testing")
+_INSECURE_OVERRIDE: bool = (
+    os.getenv("ALLOW_INSECURE_SKIP_AUTH", "false").lower() in ("1", "true", "yes")
+)
+SKIP_AUTH: bool = _RAW_SKIP_AUTH and (_IS_NON_PROD_ENV or _INSECURE_OVERRIDE)
+
+if _RAW_SKIP_AUTH and not SKIP_AUTH:
+    logger.error(
+        "🚨 [AUTH] SKIP_AUTH=true ignored because ENV=%r looks like production. "
+        "Set ALLOW_INSECURE_SKIP_AUTH=true to override (DO NOT do this in prod).",
+        _ENV_NAME or "<unset>",
+    )
+elif SKIP_AUTH:
+    logger.warning(
+        "⚠️ [AUTH] SKIP_AUTH active (ENV=%r). All requests will be treated as DEV_USER_ID.",
+        _ENV_NAME or "<unset>",
+    )
+
 DEV_USER_ID: str = os.getenv("DEV_USER_ID", "a0778b19-548f-47df-8413-296307566d0f")
 
 

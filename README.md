@@ -54,9 +54,10 @@ Run local vector DB (if needed):
 docker run -d -p 6333:6333 qdrant/qdrant
 ```
 
-Start backend:
+Start backend (MITRA v2 requires the stack flag):
 
 ```bash
+export MITRA_STACK_ENABLED=1
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -82,14 +83,13 @@ MindMitra/
 └── README.md
 ```
 
-## Documentation Index
+## Documentation index
 
-- Architecture: `docs/architecture.md`
-- RAG: `docs/rag.md`
-- Memory: `docs/memory.md`
-- API Contracts: `docs/api_contracts.md`
-- AI Instructions: `ai/claude.md`
-- AI Skills/Permissions: `ai/skills.md`
+- **Entry:** [`docs/README.md`](docs/README.md) — table of contents  
+- **Architecture:** [`docs/MITRA.md`](docs/MITRA.md) — diagrams and request path  
+- **Platform:** [`docs/platform.md`](docs/platform.md) — runbook, memory v2, Qdrant  
+- **Product:** [`docs/product.md`](docs/product.md) — MindGym, bridge, analytics  
+- **API:** [`docs/api_contracts.md`](docs/api_contracts.md) · **AI context:** [`CLAUDE.md`](CLAUDE.md)
 
 ## Notes
 

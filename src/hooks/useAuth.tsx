@@ -6,6 +6,7 @@ import {
   identifyProductAnalyticsUser,
   resetProductAnalyticsIdentity,
 } from '@/lib/productAnalytics';
+import { clearUserSessionData } from '@/lib/sessionCleanup';
 
 interface AuthContextType {
   user: User | null;
@@ -139,13 +140,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         title: "Sign Out Error",
         description: error.message
       });
-    } else {
-      resetProductAnalyticsIdentity();
-      toast({
-        title: "Signed out",
-        description: "You've been successfully signed out."
-      });
+      return;
     }
+    // Order matters: reset analytics identity FIRST so any in-flight
+    // events still attached to this user don't leak after the wipe;
+    // then sweep all user-scoped local state so the next person on a
+    // shared device cannot read kept moments, MindGym streaks, journal
+    // drafts, etc. See src/lib/sessionCleanup.ts for the allow-list.
+    resetProductAnalyticsIdentity();
+    clearUserSessionData();
+    toast({
+      title: "Signed out",
+      description: "You've been successfully signed out."
+    });
   };
 
   const value = {

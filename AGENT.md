@@ -7,8 +7,8 @@ Ship minimal, reviewable diffs for **MindMitra** — a mental-health-adjacent ch
 ## Read order (≤ 15 minutes before coding)
 
 1. `CLAUDE.md` (repo root) — invariants + file map  
-2. `docs/MASTER_DOCUMENTATION.md` §7–9 — lifecycle + safety + memory  
-3. The narrowest deep doc for your task (e.g. `docs/backend/MEMORY_ARCHITECTURE.md`, `docs/api_contracts.md`)
+2. `docs/MITRA.md` — lifecycle + safety + memory narrative  
+3. The narrowest deep doc for your task (e.g. `docs/platform.md`, `docs/api_contracts.md`)
 
 ## Hard constraints
 
@@ -19,13 +19,13 @@ Ship minimal, reviewable diffs for **MindMitra** — a mental-health-adjacent ch
 | Do not widen `eval_trace` exposure in production | Prevents leaking memory snippets |
 | Service-role Supabase queries must filter **`user_id` + `session_id`** where applicable | Tenant isolation |
 | API schema changes require **`docs/api_contracts.md`** update in the same PR | Contract truth |
-| Memory retrieval / trigger interval changes require **`docs/MEMORY_AND_RAG.md`** and/or **`docs/backend/MEMORY_ARCHITECTURE.md`** | Ops and eval alignment |
+| Memory retrieval / trigger interval changes require **`docs/platform.md`** (and **`docs/EVALUATION.md`** if eval expectations change) | Ops and eval alignment |
 
 ## Coding conventions (match the repo)
 
 - **Python:** follow existing imports in `chatbotAgent/app/`; use `logger` with `extra={"metrics": ...}` for structured signals; type hints where neighboring code uses them.
 - **TypeScript:** functional React components, `@/` imports, do not introduce a second state library.
-- **Docs:** clarity > length; link to MASTER instead of duplicating architecture prose.
+- **Docs:** clarity > length; link to `docs/README.md` / `docs/MITRA.md` instead of duplicating architecture prose.
 - **Comments:** explain **why** for non-obvious invariants; do not restate identifier names.
 
 ## What “done” means
@@ -37,7 +37,7 @@ Ship minimal, reviewable diffs for **MindMitra** — a mental-health-adjacent ch
 
 ## Anti-patterns
 
-- Giant copy-paste from LLM output into ARCHITECTURE.md without integrating into MASTER/links.  
+- Giant copy-paste from LLM output into `docs/MITRA.md` without updating `docs/README.md` links and code references.  
 - “Helpful” redesign of the whole pipeline in one PR.  
 - Adding autocapture analytics to chat surfaces without product sign-off.  
 - Removing fallbacks (TTS, LLM, Qdrant) without replacement + doc.

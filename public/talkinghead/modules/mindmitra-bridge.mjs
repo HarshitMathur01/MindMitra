@@ -570,9 +570,11 @@ class MindMitraBridge {
             const first = emotionCues[0];
             this.setEmotion(first.emotion, first.intensity);
 
-            // Trigger opening gesture for emotional moments
+            // Opening gesture for emotional moments — skip for neutral: viseme lip-sync
+            // and amplitude jaw run with a neutral mouth baseline; thinking_tilt every
+            // reply fights the face and reads as jitter.
             const gesture = EMOTION_TO_GESTURE[first.emotion];
-            if (gesture) this._triggerGesture(gesture);
+            if (gesture && first.emotion !== "neutral") this._triggerGesture(gesture);
         }
     }
 

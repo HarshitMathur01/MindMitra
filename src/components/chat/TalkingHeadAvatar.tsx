@@ -58,6 +58,26 @@ interface Props {
     ttsLang?: string;
     /** Avatar GLB URL relative to public root. Defaults to brunette. */
     avatarUrl?: string;
+    /**
+     * TalkingHead camera framing preset:
+     *   "full"  — full body (default for legacy half-pane)
+     *   "mid"   — mid-body, shoulders down (current default)
+     *   "upper" — bust-shot, ideal for face-to-face Presence Mode
+     *   "head"  — tight headshot
+     */
+    cameraView?: "full" | "mid" | "upper" | "head";
+    /**
+     * Hide the small "Speaking" pill in the corner. Used by Presence
+     * Mode where the MicFAB already conveys speaking state and we
+     * want to minimize visual chrome around the face.
+     */
+    hideChrome?: boolean;
+    /**
+     * Make the iframe background blend with the parent (transparent +
+     * the iframe's body/canvas bleeds through). Used by Presence Mode
+     * so the sage gradient backdrop is continuous behind the avatar.
+     */
+    transparentBackground?: boolean;
 }
 
 const TalkingHeadAvatar = ({
@@ -65,6 +85,9 @@ const TalkingHeadAvatar = ({
     ttsVoice = "en-IN-Neural2-A",
     ttsLang = "en-IN",
     avatarUrl = "/talkinghead/avatars/brunette.glb",
+    cameraView,
+    hideChrome = false,
+    transparentBackground = false,
 }: Props) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isReady, setIsReady] = useState(false);
@@ -72,6 +95,8 @@ const TalkingHeadAvatar = ({
     const [isSpeaking, setIsSpeaking] = useState(false);
     const playbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastMessageTextRef = useRef<string>("");
+    /** Prevents double onMessagePlayed when iframe speakingEnd and heuristic timer both fire. */
+    const messagePlayedForCurrentRef = useRef(false);
 
     // Resolve Google key: prop > env var > empty (Web Speech fallback)
     const resolvedGoogleKey: string =
@@ -83,31 +108,58 @@ const TalkingHeadAvatar = ({
 
     const { message: avatarCurrentMessage, onMessagePlayed } = useChat();
 
-    // Build iframe src — pass TTS config as URL search params
+    // Build iframe src — non-secret config only.
+    //
+    // Security: TTS API keys (Google + Azure) are intentionally NOT in
+    // the URL. If they were, they'd land in browser history, the Referer
+    // header on every cross-origin fetch the iframe makes, and DevTools.
+    // Keys are sent over `postMessage` after the iframe asks for them
+    // via { type: "needConfig" }. See public/talkinghead.html for the
+    // gated init().
     const iframeSrc = (() => {
         const params = new URLSearchParams();
-        if (resolvedGoogleKey) params.set("googleKey", resolvedGoogleKey);
-        if (resolvedAzureKey) params.set("azureKey", resolvedAzureKey);
-        params.set("azureRegion", resolvedAzureRegion);
         params.set("ttsVoice", ttsVoice);
         params.set("ttsLang", ttsLang);
         params.set("avatarUrl", avatarUrl);
+        if (cameraView) params.set("cameraView", cameraView);
+        if (transparentBackground) params.set("transparent", "1");
         return `/talkinghead.html?${params.toString()}`;
     })();
 
     // ── Post a message to the iframe ────────────────────────────────────────
+    // Defense in depth: scope `postMessage` to our own origin instead of
+    // the wildcard "*". The iframe is same-origin (it lives at
+    // /talkinghead.html on the same host), so this never breaks delivery
+    // but prevents data leaking to a different document if the iframe
+    // were ever pointed at a third-party origin in the future.
     const postToIframe = useCallback((data: object) => {
-        iframeRef.current?.contentWindow?.postMessage(data, "*");
+        iframeRef.current?.contentWindow?.postMessage(data, window.location.origin);
     }, []);
 
     // ── Listen for messages FROM the iframe ────────────────────────────────
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            // Only handle messages from our iframe
+            // Two safety checks: same-origin AND comes from our specific iframe.
+            // Without the source check, any same-origin window (e.g. a future
+            // sibling iframe) could spoof a "needConfig" and exfiltrate keys.
+            if (event.origin !== window.location.origin) return;
             if (event.source !== iframeRef.current?.contentWindow) return;
             const { type, message } = event.data || {};
 
             switch (type) {
+                case "needConfig":
+                    // Iframe is asking for the secret-bearing config. Send
+                    // keys via postMessage scoped to our origin (see
+                    // postToIframe). The iframe will not init TalkingHead
+                    // until it receives this payload.
+                    postToIframe({
+                        type: "config",
+                        googleKey: resolvedGoogleKey,
+                        azureKey: resolvedAzureKey,
+                        azureRegion: resolvedAzureRegion,
+                    });
+                    break;
+
                 case "ready":
                     setIsReady(true);
                     setLoadError(null);
@@ -123,7 +175,10 @@ const TalkingHeadAvatar = ({
                         clearTimeout(playbackTimerRef.current);
                         playbackTimerRef.current = null;
                     }
-                    onMessagePlayed();
+                    if (!messagePlayedForCurrentRef.current) {
+                        messagePlayedForCurrentRef.current = true;
+                        onMessagePlayed();
+                    }
                     break;
 
                 case "error":
@@ -134,7 +189,7 @@ const TalkingHeadAvatar = ({
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [onMessagePlayed]);
+    }, [onMessagePlayed, postToIframe, resolvedGoogleKey, resolvedAzureKey, resolvedAzureRegion]);
 
     // ── React to new avatar messages ────────────────────────────────────────
     useEffect(() => {
@@ -143,24 +198,30 @@ const TalkingHeadAvatar = ({
         const text = avatarCurrentMessage.text;
         if (!text || text === lastMessageTextRef.current) return;
         lastMessageTextRef.current = text;
+        messagePlayedForCurrentRef.current = false;
 
-        // Set therapeutic emotion before speaking (upper-face only — does NOT affect lip sync)
-        const expression = avatarCurrentMessage.facialExpression || "default";
-        const emotion = EXPRESSION_TO_EMOTION[expression] ?? "neutral";
-        postToIframe({ type: "setEmotion", emotion });
+        // Neutral mouth/face before TTS: MindMitra therapeutic moods inject mouth
+        // morphs in baselines; those fight Oculus viseme phoneme tracks (TalkingHead
+        // README: viseme-driven lip-sync needs a neutral mouth baseline). Upper-face
+        // empathy can be reintroduced later via iframe APIs if product wants it.
+        postToIframe({ type: "setEmotion", emotion: "neutral" });
 
         // Split text into sentences and dispatch speakTextStream so the iframe can
-        // fire all TTS requests in parallel and queue them back-to-back with no gaps.
+        // join text, run Azure/Google once, and call speakAudio with aligned visemes.
         const sentences = splitIntoSentences(text);
         postToIframe({ type: "speakTextStream", sentences });
 
         // Fallback: mark message as played after estimated duration
-        // (in case the iframe doesn't send speakingEnd)
-        const duration = estimateSpeakDurationMs(text);
+        // (in case the iframe doesn't send speakingEnd). Slightly padded so we do not
+        // beat real audio + lip-sync on long replies.
+        const duration = Math.round(estimateSpeakDurationMs(text) * 1.2);
         if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
         playbackTimerRef.current = setTimeout(() => {
             setIsSpeaking(false);
-            onMessagePlayed();
+            if (!messagePlayedForCurrentRef.current) {
+                messagePlayedForCurrentRef.current = true;
+                onMessagePlayed();
+            }
         }, duration);
     }, [avatarCurrentMessage, isReady, postToIframe, onMessagePlayed]);
 
@@ -172,20 +233,29 @@ const TalkingHeadAvatar = ({
     }, []);
 
     return (
-        <div className="relative w-full h-full bg-[#1a1a2e] overflow-hidden">
+        <div
+            className={`relative w-full h-full overflow-hidden ${
+                transparentBackground ? "bg-transparent" : "bg-[#1a1a2e]"
+            }`}
+        >
             {/* TalkingHead iframe */}
             <iframe
                 ref={iframeRef}
                 src={iframeSrc}
                 title="MindMitra Avatar"
                 className="w-full h-full border-0"
+                style={transparentBackground ? { backgroundColor: "transparent" } : undefined}
                 allow="autoplay; microphone"
                 sandbox="allow-scripts allow-same-origin"
             />
 
             {/* Loading overlay — shown until iframe reports ready */}
             {!isReady && !loadError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1a1a2e] z-10 p-6 space-y-6 animate-pulse">
+                <div
+                    className={`absolute inset-0 flex flex-col items-center justify-center z-10 p-6 space-y-6 animate-pulse ${
+                        transparentBackground ? "bg-black/30 backdrop-blur-sm" : "bg-[#1a1a2e]"
+                    }`}
+                >
                     <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-primary/10 border-4 border-primary/20 flex flex-col items-center justify-center space-y-4">
                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
                     </div>
@@ -203,8 +273,9 @@ const TalkingHeadAvatar = ({
                 </div>
             )}
 
-            {/* Speaking indicator */}
-            {isReady && isSpeaking && (
+            {/* Speaking indicator — suppressed in Presence Mode where the
+                MicFAB carries this signal more clearly. */}
+            {isReady && isSpeaking && !hideChrome && (
                 <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
                     {[0, 0.15, 0.3].map((delay) => (
                         <span

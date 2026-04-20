@@ -51,7 +51,7 @@ Single-turn chat response.
 }
 ```
 
-Optional **`eval_trace`** (pipeline path, routed intent, memory preview) is returned only when the server has **`ALLOW_EVAL_TRACE=true`** and the client sends header **`X-MindMitra-Eval-Trace: 1`**. See `docs/EVALUATION.md` and `docs/backend/GETTING_STARTED.md` (Evaluation trace). Do not enable trace in production without strict access control.
+Optional **`eval_trace`** (pipeline path, routed intent, memory preview) is returned only when the server has **`ALLOW_EVAL_TRACE=true`** and the client sends header **`X-MindMitra-Eval-Trace: 1`**. See `docs/EVALUATION.md`. Do not enable trace in production without strict access control.
 
 ---
 

@@ -10,6 +10,12 @@ POST /onboarding/mirror-response
 POST /onboarding/crisis-check
     LLM-based crisis assessment for ambiguous medium-score cases.
     Returns: { level, reasoning, recommended_action }
+
+SECURITY (added by audit fix):
+    - Both routes now require a valid Supabase JWT (same gate as /chat).
+    - Per-user + per-IP token-bucket rate limits guard against cost abuse and
+      prompt-stress attacks.
+    - Body fields capped at safe lengths to prevent DoS via huge payloads.
 """
 
 import logging
@@ -17,14 +23,58 @@ import os
 import re
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException, Request
 from groq import Groq
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from ..core.auth import validate_user_token
 from ..core.config import config
+from ..core.rate_limit import RateLimiter
+from ..services.supabase_service import supabase_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
+
+# ── Rate limiters (in-process, swap for Redis in multi-replica deploy) ─────
+# Generous enough for genuine onboarding flows (a handful of mirror calls per
+# session) but strict enough to make cost-abuse / prompt-stress unattractive.
+_MIRROR_LIMIT_PER_USER = int(os.getenv("ONBOARDING_MIRROR_RATE_PER_USER", "20"))
+_MIRROR_LIMIT_PER_IP = int(os.getenv("ONBOARDING_MIRROR_RATE_PER_IP", "60"))
+_CRISIS_LIMIT_PER_USER = int(os.getenv("ONBOARDING_CRISIS_RATE_PER_USER", "10"))
+_CRISIS_LIMIT_PER_IP = int(os.getenv("ONBOARDING_CRISIS_RATE_PER_IP", "30"))
+_RATE_WINDOW_S = float(os.getenv("ONBOARDING_RATE_WINDOW_S", "60"))
+
+_mirror_limiter_user = RateLimiter(_MIRROR_LIMIT_PER_USER, _RATE_WINDOW_S)
+_mirror_limiter_ip = RateLimiter(_MIRROR_LIMIT_PER_IP, _RATE_WINDOW_S)
+_crisis_limiter_user = RateLimiter(_CRISIS_LIMIT_PER_USER, _RATE_WINDOW_S)
+_crisis_limiter_ip = RateLimiter(_CRISIS_LIMIT_PER_IP, _RATE_WINDOW_S)
+
+
+def _client_ip(request: Request) -> str:
+    """Best-effort client IP — honours XFF behind a trusted proxy."""
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        # First entry is the original client per RFC 7239 conventions.
+        return xff.split(",")[0].strip() or "unknown"
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+def _enforce_limits(
+    user_limiter: RateLimiter,
+    ip_limiter: RateLimiter,
+    user_id: str,
+    ip: str,
+    label: str,
+) -> None:
+    """Reject with 429 if either bucket is exhausted."""
+    if not user_limiter.try_acquire(user_id):
+        logger.warning("⚠️ [ONBOARDING/%s] user rate-limit hit user=%s", label, user_id[:8])
+        raise HTTPException(status_code=429, detail="Too many requests")
+    if not ip_limiter.try_acquire(ip):
+        logger.warning("⚠️ [ONBOARDING/%s] ip rate-limit hit ip=%s", label, ip)
+        raise HTTPException(status_code=429, detail="Too many requests")
 
 # ── Groq client (shared, lazy-initialised) ─────────────────────────────────
 
@@ -86,8 +136,9 @@ def _screen_crisis(text: str) -> str:
 
 
 class MirrorRequest(BaseModel):
-    user_answer: str
-    language: str = "en"   # "en" | "hi"
+    # Cap inputs to prevent base-DoS / token-burn via huge bodies.
+    user_answer: str = Field(..., min_length=1, max_length=2000)
+    language: str = Field(default="en", max_length=8)   # "en" | "hi"
 
 
 class MirrorResponse(BaseModel):
@@ -96,9 +147,9 @@ class MirrorResponse(BaseModel):
 
 
 class CrisisCheckRequest(BaseModel):
-    text: str
-    language: str = "en"
-    client_level: str = "medium"   # client-side assessment level
+    text: str = Field(..., min_length=1, max_length=2000)
+    language: str = Field(default="en", max_length=8)
+    client_level: str = Field(default="medium", max_length=16)
 
 
 class CrisisCheckResponse(BaseModel):
@@ -111,11 +162,23 @@ class CrisisCheckResponse(BaseModel):
 
 
 @router.post("/mirror-response", response_model=MirrorResponse)
-async def mirror_response(body: MirrorRequest):
+async def mirror_response(
+    body: MirrorRequest,
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+):
     """
     Generate a warm, empathic mirror response (≤45 words) for the user's
     free-text answer in Act 2.  Crisis-screens the input first.
+
+    Requires a valid Supabase JWT and is rate-limited per user + per IP.
     """
+    user_id = await validate_user_token(authorization, supabase_client)
+    _enforce_limits(
+        _mirror_limiter_user, _mirror_limiter_ip,
+        user_id, _client_ip(request), "mirror",
+    )
+
     text = body.user_answer.strip()
     lang = body.language.lower()
 
@@ -189,11 +252,23 @@ async def mirror_response(body: MirrorRequest):
 
 
 @router.post("/crisis-check", response_model=CrisisCheckResponse)
-async def crisis_check(body: CrisisCheckRequest):
+async def crisis_check(
+    body: CrisisCheckRequest,
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+):
     """
     LLM-based nuanced crisis assessment for ambiguous medium client-side scores.
     Returns level, reasoning, and a recommended action.
+
+    Requires a valid Supabase JWT and is rate-limited per user + per IP.
     """
+    user_id = await validate_user_token(authorization, supabase_client)
+    _enforce_limits(
+        _crisis_limiter_user, _crisis_limiter_ip,
+        user_id, _client_ip(request), "crisis-check",
+    )
+
     text       = body.text.strip()
     lang       = body.language.lower()
     client_lvl = body.client_level

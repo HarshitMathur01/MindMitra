@@ -10,6 +10,17 @@ export interface MindGymTool {
   readonly xp: number;
   readonly icon: LucideIcon;
   readonly gradient: readonly [string, string];
+  readonly section: SectionId;
+}
+
+export const SECTION_IDS = ["calm", "focus", "reflect", "energize"] as const;
+export type SectionId = (typeof SECTION_IDS)[number];
+
+export interface MindGymSection {
+  readonly id: SectionId;
+  readonly title: string;
+  readonly blurb: string;
+  readonly tone: "sage" | "warmth";
 }
 
 export const TOOL_IDS = [

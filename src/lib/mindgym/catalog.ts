@@ -10,7 +10,7 @@ import {
   Timer,
   Palette,
 } from "lucide-react";
-import type { MindGymTool, BadgeDefinition } from "./types";
+import type { MindGymTool, BadgeDefinition, MindGymSection } from "./types";
 
 export const MINDGYM_TOOLS: readonly MindGymTool[] = [
   {
@@ -23,6 +23,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 20,
     icon: Wind,
     gradient: ["#0d9488", "#06b6d4"] as const,
+    section: "calm",
   },
   {
     id: "thought-trap",
@@ -34,6 +35,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 40,
     icon: Brain,
     gradient: ["#7c3aed", "#a78bfa"] as const,
+    section: "reflect",
   },
   {
     id: "emotion-compass",
@@ -45,6 +47,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 15,
     icon: Compass,
     gradient: ["#e11d48", "#f97316"] as const,
+    section: "reflect",
   },
   {
     id: "worry-vault",
@@ -56,6 +59,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 35,
     icon: Lock,
     gradient: ["#1e40af", "#3b82f6"] as const,
+    section: "reflect",
   },
   {
     id: "mood-weather",
@@ -67,6 +71,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 10,
     icon: CloudSun,
     gradient: ["#ca8a04", "#facc15"] as const,
+    section: "energize",
   },
   {
     id: "five-senses",
@@ -78,6 +83,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 25,
     icon: Hand,
     gradient: ["#059669", "#34d399"] as const,
+    section: "calm",
   },
   {
     id: "inner-critic",
@@ -89,6 +95,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 45,
     icon: Gavel,
     gradient: ["#9333ea", "#c084fc"] as const,
+    section: "reflect",
   },
   {
     id: "gratitude-garden",
@@ -100,6 +107,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 30,
     icon: Flower2,
     gradient: ["#16a34a", "#4ade80"] as const,
+    section: "energize",
   },
   {
     id: "focus-flow",
@@ -111,6 +119,7 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 10,
     icon: Timer,
     gradient: ["#dc2626", "#f87171"] as const,
+    section: "focus",
   },
   {
     id: "color-me-mindful",
@@ -122,8 +131,20 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 30,
     icon: Palette,
     gradient: ["#f59e0b", "#f97316"] as const,
+    section: "calm",
   },
 ] as const;
+
+export const MINDGYM_SECTIONS: readonly MindGymSection[] = [
+  { id: "calm", title: "Calm", blurb: "Breath, grounding, softening.", tone: "sage" },
+  { id: "focus", title: "Focus", blurb: "Gather attention. One thing.", tone: "warmth" },
+  { id: "reflect", title: "Reflect", blurb: "Quiet writing prompts.", tone: "sage" },
+  { id: "energize", title: "Energize", blurb: "Small, honest lifts.", tone: "warmth" },
+] as const;
+
+export function getToolsBySection(sectionId: MindGymSection["id"]): readonly MindGymTool[] {
+  return MINDGYM_TOOLS.filter((t) => t.section === sectionId);
+}
 
 export const BADGES: readonly BadgeDefinition[] = [
   { id: "first-breath", title: "First Breath", description: "Complete Breath Sphere once", requirement: "breath-sphere:1", icon: "🌬️" },

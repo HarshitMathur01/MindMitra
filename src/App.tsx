@@ -51,6 +51,7 @@ const NatureFocusVisualGroundingArticle = lazy(
 );
 const Journal = lazy(() => import("./pages/Journal"));
 const MindGymHub = lazy(() => import("./pages/mindgym/MindGymHub"));
+const MindGymSectionPage = lazy(() => import("./pages/mindgym/MindGymSectionPage"));
 const MindGymToolPage = lazy(() => import("./pages/mindgym/MindGymToolPage"));
 const Me = lazy(() => import("./pages/Me"));
 const MemoryMirror = lazy(() => import("./pages/MemoryMirror"));
@@ -157,6 +158,7 @@ function AppContent() {
           />
           <Route path="/journal" element={<Journal />} />
           <Route path="/mindgym" element={<MindGymHub />} />
+          <Route path="/mindgym/section/:sectionId" element={<MindGymSectionPage />} />
           <Route path="/mindgym/:toolId" element={<MindGymToolPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

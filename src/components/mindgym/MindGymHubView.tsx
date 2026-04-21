@@ -13,7 +13,7 @@ import {
 import { getDailyRecommendation } from "@/lib/mindgym/storage";
 import { cn } from "@/lib/utils";
 
-const eyebrow = "text-[13px] font-medium uppercase tracking-[0.28em] text-[#9a4a2a] sm:text-[14px]";
+const eyebrow = "text-[11px] font-medium uppercase tracking-[0.28em] text-[#9a4a2a]";
 
 export default function MindGymHubView() {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ export default function MindGymHubView() {
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13.5px] text-[#5b4a3e] transition-colors hover:text-[#2a1c14]"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[18px] text-[#faebd7] transition-colors hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
             Home

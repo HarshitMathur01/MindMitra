@@ -67,7 +67,7 @@ export default function MindGymLanding({ onEnter }: MindGymLandingProps) {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-[11px] font-medium uppercase tracking-[0.38em] text-[#9a4a2a]"
+            className="text-[11px] font-medium uppercase tracking-[0.38em] text-[#faebd7] [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]"
           >
             A quiet place
           </motion.p>
@@ -76,7 +76,7 @@ export default function MindGymLanding({ onEnter }: MindGymLandingProps) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-5 font-serif-display text-[clamp(3.25rem,9vw,6.75rem)] font-light leading-[0.95] tracking-tight text-[#2a1c14]"
+            className="mt-5 font-serif-display text-[clamp(3.25rem,9vw,6.75rem)] font-light leading-[0.95] tracking-tight text-[#faebd7] [text-shadow:0_3px_14px_rgba(0,0,0,0.5)]"
           >
             Mind Gym
           </motion.h1>
@@ -92,7 +92,7 @@ export default function MindGymLanding({ onEnter }: MindGymLandingProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-7 max-w-[22rem] text-[15.5px] leading-[1.75] text-[#5b4a3e]"
+            className="mt-7 max-w-[22rem] text-[15.5px] leading-[1.75] text-[#faebd7] [text-shadow:0_2px_10px_rgba(0,0,0,0.4)]"
           >
             Small practices for slow moments.
             <br />
@@ -117,7 +117,7 @@ export default function MindGymLanding({ onEnter }: MindGymLandingProps) {
               onClick={onEnter}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.98 }}
-              className="relative inline-flex items-center justify-center rounded-full bg-[#fbf7ee] px-9 py-3.5 text-[14px] font-medium tracking-wide text-[#2a1c14] shadow-[0_6px_20px_rgba(42,28,20,0.10)] ring-1 ring-black/5 transition-shadow hover:shadow-[0_10px_28px_rgba(42,28,20,0.16)]"
+              className="relative inline-flex items-center justify-center rounded-full bg-[#4f6b3f] px-9 py-3.5 text-[14px] font-medium tracking-wide text-[#faebd7] shadow-[0_6px_20px_rgba(42,28,20,0.18)] ring-1 ring-white/10 transition-shadow hover:bg-[#3f5833] hover:shadow-[0_10px_28px_rgba(42,28,20,0.24)]"
             >
               Step inside
             </motion.button>
@@ -127,7 +127,7 @@ export default function MindGymLanding({ onEnter }: MindGymLandingProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.7 }}
             transition={{ duration: 1.2, delay: 1.1 }}
-            className="mt-6 text-[11px] tracking-[0.22em] text-[#8a6f5c]"
+            className="mt-6 text-[11px] tracking-[0.22em] text-[#faebd7] [text-shadow:0_2px_10px_rgba(0,0,0,0.35)]"
           >
             TAKE A BREATH FIRST
           </motion.p>
@@ -139,7 +139,7 @@ export default function MindGymLanding({ onEnter }: MindGymLandingProps) {
           transition={{ duration: 1.1, delay: 0.9 }}
           className="pb-10 text-center"
         >
-          <p className="font-serif-display text-[14px] italic text-[#7a6556]">
+          <p className="font-serif-display text-[14px] italic text-[#faebd7] [text-shadow:0_2px_10px_rgba(0,0,0,0.35)]">
             Take what you need. Leave the rest.
           </p>
         </motion.footer>

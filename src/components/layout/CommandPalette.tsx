@@ -26,6 +26,7 @@ import {
   LifeBuoy,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/hooks/useAuth";
 
 type CommandPaletteProps = {
   open: boolean;
@@ -39,6 +40,7 @@ type CommandPaletteProps = {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
 
   const go = (path: string) => {
     navigate(path);
@@ -83,7 +85,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandSeparator />
 
         <CommandGroup heading="People">
-          <CommandItem onSelect={() => go("/therapist-bridge")}>
+          <CommandItem onSelect={() => go(user ? "/therapist-bridge" : "/therapy")}>
             <Phone />
             <span>Talk to a therapist</span>
           </CommandItem>

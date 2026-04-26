@@ -1,69 +1,82 @@
-import { BadgeCheck, CalendarClock, Languages, Star, Sparkles } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Therapist } from "@/lib/types/therapist-bridge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Star, Video, MapPin, Clock } from "lucide-react";
+import type { Therapist } from "@/lib/mock/therapist-bridge";
 
-interface TherapistCardProps {
+export function TherapistCard({
+  therapist,
+  onBook,
+}: {
   therapist: Therapist;
-  onBook: (therapist: Therapist) => void;
-  booking: boolean;
-  isRecommended?: boolean;
-}
+  onBook: (t: Therapist) => void;
+}) {
+  const initials = therapist.name
+    .replace(/Dr\.?\s*/, "")
+    .split(/\s|,/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0])
+    .join("");
 
-const TherapistCard = ({ therapist, onBook, booking, isRecommended }: TherapistCardProps) => {
   return (
-    <Card className={`p-6 shadow-md hover:shadow-lg transition-all relative ${isRecommended ? 'border-primary ring-1 ring-primary/20 bg-primary/5' : ''}`}>
-      {isRecommended && (
-        <div className="absolute -top-3 left-6">
-          <Badge className="bg-primary text-primary-foreground gap-1 shadow-sm hover:bg-primary">
-            <Sparkles className="h-3 w-3" /> Recommended Match
-          </Badge>
+    <Card className="group flex h-full flex-col rounded-2xl border-border/60 tb-shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lg">
+      <CardContent className="flex h-full flex-col p-5">
+        <div className="flex items-start gap-3">
+          <img
+            src={therapist.photo}
+            alt={`Portrait of ${therapist.name}`}
+            loading="lazy"
+            className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-accent/60"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+          <span className="sr-only">{initials}</span>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-base font-semibold text-foreground">{therapist.name}</h3>
+            <p className="truncate text-xs text-muted-foreground">{therapist.credentials}</p>
+          </div>
+          <div className="flex items-center gap-1 text-xs font-medium text-foreground">
+            <Star className="h-3.5 w-3.5 fill-primary text-primary" />
+            {therapist.rating}
+            <span className="text-muted-foreground">({therapist.reviews})</span>
+          </div>
         </div>
-      )}
-      <div className="flex items-center gap-3 mb-4 mt-2">
-        <img
-          src={therapist.avatar}
-          alt={therapist.name}
-          className="h-16 w-16 rounded-full object-cover"
-          loading="lazy"
-        />
-        <div>
-          <h3 className="font-bold text-lg">{therapist.name}</h3>
-          <p className="text-sm text-muted-foreground">{therapist.title}</p>
+
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {therapist.specialties.map((s) => (
+            <Badge key={s} variant="secondary" className="font-normal">
+              {s}
+            </Badge>
+          ))}
         </div>
-      </div>
 
-      <div className="space-y-2 text-sm mb-4">
-        <p className="flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-green-600" />RCI: {therapist.rciNumber}</p>
-        <p className="flex items-center gap-2"><Star className="h-4 w-4 text-yellow-500" />{therapist.rating} ({therapist.reviewCount} reviews)</p>
-        <p>Experience: {therapist.experience}</p>
-        <p className="flex items-center gap-2"><Languages className="h-4 w-4" />{therapist.languages.join(", ")}</p>
-        <p className="flex items-center gap-2"><CalendarClock className="h-4 w-4" />Next: {therapist.nextAvailable}</p>
-      </div>
+        <p className="mt-3 text-sm text-muted-foreground">{therapist.bio}</p>
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        {therapist.specializations.map((specialization) => (
-          <Badge key={specialization} variant="secondary">
-            {specialization}
-          </Badge>
-        ))}
-      </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            {therapist.modality.includes("virtual") ? (
+              <Video className="h-3.5 w-3.5" />
+            ) : (
+              <MapPin className="h-3.5 w-3.5" />
+            )}
+            {therapist.modality.join(" · ")}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            {therapist.nextAvailable}
+          </div>
+        </div>
 
-      <p className="text-sm text-muted-foreground italic mb-4">“{therapist.testimonial}”</p>
-
-      <div className="flex items-center justify-between">
-        <p className="font-semibold">Rs {therapist.sessionFee}/session</p>
-        <Button
-          onClick={() => onBook(therapist)}
-          disabled={booking}
-          aria-label={`Book session with ${therapist.name}`}
-        >
-          {booking ? "Booking..." : "Book Session"}
-        </Button>
-      </div>
+        <div className="mt-auto flex items-end justify-between pt-5">
+          <div>
+            <p className="text-xs text-muted-foreground">Per session</p>
+            <p className="text-lg font-semibold text-foreground">₹{therapist.pricePerSession}</p>
+          </div>
+          <Button onClick={() => onBook(therapist)}>Book</Button>
+        </div>
+      </CardContent>
     </Card>
   );
-};
-
-export default TherapistCard;
+}

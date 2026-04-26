@@ -51,7 +51,7 @@ const Header = () => {
     : [
         { label: "How it holds you", path: "#how-it-works" },
         { label: "A live look", path: "#features" },
-        { label: "Therapy", path: "/therapist-bridge", highlight: true },
+        { label: "Therapy", path: "/therapy", highlight: true },
         { label: "Resources", path: "/psychological-content" },
       ];
 

@@ -1,0 +1,144 @@
+import { motion } from "framer-motion";
+import TherapyBackdrop from "@/components/therapist-bridge/TherapyBackdrop";
+
+interface TherapistBridgeLandingProps {
+  onEnter: () => void;
+}
+
+const MOTES = [
+  { left: "12%", top: "28%", size: 4, delay: 0, duration: 9 },
+  { left: "22%", top: "64%", size: 3, delay: 1.6, duration: 11 },
+  { left: "38%", top: "18%", size: 2, delay: 0.8, duration: 8 },
+  { left: "58%", top: "72%", size: 3, delay: 2.4, duration: 10 },
+  { left: "72%", top: "32%", size: 4, delay: 0.4, duration: 12 },
+  { left: "84%", top: "58%", size: 2, delay: 1.2, duration: 9 },
+  { left: "46%", top: "84%", size: 3, delay: 2.0, duration: 11 },
+];
+
+export default function TherapistBridgeLanding({ onEnter }: TherapistBridgeLandingProps) {
+  return (
+    <div className="relative isolate min-h-screen overflow-hidden bg-[#1c130d]">
+      <TherapyBackdrop variant="full" />
+
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]">
+        {MOTES.map((m, i) => (
+          <motion.span
+            key={i}
+            className="absolute rounded-full bg-[#fff4d6]"
+            style={{
+              left: m.left,
+              top: m.top,
+              width: m.size,
+              height: m.size,
+              filter: "blur(0.5px)",
+              boxShadow: "0 0 8px rgba(255, 236, 190, 0.55)",
+            }}
+            initial={{ opacity: 0, y: 0 }}
+            animate={{
+              opacity: [0, 0.75, 0.75, 0],
+              y: [0, -18, -28, -40],
+            }}
+            transition={{
+              duration: m.duration,
+              delay: m.delay,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(40,28,18,0.18) 100%)",
+        }}
+      />
+
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <motion.p
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[11px] font-medium uppercase tracking-[0.38em] text-[#faebd7] [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]"
+          >
+            A gentle bridge
+          </motion.p>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-5 font-serif-display text-[clamp(3.25rem,9vw,6.75rem)] font-light leading-[0.95] tracking-tight text-[#faebd7] [text-shadow:0_3px_14px_rgba(0,0,0,0.5)]"
+          >
+            Therapist Bridge
+          </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ duration: 1.0, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-7 h-px w-16 origin-center bg-gradient-to-r from-transparent via-[#b08a6a] to-transparent"
+          />
+
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-7 max-w-[22rem] text-[15.5px] leading-[1.75] text-[#faebd7] [text-shadow:0_2px_10px_rgba(0,0,0,0.4)]"
+          >
+            Meet someone who truly listens.
+            <br />
+            You choose what to share. Nothing more.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="relative mt-12"
+          >
+            <motion.span
+              aria-hidden
+              className="absolute inset-0 rounded-full bg-[#fbf7ee]"
+              animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.button
+              type="button"
+              onClick={onEnter}
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative inline-flex items-center justify-center rounded-full bg-[#4f6b3f] px-9 py-3.5 text-[14px] font-medium tracking-wide text-[#faebd7] shadow-[0_6px_20px_rgba(42,28,20,0.18)] ring-1 ring-white/10 transition-shadow hover:bg-[#3f5833] hover:shadow-[0_10px_28px_rgba(42,28,20,0.24)]"
+            >
+              Step in
+            </motion.button>
+          </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.7 }}
+            transition={{ duration: 1.2, delay: 1.1 }}
+            className="mt-6 text-[11px] tracking-[0.22em] text-[#faebd7] [text-shadow:0_2px_10px_rgba(0,0,0,0.35)]"
+          >
+            WHEN YOU'RE READY
+          </motion.p>
+        </main>
+
+        <motion.footer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.1, delay: 0.9 }}
+          className="pb-10 text-center"
+        >
+          <p className="font-serif-display text-[14px] italic text-[#faebd7] [text-shadow:0_2px_10px_rgba(0,0,0,0.35)]">
+            You stay in control. Always.
+          </p>
+        </motion.footer>
+      </div>
+    </div>
+  );
+}

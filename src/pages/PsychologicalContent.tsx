@@ -126,7 +126,7 @@ const PsychologicalContent = () => {
                     aria-hidden
                     src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1600&q=70"
                     alt=""
-                    className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.62]"
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.2]"
                     loading="eager"
                     decoding="async"
                 />

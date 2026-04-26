@@ -1,138 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import FilterBar from "@/components/therapist-bridge/FilterBar";
-import TherapistCard from "@/components/therapist-bridge/TherapistCard";
-import { Therapist, TherapistFilters, defaultFilters } from "@/lib/types/therapist-bridge";
+import { useMemo } from "react";
+import { mockTherapists, type IntakePrefs, type Therapist } from "@/lib/mock/therapist-bridge";
+import { TherapistCard } from "./TherapistCard";
 
-interface TherapistDirectoryProps {
-  therapists: Therapist[];
-  onBook: (therapist: Therapist) => void;
-  booking: boolean;
-  userTopics?: Array<{ topic: string; frequency: number }>;
-  /** Filters seeded from the intake form. Updates re-apply the filter state. */
-  initialFilters?: TherapistFilters;
-  /**
-   * Bumped whenever the parent wants to force-sync `initialFilters` into
-   * the local filter state (e.g. after an intake "Apply" or "Reset").
-   */
-  filtersRevision?: number;
+function matches(t: Therapist, p: IntakePrefs) {
+  if (p.modality !== "any" && !t.modality.includes(p.modality)) return false;
+  if (p.language !== "any" && !t.languages.includes(p.language)) return false;
+  if (p.gender !== "any" && t.gender !== p.gender) return false;
+  if (t.pricePerSession > p.budget) return false;
+  if (p.concerns.length > 0) {
+    const lower = t.specialties.map((s) => s.toLowerCase());
+    const any = p.concerns.some((c) => lower.some((s) => s.includes(c.toLowerCase())));
+    if (!any) return false;
+  }
+  return true;
 }
 
-const matchesFilter = (therapist: Therapist, filters: TherapistFilters) => {
-  const languagePass = !filters.languages.length || filters.languages.some((language) => therapist.languages.includes(language));
-  const specializationPass =
-    !filters.specializations.length || filters.specializations.some((specialization) => therapist.specializations.includes(specialization));
-  const locationPass = !filters.location.length || filters.location.some((location) => therapist.location.includes(location));
-  const availabilityPass =
-    !filters.availability.length || filters.availability.some((availability) => therapist.availability.includes(availability));
-  const pricePass = therapist.sessionFee >= filters.priceRange.min && therapist.sessionFee <= filters.priceRange.max;
-
-  return languagePass && specializationPass && locationPass && availabilityPass && pricePass;
-};
-
-const TherapistDirectory = ({
-  therapists,
+export default function TherapistDirectory({
+  prefs,
   onBook,
-  booking,
-  userTopics,
-  initialFilters,
-  filtersRevision = 0,
-}: TherapistDirectoryProps) => {
-  const [filters, setFilters] = useState<TherapistFilters>(initialFilters ?? defaultFilters);
-  const [debouncedFilters, setDebouncedFilters] = useState<TherapistFilters>(initialFilters ?? defaultFilters);
-  const [visibleCount, setVisibleCount] = useState(6);
-
-  // When the parent pushes a new intake-derived filter set (revision bumps),
-  // adopt it instantly so the directory reflects the user's stated intent.
-  useEffect(() => {
-    if (!initialFilters) return;
-    setFilters(initialFilters);
-    setDebouncedFilters(initialFilters);
-    setVisibleCount(6);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtersRevision]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedFilters(filters);
-    }, 250);
-
-    return () => clearTimeout(timeout);
-  }, [filters]);
-
-  const isRecommended = (therapist: Therapist) => {
-    if (!userTopics || userTopics.length === 0) return false;
-
-    return therapist.specializations.some((spec) =>
-      userTopics.some(
-        (topic) =>
-          topic.topic.toLowerCase().includes(spec.toLowerCase()) ||
-          spec.toLowerCase().includes(topic.topic.toLowerCase()),
-      ),
-    );
-  };
-
-  const options = useMemo(() => {
-    const languages = Array.from(new Set(therapists.flatMap((therapist) => therapist.languages))).sort();
-    const specializations = Array.from(new Set(therapists.flatMap((therapist) => therapist.specializations))).sort();
-    const locations = Array.from(new Set(therapists.flatMap((therapist) => therapist.location))).sort();
-    const availability = Array.from(new Set(therapists.flatMap((therapist) => therapist.availability))).sort();
-
-    return { languages, specializations, locations, availability };
-  }, [therapists]);
-
-  const filteredTherapists = useMemo(() => {
-    const filtered = therapists.filter((therapist) => matchesFilter(therapist, debouncedFilters));
-
-    return filtered.sort((a, b) => {
-      const aRecommended = isRecommended(a);
-      const bRecommended = isRecommended(b);
-      if (aRecommended && !bRecommended) return -1;
-      if (!aRecommended && bRecommended) return 1;
-      return 0;
-    });
-  }, [therapists, debouncedFilters, userTopics]);
-
-  const visibleTherapists = filteredTherapists.slice(0, visibleCount);
+}: {
+  prefs: IntakePrefs;
+  onBook: (t: Therapist) => void;
+}) {
+  const list = useMemo(() => mockTherapists.filter((t) => matches(t, prefs)), [prefs]);
 
   return (
-    <section id="find-therapist" className="mb-12">
-      <header className="mb-8 space-y-1">
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Directory</p>
-        <h2 className="font-display text-2xl font-normal tracking-tight text-ink-8 md:text-3xl">Find your therapist</h2>
-        <p className="max-w-2xl text-sm leading-relaxed text-ink-5">
-          Filter by language, focus, and availability. Recommended matches align with themes you&apos;ve explored in MindMitra.
-        </p>
-      </header>
-      <FilterBar filters={filters} options={options} onChange={setFilters} />
-
-      {!filteredTherapists.length ? (
-        <p className="text-muted-foreground">No therapists found with current filters. Try clearing filters.</p>
+    <div>
+      <div className="mb-4 flex items-baseline justify-between">
+        <h3 className="text-lg font-semibold text-foreground">
+          {list.length} {list.length === 1 ? "match" : "matches"}
+        </h3>
+        <span className="text-xs text-muted-foreground">Sorted by best fit</span>
+      </div>
+      {list.length === 0 ? (
+        <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center">
+          <p className="text-sm font-medium text-foreground">No therapists match your filters.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Try widening your budget or removing a concern.
+          </p>
+        </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleTherapists.map((therapist) => (
-              <TherapistCard
-                key={therapist.id}
-                therapist={therapist}
-                onBook={onBook}
-                booking={booking}
-                isRecommended={isRecommended(therapist)}
-              />
-            ))}
-          </div>
-
-          {filteredTherapists.length > visibleCount && (
-            <div className="mt-6 text-center">
-              <Button variant="outline" onClick={() => setVisibleCount((count) => count + 6)}>
-                Load More Therapists
-              </Button>
-            </div>
-          )}
-        </>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((t) => (
+            <TherapistCard key={t.id} therapist={t} onBook={onBook} />
+          ))}
+        </div>
       )}
-    </section>
+    </div>
   );
-};
-
-export default TherapistDirectory;
+}

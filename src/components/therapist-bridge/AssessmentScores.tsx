@@ -1,41 +1,40 @@
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { EmotionalProfile } from "@/lib/types/therapist-bridge";
-import { getAssessmentMaxScore, getAssessmentSeverityColor } from "@/lib/utils/emotional-profile";
+import { Badge } from "@/components/ui/badge";
+import type { EmotionalProfile, Severity } from "@/lib/mock/therapist-bridge";
 
-interface AssessmentScoresProps {
-  assessments: EmotionalProfile["assessments"];
-}
-
-const AssessmentScores = ({ assessments }: AssessmentScoresProps) => {
-  return (
-    <Card className="p-6 shadow-md hover:shadow-lg transition-shadow">
-      <h3 className="text-xl font-bold mb-4">Assessment Scores</h3>
-      <div className="space-y-5">
-        {assessments.map((assessment) => {
-          const maxScore = getAssessmentMaxScore(assessment.type);
-          const percent = Math.round((assessment.score / maxScore) * 100);
-
-          return (
-            <div key={`${assessment.type}-${assessment.date}`}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-semibold">{assessment.type}</p>
-                <p className="text-sm text-muted-foreground">
-                  {assessment.score}/{maxScore}
-                </p>
-              </div>
-              <Progress value={percent} className="h-2" />
-              <div className="mt-2 flex items-center justify-between text-sm">
-                <span className={`inline-block h-2 w-2 rounded-full mr-2 ${getAssessmentSeverityColor(assessment.severity)}`} />
-                <span className="text-muted-foreground flex-1">{assessment.severity}</span>
-                <span className="text-muted-foreground">{assessment.date}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
+const severityVariant: Record<Severity, "secondary" | "default" | "destructive"> = {
+  minimal: "secondary",
+  mild: "secondary",
+  moderate: "default",
+  severe: "destructive",
 };
 
-export default AssessmentScores;
+export function AssessmentScores({ scores }: { scores: EmotionalProfile["assessments"] }) {
+  return (
+    <div className="space-y-3">
+      {scores.map((s) => {
+        const pct = (s.score / s.max) * 100;
+        return (
+          <div key={s.name}>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">{s.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {s.score} / {s.max}
+                </span>
+                <Badge variant={severityVariant[s.severity]} className="capitalize">
+                  {s.severity}
+                </Badge>
+              </div>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full tb-gradient-hero transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

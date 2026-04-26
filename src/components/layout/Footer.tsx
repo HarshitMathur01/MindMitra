@@ -1,15 +1,18 @@
 import { Phone, Heart, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { HELPLINES, helplineHref } from "@/lib/helplines";
 
 const Footer = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const links = {
     product: [
       { label: "AI Chat", path: "/chat" },
       { label: "Mind Gym", path: "/mindgym" },
       { label: "You — memory & mood", path: "/me" },
-      { label: "Therapist Bridge", path: "/therapist-bridge" },
+      { label: "Therapist Bridge", path: user ? "/therapist-bridge" : "/therapy" },
     ],
     support: [
       { label: "Safety plan", path: "/safety-plan" },
@@ -17,16 +20,10 @@ const Footer = () => {
       { label: "Resources", path: "/psychological-content" },
     ],
     legal: [
-      { label: "Privacy Policy", path: "#" },
-      { label: "Terms of Service", path: "#" },
+      { label: "Privacy Policy", path: "/privacy" },
+      { label: "Terms of Service", path: "/terms" },
     ],
   };
-
-  const helplines = [
-    { name: "Vandrevala Foundation", number: "1860 2662 345" },
-    { name: "iCall", number: "9152 987 821" },
-    { name: "AASRA", number: "9820 466 726" },
-  ];
 
   return (
     <footer className="border-t border-border/40 bg-[hsl(var(--ink-1))]">
@@ -57,7 +54,7 @@ const Footer = () => {
                   <button
                     type="button"
                     onClick={() => navigate(l.path)}
-                    className="text-sm text-foreground/70 transition-colors hover:text-foreground"
+                    className="text-sm text-foreground/80 transition-colors hover:text-foreground"
                   >
                     {l.label}
                   </button>
@@ -76,7 +73,7 @@ const Footer = () => {
                   <button
                     type="button"
                     onClick={() => navigate(l.path)}
-                    className="text-sm text-foreground/70 transition-colors hover:text-foreground"
+                    className="text-sm text-foreground/80 transition-colors hover:text-foreground"
                   >
                     {l.label}
                   </button>
@@ -95,7 +92,7 @@ const Footer = () => {
                   <button
                     type="button"
                     onClick={() => navigate(l.path)}
-                    className="text-sm text-foreground/70 transition-colors hover:text-foreground"
+                    className="text-sm text-foreground/80 transition-colors hover:text-foreground"
                   >
                     {l.label}
                   </button>
@@ -117,13 +114,14 @@ const Footer = () => {
               Crisis helplines — you're never alone
             </div>
             <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
-              {helplines.map((h) => (
+              {HELPLINES.map((h) => (
                 <a
-                  key={h.name}
-                  href={`tel:${h.number.replace(/\s/g, "")}`}
-                  className="text-sm text-foreground/70 transition-colors hover:text-foreground"
+                  key={h.id}
+                  href={helplineHref(h)}
+                  className="text-sm text-foreground/80 transition-colors hover:text-foreground"
                 >
-                  <span className="font-medium">{h.name}:</span> {h.number}
+                  <span className="font-medium">{h.name}:</span> {h.display}
+                  <span className="ml-1 text-foreground/60">({h.hours})</span>
                 </a>
               ))}
             </div>

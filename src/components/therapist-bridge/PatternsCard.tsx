@@ -1,29 +1,29 @@
-import { Card } from "@/components/ui/card";
-import { EmotionalProfile } from "@/lib/types/therapist-bridge";
+import { TrendingDown, TrendingUp, Minus } from "lucide-react";
+import type { EmotionalProfile } from "@/lib/mock/therapist-bridge";
 
-interface PatternsCardProps {
-  patterns: EmotionalProfile["patterns"];
-}
-
-const PatternsCard = ({ patterns }: PatternsCardProps) => {
+export function PatternsCard({ patterns }: { patterns: EmotionalProfile["patterns"] }) {
   return (
-    <Card className="p-6 shadow-md hover:shadow-lg transition-shadow">
-      <h3 className="text-xl font-bold mb-4">Key Patterns</h3>
-      <div className="space-y-4">
-        {patterns.map((pattern) => (
-          <div key={pattern.title} className="rounded-lg bg-muted/40 p-4">
-            <p className="font-semibold mb-1">
-              <span aria-hidden="true" className="mr-2">
-                {pattern.icon}
-              </span>
-              {pattern.title}
-            </p>
-            <p className="text-sm text-muted-foreground">{pattern.description}</p>
-          </div>
-        ))}
-      </div>
-    </Card>
+    <ul className="space-y-3">
+      {patterns.map((p) => {
+        const Icon = p.trend === "up" ? TrendingUp : p.trend === "down" ? TrendingDown : Minus;
+        const tone =
+          p.trend === "up"
+            ? "text-destructive"
+            : p.trend === "down"
+              ? "text-primary"
+              : "text-muted-foreground";
+        return (
+          <li key={p.label} className="flex items-start gap-3">
+            <span className={`mt-0.5 rounded-md bg-muted p-1.5 ${tone}`}>
+              <Icon className="h-3.5 w-3.5" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-foreground">{p.label}</p>
+              <p className="text-xs text-muted-foreground">{p.detail}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
-};
-
-export default PatternsCard;
+}

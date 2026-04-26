@@ -1,34 +1,39 @@
-import { Card } from "@/components/ui/card";
-import { processSteps } from "@/lib/types/therapist-bridge";
+import { ClipboardList, Sparkles, ShieldCheck, CalendarCheck } from "lucide-react";
 
-const ProcessTimeline = () => {
+const steps = [
+  { icon: ClipboardList, title: "Intake", desc: "Tell us what you need." },
+  { icon: Sparkles, title: "Match", desc: "We surface the best-fit therapists." },
+  { icon: ShieldCheck, title: "Consent", desc: "Choose exactly what to share." },
+  { icon: CalendarCheck, title: "Book", desc: "Confirm your first session." },
+];
+
+export function ProcessTimeline() {
   return (
-    <section className="mb-12">
-      <h2 className="text-2xl md:text-3xl font-bold mb-6">What Happens Next</h2>
-      <Card className="p-6 shadow-md hover:shadow-lg transition-shadow">
-        <div className="relative">
-          <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-primary/30" aria-hidden="true" />
-          <div className="space-y-6">
-            {processSteps.map((step) => (
-              <div key={step.title} className="relative pl-12">
-                <span className="absolute left-0 top-0 text-2xl" aria-hidden="true">
-                  {step.number}
-                </span>
-                <h3 className="font-bold">{step.title}</h3>
-                <p className="text-sm text-muted-foreground">{step.description}</p>
+    <div className="rounded-2xl border bg-card p-6 tb-shadow-card">
+      <h3 className="text-sm font-semibold text-muted-foreground">How the bridge works</h3>
+      <ol className="mt-5 grid gap-6 sm:grid-cols-4">
+        {steps.map((s, i) => (
+          <li key={s.title} className="relative">
+            {i < steps.length - 1 && (
+              <span
+                className="absolute left-10 top-5 hidden h-px w-[calc(100%-2.5rem)] bg-border sm:block"
+                aria-hidden
+              />
+            )}
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-content-center rounded-full tb-gradient-hero text-primary-foreground">
+                <s.icon className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {i + 1}. {s.title}
+                </p>
+                <p className="text-xs text-muted-foreground">{s.desc}</p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <p>💰 Investment: Rs 1,200-1,800 per session</p>
-          <p>⏱️ Typical commitment: 6-8 sessions</p>
-          <p>📈 Expected outcome: Measurable improvement</p>
-        </div>
-      </Card>
-    </section>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
-};
-
-export default ProcessTimeline;
+}

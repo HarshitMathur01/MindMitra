@@ -1,138 +1,54 @@
-import { CheckCircle2, XCircle } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ConsentState } from "@/lib/types/therapist-bridge";
+import { ShieldCheck } from "lucide-react";
+import type { ConsentState } from "@/lib/mock/therapist-bridge";
 
-interface ConsentFormProps {
-  consentState: ConsentState;
-  setConsentState: React.Dispatch<React.SetStateAction<ConsentState>>;
-  onReviewData: () => void;
-}
+const items: { key: keyof ConsentState; label: string; desc: string }[] = [
+  { key: "assessments", label: "Share assessments", desc: "A simple snapshot of how you've been feeling lately." },
+  { key: "fullProfile", label: "Share full emotional profile", desc: "The bigger picture — your moods, themes, and gentle patterns." },
+  { key: "sessionSummaries", label: "Share session summaries", desc: "Soft notes from your reflections, in your own rhythm." },
+  { key: "contactInfo", label: "Share contact information", desc: "Just your name and email, so they can reach out." },
+];
 
-const ConsentForm = ({ consentState, setConsentState, onReviewData }: ConsentFormProps) => {
-  const getMode = () => {
-    if (consentState.shareFullProfile) return "full";
-    if (consentState.shareAssessments && !consentState.sharePatterns) return "assessments";
-    return "custom";
-  };
-
-  const setMode = (value: string) => {
-    if (value === "full") {
-      setConsentState((prev) => ({
-        ...prev,
-        shareFullProfile: true,
-        shareAssessments: true,
-        sharePatterns: true,
-      }));
-      return;
-    }
-
-    if (value === "assessments") {
-      setConsentState((prev) => ({
-        ...prev,
-        shareFullProfile: false,
-        shareAssessments: true,
-        sharePatterns: false,
-      }));
-      return;
-    }
-
-    setConsentState((prev) => ({
-      ...prev,
-      shareFullProfile: false,
-    }));
-  };
-
+export function ConsentForm({
+  consent,
+  onChange,
+}: {
+  consent: ConsentState;
+  onChange: (c: ConsentState) => void;
+}) {
   return (
-    <section className="mb-12">
-      <h2 className="text-2xl md:text-3xl font-bold mb-6">Privacy & Consent</h2>
-      <Card className="p-6 shadow-md hover:shadow-lg transition-shadow">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <h3 className="font-bold mb-3">What Gets Shared</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" /> Emotional mood trends and patterns</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" /> Assessment scores (PHQ-9, GAD-7, etc.)</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" /> Key conversation themes (not full transcripts)</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" /> Crisis alerts (if any occurred)</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-bold mb-3">What Doesn't Get Shared</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2"><XCircle className="h-4 w-4 text-red-600 mt-0.5" /> Your identity (shared anonymously unless you choose)</li>
-              <li className="flex items-start gap-2"><XCircle className="h-4 w-4 text-red-600 mt-0.5" /> Specific conversation details</li>
-              <li className="flex items-start gap-2"><XCircle className="h-4 w-4 text-red-600 mt-0.5" /> Anything you marked as "private"</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="rounded-lg border p-4 mb-6">
-          <h4 className="font-semibold mb-3">Choose Sharing Mode</h4>
-          <RadioGroup
-            value={getMode()}
-            onValueChange={setMode}
-            className="space-y-3"
-            aria-label="Data sharing mode"
+    <Card className="rounded-2xl border-border/60 tb-shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          What you'd like to share
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Take your time. Share only what feels right — you can change your mind anytime.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {items.map((it) => (
+          <div
+            key={it.key}
+            className="flex items-start justify-between gap-4 rounded-xl border bg-background/40 p-4"
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="full" id="full-profile" />
-              <Label htmlFor="full-profile">Share full emotional profile (recommended)</Label>
+            <div>
+              <Label htmlFor={`c-${it.key}`} className="text-sm font-medium text-foreground">
+                {it.label}
+              </Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">{it.desc}</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="assessments" id="assessment-only" />
-              <Label htmlFor="assessment-only">Share only assessment scores</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="custom" id="custom-share" />
-              <Label htmlFor="custom-share">Let me choose what to share (custom)</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="share-assessments"
-              checked={consentState.shareAssessments}
-              onCheckedChange={(checked) =>
-                setConsentState((prev) => ({ ...prev, shareAssessments: Boolean(checked) }))
-              }
+            <Switch
+              id={`c-${it.key}`}
+              checked={consent[it.key]}
+              onCheckedChange={(v) => onChange({ ...consent, [it.key]: v })}
             />
-            <Label htmlFor="share-assessments">Share assessments</Label>
           </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="share-patterns"
-              checked={consentState.sharePatterns}
-              onCheckedChange={(checked) =>
-                setConsentState((prev) => ({ ...prev, sharePatterns: Boolean(checked) }))
-              }
-            />
-            <Label htmlFor="share-patterns">Share patterns and topics</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="share-anon"
-              checked={consentState.shareAnonymously}
-              onCheckedChange={(checked) =>
-                setConsentState((prev) => ({ ...prev, shareAnonymously: Boolean(checked) }))
-              }
-            />
-            <Label htmlFor="share-anon">Share anonymously</Label>
-          </div>
-        </div>
-
-        <Button variant="outline" className="transition-all duration-300" onClick={onReviewData}>
-          Review Data Before Sharing
-        </Button>
-      </Card>
-    </section>
+        ))}
+      </CardContent>
+    </Card>
   );
-};
-
-export default ConsentForm;
+}

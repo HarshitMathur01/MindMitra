@@ -1,36 +1,50 @@
-import { Card } from "@/components/ui/card";
-import { EmotionalProfile as EmotionalProfileType } from "@/lib/types/therapist-bridge";
-import MoodChart from "@/components/therapist-bridge/MoodChart";
-import PatternsCard from "@/components/therapist-bridge/PatternsCard";
-import TopicCloud from "@/components/therapist-bridge/TopicCloud";
-import AssessmentScores from "@/components/therapist-bridge/AssessmentScores";
-import CrisisEvents from "@/components/therapist-bridge/CrisisEvents";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { mockProfile } from "@/lib/mock/therapist-bridge";
+import { MoodChart } from "./MoodChart";
+import { PatternsCard } from "./PatternsCard";
+import { TopicCloud } from "./TopicCloud";
+import { AssessmentScores } from "./AssessmentScores";
+import { Activity, Brain, Hash, ClipboardList } from "lucide-react";
 
-interface EmotionalProfileProps {
-  profile: EmotionalProfileType;
+function Panel({
+  icon: Icon,
+  title,
+  children,
+  className = "",
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card className={`tb-shadow-card rounded-2xl border-border/60 ${className}`}>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+          <Icon className="h-4 w-4 text-primary" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
 }
 
-const EmotionalProfile = ({ profile }: EmotionalProfileProps) => {
+export function EmotionalProfileSection() {
   return (
-    <section id="emotional-profile" className="mb-12">
-      <h2 className="text-2xl md:text-3xl font-bold mb-6">Your Emotional Profile</h2>
-
-      <Card className="p-6 mb-6 shadow-md hover:shadow-lg transition-shadow">
-        <h3 className="text-xl font-bold mb-4">Mood Trends (Last 30 Days)</h3>
-        <MoodChart data={profile.moodTrends} />
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <PatternsCard patterns={profile.patterns} />
-        <TopicCloud topics={profile.topics} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <AssessmentScores assessments={profile.assessments} />
-        <CrisisEvents events={profile.crisisEvents} />
-      </div>
-    </section>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Panel icon={Activity} title="Mood — last 7 days" className="lg:col-span-2">
+        <MoodChart data={mockProfile.mood7d} />
+      </Panel>
+      <Panel icon={Brain} title="Top patterns">
+        <PatternsCard patterns={mockProfile.patterns} />
+      </Panel>
+      <Panel icon={ClipboardList} title="Assessments">
+        <AssessmentScores scores={mockProfile.assessments} />
+      </Panel>
+      <Panel icon={Hash} title="What you've been talking about" className="lg:col-span-4">
+        <TopicCloud topics={mockProfile.topics} />
+      </Panel>
+    </div>
   );
-};
-
-export default EmotionalProfile;
+}

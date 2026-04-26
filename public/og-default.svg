@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="MindMitra — your AI mental health companion">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FAF6EE" />
+      <stop offset="55%" stop-color="#EFE9DC" />
+      <stop offset="100%" stop-color="#D9E5DA" />
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7AA690" stop-opacity="0.55" />
+      <stop offset="55%" stop-color="#7AA690" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#7AA690" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="dot" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3F6E58" />
+      <stop offset="100%" stop-color="#2F5644" />
+    </radialGradient>
+  </defs>
+
+  <!-- Warm cream backdrop -->
+  <rect width="1200" height="630" fill="url(#bg)" />
+
+  <!-- Soft sage halo top-right -->
+  <circle cx="1060" cy="160" r="240" fill="url(#halo)" />
+
+  <!-- Pulse mark (top-right corner, decorative) -->
+  <g transform="translate(1060 160)">
+    <circle r="130" fill="none" stroke="#3F6E58" stroke-opacity="0.10" stroke-width="1.5" />
+    <circle r="92"  fill="none" stroke="#3F6E58" stroke-opacity="0.18" stroke-width="1.5" />
+    <circle r="56"  fill="none" stroke="#3F6E58" stroke-opacity="0.30" stroke-width="2" />
+    <circle r="26"  fill="url(#dot)" />
+  </g>
+
+  <!-- Wordmark + headline (left column, generous left padding) -->
+  <g font-family="'DM Sans','Inter','Helvetica Neue',Arial,sans-serif" fill="#1f1d1a">
+    <!-- eyebrow -->
+    <text x="80" y="270" font-size="28" font-weight="500" letter-spacing="6" fill="#5b6b5e">MINDMITRA</text>
+
+    <!-- two-line headline, sized to fit comfortably to ~880px -->
+    <text x="80" y="370" font-size="68" font-weight="600" letter-spacing="-1.5">A quiet companion</text>
+    <text x="80" y="446" font-size="68" font-weight="600" letter-spacing="-1.5" fill="#3F6E58">for the loud days.</text>
+
+    <!-- supporting line, kept short to avoid clipping under any font -->
+    <text x="80" y="506" font-size="24" font-weight="400" fill="#5b5650">A bridge to professional care — not a replacement.</text>
+  </g>
+
+  <!-- Footer URL row -->
+  <g transform="translate(80 568)">
+    <circle r="6" fill="#3F6E58" />
+    <text x="22" y="6" font-family="'DM Sans','Inter',Arial,sans-serif" font-size="20" font-weight="500" fill="#5b5650">mindmitra.co.in</text>
+  </g>
+</svg>

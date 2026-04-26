@@ -13,24 +13,35 @@
   :root {
     /* ── Surface system — fresh cream / warm grey ──
        Reads like natural light, not sterile white. */
-    --ink-0: 40 30% 97%;      /* page bg — warm cream */
-    --ink-1: 40 20% 95%;      /* panel */
-    --ink-2: 38 16% 92%;      /* card */
-    --ink-3: 36 12% 88%;      /* input fill */
-    --ink-4: 34 10% 82%;      /* hairline / disabled */
-    --ink-5: 30 8% 58%;       /* icon default */
-    --ink-6: 28 10% 42%;      /* muted text */
-    --ink-7: 24 14% 28%;      /* body text */
-    --ink-8: 20 18% 16%;      /* heading */
-    --ink-9: 18 22% 10%;      /* deepest */
+    --ink-0: 40 30% 97%;
+    /* page bg — warm cream */
+    --ink-1: 40 20% 95%;
+    /* panel */
+    --ink-2: 38 16% 92%;
+    /* card */
+    --ink-3: 36 12% 88%;
+    /* input fill */
+    --ink-4: 34 10% 82%;
+    /* hairline / disabled */
+    --ink-5: 30 8% 58%;
+    /* icon default */
+    --ink-6: 28 10% 42%;
+    /* muted text */
+    --ink-7: 24 14% 28%;
+    /* body text */
+    --ink-8: 20 18% 16%;
+    /* heading */
+    --ink-9: 18 22% 10%;
+    /* deepest */
 
     /* ── Signature accent: Deep Sage — confident, alive ── */
-    --accent-50:  152 28% 96%;
+    --accent-50: 152 28% 96%;
     --accent-100: 152 24% 90%;
     --accent-200: 154 22% 78%;
     --accent-300: 156 24% 60%;
     --accent-400: 158 30% 44%;
-    --accent-500: 160 34% 36%;   /* primary sage */
+    --accent-500: 160 34% 36%;
+    /* primary sage */
     --accent-600: 162 38% 28%;
     --accent-700: 164 40% 20%;
 
@@ -39,7 +50,7 @@
     --mint-500: 162 46% 45%;
 
     /* ── Warmth tone: emotional moments ── */
-    --warmth-50:  24 60% 97%;
+    --warmth-50: 24 60% 97%;
     --warmth-100: 22 50% 92%;
     --warmth-200: 20 44% 84%;
     --warmth-300: 18 38% 72%;
@@ -47,9 +58,9 @@
     --warmth-500: 14 36% 50%;
 
     /* ── Semantic ── */
-    --ok-500:   160 30% 40%;
+    --ok-500: 160 30% 40%;
     --warn-500: 36 60% 50%;
-    --bad-500:  0 55% 55%;
+    --bad-500: 0 55% 55%;
 
     /* ── shadcn compat ── */
     --background: var(--ink-0);
@@ -84,10 +95,10 @@
     --shadow: 220 20% 10% / 0.06;
 
     /* ── Wellness tints ── */
-    --calm-blue:    205 20% 92%;
+    --calm-blue: 205 20% 92%;
     --serene-green: var(--accent-100);
-    --warm-purple:  270 12% 92%;
-    --soft-pink:    var(--warmth-100);
+    --warm-purple: 270 12% 92%;
+    --soft-pink: var(--warmth-100);
 
     /* ── Radii — contemporary, not childish ── */
     --radius: 0.75rem;
@@ -96,13 +107,13 @@
     --radius-2xl: 2rem;
 
     /* ── Motion ── */
-    --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
-    --ease-in-out:    cubic-bezier(0.45, 0, 0.2, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.45, 0, 0.2, 1);
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
     --dur-micro: 150ms;
     --dur-quick: 220ms;
-    --dur-base:  380ms;
-    --dur-long:  600ms;
+    --dur-base: 380ms;
+    --dur-long: 600ms;
 
     /* ── Elevation — glass, not drop shadows ── */
     --e0: 0 0 0 1px hsl(var(--ink-8) / 0.04);
@@ -112,6 +123,10 @@
 
     --shadow-dashboard-soft: 0 1px 3px hsl(var(--ink-8) / 0.04), 0 12px 32px -8px hsl(var(--ink-8) / 0.08);
     --shadow-dashboard-warm: 0 16px 48px -16px hsl(var(--accent-500) / 0.14);
+    --tb-gradient-hero: linear-gradient(135deg, hsl(var(--accent-500)), hsl(var(--mint-400)));
+    --tb-gradient-soft: linear-gradient(180deg, hsl(var(--ink-0)), hsl(var(--accent-50)));
+    --tb-shadow-soft: 0 16px 50px -20px hsl(var(--accent-500) / 0.18);
+    --tb-shadow-card: 0 4px 20px -10px hsl(var(--ink-8) / 0.08);
 
     /* Glass effect */
     --glass-bg: hsl(var(--ink-0) / 0.7);
@@ -132,11 +147,16 @@
 
   [data-theme="dark"] {
     /* ── Dark mode — deep, warm, premium ── */
-    --ink-0: 220 16% 8%;      /* page — deep charcoal */
-    --ink-1: 220 14% 11%;     /* panel */
-    --ink-2: 220 12% 14%;     /* card */
-    --ink-3: 220 10% 18%;     /* input fill */
-    --ink-4: 220 8% 24%;      /* hairline */
+    --ink-0: 220 16% 8%;
+    /* page — deep charcoal */
+    --ink-1: 220 14% 11%;
+    /* panel */
+    --ink-2: 220 12% 14%;
+    /* card */
+    --ink-3: 220 10% 18%;
+    /* input fill */
+    --ink-4: 220 8% 24%;
+    /* hairline */
     --ink-5: 220 6% 42%;
     --ink-6: 220 6% 58%;
     --ink-7: 220 8% 76%;
@@ -148,7 +168,7 @@
     --accent-300: 160 32% 42%;
     --accent-200: 160 26% 32%;
     --accent-100: 160 20% 22%;
-    --accent-50:  160 16% 16%;
+    --accent-50: 160 16% 16%;
 
     --mint-400: 162 50% 60%;
     --mint-500: 162 46% 50%;
@@ -158,7 +178,7 @@
     --warmth-300: 20 38% 48%;
     --warmth-200: 20 32% 36%;
     --warmth-100: 20 26% 24%;
-    --warmth-50:  20 20% 16%;
+    --warmth-50: 20 20% 16%;
 
     --bad-500: 0 60% 65%;
 
@@ -173,6 +193,10 @@
 
     --shadow-dashboard-soft: 0 1px 3px hsl(0 0% 0% / 0.25), 0 12px 36px hsl(0 0% 0% / 0.35);
     --shadow-dashboard-warm: 0 16px 48px -12px hsl(var(--accent-400) / 0.22);
+    --tb-gradient-hero: linear-gradient(135deg, hsl(var(--accent-400)), hsl(var(--mint-400)));
+    --tb-gradient-soft: linear-gradient(180deg, hsl(var(--ink-0)), hsl(var(--ink-1)));
+    --tb-shadow-soft: 0 16px 50px -20px hsl(var(--accent-300) / 0.2);
+    --tb-shadow-card: 0 10px 30px -18px hsl(0 0% 0% / 0.35);
 
     --glass-bg: hsl(var(--ink-1) / 0.65);
     --glass-border: hsl(var(--ink-4) / 0.25);
@@ -214,6 +238,7 @@
      (it does that whenever input font-size < 16px). Keeps mobile
      forms from looking like the page is misbehaving. */
   @media (max-width: 640px) {
+
     input,
     textarea,
     select {
@@ -286,7 +311,10 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -296,6 +324,7 @@
 }
 
 @layer components {
+
   /* ── Legacy animation utilities — neutralized ── */
   .breathing-circle,
   .breathing-circle-delayed,
@@ -319,7 +348,7 @@
   /* ── Modern interaction utilities ── */
   .hover-lift {
     transition: transform var(--dur-quick) var(--ease-out-expo),
-                box-shadow var(--dur-quick) var(--ease-out-expo);
+      box-shadow var(--dur-quick) var(--ease-out-expo);
   }
 
   .hover-lift:hover {
@@ -330,8 +359,8 @@
   .hover-glow,
   .magnetic-button {
     transition: background-color var(--dur-quick) var(--ease-out-expo),
-                color var(--dur-quick) var(--ease-out-expo),
-                box-shadow var(--dur-quick) var(--ease-out-expo);
+      color var(--dur-quick) var(--ease-out-expo),
+      box-shadow var(--dur-quick) var(--ease-out-expo);
   }
 
   .hover-glow:hover,
@@ -361,11 +390,11 @@
 
   .gradient-hero {
     background: radial-gradient(ellipse 80% 60% at 50% 0%, hsl(var(--accent-100) / 0.5) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 80% 100%, hsl(var(--warmth-100) / 0.3) 0%, transparent 50%);
+      radial-gradient(ellipse 60% 50% at 80% 100%, hsl(var(--warmth-100) / 0.3) 0%, transparent 50%);
   }
 
   .gradient-mesh {
-    background: 
+    background:
       radial-gradient(ellipse 50% 80% at 20% 0%, hsl(var(--accent-100) / 0.4) 0%, transparent 50%),
       radial-gradient(ellipse 60% 60% at 80% 80%, hsl(var(--warmth-50) / 0.3) 0%, transparent 50%),
       radial-gradient(ellipse 40% 40% at 50% 50%, hsl(var(--accent-50) / 0.2) 0%, transparent 50%);
@@ -425,12 +454,25 @@
   }
 
   @keyframes breatheSlow {
-    0%, 100% { transform: scale(1); opacity: 0.92; }
-    50%      { transform: scale(1.018); opacity: 1; }
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.92;
+    }
+
+    50% {
+      transform: scale(1.018);
+      opacity: 1;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .breathe-slow { animation: none; opacity: 1; transform: none; }
+    .breathe-slow {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
   }
 
   /* ──────────────────────────────────────────────────────────────
@@ -476,9 +518,17 @@
         transparent 70%);
   }
 
-  .pulse-delay-0 { animation-delay: 0ms; }
-  .pulse-delay-1 { animation-delay: calc(var(--pulse-period, 10000ms) * -0.33); }
-  .pulse-delay-2 { animation-delay: calc(var(--pulse-period, 10000ms) * -0.66); }
+  .pulse-delay-0 {
+    animation-delay: 0ms;
+  }
+
+  .pulse-delay-1 {
+    animation-delay: calc(var(--pulse-period, 10000ms) * -0.33);
+  }
+
+  .pulse-delay-2 {
+    animation-delay: calc(var(--pulse-period, 10000ms) * -0.66);
+  }
 
   .pulse-core-base {
     position: relative;
@@ -513,19 +563,44 @@
   }
 
   @keyframes pulseRingBreath {
-    0%   { transform: scale(0.4); opacity: 0; }
-    25%  { opacity: calc(0.55 * var(--pulse-intensity, 1)); }
-    100% { transform: scale(1.05); opacity: 0; }
+    0% {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+
+    25% {
+      opacity: calc(0.55 * var(--pulse-intensity, 1));
+    }
+
+    100% {
+      transform: scale(1.05);
+      opacity: 0;
+    }
   }
 
   @keyframes pulseCoreBreath {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.06); }
+
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.06);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .pulse-ring-base { animation: none; opacity: calc(0.35 * var(--pulse-intensity, 1)); transform: none; }
-    .pulse-core-base { animation: none; transform: none; }
+    .pulse-ring-base {
+      animation: none;
+      opacity: calc(0.35 * var(--pulse-intensity, 1));
+      transform: none;
+    }
+
+    .pulse-core-base {
+      animation: none;
+      transform: none;
+    }
   }
 
   /* ── Scroll-triggered reveal ── */
@@ -572,11 +647,82 @@
   }
 
   @keyframes pageEnter {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* ── Text gradient ── */
+  @keyframes tb-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .tb-fade-up {
+    animation: tb-fade-up 0.6s ease-out both;
+  }
+
+  .tb-gradient-hero {
+    background-image: var(--tb-gradient-hero);
+  }
+
+  .tb-gradient-soft {
+    background-image: var(--tb-gradient-soft);
+  }
+
+  .tb-shadow-soft {
+    box-shadow: var(--tb-shadow-soft);
+  }
+
+  .tb-shadow-card {
+    box-shadow: var(--tb-shadow-card);
+  }
+
+  @keyframes tb-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .tb-float {
+    animation: tb-float 8s ease-in-out infinite;
+  }
+
+  @keyframes tb-breathe {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.55;
+      transform: scale(1.05);
+    }
+  }
+
+  .tb-breathe {
+    animation: tb-breathe 9s ease-in-out infinite;
+  }
+
   .text-gradient {
     background: linear-gradient(135deg, hsl(var(--accent-400)), hsl(var(--mint-400)));
     -webkit-background-clip: text;
@@ -600,14 +746,19 @@
   }
 
   @keyframes shimmerMove {
-    from { background-position: -200% 0; }
-    to { background-position: 200% 0; }
+    from {
+      background-position: -200% 0;
+    }
+
+    to {
+      background-position: 200% 0;
+    }
   }
 
   /* ── Crisis glow ── */
   .crisis-glow {
     box-shadow: 0 0 0 1px hsl(var(--bad-500) / 0.25),
-                0 8px 24px -8px hsl(var(--bad-500) / 0.20);
+      0 8px 24px -8px hsl(var(--bad-500) / 0.20);
   }
 
   /* ── Voice recording ── */
@@ -616,12 +767,20 @@
   }
 
   @keyframes voiceRec {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.06); }
+
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.06);
+    }
   }
 }
 
 @layer utilities {
+
   /* ── Dashboard stagger ── */
   .mm-dashboard-stagger {
     animation: mm-dashboard-rise 0.5s var(--ease-out-expo) both;
@@ -633,6 +792,7 @@
       opacity: 0;
       transform: translate3d(0, 16px, 0) scale(0.985);
     }
+
     to {
       opacity: 1;
       transform: translate3d(0, 0, 0) scale(1);
@@ -650,10 +810,14 @@
   /* ── Accessible clip ── */
   .sr-only {
     position: absolute;
-    width: 1px; height: 1px;
-    padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0,0,0,0);
-    white-space: nowrap; border: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   /* ── Responsive utilities ── */
@@ -661,6 +825,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

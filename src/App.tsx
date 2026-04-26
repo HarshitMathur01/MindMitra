@@ -5,8 +5,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/context/ThemeContext";
+import SkipToMain from "@/components/system/SkipToMain";
 
 // ── Eager routes ──────────────────────────────────────────────────────────
 // Three routes are loaded synchronously because they cover the user's first
@@ -36,6 +38,7 @@ const EmotionMatch = lazy(() => import("./pages/EmotionMatch"));
 const MoodMountain = lazy(() => import("./pages/MoodMountain"));
 const ThoughtDetective = lazy(() => import("./pages/ThoughtDetective"));
 const BalloonPositivityGame = lazy(() => import("./pages/BalloonPositivityGame"));
+const TherapyLanding = lazy(() => import("./pages/TherapyLanding"));
 const TherapistBridge = lazy(() => import("./pages/TherapistBridge"));
 const Booking = lazy(() => import("./pages/Booking"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -56,6 +59,8 @@ const MindGymToolPage = lazy(() => import("./pages/mindgym/MindGymToolPage"));
 const Me = lazy(() => import("./pages/Me"));
 const MemoryMirror = lazy(() => import("./pages/MemoryMirror"));
 const SafetyPlan = lazy(() => import("./pages/SafetyPlan"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
 
 const queryClient = new QueryClient();
 
@@ -104,12 +109,15 @@ function AppContent() {
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/therapy" element={<TherapyLanding />} />
           <Route path="/therapist-bridge" element={<TherapistBridge />} />
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/qa-tests" element={<QATests />} />
           <Route path="/me" element={<Me />} />
           <Route path="/me/memory" element={<MemoryMirror />} />
           <Route path="/safety-plan" element={<SafetyPlan />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
 
           {/* ─── Legacy IA → consolidated into Mind Gym / Me ──────────────── */}
           {/* These URLs may live in old links, search results, and bookmarks. */}
@@ -175,23 +183,26 @@ const App = () => (
   // than a white screen. The fallback intentionally does not depend on
   // any provider beneath it.
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-          <AuthProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <ProductAnalyticsProvider>
-                  <AppContent />
-                </ProductAnalyticsProvider>
-              </BrowserRouter>
-            </TooltipProvider>
-          </AuthProvider>
-        </div>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+            <AuthProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <SkipToMain />
+                  <ProductAnalyticsProvider>
+                    <AppContent />
+                  </ProductAnalyticsProvider>
+                </BrowserRouter>
+              </TooltipProvider>
+            </AuthProvider>
+          </div>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   </ErrorBoundary>
 );
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -20,6 +20,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import PublicLanding from "./PublicLanding";
 import { DURATION, EASE } from "@/lib/redesign/tokens";
+import SEO from "@/components/system/SEO";
+import { ROUND_THE_CLOCK_HELPLINE, helplineHref } from "@/lib/helplines";
 
 /**
  * Logged-in dashboard — "Quiet Companion" reset.
@@ -197,8 +199,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SEO
+        title="Your quiet companion"
+        description="Pick up where you left off with Mitra. A calm, memory-driven AI companion for daily mental wellness — and a bridge to professional care when you need it."
+        path="/"
+      />
       <Header />
-      <PageShell tone="page" width="page" as="main">
+      <PageShell tone="page" width="page" as="main" id="main-content">
         {/* ── Band 1 — Now ───────────────────────────────── */}
         <section className="relative isolate flex min-h-[68vh] flex-col items-center overflow-hidden pt-16 text-center sm:min-h-[72vh] sm:pt-24 lg:min-h-[78vh]">
           <div
@@ -209,6 +216,10 @@ const Index = () => {
               src={heroScene.image}
               alt=""
               aria-hidden
+              fetchPriority="high"
+              decoding="async"
+              width={1600}
+              height={900}
               className="h-full w-full scale-[1.08] object-cover object-center"
             />
           </div>
@@ -387,6 +398,30 @@ const Index = () => {
               </span>
             </motion.button>
           </div>
+
+          {/*
+            Calm professional-care disclaimer. Lives inside the Continue
+            band (not a fixed banner) so it reads as a gentle reminder,
+            not an alert. Links route to the bridge and the 24/7 line.
+          */}
+          <p className="mt-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Mitra is a companion, not a clinician — a bridge to professional
+            care, not a replacement.{" "}
+            <Link
+              to="/therapy"
+              className="font-medium text-foreground underline decoration-[hsl(var(--accent-300))] underline-offset-4 transition-colors hover:decoration-[hsl(var(--accent-500))]"
+            >
+              Find a therapist
+            </Link>
+            {", or call "}
+            <a
+              href={helplineHref(ROUND_THE_CLOCK_HELPLINE)}
+              className="font-medium text-foreground underline decoration-[hsl(var(--accent-300))] underline-offset-4 transition-colors hover:decoration-[hsl(var(--accent-500))]"
+            >
+              {ROUND_THE_CLOCK_HELPLINE.name} ({ROUND_THE_CLOCK_HELPLINE.display})
+            </a>
+            {" — 24/7, free."}
+          </p>
         </section>
 
         {/* ── Band 3 — Library shortcuts ─────────────────── */}

@@ -27,6 +27,13 @@ export interface SEOProps {
   ogType?: "website" | "article";
   /** Discourage indexing for stub / draft pages. */
   noIndex?: boolean;
+  /** Optional looping hero video. Path-only or absolute URL. Emits og:video tags. */
+  ogVideo?: string;
+  /** MIME type for ogVideo. Defaults to "video/mp4". */
+  ogVideoType?: string;
+  /** Width / height of the video file in px. Defaults to 1920 × 1080. */
+  ogVideoWidth?: number;
+  ogVideoHeight?: number;
 }
 
 const SEO = ({
@@ -36,12 +43,21 @@ const SEO = ({
   ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
   noIndex = false,
+  ogVideo,
+  ogVideoType = "video/mp4",
+  ogVideoWidth = 1920,
+  ogVideoHeight = 1080,
 }: SEOProps) => {
   const fullTitle = `${title} · ${SITE_NAME}`;
   const canonical = path ? `${SITE_URL}${path}` : undefined;
   const imageUrl = ogImage.startsWith("http")
     ? ogImage
     : `${SITE_URL}${ogImage}`;
+  const videoUrl = ogVideo
+    ? ogVideo.startsWith("http")
+      ? ogVideo
+      : `${SITE_URL}${ogVideo}`
+    : undefined;
 
   return (
     <Helmet>
@@ -67,6 +83,13 @@ const SEO = ({
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={imageUrl} />
+
+      {/* Open Graph video (optional) */}
+      {videoUrl && <meta property="og:video" content={videoUrl} />}
+      {videoUrl && <meta property="og:video:secure_url" content={videoUrl} />}
+      {videoUrl && <meta property="og:video:type" content={ogVideoType} />}
+      {videoUrl && <meta property="og:video:width" content={String(ogVideoWidth)} />}
+      {videoUrl && <meta property="og:video:height" content={String(ogVideoHeight)} />}
     </Helmet>
   );
 };

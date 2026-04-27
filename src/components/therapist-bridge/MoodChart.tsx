@@ -19,20 +19,20 @@ export function MoodChart({ data }: { data: { day: string; value: number }[] }) 
 
   return (
     <div>
-      <svg viewBox="0 0 320 110" className="h-28 w-full" role="img" aria-label="7-day mood trend">
-        <defs>
-          <linearGradient id="moodFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={area} fill="url(#moodFill)" />
-        <path d={points.path} stroke="var(--primary)" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <svg viewBox="0 0 320 110" className="h-28 w-full" role="img" aria-label="seven-day mood trend">
+        <path d={area} fill="#A8BC9A" fillOpacity="0.18" />
+        <path
+          d={points.path}
+          stroke="#3F6B47"
+          strokeWidth="1.5"
+          fill="none"
+          strokeLinecap="round"
+        />
         {points.pts.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="3" fill="var(--primary)" />
+          <circle key={i} cx={x} cy={y} r="2.5" fill="#3F6B47" />
         ))}
       </svg>
-      <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+      <div className="mt-2 flex justify-between text-[10px] tracking-wide text-[#7A736A]">
         {data.map((d) => (
           <span key={d.day}>{d.day}</span>
         ))}

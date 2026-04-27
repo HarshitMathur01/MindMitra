@@ -20,8 +20,9 @@ import { ConsentForm } from "@/components/therapist-bridge/ConsentForm";
 import { ProcessTimeline } from "@/components/therapist-bridge/ProcessTimeline";
 import { HandoffExplainer } from "@/components/therapist-bridge/HandoffExplainer";
 import { BookingModal } from "@/components/therapist-bridge/BookingModal";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
+import { FadeUp } from "@/components/layout/FadeUp";
+import { Eyebrow } from "@/components/layout/Eyebrow";
 import {
   defaultConsent,
   defaultIntake,
@@ -54,22 +55,22 @@ function Section({
   innerRef?: Ref<HTMLElement>;
 }) {
   return (
-    <section id={id} ref={innerRef} className="mx-auto max-w-6xl px-6 py-12 sm:py-16">
+    <section
+      id={id}
+      ref={innerRef}
+      className="mx-auto max-w-[1200px] px-6 py-16 sm:px-8 sm:py-24"
+    >
       {(eyebrow || title) && (
-        <div className="mb-8">
-          {eyebrow && (
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-              {eyebrow}
-            </p>
-          )}
+        <FadeUp className="mb-12">
+          {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
           {title && (
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            <h2 className="qc-display mt-3 text-4xl text-[#2D2A24] sm:text-5xl">
               {title}
             </h2>
           )}
-        </div>
+        </FadeUp>
       )}
-      {children}
+      <FadeUp>{children}</FadeUp>
     </section>
   );
 }
@@ -143,88 +144,99 @@ const TherapistBridge = () => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="min-h-screen bg-background"
+          className="qc-canvas relative min-h-screen"
         >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-[480px]"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 60% at 80% 10%, rgba(232, 201, 176, 0.32) 0%, transparent 60%)",
+            }}
+          />
           <Toaster richColors position="top-center" />
 
           <Hero
-        onProfile={() => scrollTo(profileRef)}
-        onFind={() => scrollTo(directoryRef)}
-      />
-
-      <Section
-        id="profile"
-        eyebrow="Your signal"
-        title="Emotional profile"
-        innerRef={profileRef}
-      >
-        <div className="space-y-4">
-          <EmotionalProfileSection />
-          <ClinicalActions onPreview={() => setPreviewOpen(true)} />
-        </div>
-      </Section>
-
-      <Section id="intake" eyebrow="Step 1" title="Intake preferences">
-        <IntakeForm onApply={setPrefs} />
-      </Section>
-
-      <Section
-        id="directory"
-        eyebrow="Step 2"
-        title="Matched therapists"
-        innerRef={directoryRef}
-      >
-        <Suspense
-          fallback={
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 rounded-2xl" />
-              ))}
-            </div>
-          }
-        >
-          <TherapistDirectory prefs={prefs} onBook={handleBook} />
-        </Suspense>
-      </Section>
-
-      <Section
-        id="consent"
-        eyebrow="Step 3"
-        title="Your consent"
-        innerRef={consentRef}
-      >
-        <ConsentForm consent={consent} onChange={setConsent} />
-      </Section>
-
-      <Section id="process" eyebrow="The flow" title="From signal to session">
-        <ProcessTimeline />
-      </Section>
-
-      <Section id="handoff" eyebrow="Transparency" title="What gets handed off">
-        <HandoffExplainer />
-      </Section>
-
-      <footer className="border-t bg-muted/30">
-        <div className="mx-auto max-w-6xl px-6 py-10 text-center text-xs text-muted-foreground">
-          MindMitra · Therapist Bridge demo. All data shown is illustrative.
-        </div>
-      </footer>
-
-      <Suspense fallback={null}>
-        {previewOpen && (
-          <DataPreviewModal
-            open={previewOpen}
-            onOpenChange={setPreviewOpen}
-            consent={consent}
+            onProfile={() => scrollTo(profileRef)}
+            onFind={() => scrollTo(directoryRef)}
           />
-        )}
-      </Suspense>
 
-      <BookingModal
-        therapist={pendingTherapist}
-        open={bookingOpen}
-        onOpenChange={setBookingOpen}
-      />
+          <Section
+            id="profile"
+            eyebrow="Your signal"
+            title="Emotional profile"
+            innerRef={profileRef}
+          >
+            <div className="space-y-6">
+              <EmotionalProfileSection />
+              <ClinicalActions onPreview={() => setPreviewOpen(true)} />
+            </div>
+          </Section>
+
+          <Section id="intake" eyebrow="Step one" title="Intake preferences">
+            <IntakeForm onApply={setPrefs} />
+          </Section>
+
+          <Section
+            id="directory"
+            eyebrow="Step two"
+            title="Matched therapists"
+            innerRef={directoryRef}
+          >
+            <Suspense
+              fallback={
+                <p className="py-16 text-center text-[15px] italic text-[#7A736A]">
+                  finding therapists who feel like a fit…
+                </p>
+              }
+            >
+              <TherapistDirectory prefs={prefs} onBook={handleBook} />
+            </Suspense>
+          </Section>
+
+          <Section
+            id="consent"
+            eyebrow="Step three"
+            title="Your consent"
+            innerRef={consentRef}
+          >
+            <ConsentForm consent={consent} onChange={setConsent} />
+          </Section>
+
+          <Section id="process" eyebrow="The flow" title="From signal to session">
+            <ProcessTimeline />
+          </Section>
+
+          <Section id="handoff" eyebrow="Transparency" title="What gets handed off">
+            <HandoffExplainer />
+          </Section>
+
+          <footer className="border-t border-[rgba(0,0,0,0.04)]">
+            <div className="mx-auto max-w-[1200px] px-6 py-16 text-center sm:px-8">
+              <p className="qc-display text-2xl text-[#4A4640]">
+                <span className="mitra-voice">you stay in control. always.</span>
+              </p>
+              <p className="mt-6 text-xs tracking-wide text-[#7A736A]">
+                MindMitra · Therapist Bridge demo. All data shown is illustrative.
+              </p>
+            </div>
+          </footer>
+
+          <Suspense fallback={null}>
+            {previewOpen && (
+              <DataPreviewModal
+                open={previewOpen}
+                onOpenChange={setPreviewOpen}
+                consent={consent}
+              />
+            )}
+          </Suspense>
+
+          <BookingModal
+            therapist={pendingTherapist}
+            open={bookingOpen}
+            onOpenChange={setBookingOpen}
+          />
         </motion.main>
       )}
     </AnimatePresence>

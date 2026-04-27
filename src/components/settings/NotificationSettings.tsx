@@ -82,7 +82,7 @@ export function NotificationSettings({ settings, loading, saving, onSave }: Noti
         {
             key: 'notif_weekly' as const,
             label: 'Weekly emotional summary',
-            description: 'Get a weekly overview of your wellness journey',
+            description: 'A quiet weekly note about how the week landed.',
             icon: <Bell className="h-4 w-4 text-accent" />,
         },
         {

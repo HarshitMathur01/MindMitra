@@ -4,7 +4,7 @@
    Deep sage + cream + charcoal. Glassmorphism. Dramatic whitespace.
    ────────────────────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -759,6 +759,218 @@
   .crisis-glow {
     box-shadow: 0 0 0 1px hsl(var(--bad-500) / 0.25),
       0 8px 24px -8px hsl(var(--bad-500) / 0.20);
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     Quiet Companion — watercolor-literary scope.
+     Opt-in via .qc-canvas on a page-level wrapper. All QC component
+     classes (.qc-card, .qc-pill-*, .qc-input) read CSS variables
+     defined here, so they only render correctly inside .qc-canvas.
+     This isolation guarantees no token leak into Sanctuary v4 pages.
+     ────────────────────────────────────────────────────────────── */
+  .qc-canvas {
+    --qc-canvas: #F5EDE0;
+    --qc-surface: #FBF6EC;
+    --qc-ink: #2D2A24;
+    --qc-ink-soft: #4A4640;
+    --qc-ink-muted: #7A736A;
+    --qc-forest: #3F6B47;
+    --qc-forest-hover: #345a3b;
+    --qc-sage: #A8BC9A;
+    --qc-peach-rgb: 232, 201, 176;
+    --qc-peach-opacity: 0.34;
+    --qc-border: rgba(0, 0, 0, 0.04);
+    --qc-border-stronger: rgba(0, 0, 0, 0.10);
+    --qc-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    --qc-pill-text-on-forest: #FBF6EC;
+    /* !important is intentional — qc-canvas is a page-level claim
+       that must beat any Sanctuary v4 utility (bg-background,
+       text-foreground) applied by shared shells like AppShell. */
+    background-color: var(--qc-canvas) !important;
+    color: var(--qc-ink) !important;
+  }
+
+  /* Candlelight night variant — warm dim cream + brighter forest.
+     Activates whenever the user toggles app-wide dark mode via
+     ThemeContext (which sets data-theme="dark" on the html element)
+     AND the page opts in via .qc-canvas. Pages without .qc-canvas
+     keep the existing Sanctuary v4 dark palette. */
+  [data-theme="dark"] .qc-canvas {
+    --qc-canvas: #1F1B16;
+    --qc-surface: #2A241D;
+    --qc-ink: #E8DFD0;
+    --qc-ink-soft: #C7BDB0;
+    --qc-ink-muted: #A8A097;
+    --qc-forest: #6FA078;
+    --qc-forest-hover: #82B58B;
+    --qc-sage: #A8BC9A;
+    --qc-peach-rgb: 232, 201, 176;
+    --qc-peach-opacity: 0.22;
+    --qc-border: rgba(255, 255, 255, 0.07);
+    --qc-border-stronger: rgba(255, 255, 255, 0.14);
+    --qc-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+    --qc-pill-text-on-forest: #1F1B16;
+  }
+
+  .qc-eyebrow {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--qc-ink-muted, #7A736A);
+  }
+
+  .qc-display {
+    font-family: 'Fraunces', ui-serif, Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+
+  .mitra-voice {
+    font-style: italic;
+  }
+
+  /* ── Surface card — rounded-3xl, hairline border, near-invisible
+     shadow. Default p-12, override per call site if a tighter inner
+     padding is needed (use p-8 utility on the same element). ── */
+  .qc-card {
+    background-color: var(--qc-surface);
+    color: var(--qc-ink);
+    border: 1px solid var(--qc-border);
+    border-radius: 24px;
+    box-shadow: var(--qc-card-shadow);
+    padding: 3rem;
+  }
+
+  /* ── Pill button — forest fill, no shadow, hover lifts 1px and
+     darkens 8%. The design language calls out: pills only, 14×28px,
+     filled forest or outlined ink. ── */
+  .qc-pill-primary,
+  .qc-pill-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 14px 28px;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    transition: transform 200ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+      background-color 200ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+      color 200ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+      border-color 200ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .qc-pill-primary {
+    background-color: var(--qc-forest);
+    color: var(--qc-pill-text-on-forest);
+    border: 1px solid transparent;
+  }
+
+  .qc-pill-primary:hover:not(:disabled),
+  .qc-pill-primary:focus-visible:not(:disabled) {
+    background-color: var(--qc-forest-hover);
+    transform: translateY(-1px);
+  }
+
+  .qc-pill-outline {
+    background-color: transparent;
+    color: var(--qc-ink);
+    border: 1px solid var(--qc-border-stronger);
+  }
+
+  .qc-pill-outline:hover:not(:disabled),
+  .qc-pill-outline:focus-visible:not(:disabled) {
+    border-color: var(--qc-ink-soft);
+    transform: translateY(-1px);
+  }
+
+  .qc-pill-primary:disabled,
+  .qc-pill-outline:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Input — underline-only, no boxes. Forest underline on focus. ── */
+  .qc-input {
+    background-color: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--qc-border-stronger);
+    border-radius: 0;
+    padding: 8px 0;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--qc-ink);
+    width: 100%;
+    transition: border-color 200ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+    box-shadow: none !important;
+  }
+
+  .qc-input::placeholder {
+    color: var(--qc-ink-muted);
+    opacity: 0.7;
+  }
+
+  .qc-input:focus,
+  .qc-input:focus-visible {
+    outline: none;
+    border-bottom-color: var(--qc-forest);
+    box-shadow: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .qc-pill-primary,
+    .qc-pill-outline {
+      transition: none;
+    }
+
+    .qc-pill-primary:hover:not(:disabled),
+    .qc-pill-outline:hover:not(:disabled) {
+      transform: none;
+    }
+  }
+
+  @keyframes qc-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .qc-fade-up {
+    opacity: 0;
+    will-change: opacity, transform;
+  }
+
+  .qc-fade-up.is-visible {
+    animation: qc-fade-up 0.6s ease-out both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .qc-fade-up {
+      opacity: 1;
+      transform: none;
+    }
+
+    .qc-fade-up.is-visible {
+      animation: none;
+    }
   }
 
   /* ── Voice recording ── */

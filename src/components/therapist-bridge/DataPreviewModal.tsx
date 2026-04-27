@@ -1,13 +1,9 @@
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { mockProfile, type ConsentState } from "@/lib/mock/therapist-bridge";
-import { CheckCircle2, XCircle } from "lucide-react";
 
 export default function DataPreviewModal({
   open,
@@ -19,37 +15,41 @@ export default function DataPreviewModal({
   consent: ConsentState;
 }) {
   const Row = ({ on, label, children }: { on: boolean; label: string; children: React.ReactNode }) => (
-    <div className="rounded-xl border bg-background/40 p-4">
-      <div className="mb-2 flex items-center gap-2">
-        {on ? (
-          <CheckCircle2 className="h-4 w-4 text-primary" />
-        ) : (
-          <XCircle className="h-4 w-4 text-muted-foreground" />
-        )}
-        <span className="text-sm font-medium text-foreground">{label}</span>
-        <Badge variant={on ? "default" : "secondary"} className="ml-auto">
-          {on ? "Shared" : "Hidden"}
-        </Badge>
+    <div className="border-b border-[rgba(0,0,0,0.04)] py-6 last:border-b-0">
+      <div className="mb-3 flex items-baseline justify-between gap-4">
+        <span className="qc-eyebrow">{label}</span>
+        <span
+          className={`text-[12px] italic ${
+            on ? "text-[#3F6B47]" : "text-[#7A736A]"
+          }`}
+        >
+          {on ? "shared" : "hidden"}
+        </span>
       </div>
-      <div className={on ? "" : "opacity-40 blur-sm select-none"}>{children}</div>
+      <div className={on ? "text-[14px] leading-[1.6] text-[#4A4640]" : "select-none text-[14px] leading-[1.6] text-[#4A4640] opacity-30 blur-[1px]"}>
+        {children}
+      </div>
     </div>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>What your therapist will see</DialogTitle>
-          <DialogDescription>
-            Live preview based on your consent toggles.
-          </DialogDescription>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto rounded-3xl border-[rgba(0,0,0,0.04)] bg-[#FBF6EC] p-10 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+        <DialogHeader className="text-left">
+          <p className="qc-eyebrow">A live preview</p>
+          <h2 className="qc-display mt-3 text-3xl text-[#2D2A24]">
+            What your therapist will see
+          </h2>
+          <p className="mt-3 text-[14px] italic leading-[1.6] text-[#7A736A]">
+            updates with your consent toggles.
+          </p>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="mt-6">
           <Row on={consent.contactInfo} label="Contact information">
-            <p className="text-sm text-muted-foreground">Alex Sharma · alex@example.com</p>
+            Alex Sharma · alex@example.com
           </Row>
           <Row on={consent.assessments} label="Assessments">
-            <ul className="space-y-1 text-sm text-muted-foreground">
+            <ul className="space-y-1">
               {mockProfile.assessments.map((a) => (
                 <li key={a.name}>
                   {a.name}: {a.score}/{a.max} ({a.severity})
@@ -58,14 +58,10 @@ export default function DataPreviewModal({
             </ul>
           </Row>
           <Row on={consent.fullProfile} label="Emotional profile">
-            <p className="text-sm text-muted-foreground">
-              7-day mood trend, top patterns ({mockProfile.patterns.length}), and topic distribution.
-            </p>
+            7-day mood trend, top patterns ({mockProfile.patterns.length}), and topic distribution.
           </Row>
           <Row on={consent.sessionSummaries} label="Session summaries">
-            <p className="text-sm text-muted-foreground">
-              "Reported elevated stress around work deadlines; sleep onset delayed by 90 min on weekdays…"
-            </p>
+            "Reported elevated stress around work deadlines; sleep onset delayed by 90 min on weekdays…"
           </Row>
         </div>
       </DialogContent>

@@ -2,13 +2,9 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { CalendarCheck, Video, MapPin } from "lucide-react";
+import { Video, MapPin } from "lucide-react";
 import type { Therapist } from "@/lib/mock/therapist-bridge";
 import { toast } from "sonner";
 
@@ -38,49 +34,58 @@ export function BookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarCheck className="h-5 w-5 text-primary" />
+      <DialogContent className="rounded-3xl border-[rgba(0,0,0,0.04)] bg-[#FBF6EC] p-10 shadow-[0_1px_3px_rgba(0,0,0,0.03)] sm:max-w-md">
+        <DialogHeader className="text-left">
+          <p className="qc-eyebrow">A small confirmation</p>
+          <h2 className="qc-display mt-3 text-3xl text-[#2D2A24]">
             Confirm your session
-          </DialogTitle>
-          <DialogDescription>
-            We'll send the confirmation and prep notes to your inbox (mock).
-          </DialogDescription>
+          </h2>
+          <p className="mt-3 text-[14px] italic leading-[1.6] text-[#7A736A]">
+            we'll send the confirmation and prep notes to your inbox (mock).
+          </p>
         </DialogHeader>
-        <div className="space-y-3 rounded-xl border bg-muted/30 p-4 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Therapist</span>
-            <span className="font-medium text-foreground">{therapist.name}</span>
+        <dl className="mt-8 space-y-5 text-[14px]">
+          <div className="flex items-baseline justify-between gap-6 border-b border-[rgba(0,0,0,0.04)] pb-3">
+            <dt className="qc-eyebrow">Therapist</dt>
+            <dd className="text-[#2D2A24]">{therapist.name}</dd>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">When</span>
-            <span className="font-medium text-foreground">{therapist.nextAvailable}</span>
+          <div className="flex items-baseline justify-between gap-6 border-b border-[rgba(0,0,0,0.04)] pb-3">
+            <dt className="qc-eyebrow">When</dt>
+            <dd className="text-[#2D2A24]">{therapist.nextAvailable}</dd>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Format</span>
-            <span className="flex items-center gap-1 font-medium text-foreground">
+          <div className="flex items-baseline justify-between gap-6 border-b border-[rgba(0,0,0,0.04)] pb-3">
+            <dt className="qc-eyebrow">Format</dt>
+            <dd className="flex items-center gap-1.5 text-[#2D2A24]">
               {therapist.modality.includes("virtual") ? (
-                <Video className="h-3.5 w-3.5" />
+                <Video className="h-3.5 w-3.5 text-[#7A736A]" />
               ) : (
-                <MapPin className="h-3.5 w-3.5" />
+                <MapPin className="h-3.5 w-3.5 text-[#7A736A]" />
               )}
               {therapist.modality[0]}
-            </span>
+            </dd>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Fee</span>
-            <span className="font-medium text-foreground">₹{therapist.pricePerSession}</span>
+          <div className="flex items-baseline justify-between gap-6">
+            <dt className="qc-eyebrow">Fee</dt>
+            <dd className="qc-display text-xl text-[#2D2A24]">₹{therapist.pricePerSession}</dd>
           </div>
+        </dl>
+        <div className="mt-10 flex flex-wrap items-center justify-end gap-4">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="text-[13.5px] italic text-[#7A736A] hover:text-[#4A4640]"
+          >
+            cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={confirming}
+            className="inline-flex items-center justify-center rounded-full bg-[#3F6B47] px-7 py-3 text-[14px] font-medium text-[#F5EDE0] transition-[transform,filter] duration-200 ease-out hover:-translate-y-px hover:brightness-[0.92] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:hover:transform-none motion-reduce:transition-none"
+          >
+            {confirming ? "booking…" : "Confirm booking"}
+          </button>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm} disabled={confirming}>
-            {confirming ? "Booking…" : "Confirm booking"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

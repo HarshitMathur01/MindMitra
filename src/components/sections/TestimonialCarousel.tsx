@@ -1,30 +1,28 @@
-import { motion } from "framer-motion";
-import { DURATION, EASE } from "@/lib/redesign/tokens";
+import { FadeUp } from "@/components/layout/FadeUp";
+import { Eyebrow } from "@/components/layout/Eyebrow";
 
 /**
- * "In your words" — typographic quote stack. Replaces the previous
- * star-rating testimonial grid. No headshots, no five-star theatre;
- * just three voices that match the calm direction.
- *
- * Component name kept as `TestimonialCarousel` to preserve the public
- * import path used by `PublicLanding.tsx`.
+ * Component name kept as `TestimonialCarousel` to preserve the
+ * import path used by `PublicLanding.tsx`. Despite the legacy name,
+ * there is no carousel here — the design language rejects them.
+ * Three quiet voices, stacked typographically.
  */
 
 const voices = [
   {
     quote:
-      "It actually remembered what I told it last week. That sounds small but I've never had that with an app.",
-    attribution: "Priya, second-year undergrad",
+      "it actually remembered what i told it last week. that sounds small but i've never had that with an app.",
+    attribution: "priya, second-year undergrad",
   },
   {
     quote:
-      "I open it at 2am instead of doom-scrolling. Within ten minutes my chest feels less tight.",
-    attribution: "Arjun, first job",
+      "i open it at 2am instead of doom-scrolling. within ten minutes my chest feels less tight.",
+    attribution: "arjun, first job",
   },
   {
     quote:
-      "When I finally booked a counsellor through MindMitra, she already knew the shape of my month. We skipped the awkward part.",
-    attribution: "Sneha, graduate student",
+      "when i finally booked a counsellor through mindmitra, she already knew the shape of my month. we skipped the awkward part.",
+    attribution: "sneha, graduate student",
   },
 ];
 
@@ -32,51 +30,36 @@ const TestimonialCarousel = () => {
   return (
     <section
       id="about"
-      className="relative py-20 sm:py-28"
+      className="mx-auto max-w-[1200px] px-6 py-16 sm:px-8 sm:py-24"
     >
-      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: DURATION.long, ease: EASE.outExpo }}
-          className="max-w-2xl"
-        >
-          <span className="quiet-label">In your words</span>
-          <h2 className="mt-4 font-display text-balance text-3xl tracking-tight text-foreground sm:text-4xl">
-            Quiet wins, mostly.
-          </h2>
-        </motion.div>
+      <FadeUp className="max-w-[60ch]">
+        <Eyebrow>in your words</Eyebrow>
+        <h2 className="qc-display mt-3 text-4xl text-[color:var(--qc-ink)] sm:text-5xl">
+          quiet wins, mostly.
+        </h2>
+      </FadeUp>
 
-        <ul className="mt-14 space-y-10 sm:mt-16 sm:space-y-14">
-          {voices.map((v, i) => (
-            <motion.li
-              key={v.attribution}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{
-                duration: DURATION.long,
-                delay: i * 0.06,
-                ease: EASE.outExpo,
-              }}
-              className="grid gap-4 border-b border-border/40 pb-10 last:border-b-0 last:pb-0 sm:grid-cols-[auto_1fr] sm:gap-12 sm:pb-14"
-            >
-              <span className="text-sm tabular text-muted-foreground sm:pt-2">
-                0{i + 1}
-              </span>
-              <div className="max-w-2xl">
-                <p className="font-display text-balance text-2xl leading-snug tracking-tight text-foreground sm:text-3xl">
-                  &ldquo;{v.quote}&rdquo;
-                </p>
-                <p className="mt-4 text-sm text-muted-foreground">
-                  {v.attribution}
-                </p>
-              </div>
-            </motion.li>
-          ))}
-        </ul>
-      </div>
+      <ul className="mt-14 space-y-12 sm:mt-20 sm:space-y-16">
+        {voices.map((v, i) => (
+          <li key={v.attribution}>
+            <FadeUp delay={i * 60}>
+              <article className="grid gap-4 border-b border-[color:var(--qc-border)] pb-12 last:border-b-0 last:pb-0 sm:grid-cols-[8ch_1fr] sm:gap-12 sm:pb-16">
+                <span className="qc-eyebrow tabular-nums sm:pt-2">
+                  0{i + 1}
+                </span>
+                <div className="max-w-[60ch]">
+                  <p className="qc-display mitra-voice text-balance text-2xl leading-snug text-[color:var(--qc-ink)] sm:text-3xl">
+                    &ldquo;{v.quote}&rdquo;
+                  </p>
+                  <p className="mt-5 text-sm text-[color:var(--qc-ink-muted)]">
+                    — {v.attribution}
+                  </p>
+                </div>
+              </article>
+            </FadeUp>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 };

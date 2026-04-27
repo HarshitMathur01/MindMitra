@@ -1,112 +1,63 @@
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import Pulse from "@/components/identity/Pulse";
-import { DURATION, EASE } from "@/lib/redesign/tokens";
+import { FadeUp } from "@/components/layout/FadeUp";
+import { Eyebrow } from "@/components/layout/Eyebrow";
+import { WatercolorScene } from "@/components/layout/WatercolorScene";
+import { PeachBlush } from "@/components/layout/PeachBlush";
 
-/**
- * WelcomeHero — first impression for the public landing.
- *
- * "Quiet Companion" direction: the brand presence (Pulse) is the only
- * decorative element. Copy is direct, not "AI-marketing". One primary
- * CTA, one quiet secondary, one trust line. No floating chat preview
- * here — the live preview lives further down the page.
- */
 const WelcomeHero = () => {
   const navigate = useNavigate();
 
   return (
-    <section
-      className="relative isolate flex min-h-[88vh] items-center overflow-hidden pt-[var(--header-height)]"
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse 70% 50% at 50% 18%, hsl(var(--accent-100) / 0.55) 0%, transparent 65%), radial-gradient(ellipse 55% 40% at 80% 90%, hsl(var(--warmth-100) / 0.35) 0%, transparent 60%)",
-        }}
-      />
+    <section className="relative isolate overflow-hidden pt-[var(--header-height)]">
+      <PeachBlush position="top-right" size="lg" />
 
-      <div className="relative mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: DURATION.long, ease: EASE.outExpo }}
-            className="mb-12"
-          >
-            <Pulse size={184} state="idle" intensity={0.85} />
-          </motion.div>
-
-          <motion.span
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: DURATION.long, delay: 0.05, ease: EASE.outExpo }}
-            className="quiet-label"
-          >
-            MindMitra
-          </motion.span>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: DURATION.long, delay: 0.1, ease: EASE.outExpo }}
-            className="mt-5 font-display text-[clamp(2.4rem,5.4vw,4rem)] leading-[1.06] tracking-tight text-foreground"
-          >
-            A quiet companion
+      <div className="relative mx-auto grid max-w-[1200px] gap-12 px-6 pb-16 pt-16 sm:px-8 sm:pb-24 sm:pt-24 lg:grid-cols-[6fr_4fr] lg:items-center lg:gap-16">
+        <FadeUp className="max-w-[60ch]">
+          <Eyebrow>a quiet companion</Eyebrow>
+          <h1 className="qc-display mt-5 text-[clamp(2.4rem,5.4vw,4rem)] text-[color:var(--qc-ink)]">
+            something soft to set things down on,
             <br />
             for the loud days.
-          </motion.h1>
+          </h1>
+          <p className="mt-6 max-w-[52ch] text-lg leading-[1.6] text-[color:var(--qc-ink-soft)]">
+            a private place to think out loud, return to the same conversation
+            tomorrow, and reach a real therapist when you're ready. built for
+            the way young people in india actually talk.
+          </p>
 
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: DURATION.long, delay: 0.18, ease: EASE.outExpo }}
-            className="mt-6 max-w-xl text-balance text-lg leading-relaxed text-muted-foreground"
-          >
-            A private place to think out loud, return to the same conversation
-            tomorrow, and reach a real therapist when you want to. Built for the
-            way young people in India actually talk.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: DURATION.long, delay: 0.26, ease: EASE.outExpo }}
-            className="mt-10 flex flex-col items-center gap-3 sm:flex-row"
-          >
-            <Button
-              size="lg"
+          <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
               onClick={() => navigate("/auth")}
-              className="gap-2 rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-[var(--shadow-dashboard-warm)] hover:bg-[hsl(var(--accent-600))]"
+              className="qc-pill-primary"
             >
-              Open MindMitra
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
+              open mindmitra
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 const el = document.querySelector("#how-it-works");
                 if (el) el.scrollIntoView({ behavior: "smooth" });
               }}
-              className="text-muted-foreground hover:text-foreground"
+              className="qc-pill-outline"
             >
-              How it holds you
-            </Button>
-          </motion.div>
+              how it holds you
+            </button>
+          </div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: DURATION.long, delay: 0.4 }}
-            className="mt-10 text-xs text-muted-foreground"
-          >
-            Private by default. Crisis support is one tap away on every screen.
-          </motion.p>
-        </div>
+          <p className="mt-10 text-xs text-[color:var(--qc-ink-muted)]">
+            private by default. crisis support is one tap away on every screen.
+          </p>
+        </FadeUp>
+
+        <FadeUp delay={120} className="hidden lg:block">
+          <WatercolorScene
+            name="presence"
+            maxRenderedWidth={960}
+            loading="eager"
+            className="mx-auto max-w-[480px]"
+          />
+        </FadeUp>
       </div>
     </section>
   );

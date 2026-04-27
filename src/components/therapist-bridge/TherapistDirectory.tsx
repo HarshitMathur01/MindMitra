@@ -26,21 +26,21 @@ export default function TherapistDirectory({
 
   return (
     <div>
-      <div className="mb-4 flex items-baseline justify-between">
-        <h3 className="text-lg font-semibold text-foreground">
+      <div className="mb-8 flex items-baseline justify-between">
+        <p className="qc-display text-2xl text-[#2D2A24]">
           {list.length} {list.length === 1 ? "match" : "matches"}
-        </h3>
-        <span className="text-xs text-muted-foreground">Sorted by best fit</span>
+        </p>
+        <span className="text-xs italic text-[#7A736A]">sorted by best fit</span>
       </div>
       {list.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center">
-          <p className="text-sm font-medium text-foreground">No therapists match your filters.</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Try widening your budget or removing a concern.
+        <div className="rounded-3xl border border-dashed border-[rgba(0,0,0,0.08)] bg-[#FBF6EC] p-12 text-center">
+          <p className="qc-display text-xl text-[#2D2A24]">No one quite fits, yet.</p>
+          <p className="mt-3 text-[14px] italic leading-[1.6] text-[#7A736A]">
+            try widening your budget or removing a concern.
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((t) => (
             <TherapistCard key={t.id} therapist={t} onBook={onBook} />
           ))}

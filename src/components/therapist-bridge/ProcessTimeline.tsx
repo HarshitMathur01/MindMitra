@@ -1,36 +1,30 @@
-import { ClipboardList, Sparkles, ShieldCheck, CalendarCheck } from "lucide-react";
-
 const steps = [
-  { icon: ClipboardList, title: "Intake", desc: "Tell us what you need." },
-  { icon: Sparkles, title: "Match", desc: "We surface the best-fit therapists." },
-  { icon: ShieldCheck, title: "Consent", desc: "Choose exactly what to share." },
-  { icon: CalendarCheck, title: "Book", desc: "Confirm your first session." },
+  { title: "Intake", desc: "Tell us what you need." },
+  { title: "Match", desc: "We surface the people who fit." },
+  { title: "Consent", desc: "Choose exactly what to share." },
+  { title: "Book", desc: "Confirm your first session." },
 ];
 
 export function ProcessTimeline() {
   return (
-    <div className="rounded-2xl border bg-card p-6 tb-shadow-card">
-      <h3 className="text-sm font-semibold text-muted-foreground">How the bridge works</h3>
-      <ol className="mt-5 grid gap-6 sm:grid-cols-4">
+    <div className="rounded-3xl border border-[rgba(0,0,0,0.04)] bg-[#FBF6EC] p-12 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+      <ol className="relative grid gap-10 sm:grid-cols-4 sm:gap-6">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-0 right-0 top-[1.4rem] hidden h-px bg-[#A8BC9A] opacity-40 sm:block"
+        />
         {steps.map((s, i) => (
           <li key={s.title} className="relative">
-            {i < steps.length - 1 && (
-              <span
-                className="absolute left-10 top-5 hidden h-px w-[calc(100%-2.5rem)] bg-border sm:block"
-                aria-hidden
-              />
-            )}
-            <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-content-center rounded-full tb-gradient-hero text-primary-foreground">
-                <s.icon className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {i + 1}. {s.title}
-                </p>
-                <p className="text-xs text-muted-foreground">{s.desc}</p>
-              </div>
-            </div>
+            <span
+              aria-hidden
+              className="absolute left-0 top-0 hidden h-2.5 w-2.5 -translate-y-[3px] rounded-full bg-[#FBF6EC] ring-1 ring-[#A8BC9A] sm:block"
+              style={{ left: "0" }}
+            />
+            <span className="qc-display block text-3xl text-[#7A736A]">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <p className="qc-display mt-3 text-xl text-[#2D2A24]">{s.title}</p>
+            <p className="mt-2 text-[14px] leading-[1.6] text-[#4A4640]">{s.desc}</p>
           </li>
         ))}
       </ol>

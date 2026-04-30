@@ -8,6 +8,13 @@ interface AppShellProps {
   children: React.ReactNode;
   /** When true, hides the global Header (e.g. full-screen chat, modals) */
   hideHeader?: boolean;
+  /**
+   * Visual surface system. Defaults to `quiet-companion`, which paints
+   * the warm cream canvas and sets shadcn primitives to QC tokens via
+   * the bridge in `src/index.css`. Pass `sanctuary` for legacy pages
+   * (chat, MindGym tools) that own their own background.
+   */
+  surface?: "quiet-companion" | "sanctuary";
 }
 
 /**
@@ -19,12 +26,19 @@ interface AppShellProps {
  *     <PageContainer>…</PageContainer>
  *   </AppShell>
  */
-const AppShell = ({ className, children, hideHeader = false }: AppShellProps) => {
+const AppShell = ({
+  className,
+  children,
+  hideHeader = false,
+  surface = "quiet-companion",
+}: AppShellProps) => {
+  const isQc = surface === "quiet-companion";
   return (
     <div
       className={cn(
-        "min-h-screen bg-background text-foreground transition-colors duration-300",
-        className
+        "min-h-screen transition-colors duration-300",
+        isQc ? "qc-canvas" : "bg-background text-foreground",
+        className,
       )}
     >
       {!hideHeader && <Header />}

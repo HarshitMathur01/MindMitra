@@ -713,3 +713,48 @@ img {
         max-width: 78%;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Quiet Companion overlay for the chat thread
+
+   When the chat surface is wrapped in `.qc-tone` (see Chat.tsx),
+   override the bubble + message-content tokens so messages read as
+   warm cream / forest, not Sanctuary slate. AI messages stay
+   borderless (continuation of the room); user messages become a
+   soft sage/peach pill — recognisable but quiet.
+   ══════════════════════════════════════════════════════════════════ */
+.qc-tone .mm-message-content,
+.qc-tone .mm-message-content .mm-paragraph {
+    color: var(--qc-ink);
+}
+
+.qc-tone .mm-bubble--ai {
+    background: transparent;
+    color: var(--qc-ink-soft);
+}
+
+.qc-tone .mm-bubble--user {
+    background: var(--qc-surface);
+    color: var(--qc-ink);
+    border: 1px solid var(--qc-border);
+}
+
+.qc-tone .mm-user-text {
+    color: var(--qc-ink);
+}
+
+.qc-tone .mm-bubble-time {
+    color: var(--qc-ink-muted);
+}
+
+/* AI message body lives in Mitra's voice (italic) by default. The
+   conversation reads as a letter being written in real time. */
+.qc-tone .mm-bubble--ai .mm-message-content {
+    font-style: italic;
+}
+
+.qc-tone .mm-bubble--ai .mm-message-content .mm-action-list,
+.qc-tone .mm-bubble--ai .mm-message-content .mm-bullet-list,
+.qc-tone .mm-bubble--ai .mm-message-content .mm-numbered-list {
+    font-style: normal;
+}

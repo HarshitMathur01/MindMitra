@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import HillsFooter from "@/components/layout/HillsFooter";
 import { PageShell } from "@/components/layout/PageShell";
 import Pulse from "@/components/identity/Pulse";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import {
     type KeptMoment,
 } from "@/components/chat/chatHelpers";
 
-const eyebrow = "text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5";
+const eyebrow = "qc-eyebrow";
 
 interface RecentSession {
     id: string;
@@ -171,7 +171,7 @@ export default function Me() {
     }, [settings]);
 
     return (
-        <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors duration-300">
+        <>
             <Header />
 
             <PageShell>
@@ -184,13 +184,13 @@ export default function Me() {
                 >
                     <div className="min-w-0">
                         <p className={eyebrow}>You</p>
-                        <h1 className="mt-2 text-balance font-display text-[clamp(1.85rem,4vw,2.5rem)] font-light leading-[1.1] tracking-tight text-ink-8">
+                        <h1 className="qc-display mt-2 text-balance text-[clamp(1.85rem,4vw,2.5rem)]">
                             Memory &amp; wellbeing.{" "}
-                            <span className="text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]">
+                            <span className="mitra-voice text-[color:var(--qc-forest)]">
                                 Quiet, yours.
                             </span>
                         </h1>
-                        <p className="mt-4 max-w-prose text-[15px] leading-[1.7] text-ink-6">
+                        <p className="mt-4 max-w-prose text-[15px] leading-[1.7] text-[color:var(--qc-ink-muted)]">
                             What you&apos;ve kept, where you&apos;ve been, and what MindMitra
                             knows about you. Nothing here is shared. You can edit or remove
                             any of it, anytime.
@@ -211,24 +211,24 @@ export default function Me() {
                     <button
                         type="button"
                         onClick={() => navigate("/safety-plan")}
-                        className="group flex w-full items-center justify-between gap-4 rounded-[1.5rem] border border-border/40 bg-[hsl(var(--ink-1))] p-5 text-left transition-colors hover:bg-background sm:p-6"
+                        className="group flex w-full items-center justify-between gap-4 rounded-[1.5rem] border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-5 text-left transition-colors hover:bg-transparent sm:p-6"
                     >
                         <div className="flex items-start gap-4">
-                            <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]">
+                            <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[color:var(--qc-sage)]/30 text-[color:var(--qc-forest)]">
                                 <ShieldCheck className="h-4 w-4" />
                             </div>
                             <div className="min-w-0">
                                 <p className={eyebrow}>For your hardest moments</p>
-                                <p className="mt-1 font-display text-[18px] text-ink-8">
+                                <p className="mt-1 qc-display text-[18px] text-[color:var(--qc-ink)]">
                                     Your safety plan
                                 </p>
-                                <p className="mt-1 text-[14px] leading-[1.55] text-ink-6">
+                                <p className="mt-1 text-[14px] leading-[1.55] text-[color:var(--qc-ink-muted)]">
                                     A short plan you build once and keep with you — warning
                                     signs you recognise, things that help, people you can reach.
                                 </p>
                             </div>
                         </div>
-                        <ArrowRight className="hidden h-4 w-4 shrink-0 text-ink-5 transition-transform group-hover:translate-x-0.5 sm:inline-block" />
+                        <ArrowRight className="hidden h-4 w-4 shrink-0 text-[color:var(--qc-ink-muted)] transition-transform group-hover:translate-x-0.5 sm:inline-block" />
                     </button>
                 </motion.section>
 
@@ -239,40 +239,40 @@ export default function Me() {
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: DURATION.long, ease: EASE.outExpo, delay: 0.1 }}
-                        className="rounded-[1.5rem] border border-border/40 bg-[hsl(var(--card))] p-5 sm:p-6"
+                        className="rounded-[1.5rem] border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-5 sm:p-6"
                     >
                         <div className="flex items-center gap-2">
-                            <BookmarkCheck className="h-4 w-4 text-[hsl(var(--accent-600))]" />
-                            <h2 className="font-display text-[18px] text-ink-8">
+                            <BookmarkCheck className="h-4 w-4 text-[color:var(--qc-forest)]" />
+                            <h2 className="qc-display text-[18px] text-[color:var(--qc-ink)]">
                                 Things you wanted to keep
                             </h2>
                         </div>
-                        <p className="mt-1 text-[13px] text-ink-6">
+                        <p className="mt-1 text-[13px] text-[color:var(--qc-ink-muted)]">
                             Tap &quot;Keep this&quot; on any AI reply that lands well — they show up here.
                         </p>
 
                         <div className="mt-5 space-y-3">
                             {keptMoments.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 text-center text-[14px] text-ink-5">
+                                <div className="rounded-2xl border border-dashed border-[color:var(--qc-border-stronger)] px-4 py-8 text-center text-[14px] text-[color:var(--qc-ink-muted)]">
                                     Nothing kept yet. That&apos;s okay — there&apos;s no quota.
                                 </div>
                             ) : (
                                 keptMoments.map((m) => (
                                     <div
                                         key={m.id}
-                                        className="group rounded-2xl border border-border/40 bg-background p-4"
+                                        className="group rounded-2xl border border-[color:var(--qc-border)] bg-transparent p-4"
                                     >
-                                        <p className="text-[14px] leading-[1.6] text-ink-7 whitespace-pre-wrap">
+                                        <p className="text-[14px] leading-[1.6] text-[color:var(--qc-ink-soft)] whitespace-pre-wrap">
                                             {m.content}
                                         </p>
                                         <div className="mt-3 flex items-center justify-between gap-3">
-                                            <span className="text-[11px] text-ink-5">
+                                            <span className="text-[11px] text-[color:var(--qc-ink-muted)]">
                                                 kept {formatRelativeDate(m.keptAt)}
                                             </span>
                                             <button
                                                 type="button"
                                                 onClick={() => handleUnkeep(m)}
-                                                className="inline-flex items-center gap-1 text-[11px] text-ink-5 transition-colors hover:text-ink-7"
+                                                className="inline-flex items-center gap-1 text-[11px] text-[color:var(--qc-ink-muted)] transition-colors hover:text-[color:var(--qc-ink-soft)]"
                                                 aria-label="Remove this kept moment"
                                             >
                                                 <Trash2 className="h-3 w-3" />
@@ -290,15 +290,15 @@ export default function Me() {
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: DURATION.long, ease: EASE.outExpo, delay: 0.15 }}
-                        className="rounded-[1.5rem] border border-border/40 bg-[hsl(var(--card))] p-5 sm:p-6"
+                        className="rounded-[1.5rem] border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-5 sm:p-6"
                     >
                         <div className="flex items-center gap-2">
-                            <MessageSquare className="h-4 w-4 text-ink-7" />
-                            <h2 className="font-display text-[18px] text-ink-8">
+                            <MessageSquare className="h-4 w-4 text-[color:var(--qc-ink-soft)]" />
+                            <h2 className="qc-display text-[18px] text-[color:var(--qc-ink)]">
                                 Where you&apos;ve been
                             </h2>
                         </div>
-                        <p className="mt-1 text-[13px] text-ink-6">
+                        <p className="mt-1 text-[13px] text-[color:var(--qc-ink-muted)]">
                             Pick up a thread, or start fresh.
                         </p>
 
@@ -308,12 +308,12 @@ export default function Me() {
                                     {[0, 1, 2].map((i) => (
                                         <div
                                             key={i}
-                                            className="h-14 animate-pulse rounded-xl bg-[hsl(var(--ink-2))]"
+                                            className="h-14 animate-pulse rounded-xl bg-[color:var(--qc-border-stronger)]"
                                         />
                                     ))}
                                 </>
                             ) : recentSessions.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 text-center text-[14px] text-ink-5">
+                                <div className="rounded-2xl border border-dashed border-[color:var(--qc-border-stronger)] px-4 py-8 text-center text-[14px] text-[color:var(--qc-ink-muted)]">
                                     No conversations yet.
                                 </div>
                             ) : (
@@ -322,17 +322,17 @@ export default function Me() {
                                         key={s.id}
                                         type="button"
                                         onClick={() => goToSession(s.id)}
-                                        className="group flex w-full items-start justify-between gap-3 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors hover:border-border/40 hover:bg-background"
+                                        className="group flex w-full items-start justify-between gap-3 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors hover:border-[color:var(--qc-border)] hover:bg-transparent"
                                     >
                                         <div className="min-w-0">
-                                            <p className="truncate text-[14px] font-medium text-ink-8">
+                                            <p className="truncate text-[14px] font-medium text-[color:var(--qc-ink)]">
                                                 {s.title}
                                             </p>
-                                            <p className="mt-0.5 text-[11.5px] text-ink-5">
+                                            <p className="mt-0.5 text-[11.5px] text-[color:var(--qc-ink-muted)]">
                                                 {formatRelativeDate(s.lastActivity)} · {s.messageCount} messages
                                             </p>
                                         </div>
-                                        <ArrowRight className="mt-1.5 h-3.5 w-3.5 shrink-0 text-ink-5 transition-transform group-hover:translate-x-0.5" />
+                                        <ArrowRight className="mt-1.5 h-3.5 w-3.5 shrink-0 text-[color:var(--qc-ink-muted)] transition-transform group-hover:translate-x-0.5" />
                                     </button>
                                 ))
                             )}
@@ -353,17 +353,17 @@ export default function Me() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: DURATION.long, ease: EASE.outExpo, delay: 0.2 }}
-                    className="mt-10 rounded-[1.5rem] border border-border/40 bg-[hsl(var(--card))] p-5 sm:p-6"
+                    className="mt-10 rounded-[1.5rem] border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-5 sm:p-6"
                 >
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-[hsl(var(--accent-600))]" />
-                                <h2 className="font-display text-[18px] text-ink-8">
+                                <Sparkles className="h-4 w-4 text-[color:var(--qc-forest)]" />
+                                <h2 className="qc-display text-[18px] text-[color:var(--qc-ink)]">
                                     What MindMitra remembers about you
                                 </h2>
                             </div>
-                            <p className="mt-1 text-[13px] text-ink-6">
+                            <p className="mt-1 text-[13px] text-[color:var(--qc-ink-muted)]">
                                 Plain, honest, editable. We never share this with anyone.
                             </p>
                         </div>
@@ -382,26 +382,26 @@ export default function Me() {
                         {remembered.map((item) => (
                             <div
                                 key={item.label}
-                                className="rounded-xl border border-border/40 bg-background px-4 py-3"
+                                className="rounded-xl border border-[color:var(--qc-border)] bg-transparent px-4 py-3"
                             >
-                                <dt className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-5">
+                                <dt className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--qc-ink-muted)]">
                                     {item.label}
                                 </dt>
-                                <dd className="mt-1 text-[14px] text-ink-7 first-letter:capitalize">
+                                <dd className="mt-1 text-[14px] text-[color:var(--qc-ink-soft)] first-letter:capitalize">
                                     {item.value}
                                 </dd>
                             </div>
                         ))}
                     </dl>
 
-                    <p className="mt-5 text-[12px] text-ink-5">
+                    <p className="mt-5 text-[12px] text-[color:var(--qc-ink-muted)]">
                         Long-term memory of your conversations stays on the server, encrypted,
                         and is used only to make MindMitra feel like it knows you. You can
                         export or delete everything from{" "}
                         <button
                             type="button"
                             onClick={() => navigate("/settings")}
-                            className="underline-offset-2 hover:text-ink-7 hover:underline"
+                            className="underline-offset-2 hover:text-[color:var(--qc-ink-soft)] hover:underline"
                         >
                             Settings
                         </button>
@@ -412,7 +412,7 @@ export default function Me() {
                 <div className="h-20" />
             </PageShell>
 
-            <Footer />
-        </div>
+            <HillsFooter />
+        </>
     );
 }

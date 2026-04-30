@@ -790,6 +790,50 @@
     color: var(--qc-ink) !important;
   }
 
+  /* ── shadcn primitive bridge ────────────────────────────────
+     Every shadcn primitive (Card, Button, Input, Switch, …) reads
+     from --card, --border, --foreground, --muted-foreground, etc.
+     Inside a QC page we want those to resolve to QC tokens so the
+     primitives inherit the warm cream palette automatically — no
+     JSX rewrite needed. ──────────────────────────────────────── */
+  .qc-canvas,
+  .qc-tone {
+    --background: 36 38% 91%;          /* #F5EDE0 → cream */
+    --foreground: 38 14% 16%;          /* #2D2A24 ink */
+    --card: 36 56% 95%;                /* #FBF6EC surface */
+    --card-foreground: 38 14% 16%;
+    --popover: 36 56% 95%;
+    --popover-foreground: 38 14% 16%;
+    --muted: 36 26% 86%;
+    --muted-foreground: 35 6% 45%;     /* #7A736A ink-muted */
+    --border: 0 0% 0% / 0.04;
+    --input: 0 0% 0% / 0.10;
+    --ring: 137 26% 33%;               /* #3F6B47 forest */
+    --primary: 137 26% 33%;
+    --primary-foreground: 36 56% 95%;
+    --accent: 102 18% 67%;             /* #A8BC9A sage */
+    --accent-foreground: 38 14% 16%;
+  }
+
+  [data-theme="dark"] .qc-canvas,
+  [data-theme="dark"] .qc-tone {
+    --background: 33 19% 10%;
+    --foreground: 38 30% 86%;
+    --card: 32 20% 14%;
+    --card-foreground: 38 30% 86%;
+    --popover: 32 20% 14%;
+    --popover-foreground: 38 30% 86%;
+    --muted: 32 14% 22%;
+    --muted-foreground: 35 8% 63%;
+    --border: 0 0% 100% / 0.07;
+    --input: 0 0% 100% / 0.14;
+    --ring: 137 22% 53%;
+    --primary: 137 22% 53%;
+    --primary-foreground: 33 19% 10%;
+    --accent: 102 18% 67%;
+    --accent-foreground: 38 30% 86%;
+  }
+
   /* Candlelight night variant — warm dim cream + brighter forest.
      Activates whenever the user toggles app-wide dark mode via
      ThemeContext (which sets data-theme="dark" on the html element)
@@ -805,6 +849,43 @@
     --qc-forest-hover: #82B58B;
     --qc-sage: #A8BC9A;
     --qc-peach-rgb: 232, 201, 176;
+    --qc-peach-opacity: 0.22;
+    --qc-border: rgba(255, 255, 255, 0.07);
+    --qc-border-stronger: rgba(255, 255, 255, 0.14);
+    --qc-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+    --qc-pill-text-on-forest: #1F1B16;
+  }
+
+  /* ── qc-tone — palette + type only, NO background claim. Used by
+     chat / MindGym surfaces that own their own scrollable layout but
+     still want to inherit Fraunces, Inter, sage/forest accents. ── */
+  .qc-tone {
+    --qc-canvas: #F5EDE0;
+    --qc-surface: #FBF6EC;
+    --qc-ink: #2D2A24;
+    --qc-ink-soft: #4A4640;
+    --qc-ink-muted: #7A736A;
+    --qc-forest: #3F6B47;
+    --qc-forest-hover: #345a3b;
+    --qc-sage: #A8BC9A;
+    --qc-peach-rgb: 232, 201, 176;
+    --qc-peach-opacity: 0.34;
+    --qc-border: rgba(0, 0, 0, 0.04);
+    --qc-border-stronger: rgba(0, 0, 0, 0.10);
+    --qc-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    --qc-pill-text-on-forest: #FBF6EC;
+    color: var(--qc-ink);
+  }
+
+  [data-theme="dark"] .qc-tone {
+    --qc-canvas: #1F1B16;
+    --qc-surface: #2A241D;
+    --qc-ink: #E8DFD0;
+    --qc-ink-soft: #C7BDB0;
+    --qc-ink-muted: #A8A097;
+    --qc-forest: #6FA078;
+    --qc-forest-hover: #82B58B;
+    --qc-sage: #A8BC9A;
     --qc-peach-opacity: 0.22;
     --qc-border: rgba(255, 255, 255, 0.07);
     --qc-border-stronger: rgba(255, 255, 255, 0.14);

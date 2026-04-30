@@ -15,17 +15,26 @@ import { cn } from "@/lib/utils";
  */
 
 export type PageShellTone = "page" | "raised" | "transparent";
+export type PageShellSurface = "quiet-companion" | "sanctuary";
 
 export interface PageShellProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
   /** Reserve top space equal to fixed header height. Default true. */
   withHeaderOffset?: boolean;
-  /** Tone of the outer wrapper. Default `page`. */
+  /** Tone of the outer wrapper. Ignored when `surface="quiet-companion"`. Default `page`. */
   tone?: PageShellTone;
   /** Override container max width. Default uses `max-w-page` (1200px). */
   width?: "page" | "wide" | "narrow";
   /** Render as `<main>` (default) or `<div>`. */
   as?: "main" | "div";
+  /**
+   * Visual surface system:
+   *   - `quiet-companion` (default): warm cream canvas, ink colors, Fraunces.
+   *     Honours `.qc-canvas` tokens — beats Sanctuary v4 utility classes.
+   *   - `sanctuary`: legacy v4 tokens. Used by chat, MindGym tools, and
+   *     anything that owns its own background.
+   */
+  surface?: PageShellSurface;
 }
 
 const widthClass: Record<NonNullable<PageShellProps["width"]>, string> = {
@@ -48,18 +57,20 @@ export const PageShell = forwardRef<HTMLElement, PageShellProps>(
       tone = "page",
       width = "page",
       as = "main",
+      surface = "quiet-companion",
       className,
       ...rest
     },
     ref,
   ) => {
     const Tag = as as "main";
+    const isQc = surface === "quiet-companion";
     return (
       <Tag
         ref={ref as React.Ref<HTMLElement>}
         className={cn(
-          "min-h-screen w-full text-foreground",
-          toneClass[tone],
+          "min-h-screen w-full",
+          isQc ? "qc-canvas" : cn("text-foreground", toneClass[tone]),
           withHeaderOffset && "pt-[var(--header-height)]",
           className,
         )}

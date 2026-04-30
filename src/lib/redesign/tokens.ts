@@ -35,3 +35,20 @@ export const SECTION_SPACING = {
 export const BREATH_PERIOD_MS = 10000;
 
 export const MAX_PROSE_CH = 60;
+
+/**
+ * Quiet Companion motion preset. The full vocabulary per the design
+ * language: 600ms ease-out fade-up with 12px travel for scroll reveals,
+ * 200ms hover lifts. That's it — no parallax, no autoplay carousels.
+ */
+export const QC_MOTION = {
+  fadeUp: {
+    duration: 0.6,
+    ease: EASE.outExpo,
+    travel: 12,
+  },
+  hover: {
+    duration: 0.2,
+    ease: EASE.outExpo,
+  },
+} as const;

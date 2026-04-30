@@ -2,6 +2,11 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Header from "@/components/layout/Header";
+import HillsFooter from "@/components/layout/HillsFooter";
+import PageShell from "@/components/layout/PageShell";
+import { WatercolorScene } from "@/components/layout/WatercolorScene";
+import { PeachBlush } from "@/components/layout/PeachBlush";
 import {
     Bookmark,
     BookmarkCheck,
@@ -112,56 +117,49 @@ const PsychologicalContent = () => {
     }, [activeCollection]);
 
     return (
-        <main className="min-h-screen bg-background">
-            {/* Hero */}
-            <section className="relative overflow-hidden border-b border-border bg-gradient-warm">
-                {/* Soothing animated blobs */}
-                <div aria-hidden className="pointer-events-none absolute inset-0">
-                    <div className="blob -left-24 top-0 h-80 w-80 bg-primary/30" />
-                    <div className="blob blob-2 -right-20 top-10 h-72 w-72 bg-accent/30" />
-                    <div className="blob blob-3 left-1/3 -bottom-20 h-72 w-72 bg-primary/20" />
-                </div>
-                {/* Soft nature image, low opacity for warmth */}
-                <img
-                    aria-hidden
-                    src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1600&q=70"
-                    alt=""
-                    className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.2]"
-                    loading="eager"
-                    decoding="async"
-                />
+        <>
+            <Header />
+            <PageShell width="page" as="main">
+                {/* Hero */}
+                <section className="relative isolate overflow-hidden pt-12 sm:pt-20">
+                    <PeachBlush position="top-right" size="lg" className="-z-10" />
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute right-0 top-0 -z-10 hidden w-[480px] opacity-30 lg:block"
+                    >
+                        <WatercolorScene name="companions" maxRenderedWidth={960} loading="eager" />
+                    </div>
 
-                <div className="container relative mx-auto max-w-5xl px-6 py-12 md:py-20">
                     <Link
                         to="/"
-                        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                        className="mb-8 inline-flex items-center gap-1.5 text-sm text-[color:var(--qc-ink-muted)] transition-colors hover:text-[color:var(--qc-ink)]"
                     >
                         ← Back home
                     </Link>
 
-
-
-                    <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-foreground md:text-5xl lg:text-6xl">
-                        Short reads & quiet practices,
-                        <br />
-                        <span className="text-primary">for the days that feel loud.</span>
+                    <p className="qc-eyebrow">Mind library</p>
+                    <h1 className="qc-display mt-4 max-w-3xl text-[clamp(2.25rem,5vw,3.5rem)]">
+                        Short reads & quiet practices,{" "}
+                        <span className="mitra-voice text-[color:var(--qc-forest)]">
+                            for the days that feel loud.
+                        </span>
                     </h1>
 
-                    <p className="mt-5 max-w-2xl text-base text-muted-foreground md:text-lg">
+                    <p className="mt-5 max-w-2xl text-base leading-relaxed text-[color:var(--qc-ink-soft)] md:text-lg">
                         A small library of grounding exercises, CBT tools, and gentle reads. Open anything to read
                         slowly, save what helps, return when you need it.
                     </p>
 
                     {/* Search + saved */}
-                    <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                    <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:max-w-2xl">
                         <div className="relative flex-1">
-                            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--qc-ink-muted)]" />
                             <Input
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
                                 placeholder="Search by topic, technique, or feeling…"
                                 aria-label="Search resources"
-                                className="h-12 rounded-full border-border bg-card pl-11 text-sm shadow-soft"
+                                className="h-12 rounded-full pl-11 text-sm"
                             />
                         </div>
                         <Button
@@ -178,10 +176,9 @@ const PsychologicalContent = () => {
                             Saved {saved.values.length > 0 ? `(${saved.values.length})` : ""}
                         </Button>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <div className="container mx-auto max-w-5xl px-6 py-12 md:py-16">
+                <div className="py-16 md:py-24">
                 {/* Collections */}
                 <section aria-labelledby="collections-heading" className="mb-12">
                     <div className="mb-5 flex items-end justify-between gap-4">
@@ -189,7 +186,7 @@ const PsychologicalContent = () => {
                             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                                 Collections
                             </p>
-                            <h2 id="collections-heading" className="mt-1 font-display text-2xl font-semibold tracking-tight">
+                            <h2 id="collections-heading" className="mt-1 qc-display text-2xl font-semibold tracking-tight">
                                 Where would you like to start?
                             </h2>
                         </div>
@@ -233,7 +230,7 @@ const PsychologicalContent = () => {
                                             <Icon className="h-5 w-5" />
                                         </div>
                                         <div>
-                                            <h3 className="font-display text-base font-semibold tracking-tight">{c.label}</h3>
+                                            <h3 className="qc-display text-base font-semibold tracking-tight">{c.label}</h3>
                                             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{c.description}</p>
                                         </div>
                                         <span className="mt-auto text-[11px] font-medium text-muted-foreground">
@@ -303,7 +300,7 @@ const PsychologicalContent = () => {
                                     <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-[11px] font-medium uppercase tracking-[0.2em] text-accent">
                                         <Sparkles className="h-3 w-3" /> Start here
                                     </span>
-                                    <h2 className="font-display text-2xl font-semibold leading-tight tracking-tight md:text-4xl">
+                                    <h2 className="qc-display text-2xl font-semibold leading-tight tracking-tight md:text-4xl">
                                         {spotlightItem.title}
                                     </h2>
                                     <p className="text-base text-muted-foreground md:text-lg">
@@ -327,7 +324,7 @@ const PsychologicalContent = () => {
                         <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                             Library
                         </p>
-                        <h2 id="library-heading" className="mt-1 font-display text-2xl font-semibold tracking-tight">
+                        <h2 id="library-heading" className="mt-1 qc-display text-2xl font-semibold tracking-tight">
                             Short reads & practices
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground">
@@ -349,7 +346,7 @@ const PsychologicalContent = () => {
                         </div>
                     ) : (
                         <div className="rounded-3xl border border-dashed border-border bg-card/50 p-10 text-center">
-                            <h3 className="font-display text-xl font-semibold tracking-tight">Nothing matches yet</h3>
+                            <h3 className="qc-display text-xl font-semibold tracking-tight">Nothing matches yet</h3>
                             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
                                 Try another word, topic, or format — or clear filters to see everything again.
                             </p>
@@ -363,14 +360,14 @@ const PsychologicalContent = () => {
                 {/* Crisis band */}
                 <section
                     aria-label="Crisis support"
-                    className="mt-16 rounded-3xl border border-border bg-gradient-calm p-6 md:p-10"
+                    className="mt-16 rounded-3xl border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-6 md:p-10"
                 >
                     <div className="flex flex-col items-start gap-5 md:flex-row md:items-center md:justify-between">
                         <div className="max-w-xl">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                                 <ShieldCheck className="h-3 w-3" /> When reading isn't enough
                             </span>
-                            <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight md:text-3xl">
+                            <h2 className="mt-3 qc-display text-2xl font-semibold tracking-tight md:text-3xl">
                                 Prefer to sit with someone gentle?
                             </h2>
                             <p className="mt-2 text-sm text-muted-foreground md:text-base">
@@ -389,16 +386,18 @@ const PsychologicalContent = () => {
                         </a>
                     </div>
                 </section>
-            </div>
+                </div>
 
-            <Suspense fallback={null}>
-                <ResourceReaderDialog
-                    item={selectedItem}
-                    open={!!selectedItem}
-                    onClose={() => setSelectedItem(null)}
-                />
-            </Suspense>
-        </main>
+                <Suspense fallback={null}>
+                    <ResourceReaderDialog
+                        item={selectedItem}
+                        open={!!selectedItem}
+                        onClose={() => setSelectedItem(null)}
+                    />
+                </Suspense>
+            </PageShell>
+            <HillsFooter scene="hills" />
+        </>
     );
 };
 

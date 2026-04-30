@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import HillsFooter from "@/components/layout/HillsFooter";
 import { PageShell } from "@/components/layout/PageShell";
 import Pulse from "@/components/identity/Pulse";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { DURATION, EASE } from "@/lib/redesign/tokens";
 
-const eyebrow = "text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5";
+const eyebrow = "qc-eyebrow";
 
 /**
  * Stanley-Brown Safety Planning Intervention (SPI).
@@ -106,15 +106,15 @@ const StepHeading = ({
     blurb: string;
 }) => (
     <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[12px] font-medium text-[hsl(var(--accent-700))]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--qc-sage)]/30 text-[12px] font-medium text-[color:var(--qc-forest)]">
             {number}
         </div>
         <div className="min-w-0">
             <div className="flex items-center gap-2">
-                <Icon className="h-4 w-4 text-ink-7" />
-                <h2 className="font-display text-[18px] text-ink-8">{title}</h2>
+                <Icon className="h-4 w-4 text-[color:var(--qc-ink-soft)]" />
+                <h2 className="qc-display text-[18px] text-[color:var(--qc-ink)]">{title}</h2>
             </div>
-            <p className="mt-1 text-[13.5px] leading-[1.55] text-ink-6">{blurb}</p>
+            <p className="mt-1 text-[13.5px] leading-[1.55] text-[color:var(--qc-ink-muted)]">{blurb}</p>
         </div>
     </div>
 );
@@ -142,12 +142,12 @@ const ContactList = ({
     return (
         <div className="space-y-3">
             {entries.length === 0 && (
-                <p className="text-[13px] text-ink-5">No one yet.</p>
+                <p className="text-[13px] text-[color:var(--qc-ink-muted)]">No one yet.</p>
             )}
             {entries.map((entry) => (
                 <div
                     key={entry.id}
-                    className="flex flex-col gap-2 rounded-2xl border border-border/40 bg-background p-3 sm:flex-row sm:items-center"
+                    className="flex flex-col gap-2 rounded-2xl border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-3 sm:flex-row sm:items-center"
                 >
                     <Input
                         value={entry.name}
@@ -167,7 +167,7 @@ const ContactList = ({
                         {entry.phone && (
                             <a
                                 href={`tel:${entry.phone.replace(/\s/g, "")}`}
-                                className="inline-flex h-9 items-center justify-center rounded-lg border border-border/60 bg-background px-3 text-[12px] font-medium text-ink-7 transition-colors hover:bg-[hsl(var(--ink-1))]"
+                                className="inline-flex h-9 items-center justify-center rounded-lg border border-[color:var(--qc-border-stronger)] bg-[color:var(--qc-canvas)] px-3 text-[12px] font-medium text-[color:var(--qc-ink-soft)] transition-colors hover:bg-[color:var(--qc-canvas)]"
                                 aria-label={`Call ${entry.name || "contact"}`}
                             >
                                 <Phone className="h-3.5 w-3.5" />
@@ -176,7 +176,7 @@ const ContactList = ({
                         <button
                             type="button"
                             onClick={() => remove(entry.id)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-5 transition-colors hover:bg-[hsl(var(--ink-1))] hover:text-ink-7"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[color:var(--qc-ink-muted)] transition-colors hover:bg-[color:var(--qc-canvas)] hover:text-[color:var(--qc-ink-soft)]"
                             aria-label="Remove contact"
                         >
                             <X className="h-3.5 w-3.5" />
@@ -187,7 +187,7 @@ const ContactList = ({
             <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1.5 text-ink-6 hover:text-ink-8"
+                className="gap-1.5 text-[color:var(--qc-ink-muted)] hover:text-[color:var(--qc-ink)]"
                 onClick={add}
             >
                 <Plus className="h-3.5 w-3.5" />
@@ -225,7 +225,7 @@ export default function SafetyPlan() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors duration-300">
+        <div className="flex min-h-screen flex-col">
             <Header />
 
             <PageShell width="narrow">
@@ -238,10 +238,10 @@ export default function SafetyPlan() {
                 >
                     <div className="min-w-0">
                         <p className={eyebrow}>Safety plan</p>
-                        <h1 className="mt-2 text-balance font-display text-[clamp(1.75rem,3.6vw,2.25rem)] font-light leading-[1.15] tracking-tight text-ink-8">
+                        <h1 className="mt-2 text-balance qc-display text-[clamp(1.75rem,3.6vw,2.25rem)] font-light leading-[1.15] tracking-tight text-[color:var(--qc-ink)]">
                             A plan for your hardest moments.
                         </h1>
-                        <p className="mt-4 max-w-prose text-[15px] leading-[1.7] text-ink-6">
+                        <p className="mt-4 max-w-prose text-[15px] leading-[1.7] text-[color:var(--qc-ink-muted)]">
                             Build this once when you&apos;re feeling steadier, so a future
                             you in distress doesn&apos;t have to think their way out from
                             scratch. It stays on this device. You can edit any of it,
@@ -253,29 +253,34 @@ export default function SafetyPlan() {
                     </div>
                 </motion.section>
 
-                {/* ── Always-quick helplines (above the fold) ───────── */}
+                {/* ── Always-quick helplines (above the fold) ─────────
+                    Per the design language: helpline buttons stay loud
+                    (forest fill, large tap target). Crisis affordance must
+                    remain unmistakable — do not soften. */}
                 <motion.section
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: DURATION.long, ease: EASE.outExpo, delay: 0.05 }}
-                    className="mt-8 rounded-[1.5rem] border border-border/40 bg-[hsl(var(--ink-1))] p-5 sm:p-6"
+                    className="mt-10 rounded-[1.5rem] border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-6 sm:p-8"
                 >
                     <div className="flex items-start gap-3">
-                        <Phone className="mt-0.5 h-4 w-4 text-[hsl(var(--bad-500))]" />
+                        <Phone className="mt-0.5 h-5 w-5 text-[color:var(--qc-forest)]" />
                         <div className="min-w-0 flex-1">
                             <p className={eyebrow}>If you need someone right now</p>
-                            <p className="mt-1 text-[14px] text-ink-7">
+                            <p className="mt-2 text-[15px] leading-relaxed text-[color:var(--qc-ink-soft)]">
                                 These lines are free, confidential, and answered by people
                                 trained to listen — not to fix you.
                             </p>
-                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+                            <div className="mt-5 flex flex-wrap gap-3">
                                 {helplines.map((h) => (
                                     <a
                                         key={h.name}
                                         href={`tel:${h.number.replace(/\s/g, "")}`}
-                                        className="text-[13.5px] text-ink-7 transition-colors hover:text-ink-8"
+                                        className="qc-pill-primary"
                                     >
-                                        <span className="font-medium">{h.name}:</span> {h.number}
+                                        <Phone className="h-4 w-4" />
+                                        <span>{h.name}</span>
+                                        <span className="opacity-80">{h.number}</span>
                                     </a>
                                 ))}
                             </div>
@@ -409,12 +414,12 @@ export default function SafetyPlan() {
                     className="mt-10 flex flex-col items-start justify-between gap-3 rounded-[1.5rem] border border-border/40 bg-[hsl(var(--card))] p-5 sm:flex-row sm:items-center sm:p-6"
                 >
                     <div className="flex items-start gap-3">
-                        <ShieldCheck className="mt-0.5 h-4 w-4 text-[hsl(var(--accent-600))]" />
+                        <ShieldCheck className="mt-0.5 h-4 w-4 text-[color:var(--qc-forest)]" />
                         <div>
-                            <p className="text-[14px] font-medium text-ink-8">
+                            <p className="text-[14px] font-medium text-[color:var(--qc-ink)]">
                                 Saved to this device
                             </p>
-                            <p className="text-[12px] text-ink-5">
+                            <p className="text-[12px] text-[color:var(--qc-ink-muted)]">
                                 {savedAt
                                     ? `Last saved ${new Date(savedAt).toLocaleString(undefined, {
                                           dateStyle: "medium",
@@ -438,7 +443,7 @@ export default function SafetyPlan() {
                     </Button>
                 </motion.section>
 
-                <p className="mt-6 text-center text-[12px] text-ink-5">
+                <p className="mt-6 text-center text-[12px] text-[color:var(--qc-ink-muted)]">
                     This isn&apos;t medical advice. If you&apos;re in immediate danger,
                     please call one of the lines above or 112.
                 </p>
@@ -446,7 +451,10 @@ export default function SafetyPlan() {
                 <div className="h-20" />
             </PageShell>
 
-            <Footer />
+            <HillsFooter
+                message="you don't have to carry it alone."
+                scene="hills"
+            />
         </div>
     );
 }

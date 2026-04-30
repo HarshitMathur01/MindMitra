@@ -24,6 +24,8 @@ const MAP = {
   presence: "Gemini_Generated_Image_4bxvyg4bxvyg4bxv.png",
   breath: "Gemini_Generated_Image_kncoypkncoypknco.png",
   solitude: "Gemini_Generated_Image_cia0q7cia0q7cia0.png",
+  companions: "Gemini_Generated_Image_cye1vqcye1vqcye1.png",
+  mountain: "Gemini_Generated_Image_s5o3rxs5o3rxs5o3.png",
 };
 
 const WIDTHS = [480, 960, 1600];

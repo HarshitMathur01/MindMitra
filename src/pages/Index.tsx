@@ -12,10 +12,11 @@ import {
 } from "lucide-react";
 
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import HillsFooter from "@/components/layout/HillsFooter";
 import PageShell from "@/components/layout/PageShell";
+import { WatercolorScene } from "@/components/layout/WatercolorScene";
+import { PeachBlush } from "@/components/layout/PeachBlush";
 import Pulse from "@/components/identity/Pulse";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import PublicLanding from "./PublicLanding";
@@ -24,17 +25,15 @@ import SEO from "@/components/system/SEO";
 import { ROUND_THE_CLOCK_HELPLINE, helplineHref } from "@/lib/helplines";
 
 /**
- * Logged-in dashboard — "Quiet Companion" reset.
+ * Logged-in dashboard — Quiet Companion language.
  *
- * Three calm bands instead of the previous photo-hero collage:
- *   1. Now           — greeting + Pulse + 1-tap mood + Open conversation
- *   2. Continue      — return to the conversation + a single suggested ritual
- *   3. Library       — Resources / Mind Gym pick / Therapist Bridge (low key)
+ * Three calm bands:
+ *   1. Now      — greeting + Pulse + 1-tap mood + Open conversation
+ *   2. Continue — return to the conversation + a single suggested ritual
+ *   3. Library  — Resources / Mind Gym / Therapist Bridge (low key)
  *
- * Keeps:
- *   - Refresh-aware nature backdrop behind the Now band
- *   - useAuth gating + DashboardSkeleton + PublicLanding fallback
- *   - Mood selection persisted in localStorage so chat empty-state can read it
+ * Backdrop is a watercolor scene (not a stock photo) and an ambient
+ * peach-blush wash. No gradient overlays, no shadows on the CTA.
  */
 
 type MoodChip = {
@@ -87,64 +86,11 @@ function todayKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-type HeroScene = {
-  image: string;
-  overlay: string;
-  glow: string;
-  copy: string;
-  copyColor: string;
-};
-
-const heroScenes: HeroScene[] = [
-  {
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&auto=format&fit=crop&q=85",
-    overlay:
-      "linear-gradient(180deg, hsl(var(--background) / 0.10) 0%, hsl(var(--background) / 0.30) 56%, hsl(var(--background) / 0.86) 100%)",
-    glow:
-      "radial-gradient(ellipse 72% 60% at 50% 8%, hsl(var(--accent-100) / 0.38) 0%, transparent 66%)",
-    copy: "Ease into the morning. Tell Mitra one true thing about today.",
-    copyColor: "hsl(var(--accent-700))",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1600&auto=format&fit=crop&q=85",
-    overlay:
-      "linear-gradient(180deg, hsl(var(--background) / 0.14) 0%, hsl(var(--background) / 0.36) 56%, hsl(var(--background) / 0.88) 100%)",
-    glow:
-      "radial-gradient(ellipse 72% 60% at 50% 8%, hsl(var(--accent-100) / 0.32) 0%, transparent 66%)",
-    copy: "Hold this afternoon gently. Tell Mitra one true thing about today.",
-    copyColor: "hsl(var(--accent-600))",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&auto=format&fit=crop&q=85",
-    overlay:
-      "linear-gradient(180deg, hsl(var(--background) / 0.18) 0%, hsl(var(--background) / 0.44) 56%, hsl(var(--background) / 0.90) 100%)",
-    glow:
-      "radial-gradient(ellipse 72% 60% at 50% 8%, hsl(var(--warmth-100) / 0.30) 0%, transparent 66%)",
-    copy: "Let the evening soften. Tell Mitra one true thing about today.",
-    copyColor: "hsl(var(--warmth-500))",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=1600&auto=format&fit=crop&q=85",
-    overlay:
-      "linear-gradient(180deg, hsl(var(--background) / 0.26) 0%, hsl(var(--background) / 0.50) 56%, hsl(var(--background) / 0.94) 100%)",
-    glow:
-      "radial-gradient(ellipse 72% 60% at 50% 8%, hsl(var(--accent-100) / 0.24) 0%, transparent 66%)",
-    copy: "Set the night down softly. Tell Mitra one true thing before you rest.",
-    copyColor: "hsl(var(--accent-100))",
-  },
-];
-
-function pickHeroScene(): HeroScene {
-  const index = Math.floor(Math.random() * heroScenes.length);
-  return heroScenes[index];
-}
-
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [now, setNow] = useState(() => new Date());
   const [mood, setMood] = useState<MoodChip | null>(null);
-  const [heroScene] = useState<HeroScene>(() => pickHeroScene());
 
   useEffect(() => {
     const syncNow = () => setNow(new Date());
@@ -181,6 +127,7 @@ const Index = () => {
   }, [user]);
 
   const ritual = dailyRituals[(now.getDate() + now.getMonth()) % dailyRituals.length];
+  const RitualIcon = ritual.icon;
 
   const handleMoodSelect = (next: MoodChip) => {
     setMood(next);
@@ -198,45 +145,25 @@ const Index = () => {
   if (!user) return <PublicLanding />;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <>
       <SEO
         title="Your quiet companion"
         description="Pick up where you left off with Mitra. A calm, memory-driven AI companion for daily mental wellness — and a bridge to professional care when you need it."
         path="/"
       />
       <Header />
-      <PageShell tone="page" width="page" as="main" id="main-content">
+      <PageShell width="page" as="main" id="main-content">
         {/* ── Band 1 — Now ───────────────────────────────── */}
         <section className="relative isolate flex min-h-[68vh] flex-col items-center overflow-hidden pt-16 text-center sm:min-h-[72vh] sm:pt-24 lg:min-h-[78vh]">
+          {/* Watercolor backdrop — soft, decorative, low contrast so
+              the Pulse and copy stay primary. */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 -z-20"
+            className="pointer-events-none absolute inset-x-0 bottom-0 -z-20 mx-auto max-w-[1400px] opacity-55"
           >
-            <img
-              src={heroScene.image}
-              alt=""
-              aria-hidden
-              fetchPriority="high"
-              decoding="async"
-              width={1600}
-              height={900}
-              className="h-full w-full scale-[1.08] object-cover object-center"
-            />
+            <WatercolorScene name="hills" loading="eager" maxRenderedWidth={1600} />
           </div>
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10"
-            style={{
-              backgroundImage: heroScene.overlay,
-            }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px]"
-            style={{
-              backgroundImage: heroScene.glow,
-            }}
-          />
+          <PeachBlush position="top-center" size="lg" className="-z-10" />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.94 }}
@@ -256,17 +183,14 @@ const Index = () => {
             }}
             className="mt-8 max-w-2xl"
           >
-            <p className="quiet-label justify-center">{getGreeting(now)}</p>
-            <h1 className="mt-4 font-display text-[clamp(2rem,4.5vw,3rem)] leading-[1.1] tracking-tight text-foreground">
+            <p className="qc-eyebrow">{getGreeting(now)}</p>
+            <h1 className="qc-display mt-4 text-[clamp(2rem,4.5vw,3rem)]">
               Hello, {displayName}.
             </h1>
-            <p
-              className="mt-3 text-base leading-relaxed transition-colors duration-300"
-              style={{ color: heroScene.copyColor }}
-            >
+            <p className="mt-3 text-base leading-relaxed text-[color:var(--qc-ink-soft)]">
               {mood
                 ? `Noted that today feels ${mood.label.toLowerCase()}. We'll go from there.`
-                : heroScene.copy}
+                : "Tell Mitra one true thing about today."}
             </p>
           </motion.div>
 
@@ -278,7 +202,7 @@ const Index = () => {
               delay: 0.16,
               ease: EASE.outExpo,
             }}
-            className="mt-8 flex w-full max-w-xl flex-col items-center gap-4"
+            className="mt-8 flex w-full max-w-xl flex-col items-center gap-6"
           >
             <div className="flex flex-wrap justify-center gap-2">
               {moods.map((m) => {
@@ -288,10 +212,11 @@ const Index = () => {
                     key={m.label}
                     type="button"
                     onClick={() => handleMoodSelect(m)}
-                    className={`group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition-colors ${isActive
-                      ? "border-[hsl(var(--accent-300))] bg-[hsl(var(--accent-50))] text-[hsl(var(--accent-700))]"
-                      : "border-border/60 bg-background text-muted-foreground hover:border-border hover:text-foreground"
-                      }`}
+                    className={`group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition-colors ${
+                      isActive
+                        ? "border-[color:var(--qc-forest)] bg-[color:var(--qc-surface)] text-[color:var(--qc-forest)]"
+                        : "border-[color:var(--qc-border-stronger)] bg-transparent text-[color:var(--qc-ink-muted)] hover:border-[color:var(--qc-ink-soft)] hover:text-[color:var(--qc-ink)]"
+                    }`}
                   >
                     <span className="text-base leading-none">{m.emoji}</span>
                     <span>{m.label}</span>
@@ -300,14 +225,13 @@ const Index = () => {
               })}
             </div>
 
-            <Button
-              size="lg"
+            <button
+              type="button"
               onClick={() => navigate("/chat")}
-              className="mt-2 gap-2 rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-[var(--shadow-dashboard-warm)] hover:bg-[hsl(var(--accent-600))]"
+              className="qc-pill-primary mt-2"
             >
               Open conversation
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            </button>
           </motion.div>
         </section>
 
@@ -315,15 +239,15 @@ const Index = () => {
         <section className="mt-24 sm:mt-32">
           <header className="flex items-end justify-between gap-4">
             <div>
-              <p className="quiet-label">Continue</p>
-              <h2 className="mt-3 font-display text-2xl tracking-tight text-foreground sm:text-3xl">
+              <p className="qc-eyebrow">Continue</p>
+              <h2 className="qc-display mt-3 text-2xl sm:text-3xl">
                 Pick up where you left off.
               </h2>
             </div>
             <button
               type="button"
               onClick={() => navigate("/chat")}
-              className="hidden items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              className="hidden items-center gap-1 text-sm font-medium text-[color:var(--qc-ink-muted)] transition-colors hover:text-[color:var(--qc-ink)] sm:inline-flex"
             >
               All conversations
               <ArrowRight className="h-3.5 w-3.5" />
@@ -338,26 +262,26 @@ const Index = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: DURATION.long, ease: EASE.outExpo }}
-              className="group flex flex-col justify-between rounded-3xl border border-border/40 bg-[hsl(var(--ink-1))] p-6 text-left transition-colors hover:border-border sm:p-8 lg:col-span-3"
+              className="group flex flex-col justify-between rounded-3xl border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-6 text-left transition-colors hover:border-[color:var(--qc-border-stronger)] sm:p-8 lg:col-span-3"
             >
               <div>
                 <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--qc-sage)]/30 text-[color:var(--qc-forest)]">
                     <MessageCircle className="h-4 w-4" />
                   </span>
-                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Today's conversation
-                  </span>
+                  <span className="qc-eyebrow">Today's conversation</span>
                 </div>
-                <p className="mt-6 font-display text-xl leading-snug text-foreground sm:text-2xl">
+                <p className="qc-display mt-6 text-xl leading-snug sm:text-2xl">
                   Return to Mitra. The thread is still open.
                 </p>
-                <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-                  Mitra remembers what we talked about — no need to recap. Sit
-                  down and start anywhere.
+                <p className="mt-3 max-w-md text-sm leading-relaxed text-[color:var(--qc-ink-muted)]">
+                  <span className="mitra-voice">
+                    Mitra remembers what we talked about — no need to recap.
+                  </span>{" "}
+                  Sit down and start anywhere.
                 </p>
               </div>
-              <span className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[hsl(var(--accent-600))]">
+              <span className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[color:var(--qc-forest)]">
                 Open chat
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </span>
@@ -374,49 +298,46 @@ const Index = () => {
                 delay: 0.06,
                 ease: EASE.outExpo,
               }}
-              className="group flex flex-col justify-between rounded-3xl border border-border/40 bg-background p-6 text-left transition-colors hover:border-border sm:p-8 lg:col-span-2"
+              className="group flex flex-col justify-between rounded-3xl border border-[color:var(--qc-border)] bg-transparent p-6 text-left transition-colors hover:border-[color:var(--qc-border-stronger)] sm:p-8 lg:col-span-2"
             >
               <div>
                 <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--warmth-100))] text-[hsl(var(--warmth-500))]">
-                    <ritual.icon className="h-4 w-4" />
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--qc-sage)]/30 text-[color:var(--qc-forest)]">
+                    <RitualIcon className="h-4 w-4" />
                   </span>
-                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Suggested ritual
-                  </span>
+                  <span className="qc-eyebrow">Suggested ritual</span>
                 </div>
-                <p className="mt-6 font-display text-xl leading-snug text-foreground sm:text-2xl">
+                <p className="qc-display mt-6 text-xl leading-snug sm:text-2xl">
                   {ritual.title}
                 </p>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-3 text-sm leading-relaxed text-[color:var(--qc-ink-muted)]">
                   {ritual.body}
                 </p>
               </div>
-              <span className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[hsl(var(--warmth-500))]">
+              <span className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[color:var(--qc-forest)]">
                 Begin
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </span>
             </motion.button>
           </div>
 
-          {/*
-            Calm professional-care disclaimer. Lives inside the Continue
-            band (not a fixed banner) so it reads as a gentle reminder,
-            not an alert. Links route to the bridge and the 24/7 line.
-          */}
-          <p className="mt-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Mitra is a companion, not a clinician — a bridge to professional
-            care, not a replacement.{" "}
+          {/* Calm professional-care disclaimer. Reads as a gentle
+              reminder, not an alert. */}
+          <p className="mt-8 max-w-2xl text-sm leading-relaxed text-[color:var(--qc-ink-muted)]">
+            <span className="mitra-voice">
+              Mitra is a companion, not a clinician — a bridge to professional
+              care, not a replacement.
+            </span>{" "}
             <Link
               to="/therapy"
-              className="font-medium text-foreground underline decoration-[hsl(var(--accent-300))] underline-offset-4 transition-colors hover:decoration-[hsl(var(--accent-500))]"
+              className="font-medium text-[color:var(--qc-ink)] underline decoration-[color:var(--qc-sage)] underline-offset-4 transition-colors hover:decoration-[color:var(--qc-forest)]"
             >
               Find a therapist
             </Link>
             {", or call "}
             <a
               href={helplineHref(ROUND_THE_CLOCK_HELPLINE)}
-              className="font-medium text-foreground underline decoration-[hsl(var(--accent-300))] underline-offset-4 transition-colors hover:decoration-[hsl(var(--accent-500))]"
+              className="font-medium text-[color:var(--qc-ink)] underline decoration-[color:var(--qc-sage)] underline-offset-4 transition-colors hover:decoration-[color:var(--qc-forest)]"
             >
               {ROUND_THE_CLOCK_HELPLINE.name} ({ROUND_THE_CLOCK_HELPLINE.display})
             </a>
@@ -427,38 +348,36 @@ const Index = () => {
         {/* ── Band 3 — Library shortcuts ─────────────────── */}
         <section className="mt-24 pb-24 sm:mt-32 sm:pb-32">
           <header>
-            <p className="quiet-label">Library</p>
-            <h2 className="mt-3 font-display text-2xl tracking-tight text-foreground sm:text-3xl">
+            <p className="qc-eyebrow">Library</p>
+            <h2 className="qc-display mt-3 text-2xl sm:text-3xl">
               When you need something else.
             </h2>
           </header>
 
-          <ul className="mt-8 grid gap-px overflow-hidden rounded-3xl border border-border/40 bg-border/40 sm:grid-cols-2">
+          <ul className="mt-8 grid gap-px overflow-hidden rounded-3xl border border-[color:var(--qc-border)] bg-[color:var(--qc-border-stronger)] sm:grid-cols-2">
             <motion.li
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: DURATION.long, ease: EASE.outExpo }}
-              className="bg-background"
+              className="bg-[color:var(--qc-surface)]"
             >
               <button
                 type="button"
                 onClick={() => navigate("/psychological-content")}
                 className="group flex h-full w-full flex-col items-start gap-4 p-7 text-left sm:p-8"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color:var(--qc-sage)]/30 text-[color:var(--qc-forest)]">
                   <Compass className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="font-display text-lg text-foreground">
-                    Resources
-                  </p>
-                  <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
+                  <p className="qc-display text-lg">Resources</p>
+                  <p className="mt-1.5 max-w-md text-sm leading-relaxed text-[color:var(--qc-ink-muted)]">
                     Short, evidence-based reads. Categorized by what you might
                     actually be looking for at 1am.
                   </p>
                 </div>
-                <span className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-[hsl(var(--accent-600))]">
+                <span className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-[color:var(--qc-forest)]">
                   Browse the shelf
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>
@@ -474,26 +393,24 @@ const Index = () => {
                 delay: 0.06,
                 ease: EASE.outExpo,
               }}
-              className="bg-background"
+              className="bg-[color:var(--qc-surface)]"
             >
               <button
                 type="button"
                 onClick={() => navigate("/mindgym")}
                 className="group flex h-full w-full flex-col items-start gap-4 p-7 text-left sm:p-8"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(var(--warmth-100))] text-[hsl(var(--warmth-500))]">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color:var(--qc-sage)]/30 text-[color:var(--qc-forest)]">
                   <Dumbbell className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="font-display text-lg text-foreground">
-                    Mind Gym
-                  </p>
-                  <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
+                  <p className="qc-display text-lg">Mind Gym</p>
+                  <p className="mt-1.5 max-w-md text-sm leading-relaxed text-[color:var(--qc-ink-muted)]">
                     Two-minute exercises. Pick one when sitting still feels too
                     big.
                   </p>
                 </div>
-                <span className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-[hsl(var(--warmth-500))]">
+                <span className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-[color:var(--qc-forest)]">
                   Open Mind Gym
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>
@@ -501,33 +418,33 @@ const Index = () => {
             </motion.li>
           </ul>
 
-          <div className="mt-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/40 bg-[hsl(var(--ink-1))] p-5 sm:flex-row sm:items-center">
+          <div className="mt-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-5 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-background text-muted-foreground">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--qc-canvas)] text-[color:var(--qc-ink-soft)]">
                 <Stethoscope className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-medium text-[color:var(--qc-ink)]">
                   Talk to a real person
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-[color:var(--qc-ink-muted)]">
                   Vetted therapists. Your context goes with you — never raw chat.
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
+            <button
+              type="button"
               onClick={() => navigate("/therapist-bridge")}
-              className="text-foreground hover:text-foreground"
+              className="qc-pill-outline"
             >
               Therapist Bridge
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </button>
           </div>
         </section>
       </PageShell>
-      <Footer />
-    </div>
+      <HillsFooter />
+    </>
   );
 };
 

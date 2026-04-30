@@ -2,12 +2,20 @@ import { cn } from "@/lib/utils";
 
 /**
  * Scene names map to subjects in the handcrafted_image source PNGs:
- *   hills    — meditation under tree with mountain backdrop (the closer)
- *   presence — girl with translucent companion by a stream
- *   breath   — figure at lakeside breathing out a stream of leaves
- *   solitude — person sitting with a deer at peach-sunset
+ *   hills      — meditation under tree with mountain backdrop (the closer)
+ *   presence   — girl with translucent companion by a stream
+ *   breath     — figure at lakeside breathing out a stream of leaves
+ *   solitude   — person sitting with a deer at peach-sunset
+ *   companions — two figures sitting together under a tree
+ *   mountain   — meditation on a cliff with deer + birds + mountain
  */
-type SceneName = "hills" | "presence" | "breath" | "solitude";
+type SceneName =
+  | "hills"
+  | "presence"
+  | "breath"
+  | "solitude"
+  | "companions"
+  | "mountain";
 
 interface WatercolorSceneProps {
   name: SceneName;

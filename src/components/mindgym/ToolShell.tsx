@@ -103,7 +103,7 @@ export default function ToolShell({
 
   return (
     <div
-      className={`mindgym-root min-h-screen relative overflow-hidden flex flex-col items-center select-none bg-gradient-to-b ${themeColor} transition-colors duration-[2s] ${isWarmTone ? "text-foreground" : ""}`}
+      className={`qc-tone mindgym-root min-h-screen relative overflow-hidden flex flex-col items-center select-none bg-gradient-to-b ${themeColor} transition-colors duration-[2s] ${isWarmTone ? "text-foreground" : ""}`}
       style={rootStyle}
     >
 

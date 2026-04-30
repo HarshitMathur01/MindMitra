@@ -128,7 +128,7 @@ const Auth = () => {
         <div className="mm-art-wrap">
           <div className="mm-art-glow" aria-hidden />
           <WatercolorScene
-            name="presence"
+            name="breath"
             maxRenderedWidth={960}
             loading="eager"
             className="mm-art"
@@ -305,15 +305,20 @@ const Auth = () => {
 
 const styles = `
 .mm-auth {
-  --mm-cream: #F5F0E6;
-  --mm-cream-warm: #FAF6EC;
-  --mm-sage: #9CAF88;
-  --mm-sage-rgb: 156, 175, 136;
-  --mm-slate: #7B8FA1;
-  --mm-peach: #F4B89C;
-  --mm-peach-rgb: 244, 184, 156;
+  /* Aligned to Quiet Companion canvas tokens (src/index.css .qc-canvas).
+     Local --mm-* aliases preserved so the existing layout / floating-label
+     CSS keeps working. */
+  --mm-cream: #F5EDE0;
+  --mm-cream-warm: #FBF6EC;
+  --mm-forest: #3F6B47;
+  --mm-forest-hover: #345a3b;
+  --mm-sage: #A8BC9A;
+  --mm-sage-rgb: 168, 188, 154;
+  --mm-slate: #7A736A;
+  --mm-peach: #E8C9B0;
+  --mm-peach-rgb: 232, 201, 176;
   --mm-peach-deep: #D97757;
-  --mm-ink: #2C2C2C;
+  --mm-ink: #2D2A24;
 
   min-height: 100vh;
   background: var(--mm-cream);
@@ -498,8 +503,8 @@ const styles = `
 }
 
 .mm-field input:focus {
-  border-color: var(--mm-peach);
-  box-shadow: 0 0 0 4px rgba(var(--mm-peach-rgb), 0.15);
+  border-color: var(--mm-forest);
+  box-shadow: 0 0 0 4px rgba(var(--mm-peach-rgb), 0.18);
 }
 
 .mm-field input[aria-invalid="true"] {
@@ -558,10 +563,10 @@ const styles = `
   width: 100%;
   height: 52px;
   margin-top: 24px;
-  background: var(--mm-sage);
-  color: var(--mm-cream);
+  background: var(--mm-forest);
+  color: var(--mm-cream-warm);
   border: 0;
-  border-radius: 12px;
+  border-radius: 9999px;
   font-size: 14px;
   letter-spacing: 0.02em;
   font-weight: 500;
@@ -573,8 +578,8 @@ const styles = `
 .mm-btn-primary .mm-btn-label { position: relative; z-index: 1; }
 
 .mm-btn-primary:hover:not(:disabled) {
-  background: var(--mm-peach);
-  transform: scale(1.01);
+  background: var(--mm-forest-hover);
+  transform: translateY(-1px);
 }
 
 .mm-btn-primary:disabled { cursor: default; opacity: 0.92; }
@@ -622,8 +627,8 @@ const styles = `
   width: 100%;
   height: 52px;
   background: var(--mm-cream);
-  border: 1px solid var(--mm-sage);
-  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  border-radius: 9999px;
   color: var(--mm-ink);
   font-size: 14px;
   font-family: inherit;
@@ -632,11 +637,12 @@ const styles = `
   justify-content: center;
   gap: 12px;
   cursor: pointer;
-  transition: background-color 200ms ease, border-color 200ms ease;
+  transition: background-color 200ms ease, border-color 200ms ease, transform 200ms ease;
 }
 .mm-btn-outline:hover:not(:disabled) {
-  border-color: var(--mm-peach);
-  background: rgba(var(--mm-peach-rgb), 0.06);
+  border-color: var(--mm-ink);
+  background: var(--mm-cream-warm);
+  transform: translateY(-1px);
 }
 .mm-btn-outline:disabled { opacity: 0.6; cursor: default; }
 
@@ -653,7 +659,7 @@ const styles = `
   border: 0;
   padding: 0;
   font: inherit;
-  color: var(--mm-peach-deep);
+  color: var(--mm-forest);
   font-weight: 500;
   cursor: pointer;
 }

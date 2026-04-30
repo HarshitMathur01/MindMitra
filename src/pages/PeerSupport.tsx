@@ -118,14 +118,14 @@ function generateAvatarColor(name: string): string {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const colors = [
-        "bg-[hsl(var(--accent-500))]",
+        "bg-[color:var(--qc-forest)]",
         "bg-[hsl(var(--accent-600))]",
         "bg-[hsl(var(--warmth-500))]",
-        "bg-[hsl(var(--accent-500))]/90",
+        "bg-[color:var(--qc-forest)]/90",
         "bg-[hsl(var(--warmth-400))]",
         "bg-[hsl(var(--accent-600))]/95",
         "bg-[hsl(var(--warmth-500))]/90",
-        "bg-[hsl(var(--accent-500))]",
+        "bg-[color:var(--qc-forest)]",
     ];
     return colors[Math.abs(hash) % colors.length];
 }
@@ -209,9 +209,9 @@ const StatPill = ({ icon: Icon, text }: { icon: React.ElementType; text: string 
     <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="inline-flex items-center gap-2 rounded-full border border-ink-3/40 bg-[hsl(var(--card))] px-4 py-2 text-sm text-ink-6 shadow-dashboard-soft backdrop-blur-sm dark:bg-[hsl(var(--ink-2))]/70"
+        className="inline-flex items-center gap-2 rounded-full border border-ink-3/40 bg-[color:var(--qc-surface)] px-4 py-2 text-sm text-[color:var(--qc-ink-muted)] shadow-dashboard-soft backdrop-blur-sm dark:bg-[hsl(var(--ink-2))]/70"
     >
-        <Icon className="h-4 w-4 text-[hsl(var(--accent-600))] dark:text-[hsl(var(--accent-400))]" strokeWidth={1.8} />
+        <Icon className="h-4 w-4 text-[color:var(--qc-forest)] dark:text-[hsl(var(--accent-400))]" strokeWidth={1.8} />
         <span>{text}</span>
     </motion.div>
 );
@@ -219,10 +219,10 @@ const StatPill = ({ icon: Icon, text }: { icon: React.ElementType; text: string 
 // Post type badge
 const PostTypeBadge = ({ type }: { type: PostType }) => {
     const config = {
-        story: { label: "Story", className: "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))] dark:bg-[hsl(var(--accent-100))]/20 dark:text-[hsl(var(--accent-300))]" },
+        story: { label: "Story", className: "bg-[color:var(--qc-sage)]/30 text-[hsl(var(--accent-700))] dark:bg-[color:var(--qc-sage)]/30/20 dark:text-[hsl(var(--accent-300))]" },
         question: { label: "Question", className: "bg-[hsl(var(--warmth-100))] text-[hsl(var(--warmth-600))] dark:bg-[hsl(var(--warmth-100))]/15 dark:text-[hsl(var(--warmth-400))]" },
-        win: { label: "Win", className: "bg-[hsl(var(--accent-50))] text-[hsl(var(--accent-700))] dark:bg-[hsl(var(--accent-100))]/18 dark:text-[hsl(var(--accent-300))]" },
-        vent: { label: "Listen", className: "bg-[hsl(var(--ink-1))] text-ink-7 dark:bg-[hsl(var(--ink-2))]/80 dark:text-ink-8" },
+        win: { label: "Win", className: "bg-[hsl(var(--accent-50))] text-[hsl(var(--accent-700))] dark:bg-[color:var(--qc-sage)]/30/18 dark:text-[hsl(var(--accent-300))]" },
+        vent: { label: "Listen", className: "bg-[color:var(--qc-canvas)] text-[color:var(--qc-ink-soft)] dark:bg-[hsl(var(--ink-2))]/80 dark:text-[color:var(--qc-ink)]" },
     };
     const c = config[type];
     return (
@@ -270,8 +270,8 @@ const ReactionBtn = ({
         className={cn(
             "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all duration-200",
             active
-                ? "scale-[1.02] border-[hsl(var(--accent-400))]/40 bg-[hsl(var(--accent-100))] font-semibold text-[hsl(var(--accent-700))] dark:bg-[hsl(var(--accent-100))]/20 dark:text-[hsl(var(--accent-300))]"
-                : "border-ink-3/40 bg-[hsl(var(--card))] text-ink-5 hover:border-ink-3/60 hover:bg-[hsl(var(--ink-1))] dark:bg-[hsl(var(--ink-2))]/60",
+                ? "scale-[1.02] border-[hsl(var(--accent-400))]/40 bg-[color:var(--qc-sage)]/30 font-semibold text-[hsl(var(--accent-700))] dark:bg-[color:var(--qc-sage)]/30/20 dark:text-[hsl(var(--accent-300))]"
+                : "border-ink-3/40 bg-[color:var(--qc-surface)] text-[color:var(--qc-ink-muted)] hover:border-ink-3/60 hover:bg-[color:var(--qc-canvas)] dark:bg-[hsl(var(--ink-2))]/60",
         )}
     >
         <span>{emoji}</span>
@@ -332,8 +332,8 @@ const PostCard = ({
                 className={cn(
                     "rounded-[1.25rem] border p-5 shadow-dashboard-soft transition-all duration-200 hover:shadow-dashboard-warm",
                     isWin
-                        ? "border-[hsl(var(--accent-300))]/50 bg-[hsl(var(--accent-50))] dark:border-[hsl(var(--accent-500))]/25 dark:bg-[hsl(var(--accent-100))]/12"
-                        : "border-ink-3/40 bg-[hsl(var(--card))] dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]",
+                        ? "border-[hsl(var(--accent-300))]/50 bg-[hsl(var(--accent-50))] dark:border-[hsl(var(--accent-500))]/25 dark:bg-[color:var(--qc-sage)]/30/12"
+                        : "border-ink-3/40 bg-[color:var(--qc-surface)] dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]",
                 )}
             >
                 {/* Header */}
@@ -342,13 +342,13 @@ const PostCard = ({
 
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium text-ink-8">{post.anonymous_name}</span>
-                            <span className="text-xs text-ink-5">{timeAgo(post.created_at)}</span>
+                            <span className="text-sm font-medium text-[color:var(--qc-ink)]">{post.anonymous_name}</span>
+                            <span className="text-xs text-[color:var(--qc-ink-muted)]">{timeAgo(post.created_at)}</span>
                         </div>
 
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                             {catMeta && (
-                                <span className="inline-flex items-center rounded-full bg-[hsl(var(--ink-1))] px-2 py-0.5 text-xs font-medium text-ink-7 dark:bg-[hsl(var(--ink-2))]/80 dark:text-ink-8">
+                                <span className="inline-flex items-center rounded-full bg-[color:var(--qc-canvas)] px-2 py-0.5 text-xs font-medium text-[color:var(--qc-ink-soft)] dark:bg-[hsl(var(--ink-2))]/80 dark:text-[color:var(--qc-ink)]">
                                     {catMeta.label}
                                 </span>
                             )}
@@ -368,17 +368,17 @@ const PostCard = ({
 
                 {/* Title */}
                 {post.title && (
-                    <h3 className="mb-2 font-display text-base font-normal leading-snug text-ink-8">{post.title}</h3>
+                    <h3 className="mb-2 qc-display text-base font-normal leading-snug text-[color:var(--qc-ink)]">{post.title}</h3>
                 )}
 
                 {/* Content */}
-                <div className="mb-4 text-sm leading-relaxed text-ink-6">
+                <div className="mb-4 text-sm leading-relaxed text-[color:var(--qc-ink-muted)]">
                     {isLong && !expanded ? (
                         <>
                             {post.content.slice(0, 200)}...
                             <button
                                 onClick={() => setExpanded(true)}
-                                className="ml-1 font-medium text-[hsl(var(--accent-600))] hover:underline dark:text-[hsl(var(--accent-400))]"
+                                className="ml-1 font-medium text-[color:var(--qc-forest)] hover:underline dark:text-[hsl(var(--accent-400))]"
                             >
                                 Read more
                             </button>
@@ -389,7 +389,7 @@ const PostCard = ({
                     {isLong && expanded && (
                         <button
                             onClick={() => setExpanded(false)}
-                            className="ml-1 font-medium text-[hsl(var(--accent-600))] hover:underline dark:text-[hsl(var(--accent-400))]"
+                            className="ml-1 font-medium text-[color:var(--qc-forest)] hover:underline dark:text-[hsl(var(--accent-400))]"
                         >
                             Show less
                         </button>
@@ -404,7 +404,7 @@ const PostCard = ({
 
                     <button
                         onClick={() => onOpenReplies(post)}
-                        className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-ink-3/40 bg-[hsl(var(--ink-1))] px-3 py-1.5 text-xs text-ink-5 transition-colors hover:border-ink-3/60 hover:bg-[hsl(var(--ink-2))] dark:bg-[hsl(var(--ink-2))]/60"
+                        className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-ink-3/40 bg-[color:var(--qc-canvas)] px-3 py-1.5 text-xs text-[color:var(--qc-ink-muted)] transition-colors hover:border-ink-3/60 hover:bg-[hsl(var(--ink-2))] dark:bg-[hsl(var(--ink-2))]/60"
                     >
                         <MessageCircle className="h-3.5 w-3.5" />
                         <span>{post.reply_count} replies</span>
@@ -765,17 +765,22 @@ const PeerSupport = () => {
             <div className="mx-auto w-full max-w-6xl px-4 pb-28 sm:px-6 md:pb-12">
             {/* ─── HERO SECTION ──────────────────────────────────────────── */}
             <section className="relative overflow-hidden pt-10 md:pt-12">
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[hsl(var(--accent-50))]/50 via-transparent to-transparent dark:from-[hsl(var(--accent-500))]/5" />
-                <div className="pointer-events-none absolute -left-20 top-0 h-56 w-56 rounded-full bg-[hsl(var(--accent-100))]/40 blur-3xl dark:bg-[hsl(var(--accent-500))]/10" />
-                <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-[hsl(var(--warmth-100))]/30 blur-3xl dark:bg-[hsl(var(--warmth-500))]/10" />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -z-10"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse 70% 55% at 50% 8%, rgba(var(--qc-peach-rgb), var(--qc-peach-opacity)) 0%, transparent 65%)",
+                  }}
+                />
 
                 <div className="relative z-10 mx-auto max-w-2xl text-center">
                     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
-                        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">Peer support</p>
-                        <h1 className="mt-3 font-display text-4xl font-normal leading-tight tracking-tight text-ink-8 md:text-5xl">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-[color:var(--qc-ink-muted)]">Peer support</p>
+                        <h1 className="mt-3 qc-display text-4xl font-normal leading-tight tracking-tight text-[color:var(--qc-ink)] md:text-5xl">
                             You&apos;re not alone
                         </h1>
-                        <p className="mt-4 text-lg leading-relaxed text-ink-5">
+                        <p className="mt-4 text-lg leading-relaxed text-[color:var(--qc-ink-muted)]">
                             Stories, questions, and small wins from people who get the pressure — anonymous, gentle, moderated.
                         </p>
 
@@ -783,7 +788,7 @@ const PeerSupport = () => {
                             <Button
                                 type="button"
                                 onClick={() => setComposerOpen(true)}
-                                className="h-11 rounded-full bg-[hsl(var(--accent-500))] px-6 font-semibold text-white shadow-md hover:bg-[hsl(var(--accent-600))]"
+                                className="h-11 rounded-full bg-[color:var(--qc-forest)] px-6 font-semibold text-white shadow-md hover:bg-[color:var(--qc-forest-hover)]"
                             >
                                 <PenLine className="mr-2 h-4 w-4" strokeWidth={1.8} />
                                 Share your story
@@ -792,7 +797,7 @@ const PeerSupport = () => {
                                 type="button"
                                 variant="outline"
                                 onClick={scrollToFeed}
-                                className="h-11 rounded-full border-ink-3/50 bg-[hsl(var(--card))] text-ink-7 shadow-dashboard-soft hover:bg-[hsl(var(--ink-1))]"
+                                className="h-11 rounded-full border-ink-3/50 bg-[color:var(--qc-surface)] text-[color:var(--qc-ink-soft)] shadow-dashboard-soft hover:bg-[color:var(--qc-canvas)]"
                             >
                                 Browse feed
                             </Button>
@@ -823,8 +828,8 @@ const PeerSupport = () => {
                                 className={cn(
                                     "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
                                     isActive
-                                        ? "border-transparent bg-[hsl(var(--accent-500))] text-white shadow-dashboard-soft"
-                                        : "border-ink-3/40 bg-[hsl(var(--card))] text-ink-6 hover:border-ink-3/60 hover:bg-[hsl(var(--ink-1))] dark:bg-[hsl(var(--ink-2))]/60",
+                                        ? "border-transparent bg-[color:var(--qc-forest)] text-white shadow-dashboard-soft"
+                                        : "border-ink-3/40 bg-[color:var(--qc-surface)] text-[color:var(--qc-ink-muted)] hover:border-ink-3/60 hover:bg-[color:var(--qc-canvas)] dark:bg-[hsl(var(--ink-2))]/60",
                                 )}
                             >
                                 {cat.label}
@@ -837,7 +842,7 @@ const PeerSupport = () => {
             {/* ─── FEED ──────────────────────────────────────────────────── */}
             <section ref={feedRef} className="py-8">
                 <div className="mb-8 flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-1 rounded-2xl border border-ink-3/40 bg-[hsl(var(--ink-1))] p-1 dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]/60">
+                    <div className="flex items-center gap-1 rounded-2xl border border-ink-3/40 bg-[color:var(--qc-canvas)] p-1 dark:border-ink-3/30 dark:bg-[hsl(var(--ink-2))]/60">
                         {sortOptions.map((opt) => (
                             <button
                                 type="button"
@@ -846,8 +851,8 @@ const PeerSupport = () => {
                                 className={cn(
                                     "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-all",
                                     sortBy === opt.id
-                                        ? "bg-[hsl(var(--card))] text-ink-8 shadow-dashboard-soft dark:bg-[hsl(var(--ink-2))]"
-                                        : "text-ink-5 hover:bg-[hsl(var(--card))]/80 dark:hover:bg-[hsl(var(--ink-2))]",
+                                        ? "bg-[color:var(--qc-surface)] text-[color:var(--qc-ink)] shadow-dashboard-soft dark:bg-[hsl(var(--ink-2))]"
+                                        : "text-[color:var(--qc-ink-muted)] hover:bg-[color:var(--qc-surface)]/80 dark:hover:bg-[hsl(var(--ink-2))]",
                                 )}
                             >
                                 <opt.icon className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -857,12 +862,12 @@ const PeerSupport = () => {
                     </div>
 
                     <div className="relative ml-auto min-w-0 flex-1 max-w-xs">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-5" strokeWidth={1.8} />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--qc-ink-muted)]" strokeWidth={1.8} />
                         <Input
                             placeholder="Search stories…"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="h-10 rounded-xl border-ink-3/50 bg-[hsl(var(--card))] pl-9 text-sm text-ink-8 placeholder:text-ink-5 dark:bg-[hsl(var(--ink-2))]/80"
+                            className="h-10 rounded-xl border-ink-3/50 bg-[color:var(--qc-surface)] pl-9 text-sm text-[color:var(--qc-ink)] placeholder:text-[color:var(--qc-ink-muted)] dark:bg-[hsl(var(--ink-2))]/80"
                         />
                     </div>
                 </div>
@@ -890,7 +895,7 @@ const PeerSupport = () => {
                             <Button
                                 type="button"
                                 onClick={() => setComposerOpen(true)}
-                                className="mt-4 h-11 rounded-full bg-[hsl(var(--accent-500))] px-6 text-white hover:bg-[hsl(var(--accent-600))]"
+                                className="mt-4 h-11 rounded-full bg-[color:var(--qc-forest)] px-6 text-white hover:bg-[color:var(--qc-forest-hover)]"
                             >
                                 <PenLine className="h-4 w-4 mr-2" />
                                 Share Your Story

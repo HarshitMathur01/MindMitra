@@ -3,7 +3,7 @@ import { ChatProvider } from "../hooks/useChat"
 
 const Chat = () => {
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div className="qc-tone min-h-screen bg-[color:var(--qc-canvas)] text-[color:var(--qc-ink)] transition-colors duration-300">
       <ChatProvider>
         <ChatGPTInterface />
       </ChatProvider>

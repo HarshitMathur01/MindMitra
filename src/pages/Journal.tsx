@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, RefreshCw, Save } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+
+import Header from "@/components/layout/Header";
+import HillsFooter from "@/components/layout/HillsFooter";
+import PageShell from "@/components/layout/PageShell";
+import { WatercolorScene } from "@/components/layout/WatercolorScene";
+import { PeachBlush } from "@/components/layout/PeachBlush";
+import { DURATION, EASE } from "@/lib/redesign/tokens";
 
 type MoodTag = { emoji: string; label: string };
 
 type JournalEntry = {
   id: string;
-  date: string; // ISO string
+  date: string;
   text: string;
   mood: MoodTag | null;
   promptUsed: string | null;
@@ -15,17 +21,17 @@ type JournalEntry = {
 };
 
 const MOODS: MoodTag[] = [
-  { emoji: "😰", label: "Anxious" },
-  { emoji: "😢", label: "Sad" },
-  { emoji: "😐", label: "Neutral" },
-  { emoji: "😊", label: "Happy" },
-  { emoji: "🤩", label: "Excited" },
+  { emoji: "🌧", label: "Heavy" },
+  { emoji: "🌫", label: "Foggy" },
+  { emoji: "🌤", label: "Steady" },
+  { emoji: "☀️", label: "Bright" },
+  { emoji: "✨", label: "Light" },
 ];
 
 const PROMPTS = [
   "What felt heavy today, and what felt light?",
   "One small thing you're proud of this week.",
-  "If today had a color, it would be... because...",
+  "If today had a color, it would be… because…",
   "What is your mind returning to, over and over?",
   "Write about a moment today when you felt most like yourself.",
   "What are you avoiding thinking about? Why might that be?",
@@ -33,15 +39,10 @@ const PROMPTS = [
   "What would you tell yourself from one year ago?",
   "What does rest look like for you right now?",
   "Write about a relationship that is teaching you something.",
-  "What are three things that felt good in your body today?",
   "What boundary did you hold (or wish you had)?",
-  "Finish this sentence: 'I feel safe when...'",
-  "What is your nervous system telling you today?",
+  "Finish this sentence: 'I feel safe when…'",
   "If your mood were weather right now, what would it be?",
   "What do you need to let go of before you sleep?",
-  "Describe a moment of unexpected beauty or kindness.",
-  "What would you do if you weren't afraid?",
-  "Write a letter to the person who hurt you — you don't have to send it.",
   "What is one thing you want to remember about today?",
 ];
 
@@ -71,7 +72,6 @@ function getWordCount(text: string) {
 }
 
 export default function Journal() {
-  const navigate = useNavigate();
   const [text, setText] = useState("");
   const [selectedMood, setSelectedMood] = useState<MoodTag | null>(null);
   const [promptIdx, setPromptIdx] = useState(() => Math.floor(Math.random() * PROMPTS.length));
@@ -110,11 +110,13 @@ export default function Journal() {
     savedTimeoutRef.current = setTimeout(() => setSaved(false), 2500);
   };
 
-  useEffect(() => () => {
-    if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
+    },
+    [],
+  );
 
-  // auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -123,185 +125,191 @@ export default function Journal() {
   }, [text]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between bg-background/95 px-5 pt-safe pt-5 pb-4 backdrop-blur">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-sm transition-transform hover:scale-105 active:scale-95"
-          aria-label="Go back"
-        >
-          <ArrowLeft className="h-5 w-5 text-foreground" />
-        </button>
-        <div className="text-center">
-          <h1 className="text-[17px] font-semibold text-foreground">Journal</h1>
-          <p className="text-xs text-muted-foreground">{formatDate(today)}</p>
-        </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-sm">
-          <BookOpen className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </div>
-
-      <div className="px-5 pb-20 space-y-5">
-        {/* Prompt card */}
-        <AnimatePresence>
-          {promptVisible && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="rounded-[22px] bg-yellow-50 dark:bg-yellow-500/10 p-5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-yellow-700 dark:text-yellow-400 mb-2">
-                    Today's Prompt
-                  </p>
-                  <p className="text-sm font-medium text-foreground leading-relaxed">
-                    {PROMPTS[promptIdx]}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-3">
-                <button
-                  onClick={rotatePrompt}
-                  className="flex items-center gap-1.5 text-xs text-yellow-700 dark:text-yellow-400 font-medium"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  New prompt
-                </button>
-                <span className="text-muted-foreground/40">·</span>
-                <button
-                  onClick={() => setPromptVisible(false)}
-                  className="text-xs text-muted-foreground"
-                >
-                  Skip
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Writing area */}
-        <div className="relative rounded-[22px] border border-border bg-card p-5 shadow-sm">
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Start writing... let your thoughts flow freely."
-            className="w-full min-h-[160px] resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60"
-            rows={8}
-          />
-          {wordCount > 0 && (
-            <span className="absolute bottom-4 right-5 text-[11px] text-muted-foreground/60">
-              {wordCount} {wordCount === 1 ? "word" : "words"}
-            </span>
-          )}
-        </div>
-
-        {/* Mood selector */}
-        <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">How are you feeling? (optional)</p>
-          <div className="flex gap-2">
-            {MOODS.map((m) => (
-              <button
-                key={m.label}
-                onClick={() => setSelectedMood(selectedMood?.label === m.label ? null : m)}
-                className={`flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-[11px] font-medium transition-all duration-150 ${
-                  selectedMood?.label === m.label
-                    ? "bg-primary/10 ring-2 ring-primary text-foreground scale-105"
-                    : "bg-card border border-border text-muted-foreground hover:bg-card/80"
-                }`}
-              >
-                <span className="text-xl">{m.emoji}</span>
-                <span>{m.label}</span>
-              </button>
-            ))}
+    <>
+      <Header />
+      <PageShell width="page" as="main">
+        {/* ── Hero ──────────────────────────────────────────── */}
+        <section className="relative isolate pt-12 sm:pt-20">
+          <PeachBlush position="top-right" size="md" className="-z-10" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute right-0 top-8 -z-10 hidden w-[420px] opacity-40 lg:block"
+          >
+            <WatercolorScene name="presence" maxRenderedWidth={480} loading="eager" />
           </div>
-        </div>
 
-        {/* Save button */}
-        <motion.button
-          onClick={handleSave}
-          disabled={!text.trim()}
-          whileTap={{ scale: 0.97 }}
-          className="flex w-full items-center justify-center gap-2 rounded-[22px] bg-primary py-4 text-sm font-semibold text-primary-foreground shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <AnimatePresence mode="wait">
-            {saved ? (
-              <motion.span
-                key="saved"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
+          <p className="qc-eyebrow">{formatDate(today)}</p>
+          <h1 className="qc-display mt-4 max-w-2xl text-[clamp(2rem,4.5vw,3rem)]">
+            One page. <span className="mitra-voice">Whatever you bring.</span>
+          </h1>
+          <p className="mt-4 max-w-prose text-base leading-relaxed text-[color:var(--qc-ink-soft)]">
+            No streak. No score. Write a sentence or fill the page — both count.
+          </p>
+        </section>
+
+        {/* ── Composer ──────────────────────────────────────── */}
+        <section className="mt-12 max-w-2xl">
+          <AnimatePresence>
+            {promptVisible && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: DURATION.base, ease: EASE.outExpo }}
+                className="mb-8 rounded-3xl border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-6 sm:p-8"
               >
-                ✓ Saved
-              </motion.span>
-            ) : (
-              <motion.span key="save" className="flex items-center gap-2">
-                <Save className="h-4 w-4" />
-                Save Entry
-              </motion.span>
+                <p className="qc-eyebrow">A starting line</p>
+                <p className="mitra-voice mt-3 text-lg leading-relaxed text-[color:var(--qc-ink)]">
+                  {PROMPTS[promptIdx]}
+                </p>
+                <div className="mt-5 flex items-center gap-5 text-sm">
+                  <button
+                    type="button"
+                    onClick={rotatePrompt}
+                    className="inline-flex items-center gap-1.5 text-[color:var(--qc-forest)] transition-opacity hover:opacity-80"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Another
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPromptVisible(false)}
+                    className="text-[color:var(--qc-ink-muted)] transition-colors hover:text-[color:var(--qc-ink)]"
+                  >
+                    No prompt today
+                  </button>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
-        </motion.button>
 
-        {/* Past entries */}
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="start anywhere."
+              className="qc-display w-full min-h-[220px] resize-none border-0 border-b border-[color:var(--qc-border-stronger)] bg-transparent pb-4 text-xl leading-relaxed text-[color:var(--qc-ink)] outline-none placeholder:text-[color:var(--qc-ink-muted)] placeholder:opacity-60 focus:border-[color:var(--qc-forest)]"
+              rows={6}
+            />
+            {wordCount > 0 && (
+              <span className="mt-2 block text-right text-xs text-[color:var(--qc-ink-muted)]">
+                {wordCount} {wordCount === 1 ? "word" : "words"}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-8">
+            <p className="qc-eyebrow">How does today sit</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {MOODS.map((m) => {
+                const isActive = selectedMood?.label === m.label;
+                return (
+                  <button
+                    key={m.label}
+                    type="button"
+                    onClick={() =>
+                      setSelectedMood(isActive ? null : m)
+                    }
+                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition-colors ${
+                      isActive
+                        ? "border-[color:var(--qc-forest)] bg-[color:var(--qc-surface)] text-[color:var(--qc-forest)]"
+                        : "border-[color:var(--qc-border-stronger)] text-[color:var(--qc-ink-muted)] hover:border-[color:var(--qc-ink-soft)] hover:text-[color:var(--qc-ink)]"
+                    }`}
+                  >
+                    <span className="text-base leading-none">{m.emoji}</span>
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!text.trim()}
+              className="qc-pill-primary"
+            >
+              {saved ? "Kept" : "Keep this entry"}
+            </button>
+            {saved && (
+              <span className="text-sm text-[color:var(--qc-ink-muted)]">
+                <span className="mitra-voice">noted.</span>
+              </span>
+            )}
+          </div>
+        </section>
+
+        {/* ── Past entries ──────────────────────────────────── */}
         {entries.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-[15px] font-semibold text-foreground">Past Entries</h2>
-            {entries.map((entry) => (
-              <div
-                key={entry.id}
-                className="rounded-[22px] border border-border bg-card p-4 shadow-sm"
-              >
-                <button
-                  onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
-                  className="flex w-full items-start justify-between gap-3 text-left"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      {entry.mood && <span className="text-base">{entry.mood.emoji}</span>}
-                      <span className="text-[11px] text-muted-foreground">{formatDate(entry.date)}</span>
-                      <span className="text-[11px] text-muted-foreground/60">· {entry.wordCount}w</span>
-                    </div>
-                    <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
-                      {entry.text}
-                    </p>
-                  </div>
-                  {expandedId === entry.id ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
-                  )}
-                </button>
-                <AnimatePresence>
-                  {expandedId === entry.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
+          <section className="mt-24 max-w-2xl pb-24">
+            <p className="qc-eyebrow">Earlier pages</p>
+            <h2 className="qc-display mt-3 text-2xl sm:text-3xl">What you've written before.</h2>
+
+            <div className="mt-8 space-y-4">
+              {entries.map((entry) => {
+                const isExpanded = expandedId === entry.id;
+                return (
+                  <article
+                    key={entry.id}
+                    className="rounded-3xl border border-[color:var(--qc-border)] bg-[color:var(--qc-surface)] p-5 sm:p-6"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                      className="flex w-full items-start justify-between gap-3 text-left"
                     >
-                      <div className="mt-3 pt-3 border-t border-border">
-                        {entry.promptUsed && (
-                          <p className="mb-2 text-[11px] italic text-muted-foreground">
-                            Prompt: "{entry.promptUsed}"
-                          </p>
-                        )}
-                        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 text-xs text-[color:var(--qc-ink-muted)]">
+                          {entry.mood && (
+                            <span className="text-base leading-none">{entry.mood.emoji}</span>
+                          )}
+                          <span>{formatDate(entry.date)}</span>
+                          <span>·</span>
+                          <span>{entry.wordCount} words</span>
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[color:var(--qc-ink-soft)]">
                           {entry.text}
                         </p>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
+                      {isExpanded ? (
+                        <ChevronUp className="mt-1 h-4 w-4 shrink-0 text-[color:var(--qc-ink-muted)]" />
+                      ) : (
+                        <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-[color:var(--qc-ink-muted)]" />
+                      )}
+                    </button>
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: DURATION.base }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-4 border-t border-[color:var(--qc-border)] pt-4">
+                            {entry.promptUsed && (
+                              <p className="mb-3 text-xs italic text-[color:var(--qc-ink-muted)]">
+                                Prompt: "{entry.promptUsed}"
+                              </p>
+                            )}
+                            <p className="whitespace-pre-wrap text-base leading-relaxed text-[color:var(--qc-ink)]">
+                              {entry.text}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </article>
+                );
+              })}
+            </div>
           </section>
         )}
-      </div>
-    </div>
+      </PageShell>
+      <HillsFooter />
+    </>
   );
 }

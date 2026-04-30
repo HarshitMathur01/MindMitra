@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import HillsFooter from "@/components/layout/HillsFooter";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +47,7 @@ import {
   type UserPreferences,
 } from "@/lib/memoryMirror";
 
-const eyebrow = "text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5";
+const eyebrow = "qc-eyebrow";
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -189,13 +189,15 @@ export default function MemoryMirror() {
           transition={{ duration: 0.32 }}
         >
           {/* Header */}
-          <header className="flex flex-col gap-2">
+          <header className="flex flex-col gap-3">
             <span className={eyebrow}>Memory mirror</span>
-            <h1 className="text-2xl font-semibold leading-tight text-ink-1">
-              What MindMitra remembers about you
+            <h1 className="qc-display text-3xl sm:text-4xl">
+              What MindMitra remembers about you.
             </h1>
-            <p className="text-sm text-ink-4">
-              Everything below is yours to view, edit, or remove at any time.
+            <p className="text-sm leading-relaxed text-[color:var(--qc-ink-soft)]">
+              <span className="mitra-voice">
+                Everything below is yours to view, edit, or remove at any time.
+              </span>{" "}
               Memory only serves you — never the other way around.
             </p>
           </header>
@@ -221,11 +223,11 @@ export default function MemoryMirror() {
                 aria-label="Toggle memory writes"
               />
             </CardHeader>
-            <CardContent className="text-sm text-ink-4">
+            <CardContent className="text-sm text-[color:var(--qc-ink-muted)]">
               {incognito?.active ? (
                 <>
                   Paused until{" "}
-                  <span className="font-medium text-ink-2">
+                  <span className="font-medium text-[color:var(--qc-ink)]">
                     {formatDate(incognito.until)}
                   </span>
                   . Mitra will still talk with you, but won't form new memories
@@ -247,7 +249,7 @@ export default function MemoryMirror() {
                 <CardTitle className="text-base">Identity card</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs text-ink-3">
+                <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs text-[color:var(--qc-ink-soft)]">
                   {JSON.stringify(snapshot.identity_card, null, 2)}
                 </pre>
               </CardContent>
@@ -259,10 +261,10 @@ export default function MemoryMirror() {
               <CardHeader>
                 <CardTitle className="text-base">Recent emotional pattern</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-ink-3">
+              <CardContent className="text-sm text-[color:var(--qc-ink-soft)]">
                 <p>
                   Trend:{" "}
-                  <span className="font-medium text-ink-1">
+                  <span className="font-medium text-[color:var(--qc-ink)]">
                     {snapshot.affect_trend.label}
                   </span>{" "}
                   · confidence{" "}
@@ -270,7 +272,7 @@ export default function MemoryMirror() {
                   {snapshot.affect_trend.sample_size} signals.
                 </p>
                 {snapshot.affect_trend.detail && (
-                  <p className="mt-1 text-ink-4">{snapshot.affect_trend.detail}</p>
+                  <p className="mt-1 text-[color:var(--qc-ink-muted)]">{snapshot.affect_trend.detail}</p>
                 )}
               </CardContent>
             </Card>
@@ -285,10 +287,10 @@ export default function MemoryMirror() {
               <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-row items-center justify-between gap-4">
                   <Label htmlFor="prefers-listening" className="flex flex-col gap-1">
-                    <span className="text-sm font-medium text-ink-2">
+                    <span className="text-sm font-medium text-[color:var(--qc-ink)]">
                       Just listen — don't try to fix
                     </span>
-                    <span className="text-xs text-ink-5">
+                    <span className="text-xs text-[color:var(--qc-ink-muted)]">
                       Biases responses toward validation and reflection.
                     </span>
                   </Label>
@@ -300,7 +302,7 @@ export default function MemoryMirror() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Label className="text-sm font-medium text-ink-2">
+                  <Label className="text-sm font-medium text-[color:var(--qc-ink)]">
                     Reference past sessions ({Math.round(snapshot.preferences.callback_comfort * 100)}%)
                   </Label>
                   <input
@@ -313,7 +315,7 @@ export default function MemoryMirror() {
                       onPrefsChange({ callback_comfort: Number(e.target.value) })
                     }
                   />
-                  <span className="text-xs text-ink-5">
+                  <span className="text-xs text-[color:var(--qc-ink-muted)]">
                     Lower = fewer "I remember you said…" callbacks.
                   </span>
                 </div>
@@ -327,17 +329,17 @@ export default function MemoryMirror() {
               <CardTitle className="text-base">Recent memories</CardTitle>
               <button
                 onClick={() => setIncludeArchived((s) => !s)}
-                className="text-xs text-ink-5 underline-offset-2 hover:underline"
+                className="text-xs text-[color:var(--qc-ink-muted)] underline-offset-2 hover:underline"
               >
                 {includeArchived ? "Hide archived" : "Show archived"}
               </button>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {loading && (
-                <p className="text-sm text-ink-5">Loading memories…</p>
+                <p className="text-sm text-[color:var(--qc-ink-muted)]">Loading memories…</p>
               )}
               {!loading && visibleMemories.length === 0 && (
-                <p className="text-sm text-ink-5">
+                <p className="text-sm text-[color:var(--qc-ink-muted)]">
                   No memories yet — they'll appear here as you chat.
                 </p>
               )}
@@ -357,10 +359,10 @@ export default function MemoryMirror() {
                       className="text-sm"
                     />
                   ) : (
-                    <p className="text-sm leading-snug text-ink-2">{m.summary}</p>
+                    <p className="text-sm leading-snug text-[color:var(--qc-ink)]">{m.summary}</p>
                   )}
 
-                  <div className="flex flex-row items-center justify-between text-xs text-ink-5">
+                  <div className="flex flex-row items-center justify-between text-xs text-[color:var(--qc-ink-muted)]">
                     <span>
                       {formatDate(m.created_at)}
                       {m.affect_label && ` · ${m.affect_label}`}
@@ -419,7 +421,7 @@ export default function MemoryMirror() {
           </Card>
         </motion.div>
       </PageShell>
-      <Footer />
+      <HillsFooter />
     </>
   );
 }

@@ -4,7 +4,7 @@
    Deep sage + cream + charcoal. Glassmorphism. Dramatic whitespace.
    ────────────────────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Caveat:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -143,6 +143,20 @@
     --font-display: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --font-mono: var(--font-sans);
+
+    /* ── Sanctuary tokens — scoped consumers: SanctuaryHome (post-login `/`).
+       Distinct names from the global ink-N scale so neither system bleeds. */
+    --paper-deep: oklch(0.92 0.025 82);
+    --paper-soft: oklch(0.98 0.012 85);
+    --ink: oklch(0.28 0.025 60);
+    --ink-soft: oklch(0.48 0.025 70);
+    --accent-sage: oklch(0.42 0.06 150);
+    --accent-sage-soft: oklch(0.72 0.05 150);
+    --accent-sky: oklch(0.65 0.05 240);
+    --accent-blush: oklch(0.78 0.06 30);
+    --font-script: 'Caveat', cursive;
+    --font-fancy: 'Dancing Script', cursive;
+    --font-serif: 'Cormorant Garamond', serif;
   }
 
   [data-theme="dark"] {
@@ -692,6 +706,7 @@
   }
 
   @keyframes tb-float {
+
     0%,
     100% {
       transform: translateY(0);
@@ -707,6 +722,7 @@
   }
 
   @keyframes tb-breathe {
+
     0%,
     100% {
       opacity: 0.35;
@@ -798,20 +814,26 @@
      JSX rewrite needed. ──────────────────────────────────────── */
   .qc-canvas,
   .qc-tone {
-    --background: 36 38% 91%;          /* #F5EDE0 → cream */
-    --foreground: 38 14% 16%;          /* #2D2A24 ink */
-    --card: 36 56% 95%;                /* #FBF6EC surface */
+    --background: 36 38% 91%;
+    /* #F5EDE0 → cream */
+    --foreground: 38 14% 16%;
+    /* #2D2A24 ink */
+    --card: 36 56% 95%;
+    /* #FBF6EC surface */
     --card-foreground: 38 14% 16%;
     --popover: 36 56% 95%;
     --popover-foreground: 38 14% 16%;
     --muted: 36 26% 86%;
-    --muted-foreground: 35 6% 45%;     /* #7A736A ink-muted */
+    --muted-foreground: 35 6% 45%;
+    /* #7A736A ink-muted */
     --border: 0 0% 0% / 0.04;
     --input: 0 0% 0% / 0.10;
-    --ring: 137 26% 33%;               /* #3F6B47 forest */
+    --ring: 137 26% 33%;
+    /* #3F6B47 forest */
     --primary: 137 26% 33%;
     --primary-foreground: 36 56% 95%;
-    --accent: 102 18% 67%;             /* #A8BC9A sage */
+    --accent: 102 18% 67%;
+    /* #A8BC9A sage */
     --accent-foreground: 38 14% 16%;
   }
 

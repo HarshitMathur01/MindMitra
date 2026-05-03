@@ -17,3 +17,11 @@ interface ImportMetaEnv {
 interface ImportMeta {
     readonly env: ImportMetaEnv;
 }
+
+declare module "virtual:avatar-backdrop-videos" {
+    const videos: Array<{
+        src: string;
+        poster?: string;
+    }>;
+    export default videos;
+}

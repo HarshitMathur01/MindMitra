@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { memo, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useChat } from "../../hooks/useChat";
 import { Skeleton } from "@/components/ui/skeleton";
+import avatarBackdropVideos from "virtual:avatar-backdrop-videos";
 
 // Map facial expressions from backend/detectSentiment → bridge emotion names.
 // The iframe’s MindMitraBridge has 6 injected therapeutic moods (empathy, concern,
@@ -80,6 +81,57 @@ interface Props {
     transparentBackground?: boolean;
 }
 
+function hashString(value: string): number {
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+        hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+}
+
+type AvatarBackdropVideo = (typeof avatarBackdropVideos)[number];
+
+function resolveAvatarBackdropVideo(avatarUrl: string): AvatarBackdropVideo | undefined {
+    if (avatarBackdropVideos.length === 0) return undefined;
+    return avatarBackdropVideos[hashString(avatarUrl) % avatarBackdropVideos.length];
+}
+
+function usePrefersReducedMotion(): boolean {
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const update = () => setPrefersReducedMotion(mediaQuery.matches);
+        update();
+        mediaQuery.addEventListener("change", update);
+        return () => mediaQuery.removeEventListener("change", update);
+    }, []);
+
+    return prefersReducedMotion;
+}
+
+function useSaveData(): boolean {
+    const [saveData, setSaveData] = useState(false);
+
+    useEffect(() => {
+        const connection = (navigator as Navigator & {
+            connection?: {
+                saveData?: boolean;
+                addEventListener?: (type: "change", listener: () => void) => void;
+                removeEventListener?: (type: "change", listener: () => void) => void;
+            };
+        }).connection;
+        if (!connection) return;
+
+        const update = () => setSaveData(Boolean(connection.saveData));
+        update();
+        connection.addEventListener?.("change", update);
+        return () => connection.removeEventListener?.("change", update);
+    }, []);
+
+    return saveData;
+}
+
 const TalkingHeadAvatar = ({
     googleKey,
     ttsVoice = "en-IN-Neural2-A",
@@ -90,9 +142,11 @@ const TalkingHeadAvatar = ({
     transparentBackground = false,
 }: Props) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const [isReady, setIsReady] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [shouldLoadBackdropVideo, setShouldLoadBackdropVideo] = useState(false);
     const playbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastMessageTextRef = useRef<string>("");
     /** Prevents double onMessagePlayed when iframe speakingEnd and heuristic timer both fire. */
@@ -107,6 +161,11 @@ const TalkingHeadAvatar = ({
     const resolvedAzureRegion: string = import.meta.env.VITE_AZURE_TTS_REGION || "eastasia";
 
     const { message: avatarCurrentMessage, onMessagePlayed } = useChat();
+    const prefersReducedMotion = usePrefersReducedMotion();
+    const saveData = useSaveData();
+    const backdropVideo = useMemo(() => resolveAvatarBackdropVideo(avatarUrl), [avatarUrl]);
+    const canPlayBackdropVideo = Boolean(backdropVideo?.src) && !prefersReducedMotion && !saveData;
+    const useTransparentStage = transparentBackground || Boolean(backdropVideo);
 
     // Build iframe src — non-secret config only.
     //
@@ -116,15 +175,15 @@ const TalkingHeadAvatar = ({
     // Keys are sent over `postMessage` after the iframe asks for them
     // via { type: "needConfig" }. See public/talkinghead.html for the
     // gated init().
-    const iframeSrc = (() => {
+    const iframeSrc = useMemo(() => {
         const params = new URLSearchParams();
         params.set("ttsVoice", ttsVoice);
         params.set("ttsLang", ttsLang);
         params.set("avatarUrl", avatarUrl);
         if (cameraView) params.set("cameraView", cameraView);
-        if (transparentBackground) params.set("transparent", "1");
+        if (useTransparentStage) params.set("transparent", "1");
         return `/talkinghead.html?${params.toString()}`;
-    })();
+    }, [avatarUrl, cameraView, ttsLang, ttsVoice, useTransparentStage]);
 
     // ── Post a message to the iframe ────────────────────────────────────────
     // Defense in depth: scope `postMessage` to our own origin instead of
@@ -225,6 +284,40 @@ const TalkingHeadAvatar = ({
         }, duration);
     }, [avatarCurrentMessage, isReady, postToIframe, onMessagePlayed]);
 
+    // Let the iframe and controls mount first, then start the decorative
+    // backdrop video only when the user's device preferences allow it.
+    useEffect(() => {
+        setShouldLoadBackdropVideo(false);
+        if (!canPlayBackdropVideo) return;
+
+        const timer = window.setTimeout(() => {
+            setShouldLoadBackdropVideo(true);
+        }, 250);
+
+        return () => window.clearTimeout(timer);
+    }, [backdropVideo?.src, canPlayBackdropVideo]);
+
+    useEffect(() => {
+        if (!shouldLoadBackdropVideo) return;
+
+        const syncVideoWithPageVisibility = () => {
+            const video = videoRef.current;
+            if (!video) return;
+
+            if (document.hidden) {
+                video.pause();
+                return;
+            }
+
+            video.play().catch(() => {
+                // Autoplay can still be denied in unusual browser policies.
+            });
+        };
+
+        document.addEventListener("visibilitychange", syncVideoWithPageVisibility);
+        return () => document.removeEventListener("visibilitychange", syncVideoWithPageVisibility);
+    }, [shouldLoadBackdropVideo]);
+
     // ── Cleanup timer on unmount ────────────────────────────────────────────
     useEffect(() => {
         return () => {
@@ -235,16 +328,42 @@ const TalkingHeadAvatar = ({
     return (
         <div
             className={`relative w-full h-full overflow-hidden ${
-                transparentBackground ? "bg-transparent" : "bg-[#1a1a2e]"
+                useTransparentStage ? "bg-transparent" : "bg-[#1a1a2e]"
             }`}
         >
+            {backdropVideo?.poster && (
+                <img
+                    aria-hidden="true"
+                    className="absolute inset-0 h-full w-full object-cover"
+                    src={backdropVideo.poster}
+                    alt=""
+                    decoding="async"
+                />
+            )}
+
+            {backdropVideo?.src && shouldLoadBackdropVideo && (
+                <video
+                    ref={videoRef}
+                    aria-hidden="true"
+                    className="absolute inset-0 h-full w-full object-cover"
+                    src={backdropVideo.src}
+                    poster={backdropVideo.poster}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="none"
+                    disablePictureInPicture
+                />
+            )}
+
             {/* TalkingHead iframe */}
             <iframe
                 ref={iframeRef}
                 src={iframeSrc}
                 title="MindMitra Avatar"
-                className="w-full h-full border-0"
-                style={transparentBackground ? { backgroundColor: "transparent" } : undefined}
+                className="relative z-[1] w-full h-full border-0"
+                style={useTransparentStage ? { backgroundColor: "transparent" } : undefined}
                 allow="autoplay; microphone"
                 sandbox="allow-scripts allow-same-origin"
             />
@@ -253,7 +372,7 @@ const TalkingHeadAvatar = ({
             {!isReady && !loadError && (
                 <div
                     className={`absolute inset-0 flex flex-col items-center justify-center z-10 p-6 space-y-6 animate-pulse ${
-                        transparentBackground ? "bg-black/30 backdrop-blur-sm" : "bg-[#1a1a2e]"
+                        useTransparentStage ? "bg-black/30 backdrop-blur-sm" : "bg-[#1a1a2e]"
                     }`}
                 >
                     <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-primary/10 border-4 border-primary/20 flex flex-col items-center justify-center space-y-4">
@@ -291,4 +410,4 @@ const TalkingHeadAvatar = ({
     );
 };
 
-export default TalkingHeadAvatar;
+export default memo(TalkingHeadAvatar);

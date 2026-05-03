@@ -141,7 +141,7 @@ const PresenceMode = ({
                         used by therapeutic ECA studies (face + shoulders
                         visible) — see CITATIONS.md JMIR scoping review. */}
                     <div className="absolute inset-0 z-10 flex items-end sm:items-center justify-center pointer-events-none">
-                        <div className="relative w-full h-full max-w-[640px] sm:max-w-[720px] mx-auto pointer-events-auto">
+                        <div className="relative h-full w-full pointer-events-auto">
                             <TalkingHeadAvatar
                                 avatarUrl={avatarUrl}
                                 ttsLang={ttsLang}

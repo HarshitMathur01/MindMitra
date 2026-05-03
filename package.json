@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "lint:copy": "node scripts/check-banned-words.mjs",
+    "optimize:avatar-videos": "node scripts/optimize-avatar-videos.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

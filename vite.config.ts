@@ -1,7 +1,75 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { existsSync, readdirSync } from "fs";
 import { componentTagger } from "lovable-tagger";
+
+const avatarVideosModuleId = "virtual:avatar-backdrop-videos";
+const resolvedAvatarVideosModuleId = `\0${avatarVideosModuleId}`;
+const avatarVideosDir = path.resolve(__dirname, "public/videos/Avatar_videos");
+const avatarMediaPattern = /\.(mp4|webm|ogg|jpe?g|png|webp)$/i;
+
+function readAvatarBackdropVideos() {
+  if (!existsSync(avatarVideosDir)) return [];
+
+  const videosByBase = new Map<string, { raw?: string; optimized?: string }>();
+  const postersByBase = new Map<string, string>();
+
+  for (const entry of readdirSync(avatarVideosDir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+
+    const ext = path.extname(entry.name);
+    const stem = path.basename(entry.name, ext);
+    const url = `/videos/Avatar_videos/${entry.name}`;
+
+    if (/\.(mp4|webm|ogg)$/i.test(entry.name)) {
+      const isOptimized = stem.endsWith(".optimized");
+      const base = isOptimized ? stem.slice(0, -".optimized".length) : stem;
+      const record = videosByBase.get(base) ?? {};
+      if (isOptimized) record.optimized = url;
+      else record.raw = url;
+      videosByBase.set(base, record);
+      continue;
+    }
+
+    if (/\.(jpe?g|png|webp)$/i.test(entry.name) && stem.endsWith(".poster")) {
+      postersByBase.set(stem.slice(0, -".poster".length), url);
+    }
+  }
+
+  return Array.from(videosByBase.entries())
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+    .flatMap(([base, video]) => {
+      const src = video.optimized ?? video.raw;
+      return src ? [{ src, poster: postersByBase.get(base) }] : [];
+    });
+}
+
+function avatarBackdropVideosPlugin() {
+  return {
+    name: "avatar-backdrop-videos",
+    resolveId(id: string) {
+      if (id === avatarVideosModuleId) return resolvedAvatarVideosModuleId;
+      return null;
+    },
+    load(id: string) {
+      if (id !== resolvedAvatarVideosModuleId) return null;
+      return `export default ${JSON.stringify(readAvatarBackdropVideos())};`;
+    },
+    configureServer(server) {
+      server.watcher.add(avatarVideosDir);
+      server.watcher.on("all", (_event, file) => {
+        const normalizedFile = path.normalize(file);
+        if (!normalizedFile.startsWith(`${avatarVideosDir}${path.sep}`)) return;
+        if (!avatarMediaPattern.test(normalizedFile)) return;
+
+        const mod = server.moduleGraph.getModuleById(resolvedAvatarVideosModuleId);
+        if (mod) server.moduleGraph.invalidateModule(mod);
+        server.ws.send({ type: "full-reload" });
+      });
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -13,6 +81,7 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   plugins: [
+    avatarBackdropVideosPlugin(),
     react(),
     mode === 'development' &&
     componentTagger(),

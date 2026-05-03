@@ -1,12 +1,9 @@
-import TherapeuticGameShell from "@/components/mindgym/TherapeuticGameShell";
 import { useState } from "react";
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from "@/components/ui/card";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import Header from "@/components/layout/Header";
-import { ArrowLeft, RotateCcw, CheckCircle2, Heart, Brain, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { CheckCircle2 } from "lucide-react";
+import TherapeuticGameShell from "@/components/mindgym/TherapeuticGameShell";
 import { useGameDataSaver } from "@/lib/gameDataSaver";
 
 interface EmotionImage {
@@ -16,14 +13,13 @@ interface EmotionImage {
   suggestedEmotion: string;
 }
 
-interface EmotionMatch {
+interface EmotionMatchEntry {
   imageId: string;
   emotion: string;
   customText: string;
 }
 
 const EmotionMatch = () => {
-  const navigate = useNavigate();
   const { saveEmotionMatch } = useGameDataSaver();
 
   const emotionImages: EmotionImage[] = [
@@ -61,13 +57,13 @@ const EmotionMatch = () => {
 
   const emotionOptions = [
     "Happy", "Sad", "Angry", "Surprised", "Thoughtful", "Excited",
-    "Worried", "Calm", "Frustrated", "Content", "Anxious", "Joyful"
+    "Worried", "Calm", "Frustrated", "Content", "Anxious", "Joyful",
   ];
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedEmotion, setSelectedEmotion] = useState("");
   const [customText, setCustomText] = useState("");
-  const [matches, setMatches] = useState<EmotionMatch[]>([]);
+  const [matches, setMatches] = useState<EmotionMatchEntry[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [score, setScore] = useState(0);
 
@@ -80,7 +76,7 @@ const EmotionMatch = () => {
   const handleNext = async () => {
     if (!selectedEmotion) return;
 
-    const newMatch: EmotionMatch = {
+    const newMatch: EmotionMatchEntry = {
       imageId: currentImage.id,
       emotion: selectedEmotion,
       customText: customText.trim(),
@@ -89,13 +85,12 @@ const EmotionMatch = () => {
     const newMatches = [...matches, newMatch];
     setMatches(newMatches);
 
-    // Calculate score based on emotion accuracy and custom text
-    let points = 10; // Base points
+    let points = 10;
     if (selectedEmotion.toLowerCase() === currentImage.suggestedEmotion.toLowerCase()) {
-      points += 15; // Bonus for correct match
+      points += 15;
     }
     if (customText.trim().length > 10) {
-      points += 5; // Bonus for thoughtful description
+      points += 5;
     }
 
     const newScore = score + points;
@@ -104,15 +99,13 @@ const EmotionMatch = () => {
     if (currentImageIndex === emotionImages.length - 1) {
       setIsCompleted(true);
       try {
-        // Calculate correct classifications
-        const correctClassifications = newMatches.filter(match =>
+        const correctClassifications = newMatches.filter((match) =>
           match.emotion.toLowerCase() ===
-          emotionImages.find(img => img.id === match.imageId)?.suggestedEmotion.toLowerCase()
+          emotionImages.find((img) => img.id === match.imageId)?.suggestedEmotion.toLowerCase()
         ).length;
 
-        // Create classifications array for detailed analysis
-        const classifications = newMatches.map(match => {
-          const correctEmotion = emotionImages.find(img => img.id === match.imageId)?.suggestedEmotion;
+        const classifications = newMatches.map((match) => {
+          const correctEmotion = emotionImages.find((img) => img.id === match.imageId)?.suggestedEmotion;
           const isCorrect = match.emotion.toLowerCase() === correctEmotion?.toLowerCase();
 
           return {
@@ -120,26 +113,23 @@ const EmotionMatch = () => {
             user_choice: match.emotion,
             correct_emotion: correctEmotion,
             correct: isCorrect,
-            custom_text: match.customText
+            custom_text: match.customText,
           };
         });
 
-        // Fixed function call with all required parameters
         await saveEmotionMatch(
-          newScore,                    // score
-          correctClassifications,      // correctClassifications  
-          emotionImages.length,        // totalImages
-          0,                          // duration (you might want to track actual time)
-          classifications,            // classifications array
-          undefined                   // sessionId (optional)
+          newScore,
+          correctClassifications,
+          emotionImages.length,
+          0,
+          classifications,
+          undefined
         );
-
-        console.log('✅ Emotion match result saved!');
       } catch (error) {
-        console.error('Failed to save game result:', error);
+        console.error("Failed to save game result:", error);
       }
     } else {
-      setCurrentImageIndex(prev => prev + 1);
+      setCurrentImageIndex((prev) => prev + 1);
       setSelectedEmotion("");
       setCustomText("");
     }
@@ -154,53 +144,19 @@ const EmotionMatch = () => {
     setScore(0);
   };
 
-  const getScoreRating = () => {
-    const maxPossible = emotionImages.length * 30;
-    const percentage = (score / maxPossible) * 100;
-
-    if (percentage >= 90) return { rating: "Emotional Intelligence Master!", color: "text-green-600", icon: Sparkles };
-    if (percentage >= 75) return { rating: "Great Emotional Awareness!", color: "text-primary", icon: Heart };
-    if (percentage >= 60) return { rating: "Good Emotional Understanding!", color: "text-purple-600", icon: Brain };
-    return { rating: "Keep exploring emotions!", color: "text-gray-600", icon: Heart };
-  };
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { duration: 0.3 }
-    }
+      transition: { duration: 0.3 },
+    },
   };
 
   const imageVariants = {
     enter: { x: 300, opacity: 0 },
     center: { x: 0, opacity: 1 },
-    exit: { x: -300, opacity: 0 }
-  };
-
-  const celebrationVariants = {
-    hidden: { scale: 0, opacity: 0 },
-    visible: {
-      scale: 1,
-      opacity: 1,
-      transition: {
-        type: "spring" as const,
-        stiffness: 300,
-        damping: 20
-      }
-    }
+    exit: { x: -300, opacity: 0 },
   };
 
   return (
@@ -213,7 +169,6 @@ const EmotionMatch = () => {
       themePhase={isCompleted ? "success" : selectedEmotion ? "focus" : "idle"}
     >
       <div className="max-w-4xl mx-auto w-full">
-        {/* Progress Bar */}
         <motion.div variants={itemVariants} className="mb-8 bg-white/5 p-4 rounded-3xl border border-white/10 backdrop-blur-md">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-white/70 tracking-wide uppercase">
@@ -234,7 +189,6 @@ const EmotionMatch = () => {
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Image Section */}
           <motion.div variants={itemVariants}>
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6 rounded-3xl">
               <h3 className="text-lg font-light tracking-wide mb-6 text-center text-white/80">
@@ -276,8 +230,8 @@ const EmotionMatch = () => {
                   onClick={() => handleEmotionSelect(emotion)}
                   className={`py-3 px-2 rounded-2xl text-xs font-medium transition-all duration-300 ${
                     selectedEmotion === emotion
-                      ? 'bg-teal-500/20 border-teal-500/50 border text-teal-100 shadow-[0_0_15px_rgba(20,184,166,0.2)]'
-                      : 'bg-white/5 border border-white/5 hover:bg-white/10 text-white/70'
+                      ? "bg-teal-500/20 border-teal-500/50 border text-teal-100 shadow-[0_0_15px_rgba(20,184,166,0.2)]"
+                      : "bg-white/5 border border-white/5 hover:bg-white/10 text-white/70"
                   }`}
                 >
                   {emotion}
@@ -308,7 +262,7 @@ const EmotionMatch = () => {
               }`}
             >
               <CheckCircle2 className="h-5 w-5 mr-3" />
-              {currentImageIndex === emotionImages.length - 1 ? 'Complete Session' : 'Continue'}
+              {currentImageIndex === emotionImages.length - 1 ? "Complete Session" : "Continue"}
             </Button>
           </motion.div>
         </div>
@@ -316,4 +270,5 @@ const EmotionMatch = () => {
     </TherapeuticGameShell>
   );
 };
+
 export default EmotionMatch;

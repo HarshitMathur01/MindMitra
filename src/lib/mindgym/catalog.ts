@@ -9,6 +9,8 @@ import {
   Flower2,
   Timer,
   Palette,
+  Smile,
+  Grid3x3,
 } from "lucide-react";
 import type { MindGymTool, BadgeDefinition, MindGymSection } from "./types";
 
@@ -132,6 +134,30 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     icon: Palette,
     gradient: ["#f59e0b", "#f97316"] as const,
     section: "calm",
+  },
+  {
+    id: "emotion-match",
+    title: "Emotion Detective",
+    shortDesc: "Read facial expressions and label what you see",
+    clinicalTag: "Emotional Awareness",
+    clinicalBasis: "Affect labeling research (Lieberman et al.) shows that naming observed emotions engages prefrontal regulation and reduces amygdala reactivity.",
+    minutes: 4,
+    xp: 30,
+    icon: Smile,
+    gradient: ["#0d9488", "#5eead4"] as const,
+    section: "reflect",
+  },
+  {
+    id: "memory-challenge",
+    title: "Memory Challenge",
+    shortDesc: "Recall a growing sequence of lights to anchor focus",
+    clinicalTag: "Working Memory",
+    clinicalBasis: "Sequential recall tasks engage working memory and selective attention; brief, structured practice supports cognitive flexibility under stress.",
+    minutes: 5,
+    xp: 35,
+    icon: Grid3x3,
+    gradient: ["#0891b2", "#22d3ee"] as const,
+    section: "focus",
   },
 ] as const;
 

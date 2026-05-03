@@ -13,6 +13,8 @@ const TOOL_COMPONENTS: Record<ToolId, ReturnType<typeof lazy>> = {
   "gratitude-garden": lazy(() => import("./tools/GratitudeGarden")),
   "focus-flow": lazy(() => import("./tools/FocusFlow")),
   "color-me-mindful": lazy(() => import("./tools/ColorMeMindful")),
+  "emotion-match": lazy(() => import("./tools/EmotionMatch")),
+  "memory-challenge": lazy(() => import("./tools/MemoryChallenge")),
 };
 
 function Loader() {

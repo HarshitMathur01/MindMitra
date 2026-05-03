@@ -34,6 +34,8 @@ export const TOOL_IDS = [
   "gratitude-garden",
   "focus-flow",
   "color-me-mindful",
+  "emotion-match",
+  "memory-challenge",
 ] as const;
 
 export type ToolId = (typeof TOOL_IDS)[number];

@@ -32,9 +32,7 @@ import ErrorBoundary from "@/components/system/ErrorBoundary";
 // `lazy(() => import(...))` produces its own JS chunk and is fetched on
 // demand by React Router.
 const QATests = lazy(() => import("./pages/QATests"));
-const MemoryChallenge = lazy(() => import("./pages/MemoryChallenge"));
 const EmojiMatch = lazy(() => import("./pages/EmojiMatch"));
-const EmotionMatch = lazy(() => import("./pages/EmotionMatch"));
 const MoodMountain = lazy(() => import("./pages/MoodMountain"));
 const ThoughtDetective = lazy(() => import("./pages/ThoughtDetective"));
 const BalloonPositivityGame = lazy(() => import("./pages/BalloonPositivityGame"));
@@ -133,9 +131,9 @@ function AppContent() {
           <Route path="/nutrition" element={<Navigate to="/" replace />} />
 
           {/* Game leaves — kept reachable but removed from primary nav */}
-          <Route path="/memory-challenge" element={<MemoryChallenge />} />
+          <Route path="/memory-challenge" element={<Navigate to="/mindgym/memory-challenge" replace />} />
           <Route path="/emoji-match" element={<EmojiMatch />} />
-          <Route path="/emotion-match" element={<EmotionMatch />} />
+          <Route path="/emotion-match" element={<Navigate to="/mindgym/emotion-match" replace />} />
           <Route path="/mood-mountain" element={<MoodMountain />} />
           <Route path="/thought-detective" element={<ThoughtDetective />} />
           <Route path="/balloon-pop" element={<BalloonPositivityGame />} />

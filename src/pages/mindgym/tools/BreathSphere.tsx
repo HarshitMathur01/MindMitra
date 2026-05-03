@@ -515,9 +515,9 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
       xp={20}
       completed={completed && moodAnswer !== null}
       onReset={handleReset}
-      themeColor="from-[#f6f0e4] via-[#f2ecde] to-[#e8f0e4]"
-      themeAccent="emerald"
+      themeAccent="teal"
       surfaceTone="warm"
+      backdropScene="breath-video"
     >
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-24">
         <AnimatePresence mode="wait">

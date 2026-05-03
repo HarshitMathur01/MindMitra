@@ -131,7 +131,9 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
       title="Inner Critic Court"
       clinicalBasis="Kristin Neff's self-compassion therapy reduces shame-driven thinking through cognitive defusion — separating yourself from harsh thoughts and responding with the voice of a kind friend."
       xp={45}
-      themeColor="from-[#1b0b14] via-[#351b2a] to-[#190e1c]"
+      themeAccent="rose"
+      surfaceTone="warm"
+      backdropScene="presence"
       completed={completed}
       onReset={handleReset}
       totalSteps={4}
@@ -151,16 +153,16 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
             >
               <div className="text-center mb-8">
                 <motion.div
-                  className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4"
+                  className="w-16 h-16 rounded-full bg-[#B8A6D9]/35 border border-[#5b4a82]/20 flex items-center justify-center mx-auto mb-4"
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 >
-                  <Gavel className="w-8 h-8 text-purple-400" />
+                  <Gavel className="w-8 h-8 text-[#5b4a82]" />
                 </motion.div>
-                <h2 className="text-xl font-semibold text-white mb-2">
+                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight">
                   What is your inner critic saying?
                 </h2>
-                <p className="text-white/50 text-sm max-w-md mx-auto">
+                <p className="text-[#5b4a3e] text-sm max-w-md mx-auto leading-relaxed">
                   Write down a harsh, self-critical thought — the kind you&apos;d never say to a friend.
                   We&apos;ll put it on trial together.
                 </p>
@@ -173,17 +175,17 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                   if (crisisDetected) setCrisisDetected(false);
                 }}
                 placeholder="Type your self-critical thought here..."
-                className="w-full h-32 rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 transition-all text-sm"
+                className="w-full h-32 rounded-2xl bg-white/72 border border-black/10 px-4 py-3 text-[#2a1c14] placeholder:text-[#9a8674] resize-none focus:outline-none focus:ring-2 focus:ring-[#B8A6D9]/40 focus:border-[#B8A6D9]/55 transition-all text-sm backdrop-blur-sm"
               />
 
               {crisisDetected && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20"
+                  className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30"
                 >
-                  <AlertTriangle className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
-                  <p className="text-rose-300 text-xs leading-relaxed">
+                  <AlertTriangle className="w-4 h-4 text-rose-700 mt-0.5 shrink-0" />
+                  <p className="text-rose-700 text-xs leading-relaxed">
                     It sounds like you may be going through something really difficult.
                     Please use the <strong>&quot;Need help?&quot;</strong> button below to reach a crisis helpline.
                     You deserve support right now.
@@ -192,7 +194,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
               )}
 
               <div className="mt-6">
-                <p className="text-xs text-white/40 mb-3">Or pick a common thought:</p>
+                <p className="text-xs text-[#7a6556] mb-3">Or pick a common thought:</p>
                 <div className="flex flex-wrap gap-2">
                   {PRESETS.map((preset) => (
                     <button
@@ -201,8 +203,8 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                       className={cn(
                         "text-xs px-3 py-1.5 rounded-full border transition-all",
                         thought === preset
-                          ? "bg-purple-500/20 border-purple-500/40 text-purple-300"
-                          : "bg-white/5 border-white/10 text-white/50 hover:text-white/70 hover:bg-white/10"
+                          ? "bg-[#B8A6D9]/35 border-[#5b4a82]/45 text-[#5b4a82]"
+                          : "bg-white/72 border-black/10 text-[#5b4a3e] hover:text-[#2a1c14] hover:bg-white/90 backdrop-blur-sm"
                       )}
                     >
                       {preset}
@@ -218,8 +220,8 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                   className={cn(
                     "flex-1 py-3 rounded-2xl font-medium text-sm transition-all",
                     thought.trim()
-                      ? "bg-purple-600 hover:bg-purple-700 text-white"
-                      : "bg-white/5 text-white/30 cursor-not-allowed"
+                      ? "bg-[#5b4a82] hover:bg-[#4a3a72] text-white shadow-[0_8px_22px_-12px_rgba(91,74,130,0.45)]"
+                      : "bg-white/55 text-[#9a8674] cursor-not-allowed border border-black/8"
                   )}
                 >
                   Enter the Courtroom
@@ -227,7 +229,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                 {savedCards.length > 0 && (
                   <button
                     onClick={() => setShowCards(!showCards)}
-                    className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-white/10 text-white/50 hover:text-white/70 hover:bg-white/5 transition-all text-sm"
+                    className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-black/10 text-[#5b4a3e] hover:text-[#2a1c14] hover:bg-white/85 bg-white/65 backdrop-blur-sm transition-all text-sm"
                   >
                     <Bookmark className="w-4 h-4" />
                     {savedCards.length}
@@ -244,20 +246,20 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                     exit={{ height: 0, opacity: 0 }}
                     className="mt-6 overflow-hidden"
                   >
-                    <h3 className="text-sm font-medium text-white/60 mb-3">
+                    <h3 className="text-sm font-medium text-[#5b4a3e] mb-3">
                       Your Compassion Cards
                     </h3>
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                       {savedCards.slice().reverse().map((card, i) => (
                         <div
                           key={i}
-                          className="p-3 rounded-xl bg-white/5 border border-white/5"
+                          className="p-3 rounded-xl bg-white/72 border border-black/8 backdrop-blur-sm"
                         >
-                          <p className="text-xs text-white/40 line-through mb-1">
+                          <p className="text-xs text-[#9a8674] line-through mb-1">
                             {card.thought}
                           </p>
-                          <p className="text-sm text-teal-300">{card.reframe}</p>
-                          <p className="text-[10px] text-white/20 mt-1">
+                          <p className="font-serif-display italic text-sm text-[#3F6B47]">{card.reframe}</p>
+                          <p className="text-[10px] text-[#9a8674] mt-1">
                             {new Date(card.date).toLocaleDateString("en-IN", {
                               day: "numeric",
                               month: "short",
@@ -282,34 +284,34 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
               transition={{ duration: 0.4 }}
             >
               <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold text-white mb-1">The Prosecution Speaks</h2>
-                <p className="text-white/40 text-xs">Your inner critic presents its case.</p>
+                <h2 className="font-serif-display italic text-[1.55rem] font-light text-[#2a1c14] mb-1">The Prosecution Speaks</h2>
+                <p className="text-[#7a6556] text-xs">Your inner critic presents its case.</p>
               </div>
 
               <motion.div
-                className="relative rounded-2xl overflow-hidden"
+                className="relative rounded-2xl overflow-hidden border border-[#a04a52]/22 bg-white/68 backdrop-blur-sm shadow-[0_18px_44px_-22px_rgba(160,74,82,0.30)]"
                 initial={{ scale: 0.95 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-red-950/60 via-[#1a1015] to-[#0f0d13]" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(220,38,38,0.08),transparent_60%)]" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#E8938A]/15 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(199,119,95,0.10),transparent_60%)]" />
 
                 <div className="relative p-6">
                   <div className="flex items-start gap-4">
                     <motion.div
-                      className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center shrink-0"
-                      animate={{ boxShadow: ["0 0 0px rgba(239,68,68,0)", "0 0 20px rgba(239,68,68,0.3)", "0 0 0px rgba(239,68,68,0)"] }}
+                      className="w-12 h-12 rounded-full bg-[#E8938A]/35 border border-[#a04a52]/30 flex items-center justify-center shrink-0"
+                      animate={{ boxShadow: ["0 0 0px rgba(199,119,95,0)", "0 0 22px rgba(199,119,95,0.32)", "0 0 0px rgba(199,119,95,0)"] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     >
-                      <Gavel className="w-6 h-6 text-red-400" />
+                      <Gavel className="w-6 h-6 text-[#a04a52]" />
                     </motion.div>
                     <div className="flex-1">
-                      <p className="text-xs text-red-400/80 font-medium uppercase tracking-wider mb-2">
+                      <p className="text-xs text-[#a04a52] font-medium uppercase tracking-[0.22em] mb-2">
                         Prosecutor — The Inner Critic
                       </p>
                       <motion.p
-                        className="text-white text-base leading-relaxed italic"
+                        className="font-serif-display italic text-[#2a1c14] text-base leading-relaxed"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3, duration: 0.6 }}
@@ -325,7 +327,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.8, duration: 0.5 }}
                   >
-                    <p className="text-xs text-red-400/60">The prosecution argues:</p>
+                    <p className="text-xs text-[#a04a52]/85">The prosecution argues:</p>
                     {[
                       "This thought has been repeated so many times it must be true.",
                       "There is no counter-evidence. The defendant should accept it.",
@@ -333,7 +335,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                     ].map((line, i) => (
                       <motion.p
                         key={i}
-                        className="text-sm text-white/40 pl-4 border-l-2 border-red-500/20"
+                        className="text-sm text-[#5b4a3e] pl-4 border-l-2 border-[#a04a52]/35"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 1.2 + i * 0.3 }}
@@ -347,7 +349,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
 
               <motion.button
                 onClick={handleProsecutionNext}
-                className="w-full mt-8 py-3 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm transition-colors"
+                className="w-full mt-8 py-3 rounded-2xl bg-[#3F6B47] hover:bg-[#345a3b] text-white font-medium text-sm transition-colors shadow-[0_8px_22px_-12px_rgba(63,107,71,0.45)]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 2 }}
@@ -368,20 +370,20 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
               transition={{ duration: 0.4 }}
             >
               <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold text-white mb-1">Your Defense</h2>
-                <p className="text-white/40 text-xs">Speak with the compassion you&apos;d give a close friend.</p>
+                <h2 className="font-serif-display italic text-[1.55rem] font-light text-[#2a1c14] mb-1">Your Defense</h2>
+                <p className="text-[#7a6556] text-xs">Speak with the compassion you&apos;d give a close friend.</p>
               </div>
 
-              <div className="rounded-2xl bg-gradient-to-br from-teal-950/40 via-[#0f1a18] to-[#0f0d13] border border-teal-500/10 p-5">
+              <div className="rounded-2xl bg-white/72 border border-[#3F6B47]/22 p-5 backdrop-blur-sm shadow-[0_18px_44px_-22px_rgba(63,107,71,0.22)]">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center">
-                    <ShieldCheck className="w-5 h-5 text-teal-400" />
+                  <div className="w-10 h-10 rounded-full bg-[#9CAF88]/35 border border-[#3F6B47]/35 flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5 text-[#3F6B47]" />
                   </div>
                   <div>
-                    <p className="text-xs text-teal-400/80 font-medium uppercase tracking-wider">
+                    <p className="text-xs text-[#3F6B47] font-medium uppercase tracking-[0.22em]">
                       Defense Counsel — You
                     </p>
-                    <p className="text-[11px] text-white/30 mt-0.5">
+                    <p className="text-[11px] text-[#7a6556] mt-0.5">
                       Responding to: &ldquo;{thought.slice(0, 50)}{thought.length > 50 ? "..." : ""}&rdquo;
                     </p>
                   </div>
@@ -395,14 +397,14 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.2 }}
                     >
-                      <label className="text-sm text-white/60 mb-2 block leading-relaxed">
+                      <label className="text-sm text-[#3a2a20] mb-2 block leading-relaxed">
                         {idx + 1}. {prompt}
                       </label>
                       <textarea
                         value={defenseAnswers[idx]}
                         onChange={(e) => updateDefense(idx, e.target.value)}
                         placeholder="Write your compassionate response..."
-                        className="w-full h-24 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/25 resize-none focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/30 transition-all text-sm"
+                        className="w-full h-24 rounded-xl bg-white/65 border border-black/10 px-4 py-3 text-[#2a1c14] placeholder:text-[#9a8674] resize-none focus:outline-none focus:ring-2 focus:ring-[#3F6B47]/30 focus:border-[#3F6B47]/45 transition-all text-sm backdrop-blur-sm"
                       />
                     </motion.div>
                   ))}
@@ -415,8 +417,8 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                 className={cn(
                   "w-full mt-8 py-3 rounded-2xl font-medium text-sm transition-all",
                   defenseAnswers.filter((a) => a.trim()).length >= 2
-                    ? "bg-teal-600 hover:bg-teal-700 text-white"
-                    : "bg-white/5 text-white/30 cursor-not-allowed"
+                    ? "bg-[#3F6B47] hover:bg-[#345a3b] text-white shadow-[0_8px_22px_-12px_rgba(63,107,71,0.45)]"
+                    : "bg-white/55 text-[#9a8674] cursor-not-allowed border border-black/8"
                 )}
               >
                 Deliver the Verdict
@@ -435,29 +437,29 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
               className="text-center"
             >
               <motion.div
-                className="w-20 h-20 rounded-full bg-teal-500/20 flex items-center justify-center mx-auto mb-6"
+                className="w-20 h-20 rounded-full bg-[#9CAF88]/35 border border-[#3F6B47]/30 flex items-center justify-center mx-auto mb-6"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", damping: 12, delay: 0.2 }}
               >
-                <Sparkles className="w-10 h-10 text-teal-400" />
+                <Sparkles className="w-10 h-10 text-[#3F6B47]" />
               </motion.div>
 
-              <h2 className="text-xl font-semibold text-white mb-2">The Verdict</h2>
-              <p className="text-white/40 text-sm mb-8">
+              <h2 className="font-serif-display italic text-[2rem] font-light text-[#2a1c14] mb-2 tracking-tight">The Verdict</h2>
+              <p className="text-[#5b4a3e] text-sm mb-8">
                 The court finds the inner critic&apos;s case unsubstantiated.
               </p>
 
               <div className="max-w-md mx-auto space-y-6">
                 {/* Struck-out prosecution */}
                 <motion.div
-                  className="relative rounded-xl bg-red-500/5 border border-red-500/10 p-4"
+                  className="relative rounded-xl bg-[#E8938A]/15 border border-[#a04a52]/22 p-4 backdrop-blur-sm"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 }}
                 >
-                  <p className="text-xs text-red-400/50 uppercase tracking-wider mb-1">Dismissed</p>
-                  <p className="text-white/40 text-sm line-through decoration-red-500/60 decoration-2 italic">
+                  <p className="text-xs text-[#a04a52] uppercase tracking-[0.22em] mb-1">Dismissed</p>
+                  <p className="text-[#5b4a3e] text-sm line-through decoration-[#a04a52]/65 decoration-2 italic">
                     &ldquo;{thought}&rdquo;
                   </p>
                   <motion.div
@@ -472,7 +474,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                         y1="50%"
                         x2="95%"
                         y2="50%"
-                        stroke="rgba(239,68,68,0.3)"
+                        stroke="rgba(160,74,82,0.45)"
                         strokeWidth="2"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
@@ -484,15 +486,15 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
 
                 {/* Compassionate reframe */}
                 <motion.div
-                  className="rounded-xl bg-teal-500/10 border border-teal-500/20 p-5"
+                  className="rounded-xl bg-white/78 border border-[#3F6B47]/30 p-5 backdrop-blur-sm shadow-[0_12px_32px_-18px_rgba(63,107,71,0.30)]"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.4, type: "spring", damping: 15 }}
                 >
-                  <p className="text-xs text-teal-400/70 uppercase tracking-wider mb-2">
+                  <p className="text-xs text-[#3F6B47] uppercase tracking-[0.22em] mb-2">
                     Your Compassionate Truth
                   </p>
-                  <p className="text-teal-200 text-base leading-relaxed font-medium">
+                  <p className="font-serif-display italic text-[#2a1c14] text-base leading-relaxed">
                     &ldquo;{reframe}&rdquo;
                   </p>
                 </motion.div>
@@ -509,12 +511,12 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                       answer.trim() && (
                         <div
                           key={i}
-                          className="pl-3 border-l-2 border-teal-500/20"
+                          className="pl-3 border-l-2 border-[#3F6B47]/30"
                         >
-                          <p className="text-[11px] text-white/30">
+                          <p className="text-[11px] text-[#9a8674]">
                             {DEFENSE_PROMPTS[i].slice(0, 50)}...
                           </p>
-                          <p className="text-sm text-white/60 mt-0.5">{answer}</p>
+                          <p className="text-sm text-[#3a2a20] mt-0.5">{answer}</p>
                         </div>
                       )
                   )}
@@ -523,7 +525,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                 {/* Save as compassion card */}
                 <motion.button
                   onClick={handleSaveCard}
-                  className="flex items-center gap-2 mx-auto px-5 py-2.5 rounded-full bg-purple-500/15 border border-purple-500/20 text-purple-300 text-sm hover:bg-purple-500/25 transition-colors"
+                  className="flex items-center gap-2 mx-auto px-5 py-2.5 rounded-full bg-[#B8A6D9]/30 border border-[#5b4a82]/30 text-[#5b4a82] text-sm hover:bg-[#B8A6D9]/45 transition-colors"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 2.2 }}

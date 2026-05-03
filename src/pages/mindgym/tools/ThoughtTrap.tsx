@@ -198,9 +198,9 @@ export default function ThoughtTrap({ onAvatarCue }: ThoughtTrapProps) {
       onReset={handleReset}
       totalSteps={4}
       currentStep={step}
-      themeColor="from-[#f6f0e4] via-[#f2ecde] to-[#e8f0e4]"
-      themeAccent="emerald"
+      themeAccent="purple"
       surfaceTone="warm"
+      backdropScene="solitude"
     >
       <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 pt-6 pb-24">
         <AnimatePresence mode="wait">

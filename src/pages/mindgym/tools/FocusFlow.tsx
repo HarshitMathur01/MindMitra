@@ -396,7 +396,9 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
       title="Focus Flow Timer"
       clinicalBasis="Time-boxing reduces anxiety about large tasks through behavioral activation. Structured breaks prevent burnout and maintain flow states. Mood check-ins build emotional awareness during cognitive work."
       xp={10}
-      themeColor="from-[#181124] via-[#2b1f3c] to-[#1b1526]"
+      themeAccent="clay"
+      surfaceTone="warm"
+      backdropScene="mountain-video"
       completed={completed}
       onReset={handleReset}
       onAvatarCue={onAvatarCue}
@@ -424,8 +426,8 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                         x2="100%"
                         y2="100%"
                       >
-                        <stop offset="0%" stopColor="#14b8a6" />
-                        <stop offset="100%" stopColor="#06b6d4" />
+                        <stop offset="0%" stopColor="#E8B98A" />
+                        <stop offset="100%" stopColor="#9CAF88" />
                       </linearGradient>
                     </defs>
                     <circle
@@ -433,7 +435,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                       cy="130"
                       r="120"
                       fill="none"
-                      stroke="rgba(255,255,255,0.05)"
+                      stroke="rgba(80,60,40,0.10)"
                       strokeWidth="6"
                     />
                     <circle
@@ -451,10 +453,10 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-4xl font-light text-white tracking-wider">
+                    <span className="font-serif-display text-4xl font-light text-[#2a1c14] tracking-tight tabular-nums">
                       {formatTime(workMin * 60)}
                     </span>
-                    <span className="text-xs text-white/30 mt-1">
+                    <span className="text-xs text-[#7a6556] mt-1">
                       {workMin}m work / {breakMin}m break
                     </span>
                   </div>
@@ -470,8 +472,8 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                     className={cn(
                       "px-4 py-2 rounded-xl text-sm font-medium transition-all",
                       workMin === preset.work && breakMin === preset.break_
-                        ? "bg-teal-500/20 border border-teal-500/40 text-teal-300"
-                        : "bg-white/5 border border-white/10 text-white/50 hover:text-white/70 hover:bg-white/10"
+                        ? "bg-[#9CAF88]/30 border border-[#3F6B47]/40 text-[#3F6B47]"
+                        : "bg-white/70 border border-black/10 text-[#5b4a3e] hover:text-[#2a1c14] hover:bg-white/90"
                     )}
                   >
                     {preset.label}
@@ -485,8 +487,8 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                   className={cn(
                     "px-4 py-2 rounded-xl text-sm font-medium transition-all",
                     showCustom
-                      ? "bg-teal-500/20 border border-teal-500/40 text-teal-300"
-                      : "bg-white/5 border border-white/10 text-white/50 hover:text-white/70 hover:bg-white/10"
+                      ? "bg-[#9CAF88]/30 border border-[#3F6B47]/40 text-[#3F6B47]"
+                      : "bg-white/70 border border-black/10 text-[#5b4a3e] hover:text-[#2a1c14] hover:bg-white/90"
                   )}
                 >
                   <Settings className="w-3.5 h-3.5 inline mr-1" />
@@ -503,9 +505,9 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden mb-4"
                   >
-                    <div className="flex gap-3 items-end justify-center p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div className="flex gap-3 items-end justify-center p-4 rounded-xl bg-white/70 border border-black/10 backdrop-blur-sm">
                       <div>
-                        <label className="text-[11px] text-white/40 block mb-1">
+                        <label className="text-[11px] text-[#7a6556] block mb-1">
                           Work (min)
                         </label>
                         <input
@@ -513,13 +515,13 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                           value={customWork}
                           onChange={(e) => setCustomWork(e.target.value)}
                           placeholder="25"
-                          className="w-20 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-teal-500/30"
+                          className="w-20 px-3 py-2 rounded-lg bg-white/85 border border-black/10 text-[#2a1c14] text-sm text-center focus:outline-none focus:ring-1 focus:ring-[#3F6B47]/30"
                           min={1}
                           max={120}
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] text-white/40 block mb-1">
+                        <label className="text-[11px] text-[#7a6556] block mb-1">
                           Break (min)
                         </label>
                         <input
@@ -527,14 +529,14 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                           value={customBreak}
                           onChange={(e) => setCustomBreak(e.target.value)}
                           placeholder="5"
-                          className="w-20 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-teal-500/30"
+                          className="w-20 px-3 py-2 rounded-lg bg-white/85 border border-black/10 text-[#2a1c14] text-sm text-center focus:outline-none focus:ring-1 focus:ring-[#3F6B47]/30"
                           min={1}
                           max={30}
                         />
                       </div>
                       <button
                         onClick={applyCustom}
-                        className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm transition-colors"
+                        className="px-4 py-2 rounded-lg bg-[#3F6B47] hover:bg-[#345a3b] text-white text-sm transition-colors"
                       >
                         Apply
                       </button>
@@ -545,7 +547,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
 
               {/* Sound selector */}
               <div className="mb-6">
-                <p className="text-xs text-white/40 text-center mb-3">
+                <p className="text-xs text-[#7a6556] text-center mb-3">
                   Ambient Sound
                 </p>
                 <div className="flex gap-2 justify-center">
@@ -556,8 +558,8 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                       className={cn(
                         "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all",
                         sound === s.id
-                          ? "bg-white/10 border border-white/20 text-white"
-                          : "bg-white/5 border border-white/5 text-white/40 hover:text-white/60"
+                          ? "bg-white/85 border border-black/15 text-[#2a1c14]"
+                          : "bg-white/55 border border-black/8 text-[#7a6556] hover:text-[#3a2a20] hover:bg-white/75"
                       )}
                     >
                       <span className="text-base">{s.icon}</span>
@@ -570,9 +572,9 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
               {/* Session info */}
               {pomodoroCount > 0 && (
                 <div className="text-center mb-4">
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-[#5b4a3e]">
                     Pomodoros this session:{" "}
-                    <span className="text-teal-400 font-medium">
+                    <span className="text-[#3F6B47] font-medium">
                       {pomodoroCount}
                     </span>
                   </p>
@@ -583,7 +585,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={startWork}
-                  className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors"
+                  className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-[#3F6B47] hover:bg-[#345a3b] text-white font-medium transition-colors shadow-[0_8px_24px_-12px_rgba(63,107,71,0.45)]"
                 >
                   <Play className="w-5 h-5" />
                   {pomodoroCount > 0 ? "Next Pomodoro" : "Start Focusing"}
@@ -591,7 +593,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                 {pomodoroCount > 0 && (
                   <button
                     onClick={finishSession}
-                    className="flex items-center gap-2 px-6 py-3 rounded-2xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all"
+                    className="flex items-center gap-2 px-6 py-3 rounded-2xl border border-black/10 text-[#5b4a3e] hover:text-[#2a1c14] hover:bg-white/70 transition-all"
                   >
                     End Session
                   </button>
@@ -602,15 +604,15 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
               <div className="flex justify-center gap-4 mt-8">
                 <button
                   onClick={() => setShowStats(!showStats)}
-                  className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-[#7a6556] hover:text-[#3a2a20] transition-colors"
                 >
                   <BarChart3 className="w-3.5 h-3.5" />
                   Weekly Stats
                 </button>
-                <div className="flex items-center gap-1.5 text-xs text-white/20 cursor-not-allowed">
+                <div className="flex items-center gap-1.5 text-xs text-[#9a8674] cursor-not-allowed">
                   <Users className="w-3.5 h-3.5" />
                   Study with a Stranger
-                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/5 text-white/20">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/55 text-[#9a8674]">
                     Coming soon
                   </span>
                 </div>
@@ -653,13 +655,13 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                       ].map((stat) => (
                         <div
                           key={stat.label}
-                          className="p-3 rounded-xl bg-white/5 border border-white/5 text-center"
+                          className="p-3 rounded-xl bg-white/70 border border-black/8 text-center backdrop-blur-sm"
                         >
-                          <p className="text-lg font-semibold text-white">
+                          <p className="text-lg font-semibold text-[#2a1c14]">
                             {stat.value}
                           </p>
-                          <p className="text-[11px] text-white/40">{stat.label}</p>
-                          <p className="text-[10px] text-white/20">{stat.sub}</p>
+                          <p className="text-[11px] text-[#7a6556]">{stat.label}</p>
+                          <p className="text-[10px] text-[#9a8674]">{stat.sub}</p>
                         </div>
                       ))}
                     </div>
@@ -679,14 +681,14 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
               transition={{ duration: 0.4 }}
               className="text-center"
             >
-              <p className="text-xs uppercase tracking-widest mb-6">
+              <p className="text-xs uppercase tracking-[0.28em] mb-6">
                 {phase === "work" ? (
-                  <span className="text-teal-400">Focusing</span>
+                  <span className="text-[#3F6B47]">Focusing</span>
                 ) : (
-                  <span className="text-blue-400">Break Time</span>
+                  <span className="text-[#3a4a6b]">Break Time</span>
                 )}
                 {pomodoroCount > 0 && (
-                  <span className="text-white/30 ml-2">
+                  <span className="text-[#9a8674] ml-2">
                     #{pomodoroCount + (phase === "work" ? 1 : 0)}
                   </span>
                 )}
@@ -705,14 +707,14 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                     >
                       {phase === "work" ? (
                         <>
-                          <stop offset="0%" stopColor="#14b8a6" />
-                          <stop offset="50%" stopColor="#06b6d4" />
-                          <stop offset="100%" stopColor="#8b5cf6" />
+                          <stop offset="0%" stopColor="#E8B98A" />
+                          <stop offset="50%" stopColor="#9CAF88" />
+                          <stop offset="100%" stopColor="#3F6B47" />
                         </>
                       ) : (
                         <>
-                          <stop offset="0%" stopColor="#3b82f6" />
-                          <stop offset="100%" stopColor="#8b5cf6" />
+                          <stop offset="0%" stopColor="#8FA0C2" />
+                          <stop offset="100%" stopColor="#B8A6D9" />
                         </>
                       )}
                     </linearGradient>
@@ -724,7 +726,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                     cy="140"
                     r="120"
                     fill="none"
-                    stroke="rgba(255,255,255,0.05)"
+                    stroke="rgba(80,60,40,0.10)"
                     strokeWidth="8"
                   />
 
@@ -756,7 +758,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                         120 * Math.sin(2 * Math.PI * progress - Math.PI / 2)
                       }
                       r="4"
-                      fill="white"
+                      fill="#3F6B47"
                       animate={{
                         opacity: [0.6, 1, 0.6],
                         r: [3, 5, 3],
@@ -768,14 +770,14 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <motion.span
-                    className="text-5xl font-light text-white tracking-wider tabular-nums"
+                    className="font-serif-display text-5xl font-light text-[#2a1c14] tracking-tight tabular-nums"
                     key={timeLeft}
                     initial={{ opacity: 0.8 }}
                     animate={{ opacity: 1 }}
                   >
                     {formatTime(timeLeft)}
                   </motion.span>
-                  <span className="text-xs text-white/30 mt-2">
+                  <span className="text-xs text-[#7a6556] mt-2">
                     {phase === "work" ? "focus time" : "break"}
                   </span>
                 </div>
@@ -788,8 +790,8 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                   className={cn(
                     "w-14 h-14 rounded-full flex items-center justify-center transition-all",
                     running
-                      ? "bg-white/10 hover:bg-white/15 text-white"
-                      : "bg-teal-600 hover:bg-teal-700 text-white"
+                      ? "bg-white/85 hover:bg-white border border-black/10 text-[#2a1c14]"
+                      : "bg-[#3F6B47] hover:bg-[#345a3b] text-white shadow-[0_8px_22px_-12px_rgba(63,107,71,0.45)]"
                   )}
                 >
                   {running ? (
@@ -805,7 +807,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                       setRunning(false);
                       setTimeLeft(0);
                     }}
-                    className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white/70 transition-all"
+                    className="w-10 h-10 rounded-full bg-white/70 hover:bg-white/90 border border-black/8 flex items-center justify-center text-[#7a6556] hover:text-[#2a1c14] transition-all"
                     title="Skip to mood check"
                   >
                     <SkipForward className="w-4 h-4" />
@@ -814,7 +816,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
 
                 <button
                   onClick={() => setMuted(!muted)}
-                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white/70 transition-all"
+                  className="w-10 h-10 rounded-full bg-white/70 hover:bg-white/90 border border-black/8 flex items-center justify-center text-[#7a6556] hover:text-[#2a1c14] transition-all"
                 >
                   {muted ? (
                     <VolumeX className="w-4 h-4" />
@@ -825,7 +827,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
 
                 <button
                   onClick={handleReset}
-                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white/70 transition-all"
+                  className="w-10 h-10 rounded-full bg-white/70 hover:bg-white/90 border border-black/8 flex items-center justify-center text-[#7a6556] hover:text-[#2a1c14] transition-all"
                   title="Reset"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -837,12 +839,12 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="max-w-sm mx-auto p-4 rounded-2xl bg-blue-500/10 border border-blue-500/15"
+                  className="max-w-sm mx-auto p-4 rounded-2xl bg-[#8FA0C2]/22 border border-[#8FA0C2]/45 backdrop-blur-sm"
                 >
-                  <p className="text-xs text-blue-400/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs text-[#3a4a6b] uppercase tracking-[0.22em] mb-1">
                     Breathing Exercise
                   </p>
-                  <p className="text-sm text-blue-200/80 leading-relaxed">
+                  <p className="text-sm text-[#2a1c14]/90 leading-relaxed">
                     {breakPrompt}
                   </p>
                 </motion.div>
@@ -850,7 +852,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
 
               {/* Sound indicator */}
               {sound !== "silence" && phase === "work" && (
-                <p className="text-[11px] text-white/20 mt-4">
+                <p className="text-[11px] text-[#9a8674] mt-4">
                   {SOUNDS.find((s) => s.id === sound)?.icon}{" "}
                   {SOUNDS.find((s) => s.id === sound)?.label} ambience playing
                   {muted && " (muted)"}
@@ -870,17 +872,17 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
               className="text-center py-8"
             >
               <motion.div
-                className="w-16 h-16 rounded-full bg-teal-500/20 flex items-center justify-center mx-auto mb-4"
+                className="w-16 h-16 rounded-full bg-[#9CAF88]/35 flex items-center justify-center mx-auto mb-4 border border-[#3F6B47]/25"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", damping: 12 }}
               >
-                <Clock className="w-8 h-8 text-teal-400" />
+                <Clock className="w-8 h-8 text-[#3F6B47]" />
               </motion.div>
-              <h3 className="text-lg font-medium text-white mb-2">
+              <h3 className="font-serif-display italic text-[1.6rem] font-light text-[#2a1c14] mb-2">
                 Pomodoro #{pomodoroCount} complete!
               </h3>
-              <p className="text-white/40 text-sm mb-8">
+              <p className="text-[#5b4a3e] text-sm mb-8">
                 How are you feeling right now?
               </p>
 
@@ -889,7 +891,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                   <motion.button
                     key={mood.value}
                     onClick={() => handleMoodSelect(mood.value)}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all min-w-[64px]"
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-white/70 border border-black/10 hover:bg-white/90 hover:border-black/15 transition-all min-w-[64px] backdrop-blur-sm"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.08 }}
@@ -897,7 +899,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                     whileTap={{ scale: 0.95 }}
                   >
                     <span className="text-2xl">{mood.emoji}</span>
-                    <span className="text-[10px] text-white/30">
+                    <span className="text-[10px] text-[#7a6556]">
                       {mood.label}
                     </span>
                   </motion.button>
@@ -917,42 +919,42 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
               className="py-8"
             >
               <div className="text-center mb-8">
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <h3 className="font-serif-display italic text-[1.8rem] font-light text-[#2a1c14] mb-2">
                   Session Summary
                 </h3>
-                <p className="text-white/40 text-sm">
+                <p className="text-[#5b4a3e] text-sm">
                   Great work staying focused today!
                 </p>
               </div>
 
               <div className="grid grid-cols-3 gap-3 mb-8">
-                <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/15 text-center">
-                  <p className="text-2xl font-bold text-teal-400">
+                <div className="p-4 rounded-2xl bg-[#9CAF88]/22 border border-[#3F6B47]/25 text-center backdrop-blur-sm">
+                  <p className="text-2xl font-bold text-[#3F6B47]">
                     {pomodoroCount}
                   </p>
-                  <p className="text-xs text-white/40 mt-1">Pomodoros</p>
+                  <p className="text-xs text-[#5b4a3e] mt-1">Pomodoros</p>
                 </div>
-                <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/15 text-center">
-                  <p className="text-2xl font-bold text-purple-400">
+                <div className="p-4 rounded-2xl bg-[#B8A6D9]/22 border border-[#5b4a82]/25 text-center backdrop-blur-sm">
+                  <p className="text-2xl font-bold text-[#5b4a82]">
                     {pomodoroCount * 10}
                   </p>
-                  <p className="text-xs text-white/40 mt-1">XP Earned</p>
+                  <p className="text-xs text-[#5b4a3e] mt-1">XP Earned</p>
                 </div>
-                <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/15 text-center">
-                  <p className="text-2xl font-bold text-blue-400">
+                <div className="p-4 rounded-2xl bg-[#8FA0C2]/22 border border-[#3a4a6b]/25 text-center backdrop-blur-sm">
+                  <p className="text-2xl font-bold text-[#3a4a6b]">
                     {sessionStart
                       ? Math.round((Date.now() - sessionStart) / 60000)
                       : 0}
                     m
                   </p>
-                  <p className="text-xs text-white/40 mt-1">Total Time</p>
+                  <p className="text-xs text-[#5b4a3e] mt-1">Total Time</p>
                 </div>
               </div>
 
               {/* Mood arc */}
               {sessionMoods.length > 0 && (
                 <div className="mb-8">
-                  <p className="text-xs text-white/40 mb-3">
+                  <p className="text-xs text-[#7a6556] mb-3">
                     Mood across check-ins
                   </p>
                   <div className="flex items-end gap-2 justify-center h-16">
@@ -972,14 +974,14 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
                           className={cn(
                             "w-8 rounded-t-md",
                             mood >= 4
-                              ? "bg-teal-500/40"
+                              ? "bg-[#3F6B47]/55"
                               : mood >= 3
-                              ? "bg-yellow-500/40"
-                              : "bg-red-500/40"
+                              ? "bg-[#E8C97A]/70"
+                              : "bg-[#C7775F]/55"
                           )}
                           style={{ height: `${(mood / 5) * 40}px` }}
                         />
-                        <span className="text-[10px] text-white/20">
+                        <span className="text-[10px] text-[#9a8674]">
                           #{i + 1}
                         </span>
                       </motion.div>
@@ -990,7 +992,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
 
               <button
                 onClick={handleReset}
-                className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all text-sm"
+                className="w-full py-3 rounded-2xl bg-white/70 border border-black/10 text-[#5b4a3e] hover:text-[#2a1c14] hover:bg-white/90 transition-all text-sm backdrop-blur-sm"
               >
                 <RotateCcw className="w-4 h-4 inline mr-2" />
                 Start New Session

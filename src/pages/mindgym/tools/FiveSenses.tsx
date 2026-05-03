@@ -25,7 +25,7 @@ const STEPS: SenseStep[] = [
     icon: Eye,
     count: 5,
     prompt: "Name 5 things you can see right now",
-    color: "#6366f1",
+    color: "#9CAF88",
     cue: "Look around slowly. Notice shapes, colors, textures around you.",
   },
   {
@@ -33,7 +33,7 @@ const STEPS: SenseStep[] = [
     icon: Ear,
     count: 4,
     prompt: "Name 4 things you can hear",
-    color: "#8b5cf6",
+    color: "#B8A6D9",
     cue: "Close your eyes for a moment. What sounds reach you?",
   },
   {
@@ -41,7 +41,7 @@ const STEPS: SenseStep[] = [
     icon: Hand,
     count: 3,
     prompt: "Name 3 things you can feel right now",
-    color: "#14b8a6",
+    color: "#8FB07A",
     cue: "Notice the surfaces touching your body. The air on your skin.",
   },
   {
@@ -49,7 +49,7 @@ const STEPS: SenseStep[] = [
     icon: Wind,
     count: 2,
     prompt: "Name 2 things you can smell",
-    color: "#f59e0b",
+    color: "#E8C97A",
     cue: "Breathe in gently. What scents are nearby?",
   },
   {
@@ -57,7 +57,7 @@ const STEPS: SenseStep[] = [
     icon: Cherry,
     count: 1,
     prompt: "Name 1 thing you can taste",
-    color: "#ef4444",
+    color: "#E8B98A",
     cue: "Notice your mouth. Any flavor lingering?",
   },
 ];
@@ -67,7 +67,7 @@ function containsCrisis(text: string): boolean {
   return CRISIS_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
-/* Gentle particle field — dots that settle as progress increases */
+/* Gentle particle field — warm cream motes that settle as progress increases */
 function ParticleField({ progress }: { progress: number }) {
   const particles = useMemo(
     () =>
@@ -85,7 +85,7 @@ function ParticleField({ progress }: { progress: number }) {
   const chaos = 1 - progress;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
       {particles.map((p) => (
         <motion.div
           key={p.id}
@@ -95,12 +95,12 @@ function ParticleField({ progress }: { progress: number }) {
             height: p.size,
             left: `${p.x}%`,
             top: `${p.y}%`,
-            background: `rgba(255, 255, 255, ${0.05 + progress * 0.08})`,
+            background: `rgba(79, 107, 63, ${0.10 + progress * 0.08})`,
           }}
           animate={{
             x: [0, chaos * (30 - Math.random() * 60), 0],
             y: [0, chaos * (30 - Math.random() * 60), 0],
-            opacity: [0.15 + progress * 0.2, 0.4 + progress * 0.3, 0.15 + progress * 0.2],
+            opacity: [0.18 + progress * 0.20, 0.40 + progress * 0.30, 0.18 + progress * 0.20],
           }}
           transition={{
             duration: p.duration + progress * 4,
@@ -114,7 +114,7 @@ function ParticleField({ progress }: { progress: number }) {
   );
 }
 
-/* Breathing circle for the final screen */
+/* Breathing circle for the final screen — sage gradient on cream */
 function BreathingPrompt() {
   const controls = useAnimation();
 
@@ -141,8 +141,8 @@ function BreathingPrompt() {
         className="w-28 h-28 rounded-full flex items-center justify-center"
         style={{
           background:
-            "radial-gradient(circle, rgba(20,184,166,0.25), rgba(20,184,166,0.05) 70%)",
-          boxShadow: "0 0 60px rgba(20,184,166,0.15)",
+            "radial-gradient(circle, rgba(156,175,136,0.45), rgba(156,175,136,0.08) 70%)",
+          boxShadow: "0 0 60px rgba(63,107,71,0.18)",
         }}
       >
         <motion.div
@@ -150,13 +150,13 @@ function BreathingPrompt() {
           className="w-16 h-16 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, rgba(20,184,166,0.5), rgba(20,184,166,0.15))",
+              "radial-gradient(circle, rgba(63,107,71,0.55), rgba(156,175,136,0.20))",
           }}
         />
       </motion.div>
       <motion.p
-        className="text-xs text-white/30"
-        animate={{ opacity: [0.3, 0.7, 0.3] }}
+        className="text-xs text-[#7a6556]"
+        animate={{ opacity: [0.45, 0.85, 0.45] }}
         transition={{ duration: 8, repeat: Infinity }}
       >
         Breathe gently
@@ -190,13 +190,6 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
     return done / total;
   }, [items]);
 
-  const bgColor = useMemo(() => {
-    const r = Math.round(15 + progress * 5);
-    const g = Math.round(13 + progress * 15);
-    const b = Math.round(19 + progress * 10);
-    return `rgb(${r}, ${g}, ${b})`;
-  }, [progress]);
-
   useEffect(() => {
     inputRef.current?.focus();
   }, [step]);
@@ -228,7 +221,6 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
         const a = analyserRef.current;
         if (!a) return;
         a.getByteTimeDomainData(data);
-        // normalize RMS-ish
         let sum = 0;
         for (let i = 0; i < data.length; i++) {
           const v = (data[i] - 128) / 128;
@@ -303,12 +295,11 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
       onReset={handleReset}
       totalSteps={5}
       currentStep={step}
-      themeColor="from-[#0c1815] via-[#1a3831] to-[#111f1b]"
+      themeAccent="teal"
+      surfaceTone="warm"
+      backdropScene="meditating-video"
     >
-      <div
-        className="min-h-[80vh] relative transition-colors duration-1000"
-        style={{ backgroundColor: bgColor }}
-      >
+      <div className="min-h-[80vh] relative">
         <ParticleField progress={progress} />
 
         <div className="relative z-10 max-w-lg mx-auto px-4 pt-8 pb-24">
@@ -324,14 +315,14 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                 className="flex flex-col items-center justify-center min-h-[60vh] space-y-8"
               >
                 <motion.h2
-                  className="text-2xl font-semibold text-white/90 text-center leading-relaxed"
+                  className="font-serif-display italic text-[2rem] sm:text-[2.4rem] font-light text-[#2a1c14] text-center leading-tight"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5, duration: 1 }}
                 >
                   You are here.
                   <br />
-                  <span className="text-teal-400">You are safe.</span>
+                  <span className="text-[#3F6B47]">You are safe.</span>
                 </motion.h2>
 
                 <motion.div
@@ -342,7 +333,6 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                   <BreathingPrompt />
                 </motion.div>
 
-                {/* All collected items */}
                 <motion.div
                   className="w-full space-y-4 pt-4"
                   initial={{ opacity: 0 }}
@@ -358,7 +348,7 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                         />
                         <span
                           className="text-xs font-medium uppercase tracking-wider"
-                          style={{ color: `${s.color}99` }}
+                          style={{ color: s.color }}
                         >
                           {s.sense}
                         </span>
@@ -369,9 +359,9 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                             key={ii}
                             className="px-3 py-1 rounded-full text-xs border"
                             style={{
-                              borderColor: `${s.color}30`,
-                              background: `${s.color}10`,
-                              color: `${s.color}cc`,
+                              borderColor: `${s.color}55`,
+                              background: `${s.color}22`,
+                              color: "#3a2a20",
                             }}
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -395,7 +385,6 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                 transition={{ duration: 0.5 }}
                 className="space-y-8"
               >
-                {/* Step header */}
                 <div className="text-center space-y-4">
                   <motion.div
                     initial={{ scale: 0 }}
@@ -403,8 +392,8 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                     transition={{ type: "spring", delay: 0.2 }}
                     className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
                     style={{
-                      background: `radial-gradient(circle, ${currentStepData.color}30, ${currentStepData.color}08)`,
-                      boxShadow: `0 0 40px ${currentStepData.color}15`,
+                      background: `radial-gradient(circle, ${currentStepData.color}55, ${currentStepData.color}10)`,
+                      boxShadow: `0 0 40px ${currentStepData.color}25`,
                     }}
                   >
                     <currentStepData.icon
@@ -416,7 +405,7 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                   <div>
                     <motion.p
                       className="text-xs uppercase tracking-widest mb-2"
-                      style={{ color: `${currentStepData.color}80` }}
+                      style={{ color: currentStepData.color }}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.3 }}
@@ -424,7 +413,7 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                       {currentStepData.sense}
                     </motion.p>
                     <motion.h2
-                      className="text-xl font-semibold text-white/90"
+                      className="font-serif-display text-[1.6rem] sm:text-[1.85rem] font-light text-[#2a1c14] leading-tight tracking-tight"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
@@ -434,7 +423,7 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                   </div>
 
                   <motion.p
-                    className="text-sm text-white/35 italic"
+                    className="text-sm text-[#7a6556] italic"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.6 }}
@@ -442,56 +431,54 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                     {currentStepData.cue}
                   </motion.p>
 
-                {/* Optional mic-reactive visualization for HEAR step (spec) */}
-                {currentStepData.sense === "Hear" && (
-                  <div className="mt-2 flex items-center justify-center gap-3">
-                    <button
-                      onClick={startMic}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-full text-xs border transition-colors",
-                        micState === "on"
-                          ? "bg-teal-500/15 border-teal-500/25 text-teal-200"
+                  {currentStepData.sense === "Hear" && (
+                    <div className="mt-2 flex items-center justify-center gap-3">
+                      <button
+                        onClick={startMic}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-full text-xs border transition-colors",
+                          micState === "on"
+                            ? "bg-[#9CAF88]/20 border-[#9CAF88]/40 text-[#3F6B47]"
+                            : micState === "denied"
+                            ? "bg-rose-500/10 border-rose-500/30 text-rose-700"
+                            : "bg-white/70 border-black/10 text-[#5b4a3e] hover:bg-white",
+                        )}
+                      >
+                        {micState === "on" ? (
+                          <Mic className="w-3.5 h-3.5" />
+                        ) : (
+                          <MicOff className="w-3.5 h-3.5" />
+                        )}
+                        {micState === "on"
+                          ? "Mic on"
+                          : micState === "pending"
+                          ? "Requesting…"
                           : micState === "denied"
-                          ? "bg-rose-500/10 border-rose-500/25 text-rose-200"
-                          : "bg-white/5 border-white/10 text-white/60 hover:text-white/80",
-                      )}
-                    >
-                      {micState === "on" ? (
-                        <Mic className="w-3.5 h-3.5" />
-                      ) : (
-                        <MicOff className="w-3.5 h-3.5" />
-                      )}
-                      {micState === "on"
-                        ? "Mic on"
-                        : micState === "pending"
-                        ? "Requesting…"
-                        : micState === "denied"
-                        ? "Mic blocked"
-                        : "Enable mic (optional)"}
-                    </button>
+                          ? "Mic blocked"
+                          : "Enable mic (optional)"}
+                      </button>
 
-                    <div className="flex items-end gap-1 h-8">
-                      {Array.from({ length: 8 }, (_, i) => {
-                        const h = 6 + Math.round((micLevel * 24) * (0.5 + (i / 16)));
-                        return (
-                          <motion.div
-                            key={i}
-                            className="w-1.5 rounded-full"
-                            style={{
-                              height: h,
-                              background: `rgba(255,255,255,${0.08 + micLevel * 0.35})`,
-                            }}
-                            animate={{ height: h }}
-                            transition={{ duration: 0.12, ease: "linear" }}
-                          />
-                        );
-                      })}
+                      <div className="flex items-end gap-1 h-8">
+                        {Array.from({ length: 8 }, (_, i) => {
+                          const h = 6 + Math.round((micLevel * 24) * (0.5 + (i / 16)));
+                          return (
+                            <motion.div
+                              key={i}
+                              className="w-1.5 rounded-full"
+                              style={{
+                                height: h,
+                                background: `rgba(63, 107, 71, ${0.16 + micLevel * 0.45})`,
+                              }}
+                              animate={{ height: h }}
+                              transition={{ duration: 0.12, ease: "linear" }}
+                            />
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 </div>
 
-                {/* Floating tags */}
                 <div className="min-h-[120px] flex flex-wrap gap-2 justify-center items-start">
                   <AnimatePresence>
                     {currentItems.map((item, i) => (
@@ -525,10 +512,10 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                         }}
                         className="px-4 py-2 rounded-2xl text-sm font-medium border backdrop-blur-sm"
                         style={{
-                          borderColor: `${currentStepData.color}35`,
-                          background: `${currentStepData.color}12`,
-                          color: `${currentStepData.color}dd`,
-                          boxShadow: `0 4px 20px ${currentStepData.color}08`,
+                          borderColor: `${currentStepData.color}55`,
+                          background: `${currentStepData.color}25`,
+                          color: "#2a1c14",
+                          boxShadow: `0 4px 20px ${currentStepData.color}18`,
                         }}
                       >
                         {item}
@@ -537,7 +524,6 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                   </AnimatePresence>
                 </div>
 
-                {/* Input area */}
                 <div className="space-y-3">
                   <div className="relative">
                     <input
@@ -552,10 +538,10 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                       placeholder={`Type and press Enter (${remaining} remaining)`}
                       maxLength={60}
                       className={cn(
-                        "w-full bg-white/[0.04] border rounded-2xl px-5 py-4 text-sm text-white placeholder-white/25 focus:outline-none transition-colors",
+                        "w-full bg-white/80 border rounded-2xl px-5 py-4 text-sm text-[#2a1c14] placeholder-[#9a8674] focus:outline-none transition-colors backdrop-blur-sm",
                         crisisWarning
                           ? "border-rose-500/40 focus:border-rose-500/60"
-                          : "border-white/10 focus:border-teal-500/40",
+                          : "border-black/10 focus:border-[#3F6B47]/40",
                       )}
                     />
                     {inputVal.trim() && (
@@ -565,8 +551,8 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                         onClick={handleAdd}
                         className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
                         style={{
-                          background: `${currentStepData.color}25`,
-                          color: currentStepData.color,
+                          background: `${currentStepData.color}55`,
+                          color: "#2a1c14",
                         }}
                       >
                         <Check className="w-4 h-4" />
@@ -578,14 +564,13 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                     <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-rose-400 text-xs text-center"
+                      className="text-rose-700 text-xs text-center"
                     >
                       If you're in distress, please use the "Need help?" button
                       below.
                     </motion.p>
                   )}
 
-                  {/* Progress dots */}
                   <div className="flex justify-center gap-2">
                     {Array.from({ length: currentStepData.count }).map(
                       (_, i) => (
@@ -597,7 +582,7 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                             backgroundColor:
                               i < currentItems.length
                                 ? currentStepData.color
-                                : "rgba(255,255,255,0.1)",
+                                : "rgba(80,60,40,0.16)",
                           }}
                           transition={{ type: "spring", stiffness: 300 }}
                         />
@@ -606,7 +591,6 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                   </div>
                 </div>
 
-                {/* Overall step indicator */}
                 <div className="flex justify-center gap-3 pt-4">
                   {STEPS.map((s, i) => {
                     const Icon = s.icon;
@@ -618,10 +602,10 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                         className={cn(
                           "w-9 h-9 rounded-full flex items-center justify-center border transition-colors",
                           isDone
-                            ? "border-teal-500/40 bg-teal-500/15"
+                            ? "border-[#9CAF88]/55 bg-[#9CAF88]/25"
                             : isCurrent
-                              ? "border-white/20 bg-white/[0.06]"
-                              : "border-white/5 bg-white/[0.02]",
+                              ? "border-black/15 bg-white/70"
+                              : "border-black/8 bg-white/45",
                         )}
                         animate={isCurrent ? { scale: [1, 1.1, 1] } : {}}
                         transition={{
@@ -632,7 +616,7 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                       >
                         {isDone ? (
                           <Check
-                            className="w-3.5 h-3.5 text-teal-400"
+                            className="w-3.5 h-3.5 text-[#3F6B47]"
                           />
                         ) : (
                           <Icon
@@ -640,7 +624,7 @@ export default function FiveSenses({ onAvatarCue }: FiveSensesProps) {
                             style={{
                               color: isCurrent
                                 ? s.color
-                                : "rgba(255,255,255,0.15)",
+                                : "rgba(80,60,40,0.30)",
                             }}
                           />
                         )}

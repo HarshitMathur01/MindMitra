@@ -241,7 +241,9 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
       xp={30}
       completed={completed}
       onReset={handleReset}
-      themeColor="from-[#1A110D] via-[#2F1D11] to-[#120C06]"
+      themeAccent="indigo"
+      surfaceTone="warm"
+      backdropScene="firefly"
     >
       <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
         <AnimatePresence mode="wait">
@@ -265,13 +267,13 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                     className="absolute inset-0 rounded-2xl"
                     style={{
                       background:
-                        "linear-gradient(145deg, #2a2a3e 0%, #1a1a2e 50%, #0d0d1a 100%)",
+                        "linear-gradient(145deg, #8b6f47 0%, #5e4a30 50%, #3a2c1e 100%)",
                       boxShadow:
-                        "inset 0 2px 4px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.6)",
-                      border: "1px solid rgba(255,255,255,0.06)",
+                        "inset 0 2px 4px rgba(255,225,180,0.18), 0 14px 36px rgba(80,60,40,0.32)",
+                      border: "1px solid rgba(80,60,40,0.18)",
                     }}
                   >
-                    {/* Vault rivets */}
+                    {/* Vault rivets — brass */}
                     {[
                       [12, 12],
                       [12, "auto"],
@@ -287,13 +289,13 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                           left: typeof l === "number" ? l : undefined,
                           right: l === "auto" ? 12 : undefined,
                           background:
-                            "radial-gradient(circle at 40% 40%, #555 0%, #222 100%)",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)",
+                            "radial-gradient(circle at 40% 40%, #d4a851 0%, #7e5e1c 100%)",
+                          boxShadow: "inset 0 1px 2px rgba(60,40,12,0.55)",
                         }}
                       />
                     ))}
 
-                    {/* Vault handle */}
+                    {/* Vault handle — brass */}
                     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
                       <motion.div
                         animate={
@@ -310,19 +312,19 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                           className="absolute inset-0 rounded-full"
                           style={{
                             background:
-                              "conic-gradient(from 0deg, #555, #888, #555, #333, #555)",
+                              "conic-gradient(from 0deg, #b8902e, #e8c97a, #b8902e, #7e5e1c, #b8902e)",
                             boxShadow:
-                              "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.1)",
+                              "0 2px 8px rgba(60,40,12,0.45), inset 0 1px 2px rgba(255,225,180,0.22)",
                           }}
                         />
                         <div
                           className="absolute inset-2 rounded-full"
                           style={{
                             background:
-                              "radial-gradient(circle at 40% 35%, #444, #1a1a1a)",
+                              "radial-gradient(circle at 40% 35%, #8b6f47, #3a2c1e)",
                           }}
                         />
-                        <div className="absolute top-1/2 left-1/2 -translate-y-1/2 w-6 h-1 rounded-full bg-gradient-to-r from-white/20 to-transparent" />
+                        <div className="absolute top-1/2 left-1/2 -translate-y-1/2 w-6 h-1 rounded-full bg-gradient-to-r from-[#FBF6EC]/40 to-transparent" />
                       </motion.div>
                     </div>
 
@@ -347,7 +349,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                         className="absolute inset-0"
                         style={{
                           background: doorOpen
-                            ? "linear-gradient(90deg, rgba(20,20,40,0.3), transparent)"
+                            ? "linear-gradient(90deg, rgba(58,44,30,0.35), transparent)"
                             : "transparent",
                         }}
                       />
@@ -359,14 +361,14 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                       animate={{ scale: doorOpen ? 0 : 1 }}
                     >
                       {worryTimeActive ? (
-                        <Unlock className="w-5 h-5 text-teal-400" />
+                        <Unlock className="w-5 h-5 text-[#E8C97A]" />
                       ) : (
-                        <Lock className="w-5 h-5 text-white/30" />
+                        <Lock className="w-5 h-5 text-[#FBF6EC]/55" />
                       )}
                     </motion.div>
 
                     {/* Worry count badge */}
-                    <div className="absolute -top-2 -right-2 bg-teal-500 text-white text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-lg">
+                    <div className="absolute -top-2 -right-2 bg-[#3a4a6b] text-white text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-lg">
                       {activeWorries.length}
                     </div>
                   </div>
@@ -375,17 +377,17 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
 
               {/* Status */}
               <div className="text-center space-y-1">
-                <p className="text-white/40 text-xs">
+                <p className="text-[#7a6556] text-xs">
                   {activeWorries.length}/{MAX_WORRIES} worries stored
                 </p>
                 {worryTimeActive ? (
-                  <p className="text-teal-400 text-sm font-medium">
+                  <p className="text-[#3a4a6b] text-sm font-medium">
                     Worry time is active — review your worries now
                   </p>
                 ) : (
-                  <p className="text-white/50 text-sm">
+                  <p className="text-[#5b4a3e] text-sm">
                     Next worry time in{" "}
-                    <span className="text-teal-400 font-medium">
+                    <span className="text-[#3a4a6b] font-medium">
                       {getTimeUntil(vault.worryTime)}
                     </span>
                   </p>
@@ -403,14 +405,14 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                   }}
                   disabled={activeWorries.length >= MAX_WORRIES}
                   className={cn(
-                    "flex flex-col items-center gap-2 p-5 rounded-2xl border transition-colors",
+                    "flex flex-col items-center gap-2 p-5 rounded-2xl border transition-colors backdrop-blur-sm",
                     activeWorries.length >= MAX_WORRIES
-                      ? "border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed"
-                      : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]",
+                      ? "border-black/8 bg-white/45 opacity-55 cursor-not-allowed"
+                      : "border-black/10 bg-white/72 hover:bg-white/90",
                   )}
                 >
-                  <Plus className="w-6 h-6 text-teal-400" />
-                  <span className="text-sm text-white/70">Add Worry</span>
+                  <Plus className="w-6 h-6 text-[#3a4a6b]" />
+                  <span className="text-sm text-[#3a2a20]">Add Worry</span>
                 </motion.button>
 
                 <motion.button
@@ -425,27 +427,27 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                   }}
                   disabled={!worryTimeActive || unreviewedWorries.length === 0}
                   className={cn(
-                    "flex flex-col items-center gap-2 p-5 rounded-2xl border transition-colors",
+                    "flex flex-col items-center gap-2 p-5 rounded-2xl border transition-colors backdrop-blur-sm",
                     worryTimeActive && unreviewedWorries.length > 0
-                      ? "border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20"
-                      : "border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed",
+                      ? "border-[#3a4a6b]/30 bg-[#8FA0C2]/22 hover:bg-[#8FA0C2]/35"
+                      : "border-black/8 bg-white/45 opacity-55 cursor-not-allowed",
                   )}
                 >
-                  <Unlock className="w-6 h-6 text-teal-400" />
-                  <span className="text-sm text-white/70">Open Vault</span>
+                  <Unlock className="w-6 h-6 text-[#3a4a6b]" />
+                  <span className="text-sm text-[#3a2a20]">Open Vault</span>
                 </motion.button>
 
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setView("setTime")}
-                  className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                  className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-black/10 bg-white/72 hover:bg-white/90 transition-colors backdrop-blur-sm"
                 >
-                  <Clock className="w-6 h-6 text-amber-400" />
-                  <span className="text-sm text-white/70">
+                  <Clock className="w-6 h-6 text-[#a06b1f]" />
+                  <span className="text-sm text-[#3a2a20]">
                     Set Time
                   </span>
-                  <span className="text-xs text-white/30">
+                  <span className="text-xs text-[#7a6556]">
                     {vault.worryTime}
                   </span>
                 </motion.button>
@@ -454,17 +456,17 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setView("stats")}
-                  className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                  className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-black/10 bg-white/72 hover:bg-white/90 transition-colors backdrop-blur-sm"
                 >
-                  <BarChart3 className="w-6 h-6 text-purple-400" />
-                  <span className="text-sm text-white/70">Stats</span>
+                  <BarChart3 className="w-6 h-6 text-[#5b4a82]" />
+                  <span className="text-sm text-[#3a2a20]">Stats</span>
                 </motion.button>
               </div>
 
               {/* Active worries list */}
               {activeWorries.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs text-white/30 uppercase tracking-wider">
+                  <p className="text-xs text-[#7a6556] uppercase tracking-[0.22em]">
                     Stored worries
                   </p>
                   {activeWorries.map((w, i) => (
@@ -473,15 +475,15 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5"
+                      className="flex items-center gap-3 p-3 rounded-xl bg-white/68 border border-black/8 backdrop-blur-sm"
                     >
-                      <div className="w-2 h-2 rounded-full bg-amber-400/60 shrink-0" />
-                      <p className="text-sm text-white/60 flex-1 truncate">
+                      <div className="w-2 h-2 rounded-full bg-[#E8C97A] shrink-0" />
+                      <p className="text-sm text-[#3a2a20] flex-1 truncate">
                         {w.text}
                       </p>
                       <button
                         onClick={() => handleDeleteWorry(w)}
-                        className="text-white/20 hover:text-rose-400 transition-colors shrink-0"
+                        className="text-[#9a8674] hover:text-rose-700 transition-colors shrink-0"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -506,16 +508,16 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                   setView("main");
                   setCrisisWarning(false);
                 }}
-                className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                className="text-sm text-[#7a6556] hover:text-[#2a1c14] transition-colors"
               >
                 ← Back
               </button>
 
               <div className="text-center space-y-2">
-                <h2 className="text-lg font-semibold text-white/90">
+                <h2 className="font-serif-display italic text-[1.55rem] font-light text-[#2a1c14]">
                   Write your worry
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm text-[#5b4a3e]">
                   Once stored, you'll only revisit it at your scheduled worry
                   time.
                 </p>
@@ -584,7 +586,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                           }}
                         />
                       </div>
-                      <p className="text-right text-xs text-white/30 mt-1">
+                      <p className="text-right text-xs text-[#7a6556] mt-1">
                         {worryText.length}/300
                       </p>
                     </motion.div>
@@ -596,7 +598,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-rose-400 text-sm text-center"
+                  className="text-rose-700 text-sm text-center"
                 >
                   If you're in crisis, please use the "Need help?" button below.
                 </motion.p>
@@ -611,8 +613,8 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                   className={cn(
                     "w-full py-3.5 rounded-2xl font-medium text-sm transition-all",
                     worryText.trim()
-                      ? "bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-500/20"
-                      : "bg-white/5 text-white/30 cursor-not-allowed",
+                      ? "bg-[#3a4a6b] hover:bg-[#2c3a55] text-white shadow-[0_10px_28px_-14px_rgba(58,74,107,0.45)]"
+                      : "bg-white/55 text-[#9a8674] cursor-not-allowed border border-black/8",
                   )}
                 >
                   Store in Vault
@@ -635,16 +637,16 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                   setView("main");
                   setDoorOpen(false);
                 }}
-                className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                className="text-sm text-[#7a6556] hover:text-[#2a1c14] transition-colors"
               >
                 ← Back
               </button>
 
               <div className="text-center space-y-2">
-                <h2 className="text-lg font-semibold text-white/90">
+                <h2 className="font-serif-display italic text-[1.55rem] font-light text-[#2a1c14]">
                   Review Worry {reviewIdx + 1}/{unreviewedWorries.length}
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm text-[#5b4a3e]">
                   Let's check in on this worry
                 </p>
               </div>
@@ -680,7 +682,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
 
                   {/* Question */}
                   <div className="text-center">
-                    <p className="text-white/70 text-sm mb-4">
+                    <p className="text-[#3a2a20] text-sm mb-4">
                       Did this worry actually happen?
                     </p>
                     <div className="flex gap-3 justify-center">
@@ -688,7 +690,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleReviewAnswer(false)}
-                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-teal-500/15 border border-teal-500/30 text-teal-400 hover:bg-teal-500/25 transition-colors"
+                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#9CAF88]/30 border border-[#3F6B47]/40 text-[#3F6B47] hover:bg-[#9CAF88]/45 transition-colors backdrop-blur-sm"
                       >
                         <X className="w-4 h-4" />
                         No
@@ -697,7 +699,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleReviewAnswer(true)}
-                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 hover:bg-amber-500/25 transition-colors"
+                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#E8C97A]/35 border border-[#a06b1f]/35 text-[#a06b1f] hover:bg-[#E8C97A]/55 transition-colors backdrop-blur-sm"
                       >
                         <Check className="w-4 h-4" />
                         Yes
@@ -707,11 +709,11 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
 
                   {/* Severity slider (shown always, used if "Yes") */}
                   <div className="space-y-3">
-                    <p className="text-center text-xs text-white/40">
+                    <p className="text-center text-xs text-[#7a6556]">
                       How bad was it? (1 = mild, 10 = severe)
                     </p>
                     <div className="flex items-center gap-4 px-4">
-                      <span className="text-xs text-white/30 w-4 text-right">
+                      <span className="text-xs text-[#9a8674] w-4 text-right">
                         1
                       </span>
                       <input
@@ -720,11 +722,11 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                         max={10}
                         value={severity}
                         onChange={(e) => setSeverity(Number(e.target.value))}
-                        className="flex-1 accent-teal-500 h-1.5"
+                        className="flex-1 accent-[#3a4a6b] h-1.5"
                       />
-                      <span className="text-xs text-white/30 w-4">10</span>
+                      <span className="text-xs text-[#9a8674] w-4">10</span>
                     </div>
-                    <p className="text-center text-lg font-semibold text-teal-400">
+                    <p className="text-center text-lg font-semibold text-[#3a4a6b]">
                       {severity}
                     </p>
                   </div>
@@ -744,16 +746,16 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
             >
               <button
                 onClick={() => setView("main")}
-                className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                className="text-sm text-[#7a6556] hover:text-[#2a1c14] transition-colors"
               >
                 ← Back
               </button>
 
               <div className="text-center space-y-2">
-                <h2 className="text-lg font-semibold text-white/90">
+                <h2 className="font-serif-display italic text-[1.55rem] font-light text-[#2a1c14]">
                   Worry Stats
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm text-[#5b4a3e]">
                   What your data shows
                 </p>
               </div>
@@ -765,49 +767,49 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.2, type: "spring" }}
-                    className="text-center p-8 rounded-2xl bg-gradient-to-br from-teal-500/10 to-purple-500/10 border border-white/5"
+                    className="text-center p-8 rounded-2xl bg-gradient-to-br from-[#9CAF88]/22 to-[#B8A6D9]/22 border border-black/8 backdrop-blur-sm"
                   >
-                    <p className="text-5xl font-bold text-teal-400">
+                    <p className="text-5xl font-bold text-[#3F6B47]">
                       {neverHappenedPct}%
                     </p>
-                    <p className="text-sm text-white/50 mt-2">
+                    <p className="text-sm text-[#5b4a3e] mt-2">
                       of your worries never happened
                     </p>
                   </motion.div>
 
                   {/* Breakdown */}
                   <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
-                      <p className="text-2xl font-bold text-white/80">
+                    <div className="p-4 rounded-xl bg-white/72 border border-black/8 backdrop-blur-sm">
+                      <p className="text-2xl font-bold text-[#2a1c14]">
                         {vault.stats.total}
                       </p>
-                      <p className="text-xs text-white/40 mt-1">Total</p>
+                      <p className="text-xs text-[#7a6556] mt-1">Total</p>
                     </div>
-                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
-                      <p className="text-2xl font-bold text-teal-400">
+                    <div className="p-4 rounded-xl bg-white/72 border border-black/8 backdrop-blur-sm">
+                      <p className="text-2xl font-bold text-[#3F6B47]">
                         {vault.stats.didntHappen}
                       </p>
-                      <p className="text-xs text-white/40 mt-1">
+                      <p className="text-xs text-[#7a6556] mt-1">
                         Didn't happen
                       </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
-                      <p className="text-2xl font-bold text-amber-400">
+                    <div className="p-4 rounded-xl bg-white/72 border border-black/8 backdrop-blur-sm">
+                      <p className="text-2xl font-bold text-[#a06b1f]">
                         {vault.stats.happened}
                       </p>
-                      <p className="text-xs text-white/40 mt-1">Happened</p>
+                      <p className="text-xs text-[#7a6556] mt-1">Happened</p>
                     </div>
                   </div>
 
                   {/* Progress bar */}
                   <div>
-                    <div className="flex justify-between text-xs text-white/30 mb-2">
+                    <div className="flex justify-between text-xs text-[#7a6556] mb-2">
                       <span>Didn't happen</span>
                       <span>Happened</span>
                     </div>
-                    <div className="h-3 rounded-full bg-white/5 overflow-hidden flex">
+                    <div className="h-3 rounded-full bg-white/55 overflow-hidden flex border border-black/8">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-teal-500 to-teal-400 rounded-l-full"
+                        className="h-full bg-gradient-to-r from-[#3F6B47] to-[#9CAF88] rounded-l-full"
                         initial={{ width: 0 }}
                         animate={{
                           width: `${neverHappenedPct}%`,
@@ -815,7 +817,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                         transition={{ duration: 1, delay: 0.3 }}
                       />
                       <motion.div
-                        className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-r-full"
+                        className="h-full bg-gradient-to-r from-[#a06b1f] to-[#E8C97A] rounded-r-full"
                         initial={{ width: 0 }}
                         animate={{
                           width: `${100 - neverHappenedPct}%`,
@@ -825,14 +827,14 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                     </div>
                   </div>
 
-                  <p className="text-center text-xs text-white/30 italic">
+                  <p className="text-center text-xs text-[#7a6556] italic">
                     Research shows ~85% of worried-about events never occur,
                     and of those that do, 79% are handled better than expected.
                   </p>
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-white/30 text-sm">
+                  <p className="text-[#7a6556] text-sm">
                     No reviewed worries yet. Stats will appear after you
                     review worries during your worry time.
                   </p>
@@ -852,16 +854,16 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
             >
               <button
                 onClick={() => setView("main")}
-                className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                className="text-sm text-[#7a6556] hover:text-[#2a1c14] transition-colors"
               >
                 ← Back
               </button>
 
               <div className="text-center space-y-2">
-                <h2 className="text-lg font-semibold text-white/90">
+                <h2 className="font-serif-display italic text-[1.55rem] font-light text-[#2a1c14]">
                   Set Worry Time
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm text-[#5b4a3e]">
                   Choose a 15-minute window to review your worries daily
                 </p>
               </div>
@@ -871,7 +873,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                   type="time"
                   value={timeInput}
                   onChange={(e) => setTimeInput(e.target.value)}
-                  className="bg-white/[0.05] border border-white/10 rounded-xl px-6 py-4 text-2xl text-white text-center focus:outline-none focus:border-teal-500/50 transition-colors [color-scheme:dark]"
+                  className="bg-white/72 border border-black/10 rounded-xl px-6 py-4 text-2xl text-[#2a1c14] text-center focus:outline-none focus:border-[#3a4a6b]/55 transition-colors backdrop-blur-sm"
                 />
               </div>
 
@@ -879,7 +881,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSetTime}
-                className="w-full py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm shadow-lg shadow-teal-500/20 transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-[#3a4a6b] hover:bg-[#2c3a55] text-white font-medium text-sm shadow-[0_10px_28px_-14px_rgba(58,74,107,0.45)] transition-colors"
               >
                 Save Time
               </motion.button>

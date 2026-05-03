@@ -401,7 +401,9 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
       onReset={handleReset}
       totalSteps={4}
       currentStep={step}
-      themeColor="from-[#0a0015] via-[#27103a] to-[#11051b]"
+      themeAccent="sky"
+      surfaceTone="warm"
+      backdropScene="window"
     >
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-24">
         <AnimatePresence mode="wait">
@@ -415,10 +417,10 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
               className="space-y-6"
             >
               <div className="text-center mb-4">
-                <h2 className="text-xl font-semibold text-white/90 mb-2">
+                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight">
                   What are you feeling?
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm text-[#5b4a3e]">
                   Tap the emotion that resonates most. Inner ring = mild, outer
                   = intense.
                 </p>
@@ -440,7 +442,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                         cy={ripple.y}
                         r={0}
                         fill="none"
-                        stroke="rgba(255,255,255,0.3)"
+                        stroke="rgba(80,60,40,0.45)"
                         strokeWidth={2}
                         initial={{ r: 0, opacity: 0.8 }}
                         animate={{ r: 80, opacity: 0 }}
@@ -488,8 +490,8 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                               fill={isSelected ? activeColor : fillColor}
                               stroke={
                                 isSelected
-                                  ? "rgba(255,255,255,0.5)"
-                                  : "rgba(15,13,19,0.8)"
+                                  ? "rgba(42,28,20,0.65)"
+                                  : "rgba(251,246,236,0.92)"
                               }
                               strokeWidth={isSelected ? 2 : 1}
                               className="cursor-pointer"
@@ -514,9 +516,9 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                                 textAnchor="middle"
                                 dominantBaseline="central"
                                 className="pointer-events-none select-none"
-                                fill="rgba(255,255,255,0.85)"
+                                fill="rgba(42,28,20,0.92)"
                                 fontSize="7.5"
-                                fontWeight="500"
+                                fontWeight="600"
                               >
                                 {level}
                               </text>
@@ -528,7 +530,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                                 textAnchor="middle"
                                 dominantBaseline="central"
                                 className="pointer-events-none select-none"
-                                fill="rgba(255,255,255,0.7)"
+                                fill="rgba(42,28,20,0.78)"
                                 fontSize="7"
                               >
                                 {level}
@@ -541,7 +543,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                                 textAnchor="middle"
                                 dominantBaseline="central"
                                 className="pointer-events-none select-none"
-                                fill="rgba(255,255,255,0.55)"
+                                fill="rgba(42,28,20,0.62)"
                                 fontSize="6"
                               >
                                 {level}
@@ -557,8 +559,8 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                       cx={cx}
                       cy={cy}
                       r={48}
-                      fill="#0f0d13"
-                      stroke="rgba(255,255,255,0.08)"
+                      fill="#FBF6EC"
+                      stroke="rgba(80,60,40,0.18)"
                       strokeWidth={1}
                     />
                     {currentEmotion ? (
@@ -579,7 +581,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                           y={cy + 6}
                           textAnchor="middle"
                           dominantBaseline="central"
-                          fill="rgba(255,255,255,0.4)"
+                          fill="rgba(80,60,40,0.55)"
                           fontSize="10"
                         >
                           {currentEmotion.hindi}
@@ -591,7 +593,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                         y={cy}
                         textAnchor="middle"
                         dominantBaseline="central"
-                        fill="rgba(255,255,255,0.3)"
+                        fill="rgba(80,60,40,0.45)"
                         fontSize="9"
                       >
                         Tap to select
@@ -610,12 +612,12 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                       "text-xs transition-colors duration-200",
                       selectedEmotion !== null &&
                         EMOTIONS[selectedEmotion].name === e.name
-                        ? "text-white/80"
-                        : "text-white/30",
+                        ? "text-[#2a1c14]"
+                        : "text-[#7a6556]",
                     )}
                   >
                     <span style={{ color: e.color }}>{e.hindi}</span>
-                    <span className="text-white/20 ml-1">{e.name}</span>
+                    <span className="text-[#9a8674] ml-1">{e.name}</span>
                   </span>
                 ))}
               </div>
@@ -627,8 +629,8 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                   className={cn(
                     "flex items-center gap-2 px-6 py-3 rounded-2xl font-medium transition-all duration-300",
                     selectedEmotion !== null
-                      ? "bg-teal-600 hover:bg-teal-500 text-white"
-                      : "bg-white/5 text-white/20 cursor-not-allowed",
+                      ? "bg-[#3F6B47] hover:bg-[#345a3b] text-white shadow-[0_8px_22px_-12px_rgba(63,107,71,0.45)]"
+                      : "bg-white/55 text-[#9a8674] cursor-not-allowed border border-black/8",
                   )}
                   whileHover={selectedEmotion !== null ? { scale: 1.03 } : {}}
                   whileTap={selectedEmotion !== null ? { scale: 0.97 } : {}}
@@ -667,14 +669,14 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                 >
                   <span className="text-2xl">{currentLevel}</span>
                 </motion.div>
-                <h2 className="text-xl font-semibold text-white/90 mb-1">
+                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-1 leading-tight">
                   How intense is this{" "}
                   <span style={{ color: currentEmotion.color }}>
                     {currentEmotion.name.toLowerCase()}
                   </span>
                   ?
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm text-[#5b4a3e]">
                   {currentEmotion.hindi} — {currentLevel}
                 </p>
               </div>
@@ -693,8 +695,8 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                     }}
                   />
                   <div className="flex justify-between mt-2">
-                    <span className="text-xs text-white/30">Barely there</span>
-                    <span className="text-xs text-white/30">Overwhelming</span>
+                    <span className="text-xs text-[#7a6556]">Barely there</span>
+                    <span className="text-xs text-[#7a6556]">Overwhelming</span>
                   </div>
                 </div>
 
@@ -706,12 +708,12 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                   transition={{ duration: 0.15 }}
                 >
                   <span
-                    className="text-5xl font-light"
+                    className="font-serif-display text-5xl font-light"
                     style={{ color: currentEmotion.color }}
                   >
                     {intensity}
                   </span>
-                  <span className="text-white/20 text-lg">/10</span>
+                  <span className="text-[#9a8674] text-lg">/10</span>
                 </motion.div>
 
                 {/* Visual intensity feedback */}
@@ -724,7 +726,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                         background:
                           i < intensity
                             ? currentEmotion.color
-                            : "rgba(255,255,255,0.06)",
+                            : "rgba(80,60,40,0.10)",
                         height: 8 + i * 3,
                       }}
                       animate={{
@@ -739,14 +741,14 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
               <div className="flex justify-between pt-4">
                 <button
                   onClick={() => setStep(0)}
-                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[#7a6556] hover:text-[#2a1c14] hover:bg-white/72 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
                 </button>
                 <motion.button
                   onClick={handleNext}
-                  className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-medium transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#3F6B47] hover:bg-[#345a3b] text-white font-medium transition-colors shadow-[0_8px_22px_-12px_rgba(63,107,71,0.45)]"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                 >
@@ -767,10 +769,10 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
               className="space-y-6"
             >
               <div className="text-center mb-4">
-                <h2 className="text-xl font-semibold text-white/90 mb-2">
+                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight">
                   What triggered this?
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm text-[#5b4a3e]">
                   Optional — but naming triggers builds self-awareness
                 </p>
               </div>
@@ -781,31 +783,31 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                 placeholder="e.g., Got a low score on the mid-sem, had an argument with roommate..."
                 rows={3}
                 className={cn(
-                  "w-full rounded-2xl p-5 bg-white/[0.03] text-white/90 placeholder:text-white/20",
-                  "border border-white/10 focus:outline-none resize-none",
+                  "w-full rounded-2xl p-5 bg-white/72 text-[#2a1c14] placeholder:text-[#9a8674]",
+                  "border border-black/10 focus:outline-none resize-none backdrop-blur-sm",
                   "text-sm leading-relaxed transition-all duration-300",
                 )}
                 style={{
                   borderColor: trigger
-                    ? `${currentEmotion.color}30`
+                    ? `${currentEmotion.color}55`
                     : undefined,
                 }}
               />
 
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/8">
-                <p className="text-xs text-white/30 mb-2">Your check-in so far:</p>
+              <div className="p-4 rounded-2xl bg-white/68 border border-black/8 backdrop-blur-sm">
+                <p className="text-xs text-[#7a6556] mb-2">Your check-in so far:</p>
                 <div className="flex items-center gap-3">
                   <span
                     className="px-3 py-1 rounded-full text-xs font-medium"
                     style={{
-                      background: `${currentEmotion.color}15`,
+                      background: `${currentEmotion.color}25`,
                       color: currentEmotion.color,
-                      border: `1px solid ${currentEmotion.color}25`,
+                      border: `1px solid ${currentEmotion.color}45`,
                     }}
                   >
                     {currentLevel} ({currentEmotion.hindi})
                   </span>
-                  <span className="text-white/40 text-sm">
+                  <span className="text-[#5b4a3e] text-sm">
                     Intensity: {intensity}/10
                   </span>
                 </div>
@@ -814,14 +816,14 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
               <div className="flex justify-between pt-2">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[#7a6556] hover:text-[#2a1c14] hover:bg-white/72 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
                 </button>
                 <motion.button
                   onClick={handleNext}
-                  className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-medium transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#3F6B47] hover:bg-[#345a3b] text-white font-medium transition-colors shadow-[0_8px_22px_-12px_rgba(63,107,71,0.45)]"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                 >
@@ -854,10 +856,10 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                 >
                   <Zap className="w-7 h-7" style={{ color: currentEmotion.color }} />
                 </motion.div>
-                <h2 className="text-xl font-semibold text-white/90 mb-2">
+                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight">
                   Micro-actions for you
                 </h2>
-                <p className="text-sm text-white/40">
+                <p className="text-sm text-[#5b4a3e]">
                   Feeling{" "}
                   <span style={{ color: currentEmotion.color }}>
                     {currentLevel?.toLowerCase()}
@@ -875,14 +877,14 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.15 }}
-                        className="p-4 rounded-2xl bg-white/[0.03] border border-white/8 hover:bg-white/[0.05] transition-colors"
+                        className="p-4 rounded-2xl bg-white/72 border border-black/8 hover:bg-white/85 transition-colors backdrop-blur-sm shadow-[0_6px_18px_-12px_rgba(80,60,40,0.18)]"
                       >
                         <div className="flex items-start gap-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                             style={{
-                              background: `${currentEmotion.color}10`,
-                              border: `1px solid ${currentEmotion.color}20`,
+                              background: `${currentEmotion.color}22`,
+                              border: `1px solid ${currentEmotion.color}45`,
                             }}
                           >
                             <Icon
@@ -891,10 +893,10 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                             />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-white/80 mb-0.5">
+                            <p className="text-sm font-medium text-[#2a1c14] mb-0.5">
                               {action.label}
                             </p>
-                            <p className="text-xs text-white/40 leading-relaxed">
+                            <p className="text-xs text-[#5b4a3e] leading-relaxed">
                               {action.description}
                             </p>
                             {(action.label.includes("Breath Sphere") ||
@@ -910,7 +912,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                                     else if (action.label.includes("Thought Trap"))
                                       navigate("/mindgym/thought-trap");
                                   }}
-                                  className="text-xs text-teal-300 hover:text-teal-200 transition-colors"
+                                  className="text-xs text-[#3F6B47] hover:text-[#2c5235] transition-colors"
                                 >
                                   Open this practice →
                                 </button>
@@ -928,25 +930,25 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="p-4 rounded-2xl border border-white/5 bg-white/[0.02]"
+                className="p-4 rounded-2xl border border-black/8 bg-white/65 backdrop-blur-sm"
               >
-                <p className="text-xs text-white/25 mb-2">Logged to your Emotion Journal</p>
+                <p className="text-xs text-[#7a6556] mb-2">Logged to your Emotion Journal</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className="px-2.5 py-1 rounded-full text-xs"
                     style={{
-                      background: `${currentEmotion.color}15`,
+                      background: `${currentEmotion.color}25`,
                       color: currentEmotion.color,
-                      border: `1px solid ${currentEmotion.color}20`,
+                      border: `1px solid ${currentEmotion.color}45`,
                     }}
                   >
                     {currentEmotion.name} · {currentLevel}
                   </span>
-                  <span className="text-xs text-white/30">
+                  <span className="text-xs text-[#5b4a3e]">
                     {intensity}/10
                   </span>
                   {trigger.trim() && (
-                    <span className="text-xs text-white/20 italic truncate max-w-[200px]">
+                    <span className="text-xs text-[#7a6556] italic truncate max-w-[200px]">
                       — {trigger.trim()}
                     </span>
                   )}
@@ -961,7 +963,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
               >
                 <motion.button
                   onClick={handleComplete}
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-medium transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-[#3F6B47] hover:bg-[#345a3b] text-white font-medium transition-colors shadow-[0_10px_28px_-14px_rgba(63,107,71,0.45)]"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                 >

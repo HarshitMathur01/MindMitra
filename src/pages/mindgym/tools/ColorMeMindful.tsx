@@ -983,9 +983,9 @@ export default function ColorMeMindful() {
                 xp={30}
                 completed={completed}
                 onReset={resetTool}
-                themeColor="from-[#f6eee1] via-[#fdf7ef] to-[#ecdecb]"
                 themeAccent="amber"
                 surfaceTone="warm"
+                backdropScene="meadow"
                 contentPlacement="top"
             >
                 {selectedArtwork ? canvasContent : galleryContent}

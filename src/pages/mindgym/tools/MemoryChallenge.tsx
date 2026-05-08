@@ -11,9 +11,11 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Heart, Volume2, VolumeX, Eye, Target, Sparkles, Zap } from "lucide-react";
 import TherapeuticGameShell from "@/components/mindgym/TherapeuticGameShell";
 import { useGameDataSaver } from "@/lib/gameDataSaver";
+import memoryBuddyImg from "@/assets/memory-buddy.png";
 
 type Mode = "classic" | "snapshot";
 type Phase = "ready" | "countdown" | "showing" | "playing" | "feedback" | "finished";
+type BuddyMood = "idle" | "happy" | "thinking" | "celebrate" | "oops" | "hint";
 
 const GRID = 9;
 const LIVES = 3;
@@ -228,6 +230,121 @@ function ModeCard({ active, title, subtitle, icon, onSelect }: ModeCardProps) {
       </div>
       <p className="text-xs text-white/50 leading-relaxed">{subtitle}</p>
     </button>
+  );
+}
+
+interface MemoryBuddyProps {
+  mood: BuddyMood;
+  message: string;
+  progress: number;
+  reduceMotion: boolean;
+}
+
+function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps) {
+  const [displayed, setDisplayed] = useState("");
+  const [confetti, setConfetti] = useState<number[]>([]);
+  const safeProgress = Math.min(1, Math.max(0, progress));
+
+  useEffect(() => {
+    if (reduceMotion) {
+      setDisplayed(message);
+      return;
+    }
+    setDisplayed("");
+    let index = 0;
+    const id = window.setInterval(() => {
+      index += 1;
+      setDisplayed(message.slice(0, index));
+      if (index >= message.length) window.clearInterval(id);
+    }, 22);
+    return () => window.clearInterval(id);
+  }, [message, reduceMotion]);
+
+  useEffect(() => {
+    if (mood !== "celebrate" || reduceMotion) return;
+    setConfetti(Array.from({ length: 24 }, (_, i) => i));
+    const id = window.setTimeout(() => setConfetti([]), 2200);
+    return () => window.clearTimeout(id);
+  }, [mood, reduceMotion]);
+
+  const statusClass =
+    mood === "thinking" || mood === "hint"
+      ? "bg-amber-300"
+      : mood === "oops"
+        ? "bg-rose-300"
+        : "bg-emerald-300";
+
+  const botAnimate = reduceMotion
+    ? undefined
+    : mood === "oops"
+      ? { x: [0, -5, 5, -3, 3, 0] }
+      : mood === "celebrate"
+        ? { y: [0, -6, 0], rotate: [-2, 2, -2], scale: [1, 1.03, 1] }
+        : { y: [0, -4, 0], rotate: [-1, 1, -1] };
+
+  return (
+    <div className="relative w-full">
+      {confetti.map((item) => {
+        const colors = ["#5eead4", "#fda4af", "#fde68a", "#93c5fd", "#86efac"];
+        return (
+          <motion.span
+            key={item}
+            className="pointer-events-none absolute top-4 z-20 h-2 w-2 rounded-sm"
+            style={{ left: `${(item * 37) % 96}%`, background: colors[item % colors.length] }}
+            initial={{ y: -12, opacity: 1, rotate: 0 }}
+            animate={{ y: 180, opacity: 0, rotate: 520 }}
+            transition={{ duration: 1.8, delay: (item % 8) * 0.08, ease: "easeIn" }}
+          />
+        );
+      })}
+
+      <div className="flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 shadow-2xl backdrop-blur-xl sm:gap-3">
+        <motion.div
+          className="relative shrink-0"
+          animate={botAnimate}
+          transition={
+            mood === "oops"
+              ? { duration: 0.42 }
+              : { duration: 4.6, ease: "easeInOut", repeat: Infinity }
+          }
+        >
+          <img
+            src={memoryBuddyImg}
+            alt="Memory buddy"
+            className="h-14 w-14 object-contain drop-shadow-[0_14px_22px_rgba(20,184,166,0.18)] sm:h-16 sm:w-16"
+          />
+          <span
+            className={`absolute bottom-1 right-1 h-3 w-3 rounded-full ${statusClass} ring-2 ring-[#0b1120]/80 ${
+              reduceMotion ? "" : "animate-pulse"
+            }`}
+          />
+        </motion.div>
+
+        <div className="relative min-w-0 flex-1">
+          <div className="relative rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 shadow-lg">
+            <div className="absolute left-[-5px] top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-white/10 bg-white/[0.04]" />
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                Buddy / {mood}
+              </span>
+              <span className="text-[10px] font-bold text-teal-200">{Math.round(safeProgress * 100)}%</span>
+            </div>
+            <p className="line-clamp-2 min-h-[2rem] text-xs font-medium leading-snug text-white/75 sm:text-sm">
+              {displayed}
+              {!reduceMotion && <span className="ml-0.5 inline-block h-3 w-0.5 animate-pulse bg-teal-200 align-middle" />}
+            </p>
+            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/10">
+              <motion.div
+                className="h-full rounded-full bg-teal-400"
+                initial={false}
+                animate={{ width: `${safeProgress * 100}%` }}
+                transition={{ duration: reduceMotion ? 0 : 0.55 }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -740,6 +857,46 @@ const MemoryChallenge = () => {
         : 0;
 
   const cards = useMemo(() => Array.from({ length: GRID }, (_, i) => i), []);
+  const buddyProgress =
+    phase === "finished"
+      ? 1
+      : phase === "ready"
+        ? 0
+        : phase === "countdown"
+          ? (3 - Math.max(0, countdown)) / 3
+          : phase === "showing" || phase === "feedback"
+            ? showingProgress
+            : playProgress;
+  const buddyMood: BuddyMood =
+    phase === "finished"
+      ? "celebrate"
+      : phase === "feedback"
+        ? "oops"
+        : phase === "showing"
+          ? "thinking"
+          : phase === "playing"
+            ? "hint"
+            : score > 0
+              ? "happy"
+              : "idle";
+  const buddyMessage =
+    phase === "ready"
+      ? "Ready when you are. Pick a mode, and I will track the pattern with you."
+      : phase === "countdown"
+        ? countdown > 0
+          ? `Steady your gaze. Starting in ${countdown}.`
+          : "Loading the next pattern."
+        : phase === "showing"
+          ? mode === "classic"
+            ? "Watch the glow order. I will keep the beat soft and steady."
+            : "Let the full pattern land. You can tap those tiles in any order."
+          : phase === "playing"
+            ? mode === "classic"
+              ? `${Math.max(0, sequence.length - playerSequence.length)} taps left. Follow the order you saw.`
+              : `${snapshotRemaining.size} tiles left. Choose the ones that stayed in memory.`
+            : phase === "feedback"
+              ? "Almost. I marked the next helpful tile, then we will replay the pattern."
+              : endLine || `Run complete. You earned ${score} XP.`;
 
   return (
     <TherapeuticGameShell
@@ -750,25 +907,33 @@ const MemoryChallenge = () => {
       onReset={handleReset}
       themePhase={themePhase}
       streakCount={streakCount}
+      fitViewport
     >
-      <div className="max-w-md mx-auto w-full flex flex-col items-center">
+      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3">
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {liveMessage}
         </div>
+
+        <MemoryBuddy
+          mood={buddyMood}
+          message={buddyMessage}
+          progress={buddyProgress}
+          reduceMotion={reduceMotion}
+        />
 
         {phase === "ready" && (
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
-            className="w-full space-y-6 mt-6"
+            className="w-full space-y-3"
           >
-            <div className="bg-white/5 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-2xl">
-              <p className="text-white/70 mb-5 leading-relaxed text-base font-light text-center">
+            <div className="bg-white/5 backdrop-blur-xl p-4 rounded-3xl border border-white/10 shadow-2xl sm:p-5">
+              <p className="text-white/70 mb-3 leading-relaxed text-sm font-light text-center sm:text-base">
                 Hold the pattern in mind, then return it to the grid. Two ways to practise focus.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+              <div className="grid grid-cols-1 gap-2 mb-3 sm:grid-cols-2 sm:gap-3">
                 <ModeCard
                   active={mode === "classic"}
                   title="Classic"
@@ -788,13 +953,13 @@ const MemoryChallenge = () => {
               <button
                 type="button"
                 onClick={() => startRun(mode)}
-                className="w-full py-4 rounded-2xl bg-teal-500 hover:bg-teal-600 text-white font-medium tracking-wide shadow-[0_0_20px_rgba(20,184,166,0.3)] transition-colors duration-300 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-2xl bg-teal-500 hover:bg-teal-600 text-white font-medium tracking-wide shadow-[0_0_20px_rgba(20,184,166,0.3)] transition-colors duration-300 flex items-center justify-center gap-2"
               >
                 <Target className="h-4 w-4" />
                 Begin {mode === "classic" ? "Classic" : "Snapshot"}
               </button>
 
-              <div className="mt-4 flex items-center justify-between text-[11px] text-white/40">
+              <div className="mt-3 flex items-center justify-between text-[11px] text-white/40">
                 <span className="tracking-wide">Press 1–9 to tap · M to mute</span>
                 <button
                   type="button"
@@ -808,7 +973,7 @@ const MemoryChallenge = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               {bestScore > 0 && (
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
                   <span className="text-white/40 text-[10px] uppercase tracking-widest">Best</span>
@@ -826,7 +991,7 @@ const MemoryChallenge = () => {
         )}
 
         {phase === "countdown" && countdown > 0 && (
-          <div className="mt-16 flex flex-col items-center gap-4">
+          <div className="mt-8 flex flex-col items-center gap-3">
             <p className="text-xs uppercase tracking-widest text-white/40">Steady your gaze</p>
             <motion.div
               key={countdown}
@@ -843,7 +1008,7 @@ const MemoryChallenge = () => {
         )}
 
         {(phase === "showing" || phase === "playing" || phase === "feedback") && (
-          <div className="w-full flex flex-col items-center space-y-5 mt-2">
+          <div className="w-full flex flex-col items-center gap-3">
             <Hud
               level={level}
               lives={lives}
@@ -862,7 +1027,8 @@ const MemoryChallenge = () => {
                   : { x: 0 }
               }
               transition={{ duration: 0.45 }}
-              className="grid grid-cols-3 gap-3 p-5 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl w-full aspect-square"
+              className="grid aspect-square w-full grid-cols-3 gap-3 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl sm:p-5"
+              style={{ maxWidth: "min(100%, calc(100svh - 22rem))" }}
             >
               {cards.map((index) => (
                 <Tile

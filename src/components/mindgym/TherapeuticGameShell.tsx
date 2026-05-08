@@ -13,6 +13,7 @@ interface TherapeuticGameShellProps {
   children: ReactNode;
   themePhase?: "idle" | "focus" | "success" | "alert";
   streakCount?: number;
+  fitViewport?: boolean;
 }
 
 const AMBIENT_BG: Record<string, string> = {
@@ -136,6 +137,7 @@ export default function TherapeuticGameShell({
   children,
   themePhase = "idle",
   streakCount = 1,
+  fitViewport = false,
 }: TherapeuticGameShellProps) {
   const navigate = useNavigate();
   const [audioTrack, setAudioTrack] = useState<AudioTrack>("none");
@@ -153,7 +155,7 @@ export default function TherapeuticGameShell({
   }, [completed]);
 
   return (
-    <div className={`relative min-h-screen bg-gradient-to-b ${AMBIENT_BG[themePhase]} transition-colors duration-1000 overflow-hidden font-sans text-white/90`}>
+    <div className={`relative ${fitViewport ? "flex h-screen flex-col" : "min-h-screen"} bg-gradient-to-b ${AMBIENT_BG[themePhase]} transition-colors duration-1000 overflow-hidden font-sans text-white/90`}>
       {/* Particle Overlay */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-40">
         {PARTICLES.map((p) => (
@@ -214,7 +216,7 @@ export default function TherapeuticGameShell({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 1 }}
-            className="max-w-2xl mx-auto px-6 text-center mt-6 z-20 relative"
+            className={`max-w-2xl mx-auto px-6 text-center z-20 relative ${fitViewport ? "mt-2" : "mt-6"}`}
           >
             <p className="text-xs text-white/40 italic tracking-wide">
               {THEME_AFFIRMATIONS[quoteIdx]}
@@ -224,7 +226,7 @@ export default function TherapeuticGameShell({
       </AnimatePresence>
 
       {/* Main Game Area */}
-      <main className="max-w-2xl mx-auto px-4 pt-6 pb-24 z-10 relative relative min-h-[60vh] flex flex-col justify-center">
+      <main className={`max-w-2xl mx-auto px-4 z-10 relative relative flex w-full flex-col justify-center ${fitViewport ? "min-h-0 flex-1 overflow-hidden pt-3 pb-4" : "min-h-[60vh] pt-6 pb-24"}`}>
         <AnimatePresence mode="wait">
           {completed ? (
             <motion.div

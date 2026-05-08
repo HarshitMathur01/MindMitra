@@ -240,6 +240,187 @@ interface MemoryBuddyProps {
   reduceMotion: boolean;
 }
 
+interface MemoryAvatarStageProps {
+  mood: BuddyMood;
+  reduceMotion: boolean;
+}
+
+const BUDDY_AVATAR_URL = "/talkinghead/avatars/Valentina.glb";
+
+type BuddyAvatarEmotion =
+  | "calm"
+  | "listening"
+  | "acknowledgment"
+  | "encouragement"
+  | "concern"
+  | "surprised";
+type BuddyAvatarGesture = "slow_nod" | "lean_forward" | "thinking_tilt" | "agreement_nod";
+
+interface BuddyAvatarCue {
+  emotion: BuddyAvatarEmotion;
+  intensity: number;
+  gesture: BuddyAvatarGesture | null;
+  flashEmotion?: BuddyAvatarEmotion;
+  flashIntensity?: number;
+}
+
+function avatarCueForBuddyMood(mood: BuddyMood): BuddyAvatarCue {
+  switch (mood) {
+    case "celebrate":
+      return { emotion: "encouragement", intensity: 1.45, gesture: "agreement_nod" };
+    case "happy":
+      return { emotion: "encouragement", intensity: 1.3, gesture: "agreement_nod" };
+    case "oops":
+      return {
+        emotion: "concern",
+        intensity: 1.35,
+        gesture: "lean_forward",
+        flashEmotion: "surprised",
+        flashIntensity: 1.28,
+      };
+    case "thinking":
+      return { emotion: "acknowledgment", intensity: 1.18, gesture: "slow_nod" };
+    case "hint":
+      return { emotion: "listening", intensity: 1.08, gesture: "thinking_tilt" };
+    case "idle":
+    default:
+      return { emotion: "calm", intensity: 1, gesture: null };
+  }
+}
+
+function MemoryAvatarStage({ mood, reduceMotion }: MemoryAvatarStageProps) {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const lastGestureKeyRef = useRef<string | null>(null);
+  const emotionSettleTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const iframeSrc = useMemo(() => {
+    const params = new URLSearchParams({
+      avatarUrl: BUDDY_AVATAR_URL,
+      cameraView: "head",
+      transparent: "1",
+      ttsLang: "en-IN",
+      ttsVoice: "en-IN-Neural2-A",
+    });
+    return `/talkinghead.html?${params.toString()}`;
+  }, []);
+
+  const postToAvatar = useCallback((data: object) => {
+    iframeRef.current?.contentWindow?.postMessage(data, window.location.origin);
+  }, []);
+
+  useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => {
+      if (!isReady) setLoadFailed(true);
+    }, 8000);
+    return () => window.clearTimeout(fallbackTimer);
+  }, [isReady]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.source !== iframeRef.current?.contentWindow) return;
+
+      const { type } = event.data || {};
+      if (type === "needConfig") {
+        postToAvatar({
+          type: "config",
+          googleKey: "",
+          azureKey: "",
+          azureRegion: "eastasia",
+        });
+      }
+      if (type === "ready") {
+        setIsReady(true);
+        setLoadFailed(false);
+      }
+      if (type === "error") {
+        setLoadFailed(true);
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [postToAvatar]);
+
+  useEffect(() => {
+    if (!isReady || loadFailed) return;
+    const cue = avatarCueForBuddyMood(mood);
+    if (emotionSettleTimerRef.current) {
+      window.clearTimeout(emotionSettleTimerRef.current);
+      emotionSettleTimerRef.current = null;
+    }
+
+    postToAvatar({
+      type: "setEmotion",
+      emotion: cue.flashEmotion ?? cue.emotion,
+      intensity: cue.flashIntensity ?? cue.intensity,
+    });
+
+    if (cue.flashEmotion) {
+      emotionSettleTimerRef.current = window.setTimeout(() => {
+        postToAvatar({
+          type: "setEmotion",
+          emotion: cue.emotion,
+          intensity: cue.intensity,
+        });
+        emotionSettleTimerRef.current = null;
+      }, 720);
+    }
+
+    const gesture = reduceMotion ? null : cue.gesture;
+    const gestureKey = `${mood}:${gesture ?? "none"}`;
+    if (gesture && gestureKey !== lastGestureKeyRef.current) {
+      lastGestureKeyRef.current = gestureKey;
+      postToAvatar({ type: "triggerGesture", gesture });
+    }
+  }, [isReady, loadFailed, mood, postToAvatar, reduceMotion]);
+
+  useEffect(
+    () => () => {
+      if (emotionSettleTimerRef.current) {
+        window.clearTimeout(emotionSettleTimerRef.current);
+      }
+      postToAvatar({ type: "pause" });
+    },
+    [postToAvatar],
+  );
+
+  return (
+    <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_14px_24px_rgba(20,184,166,0.16)] sm:w-28">
+      {!loadFailed && (
+        <iframe
+          ref={iframeRef}
+          src={iframeSrc}
+          title="3D memory buddy"
+          className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-500 ${
+            isReady ? "opacity-100" : "opacity-0"
+          }`}
+          allow="autoplay"
+          sandbox="allow-scripts allow-same-origin"
+          style={{ backgroundColor: "transparent" }}
+        />
+      )}
+
+      {(!isReady || loadFailed) && (
+        <img
+          src={memoryBuddyImg}
+          alt="Memory buddy"
+          className="absolute inset-0 h-full w-full object-contain p-1.5 drop-shadow-[0_14px_22px_rgba(20,184,166,0.18)]"
+        />
+      )}
+
+      {!isReady && !loadFailed && (
+        <span
+          className={`absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-teal-300 ring-2 ring-[#0b1120]/80 ${
+            reduceMotion ? "" : "animate-pulse"
+          }`}
+        />
+      )}
+    </div>
+  );
+}
+
 function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps) {
   const [displayed, setDisplayed] = useState("");
   const [confetti, setConfetti] = useState<number[]>([]);
@@ -308,11 +489,7 @@ function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps
               : { duration: 4.6, ease: "easeInOut", repeat: Infinity }
           }
         >
-          <img
-            src={memoryBuddyImg}
-            alt="Memory buddy"
-            className="h-14 w-14 object-contain drop-shadow-[0_14px_22px_rgba(20,184,166,0.18)] sm:h-16 sm:w-16"
-          />
+          <MemoryAvatarStage mood={mood} reduceMotion={reduceMotion} />
           <span
             className={`absolute bottom-1 right-1 h-3 w-3 rounded-full ${statusClass} ring-2 ring-[#0b1120]/80 ${
               reduceMotion ? "" : "animate-pulse"

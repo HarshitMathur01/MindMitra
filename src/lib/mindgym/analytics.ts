@@ -13,10 +13,19 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ToolId } from "./types";
 
-export type MindGymEventType = "crisis_triggered";
+export type MindGymEventType =
+  | "crisis_triggered"
+  | "tool_started"
+  | "tool_completed"
+  | "journey_strip_viewed"
+  | "next_tool_clicked";
 
 export interface MindGymEventPayload {
-  toolId: ToolId;
+  toolId?: ToolId;
+  // For `next_tool_clicked` — the tool the user was finishing.
+  fromToolId?: ToolId;
+  // For `tool_completed` — XP awarded (no user text, safe to log).
+  xp?: number;
 }
 
 interface StoredEvent {

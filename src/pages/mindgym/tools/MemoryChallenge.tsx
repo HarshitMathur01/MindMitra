@@ -10,7 +10,10 @@ import {
 import { motion, useReducedMotion } from "framer-motion";
 import { Heart, Volume2, VolumeX, Eye, Target, Sparkles, Zap } from "lucide-react";
 import TherapeuticGameShell from "@/components/mindgym/TherapeuticGameShell";
+import { useTone } from "@/components/mindgym/shared/useAmbientAudio";
+import Buddy, { type BuddyCue } from "@/components/mindgym/shared/Buddy";
 import { useGameDataSaver } from "@/lib/gameDataSaver";
+import { MEMORY_TILE_HUES as TILE_HUES } from "@/lib/mindgym/theme";
 import memoryBuddyImg from "@/assets/memory-buddy.png";
 
 type Mode = "classic" | "snapshot";
@@ -26,8 +29,6 @@ const MAX_COMBO = COMBO_MULTIPLIERS.length;
 
 // C major pentatonic over two octaves — soft, no dissonance.
 const TILE_FREQS = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.26, 783.99];
-// Hues sweep within the catalog gradient family (cyan → teal → emerald).
-const TILE_HUES = [188, 178, 168, 195, 173, 158, 192, 165, 152];
 
 const POSITION_LABELS = [
   "top left", "top center", "top right",
@@ -79,54 +80,6 @@ const yesterdayKey = () => {
   d.setDate(d.getDate() - 1);
   return d.toISOString().slice(0, 10);
 };
-
-function useTone(muted: boolean) {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const lastRef = useRef<{ freq: number; t: number }>({ freq: 0, t: 0 });
-
-  const play = useCallback(
-    (freq: number, durationMs = 320, gain = 0.16) => {
-      if (muted) return;
-      const now = performance.now();
-      if (lastRef.current.freq === freq && now - lastRef.current.t < 80) return;
-      lastRef.current = { freq, t: now };
-      try {
-        if (!ctxRef.current) {
-          const Ctor =
-            window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-          if (!Ctor) return;
-          ctxRef.current = new Ctor();
-        }
-        const ctx = ctxRef.current;
-        if (ctx.state === "suspended") void ctx.resume();
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        const t0 = ctx.currentTime;
-        g.gain.setValueAtTime(0, t0);
-        g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + durationMs / 1000);
-        osc.connect(g).connect(ctx.destination);
-        osc.start(t0);
-        osc.stop(t0 + durationMs / 1000 + 0.05);
-      } catch {
-        /* audio unavailable — silently degrade */
-      }
-    },
-    [muted],
-  );
-
-  useEffect(
-    () => () => {
-      ctxRef.current?.close().catch(() => {});
-    },
-    [],
-  );
-
-  return play;
-}
 
 interface TileProps {
   index: number;
@@ -245,8 +198,6 @@ interface MemoryAvatarStageProps {
   reduceMotion: boolean;
 }
 
-const BUDDY_AVATAR_URL = "/talkinghead/avatars/Valentina.glb";
-
 type BuddyAvatarEmotion =
   | "calm"
   | "listening"
@@ -256,7 +207,7 @@ type BuddyAvatarEmotion =
   | "surprised";
 type BuddyAvatarGesture = "slow_nod" | "lean_forward" | "thinking_tilt" | "agreement_nod";
 
-interface BuddyAvatarCue {
+interface MemoryAvatarCue extends BuddyCue {
   emotion: BuddyAvatarEmotion;
   intensity: number;
   gesture: BuddyAvatarGesture | null;
@@ -264,7 +215,7 @@ interface BuddyAvatarCue {
   flashIntensity?: number;
 }
 
-function avatarCueForBuddyMood(mood: BuddyMood): BuddyAvatarCue {
+function avatarCueForBuddyMood(mood: BuddyMood): MemoryAvatarCue {
   switch (mood) {
     case "celebrate":
       return { emotion: "encouragement", intensity: 1.45, gesture: "agreement_nod" };
@@ -289,142 +240,151 @@ function avatarCueForBuddyMood(mood: BuddyMood): BuddyAvatarCue {
 }
 
 function MemoryAvatarStage({ mood, reduceMotion }: MemoryAvatarStageProps) {
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const [isReady, setIsReady] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
-  const lastGestureKeyRef = useRef<string | null>(null);
-  const emotionSettleTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const iframeSrc = useMemo(() => {
-    const params = new URLSearchParams({
-      avatarUrl: BUDDY_AVATAR_URL,
-      cameraView: "head",
-      transparent: "1",
-      ttsLang: "en-IN",
-      ttsVoice: "en-IN-Neural2-A",
-    });
-    return `/talkinghead.html?${params.toString()}`;
-  }, []);
+  const cue = useMemo(() => avatarCueForBuddyMood(mood), [mood]);
 
-  const postToAvatar = useCallback((data: object) => {
-    iframeRef.current?.contentWindow?.postMessage(data, window.location.origin);
-  }, []);
-
-  useEffect(() => {
-    const fallbackTimer = window.setTimeout(() => {
-      if (!isReady) setLoadFailed(true);
-    }, 8000);
-    return () => window.clearTimeout(fallbackTimer);
-  }, [isReady]);
-
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.source !== iframeRef.current?.contentWindow) return;
-
-      const { type } = event.data || {};
-      if (type === "needConfig") {
-        postToAvatar({
-          type: "config",
-          googleKey: "",
-          azureKey: "",
-          azureRegion: "eastasia",
-        });
-      }
-      if (type === "ready") {
-        setIsReady(true);
-        setLoadFailed(false);
-      }
-      if (type === "error") {
-        setLoadFailed(true);
-      }
-    };
-
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [postToAvatar]);
-
-  useEffect(() => {
-    if (!isReady || loadFailed) return;
-    const cue = avatarCueForBuddyMood(mood);
-    if (emotionSettleTimerRef.current) {
-      window.clearTimeout(emotionSettleTimerRef.current);
-      emotionSettleTimerRef.current = null;
-    }
-
-    postToAvatar({
-      type: "setEmotion",
-      emotion: cue.flashEmotion ?? cue.emotion,
-      intensity: cue.flashIntensity ?? cue.intensity,
-    });
-
-    if (cue.flashEmotion) {
-      emotionSettleTimerRef.current = window.setTimeout(() => {
-        postToAvatar({
-          type: "setEmotion",
-          emotion: cue.emotion,
-          intensity: cue.intensity,
-        });
-        emotionSettleTimerRef.current = null;
-      }, 720);
-    }
-
-    const gesture = reduceMotion ? null : cue.gesture;
-    const gestureKey = `${mood}:${gesture ?? "none"}`;
-    if (gesture && gestureKey !== lastGestureKeyRef.current) {
-      lastGestureKeyRef.current = gestureKey;
-      postToAvatar({ type: "triggerGesture", gesture });
-    }
-  }, [isReady, loadFailed, mood, postToAvatar, reduceMotion]);
-
-  useEffect(
-    () => () => {
-      if (emotionSettleTimerRef.current) {
-        window.clearTimeout(emotionSettleTimerRef.current);
-      }
-      postToAvatar({ type: "pause" });
-    },
-    [postToAvatar],
+  const fallback = (
+    <img
+      src={memoryBuddyImg}
+      alt="Memory buddy"
+      className="absolute inset-0 h-full w-full object-contain p-2 drop-shadow-[0_14px_22px_rgba(20,184,166,0.18)]"
+    />
   );
 
   return (
-    <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_14px_24px_rgba(20,184,166,0.16)] sm:w-28">
-      {!loadFailed && (
-        <iframe
-          ref={iframeRef}
-          src={iframeSrc}
-          title="3D memory buddy"
-          className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-500 ${
-            isReady ? "opacity-100" : "opacity-0"
-          }`}
-          allow="autoplay"
-          sandbox="allow-scripts allow-same-origin"
-          style={{ backgroundColor: "transparent" }}
+    <div
+      className="relative h-28 w-44 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/35 shadow-[0_18px_38px_rgba(20,184,166,0.18),inset_0_0_24px_rgba(255,255,255,0.04)] sm:w-48"
+      style={{
+        background:
+          "linear-gradient(145deg, rgba(15,23,42,0.72), rgba(8,47,73,0.26) 52%, rgba(6,78,59,0.3))",
+      }}
+    >
+      {!reduceMotion && (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute -inset-y-10 -left-20 z-[2] w-24 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+          animate={{ x: [0, 230] }}
+          transition={{ duration: 5.8, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
         />
       )}
 
-      {(!isReady || loadFailed) && (
-        <img
-          src={memoryBuddyImg}
-          alt="Memory buddy"
-          className="absolute inset-0 h-full w-full object-contain p-1.5 drop-shadow-[0_14px_22px_rgba(20,184,166,0.18)]"
-        />
-      )}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-4 bg-black/45" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] h-4 bg-black/50" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[4]"
+        style={{
+          boxShadow:
+            "inset 0 0 34px rgba(0,0,0,0.66), inset 0 18px 32px rgba(255,255,255,0.045), inset 0 -14px 24px rgba(0,0,0,0.42)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-6 top-4 z-[1] h-px bg-gradient-to-r from-transparent via-teal-200/50 to-transparent"
+      />
 
-      {!isReady && !loadFailed && (
-        <span
-          className={`absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-teal-300 ring-2 ring-[#0b1120]/80 ${
-            reduceMotion ? "" : "animate-pulse"
-          }`}
-        />
-      )}
+      <Buddy
+        cue={cue}
+        reduceMotion={reduceMotion}
+        className="absolute inset-x-0 -bottom-2 h-[116%] w-full"
+        fallback={fallback}
+      />
     </div>
   );
 }
 
+const CINEMATIC_EXIT_LINES = [
+  "Rolling credits on this cameo.",
+  "Dramatic exit approved.",
+  "Leaving to process the plot twist.",
+  "Focus requested a private scene.",
+  "Method acting: vanishing.",
+] as const;
+
 function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps) {
   const [displayed, setDisplayed] = useState("");
   const [confetti, setConfetti] = useState<number[]>([]);
+  const [dismissed, setDismissed] = useState(false);
+  const [isHolding, setIsHolding] = useState(false);
+  const [isPrimed, setIsPrimed] = useState(false);
+  const [isDismissing, setIsDismissing] = useState(false);
+  const [dismissDirection, setDismissDirection] = useState<"left" | "right" | "up" | "down">("right");
+  const [exitLine, setExitLine] = useState(CINEMATIC_EXIT_LINES[0]);
+  const holdTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const dismissTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const pointerStartRef = useRef<{ id: number; x: number; y: number } | null>(null);
+  const primedRef = useRef(false);
   const safeProgress = Math.min(1, Math.max(0, progress));
+
+  const clearHold = useCallback(() => {
+    if (holdTimerRef.current) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    primedRef.current = false;
+    setIsHolding(false);
+    setIsPrimed(false);
+  }, []);
+
+  const dismissBuddy = useCallback(
+    (direction: "left" | "right" | "up" | "down") => {
+      if (isDismissing || dismissed) return;
+      clearHold();
+      setDismissDirection(direction);
+      setExitLine(CINEMATIC_EXIT_LINES[Math.floor(Math.random() * CINEMATIC_EXIT_LINES.length)]);
+      setIsDismissing(true);
+      if (dismissTimerRef.current) window.clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = window.setTimeout(() => {
+        setDismissed(true);
+      }, reduceMotion ? 120 : 980);
+    },
+    [clearHold, dismissed, isDismissing, reduceMotion],
+  );
+
+  const handleBuddyPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (dismissed || isDismissing) return;
+      pointerStartRef.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      setIsHolding(true);
+      holdTimerRef.current = window.setTimeout(() => {
+        primedRef.current = true;
+        setIsPrimed(true);
+      }, reduceMotion ? 250 : 420);
+    },
+    [dismissed, isDismissing, reduceMotion],
+  );
+
+  const handleBuddyPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const start = pointerStartRef.current;
+      if (!start || dismissed || isDismissing) return;
+
+      const dx = event.clientX - start.x;
+      const dy = event.clientY - start.y;
+      const moved = Math.hypot(dx, dy);
+
+      if (!primedRef.current) {
+        if (moved > 14) {
+          clearHold();
+          pointerStartRef.current = null;
+        }
+        return;
+      }
+
+      if (Math.abs(dx) < 86 && Math.abs(dy) < 86) return;
+
+      const direction =
+        Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
+      pointerStartRef.current = null;
+      dismissBuddy(direction);
+    },
+    [clearHold, dismissed, dismissBuddy, isDismissing],
+  );
+
+  const handleBuddyPointerEnd = useCallback(() => {
+    pointerStartRef.current = null;
+    clearHold();
+  }, [clearHold]);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -448,6 +408,14 @@ function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps
     return () => window.clearTimeout(id);
   }, [mood, reduceMotion]);
 
+  useEffect(
+    () => () => {
+      if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+      if (dismissTimerRef.current) window.clearTimeout(dismissTimerRef.current);
+    },
+    [],
+  );
+
   const statusClass =
     mood === "thinking" || mood === "hint"
       ? "bg-amber-300"
@@ -463,8 +431,138 @@ function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps
         ? { y: [0, -6, 0], rotate: [-2, 2, -2], scale: [1, 1.03, 1] }
         : { y: [0, -4, 0], rotate: [-1, 1, -1] };
 
+  const dismissMotion = {
+    left: {
+      x: [0, 16, -330],
+      y: [0, -8, -34],
+      rotate: [0, 4, -24],
+      opacity: [1, 1, 0],
+      scale: [1, 1.06, 0.72],
+      filter: ["blur(0px)", "blur(0px)", "blur(4px)"],
+    },
+    right: {
+      x: [0, -16, 330],
+      y: [0, -8, -34],
+      rotate: [0, -4, 24],
+      opacity: [1, 1, 0],
+      scale: [1, 1.06, 0.72],
+      filter: ["blur(0px)", "blur(0px)", "blur(4px)"],
+    },
+    up: {
+      x: [0, -8, 54],
+      y: [0, 16, -230],
+      rotate: [0, -6, 28],
+      opacity: [1, 1, 0],
+      scale: [1, 1.07, 0.68],
+      filter: ["blur(0px)", "blur(0px)", "blur(4px)"],
+    },
+    down: {
+      x: [0, 8, 52],
+      y: [0, -16, 190],
+      rotate: [0, 5, -22],
+      opacity: [1, 1, 0],
+      scale: [1, 1.07, 0.68],
+      filter: ["blur(0px)", "blur(0px)", "blur(4px)"],
+    },
+  }[dismissDirection];
+
+  if (dismissed) return null;
+
   return (
     <div className="relative w-full">
+      {isPrimed && !isDismissing && !reduceMotion && (
+        <motion.span
+          className="pointer-events-none absolute right-4 top-[-0.65rem] z-30 rounded-full border border-teal-200/30 bg-slate-950/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-teal-100 shadow-[0_12px_24px_rgba(0,0,0,0.28)]"
+          initial={{ opacity: 0, y: 8, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.18 }}
+        >
+          swipe for dramatic exit
+        </motion.span>
+      )}
+
+      {isDismissing && !reduceMotion && (
+        <>
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 h-7 rounded-t-2xl bg-black/70"
+            initial={{ y: -34, opacity: 0 }}
+            animate={{ y: [ -34, 0, 0, -10 ], opacity: [0, 1, 1, 0] }}
+            transition={{ duration: 0.92, ease: "easeInOut" }}
+          />
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-7 rounded-b-2xl bg-black/75"
+            initial={{ y: 34, opacity: 0 }}
+            animate={{ y: [34, 0, 0, 10], opacity: [0, 1, 1, 0] }}
+            transition={{ duration: 0.92, ease: "easeInOut" }}
+          />
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-2xl"
+            initial={{ opacity: 0, scale: 0.2 }}
+            animate={{ opacity: [0, 0.75, 0], scale: [0.2, 1.35, 0.75] }}
+            transition={{ duration: 0.72, ease: "easeOut" }}
+          />
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute left-5 top-1 z-40 -rotate-6 rounded-md border border-white/20 bg-slate-950/85 px-3 py-1 text-[12px] font-black uppercase tracking-[0.22em] text-white shadow-[0_14px_28px_rgba(0,0,0,0.36)]"
+            initial={{ opacity: 0, y: -14, rotate: -18, scale: 0.6 }}
+            animate={{ opacity: [0, 1, 1, 0], y: [-14, 5, 2, -10], rotate: [-18, -6, -4, 8], scale: [0.6, 1.1, 1, 0.8] }}
+            transition={{ duration: 0.82, ease: "easeOut" }}
+          >
+            CUT
+          </motion.div>
+          <motion.div
+            className="pointer-events-none absolute bottom-2 left-1/2 z-40 max-w-[80%] -translate-x-1/2 rounded-full border border-teal-200/25 bg-slate-950/75 px-3 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-teal-100 shadow-[0_12px_30px_rgba(0,0,0,0.34)]"
+            initial={{ opacity: 0, y: 16, scale: 0.9 }}
+            animate={{ opacity: [0, 1, 1, 0], y: [16, 0, 0, -8], scale: [0.9, 1, 1, 0.94] }}
+            transition={{ duration: 0.92, ease: "easeOut" }}
+          >
+            {exitLine}
+          </motion.div>
+          <motion.span
+            className="pointer-events-none absolute left-24 top-4 z-30 rounded-full border border-teal-200/30 bg-teal-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-teal-100"
+            initial={{ opacity: 0, scale: 0.5, y: 14 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.5, 1.22, 0.84], y: -24, rotate: [0, -5, 8] }}
+            transition={{ duration: 0.86, ease: "easeOut" }}
+          >
+            whoosh
+          </motion.span>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <motion.span
+              key={i}
+              className="pointer-events-none absolute left-20 top-12 z-20 h-1.5 w-3 rounded-[2px] bg-teal-200/75 shadow-[0_0_12px_rgba(94,234,212,0.45)]"
+              initial={{ x: 0, y: 0, opacity: 0.9, scale: 1 }}
+              animate={{
+                x: [
+                  0,
+                  dismissDirection === "left"
+                    ? 72 + i * 10
+                    : dismissDirection === "right"
+                      ? -72 - i * 10
+                      : (i - 4.5) * 20,
+                ],
+                y: [
+                  0,
+                  dismissDirection === "up"
+                    ? 56 + i * 5
+                    : dismissDirection === "down"
+                      ? -56 - i * 5
+                      : i % 2 === 0
+                        ? -34
+                        : 26,
+                ],
+                opacity: 0,
+                scaleX: [1, 3.1],
+                scaleY: [1, 0.46],
+              }}
+              transition={{ duration: 0.8, delay: i * 0.024, ease: "easeOut" }}
+            />
+          ))}
+        </>
+      )}
+
       {confetti.map((item) => {
         const colors = ["#5eead4", "#fda4af", "#fde68a", "#93c5fd", "#86efac"];
         return (
@@ -479,7 +577,42 @@ function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps
         );
       })}
 
-      <div className="flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 shadow-2xl backdrop-blur-xl sm:gap-3">
+      <motion.div
+        role="group"
+        aria-label="Memory buddy"
+        onPointerDown={handleBuddyPointerDown}
+        onPointerMove={handleBuddyPointerMove}
+        onPointerUp={handleBuddyPointerEnd}
+        onPointerCancel={handleBuddyPointerEnd}
+        onLostPointerCapture={handleBuddyPointerEnd}
+        onContextMenu={(event) => event.preventDefault()}
+        animate={
+          isDismissing
+            ? reduceMotion
+              ? { opacity: 0 }
+              : dismissMotion
+            : isPrimed
+              ? { scale: 1.015, rotate: -0.6 }
+              : { scale: 1, rotate: 0, opacity: 1, x: 0, y: 0 }
+        }
+        transition={
+          isDismissing
+            ? { duration: reduceMotion ? 0.1 : 0.9, times: [0, 0.28, 1], ease: "easeInOut" }
+            : { duration: reduceMotion ? 0 : 0.18 }
+        }
+        className={`flex w-full select-none items-center gap-2 rounded-2xl border bg-white/5 px-3 py-2 shadow-2xl backdrop-blur-xl sm:gap-3 ${
+          isPrimed
+            ? "cursor-grabbing border-teal-200/50 ring-2 ring-teal-200/30 shadow-[0_24px_54px_rgba(20,184,166,0.22),inset_0_1px_0_rgba(255,255,255,0.12)]"
+            : isHolding
+              ? "cursor-grabbing border-white/25 shadow-[0_22px_46px_rgba(15,23,42,0.36)]"
+              : "cursor-grab border-white/10 shadow-[0_18px_44px_rgba(15,23,42,0.32)]"
+        } ${isDismissing ? "pointer-events-none" : ""}`}
+        style={{
+          touchAction: "none",
+          background:
+            "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(15,23,42,0.22) 45%, rgba(20,184,166,0.08))",
+        }}
+      >
         <motion.div
           className="relative shrink-0"
           animate={botAnimate}
@@ -520,7 +653,7 @@ function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -1205,7 +1338,7 @@ const MemoryChallenge = () => {
               }
               transition={{ duration: 0.45 }}
               className="grid aspect-square w-full grid-cols-3 gap-3 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl sm:p-5"
-              style={{ maxWidth: "min(100%, calc(100svh - 22rem))" }}
+              style={{ maxWidth: "min(100%, calc(100svh - 26rem))" }}
             >
               {cards.map((index) => (
                 <Tile

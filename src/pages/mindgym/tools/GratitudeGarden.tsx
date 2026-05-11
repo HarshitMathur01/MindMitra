@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import ToolShell from "@/components/mindgym/ToolShell";
 import { cn } from "@/lib/utils";
 import { incrementMindGymCounter } from "@/lib/mindgym/analytics";
+import { GRATITUDE_BLOOM_TONES as BLOOM_TONES } from "@/lib/mindgym/theme";
 
 interface GratitudeGardenProps {
     onAvatarCue?: (text: string, emotion: string) => void;
@@ -32,12 +33,6 @@ const GARDEN_TAGS: GardenTag[] = ["people", "moments", "health", "growth", "simp
 const CLINICAL_LEAD = "Gratitude journaling helps strengthen positive emotion, reduce depressive symptoms, and improve sleep quality.";
 const CLINICAL_CITATION = "(Emmons & McCullough, 2003)";
 const CLINICAL_BASIS = `${CLINICAL_LEAD} ${CLINICAL_CITATION}`;
-
-const BLOOM_TONES = [
-    { stem: "#5e7a4a", bloom: "#E8938A", glow: "rgba(232, 147, 138, 0.42)" },
-    { stem: "#4f6b3f", bloom: "#9CAF88", glow: "rgba(156, 175, 136, 0.42)" },
-    { stem: "#7c6a3a", bloom: "#E8C97A", glow: "rgba(232, 201, 122, 0.42)" },
-] as const;
 
 const BLOOM_POSITIONS = [
     { x: 180, baseY: 352, stemHeight: 124 },

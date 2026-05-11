@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ForestBackdrop from "./ForestBackdrop";
 import CrisisOverlay from "./CrisisOverlay";
+import JourneyStrip from "./shared/JourneyStrip";
 import {
   MINDGYM_SECTIONS,
   MINDGYM_TOOLS,
@@ -53,6 +54,7 @@ export default function MindGymHubView() {
             <p className="mx-auto mt-5 max-w-md bg-transparent px-0 py-0 text-[18px] leading-[1.7] text-[#f8f3eb] [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]">
               Pick something small. Two minutes is enough.
             </p>
+            <JourneyStrip className="mt-8" />
           </motion.section>
 
           {recommended ? (

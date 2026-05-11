@@ -10,7 +10,7 @@ import {
   getToolsBySection,
 } from "@/lib/mindgym/catalog";
 import { SECTION_IDS, type SectionId } from "@/lib/mindgym/types";
-import { getStreak, isCompletedToday } from "@/lib/mindgym/storage";
+import { getStreak, isCompletedToday, loadProgress } from "@/lib/mindgym/storage";
 import { cn } from "@/lib/utils";
 
 const eyebrow = "text-[11px] font-medium uppercase tracking-[0.28em] text-[#9a4a2a]";
@@ -26,6 +26,8 @@ export default function MindGymSectionPage() {
 
   const section = MINDGYM_SECTIONS.find((s) => s.id === sectionId)!;
   const tools = getToolsBySection(section.id);
+  const doneIds = new Set(loadProgress().completedToday);
+  const doneInSection = tools.filter((t) => doneIds.has(t.id)).length;
 
   return (
     <div className="mindgym-root relative isolate min-h-screen overflow-hidden">
@@ -57,6 +59,11 @@ export default function MindGymSectionPage() {
             <p className="mx-auto mt-3 max-w-md text-[14px] leading-[1.65] text-[#7a6556]">
               {tools.length} {tools.length === 1 ? "practice" : "practices"} — open one when it feels right.
             </p>
+            {doneInSection > 0 && (
+              <p className="mx-auto mt-3 inline-flex items-center rounded-full bg-[#d8e4cf]/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-[#4f6b3f] ring-1 ring-[#4f6b3f]/15">
+                {doneInSection} of {tools.length} done today
+              </p>
+            )}
           </motion.section>
 
           <motion.div

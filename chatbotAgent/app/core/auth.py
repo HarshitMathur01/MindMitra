@@ -1,43 +1,117 @@
+"""Authentication helpers for HTTP routes and the disabled legacy WebSocket.
+
+Therapist bridge still uses ``validate_user_token`` with Supabase's auth
+client. The MHA HTTP chat runtime uses ``decode_supabase_jwt`` against
+``SUPABASE_JWT_SECRET``.
 """
-Authentication helpers — JWT validation via Supabase.
-"""
-import os
+from __future__ import annotations
+
+import asyncio
 import logging
 from typing import Optional
 
-from fastapi import HTTPException
+from fastapi import HTTPException, WebSocket, WebSocketDisconnect, status
+
+from .env import env
 
 logger = logging.getLogger(__name__)
 
-# Development auth bypass (SKIP_AUTH=true skips token validation locally).
-#
-# SECURITY: a stray ``SKIP_AUTH=true`` in production trivially turns every
-# request into ``DEV_USER_ID``. We accept the bypass only when the deployment
-# environment is clearly non-production, OR when the operator explicitly
-# acknowledges the risk via ``ALLOW_INSECURE_SKIP_AUTH=true``. In every other
-# case we ignore the flag and force real JWT validation, with a loud log so
-# misconfigurations are immediately visible in startup output.
-_RAW_SKIP_AUTH: bool = os.getenv("SKIP_AUTH", "false").lower() in ("1", "true", "yes")
-_ENV_NAME: str = os.getenv("ENV", os.getenv("ENVIRONMENT", "")).strip().lower()
-_IS_NON_PROD_ENV: bool = _ENV_NAME in ("", "dev", "development", "local", "test", "testing")
-_INSECURE_OVERRIDE: bool = (
-    os.getenv("ALLOW_INSECURE_SKIP_AUTH", "false").lower() in ("1", "true", "yes")
-)
-SKIP_AUTH: bool = _RAW_SKIP_AUTH and (_IS_NON_PROD_ENV or _INSECURE_OVERRIDE)
+class AuthError(Exception):
+    """Raised when Supabase JWT validation fails."""
 
-if _RAW_SKIP_AUTH and not SKIP_AUTH:
-    logger.error(
-        "🚨 [AUTH] SKIP_AUTH=true ignored because ENV=%r looks like production. "
-        "Set ALLOW_INSECURE_SKIP_AUTH=true to override (DO NOT do this in prod).",
-        _ENV_NAME or "<unset>",
-    )
-elif SKIP_AUTH:
-    logger.warning(
-        "⚠️ [AUTH] SKIP_AUTH active (ENV=%r). All requests will be treated as DEV_USER_ID.",
-        _ENV_NAME or "<unset>",
-    )
 
-DEV_USER_ID: str = os.getenv("DEV_USER_ID", "a0778b19-548f-47df-8413-296307566d0f")
+def decode_supabase_jwt(token: str) -> str:
+    """Decode a Supabase JWT and return the auth user UUID (``sub``)."""
+    e = env()
+    if not e.supabase_jwt_secret:
+        raise AuthError("SUPABASE_JWT_SECRET not configured")
+    try:
+        from jose import jwt
+
+        claims = jwt.decode(
+            token,
+            e.supabase_jwt_secret,
+            algorithms=["HS256"],
+            audience="authenticated",
+            options={"verify_aud": True},
+        )
+        sub = claims.get("sub")
+        if not sub:
+            raise AuthError("JWT missing sub claim")
+        return str(sub)
+    except Exception as exc:  # noqa: BLE001
+        raise AuthError(f"JWT decode failed: {exc}") from exc
+
+
+async def authenticate_websocket(websocket: WebSocket) -> Optional[str]:
+    """Return the Supabase auth UUID, or close the socket and return None."""
+    e = env()
+
+    auth_header = websocket.headers.get("authorization") or websocket.headers.get("Authorization")
+    if auth_header and auth_header.lower().startswith("bearer "):
+        token = auth_header[len("Bearer "):].strip()
+        try:
+            uid = decode_supabase_jwt(token)
+            await websocket.accept()
+            logger.info("[auth] header JWT accepted uid=%.8s", uid)
+            return uid
+        except AuthError as exc:
+            logger.warning("[auth] header JWT rejected: %s", exc)
+
+    await websocket.accept()
+
+    timeout_s = e.auth_frame_timeout_skip_auth_s if e.skip_auth_effective else e.auth_frame_timeout_s
+    first: Optional[dict] = None
+    try:
+        raw = await asyncio.wait_for(websocket.receive_json(), timeout=timeout_s)
+        if isinstance(raw, dict):
+            first = raw
+    except asyncio.TimeoutError:
+        if e.skip_auth_effective:
+            logger.warning(
+                "[auth] SKIP_AUTH: no auth frame within %.0fs — using DEV_USER_ID",
+                timeout_s,
+            )
+            return e.dev_user_id
+        logger.warning("[auth] auth frame timeout after %.0fs — closing connection", timeout_s)
+        await websocket.send_json({"type": "auth_error", "code": 4001, "message": "Authentication required"})
+        await websocket.close(code=4001)
+        return None
+    except WebSocketDisconnect:
+        logger.info("[auth] client disconnected during auth handshake")
+        return None
+    except Exception as exc:  # noqa: BLE001
+        if e.skip_auth_effective:
+            logger.warning("[auth] SKIP_AUTH: first-message read failed (%s) — using DEV_USER_ID", exc)
+            return e.dev_user_id
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return None
+
+    if first and first.get("type") == "auth":
+        token = (first.get("token") or "").strip()
+        if token:
+            try:
+                uid = decode_supabase_jwt(token)
+                logger.info("[auth] first-message JWT accepted uid=%.8s", uid)
+                return uid
+            except AuthError as exc:
+                logger.warning("[auth] first-message JWT rejected: %s", exc)
+        else:
+            logger.debug("[auth] auth frame received but token is empty")
+    elif first:
+        logger.warning(
+            "[auth] unexpected first frame type=%r — message consumed, client should send auth first",
+            first.get("type"),
+        )
+
+    if e.skip_auth_effective:
+        logger.warning("[auth] SKIP_AUTH active — using DEV_USER_ID=%.8s", e.dev_user_id)
+        return e.dev_user_id
+
+    logger.warning("[auth] authentication failed — closing connection")
+    await websocket.send_json({"type": "auth_error", "code": 4001, "message": "Authentication required"})
+    await websocket.close(code=4001)
+    return None
 
 
 async def validate_user_token(
@@ -55,9 +129,10 @@ async def validate_user_token(
         HTTPException 401 – missing / invalid / expired token.
         HTTPException 500 – auth service unavailable (Supabase not initialised).
     """
-    if SKIP_AUTH:
+    e = env()
+    if e.skip_auth_effective:
         logger.warning("⚠️ [AUTH] SKIP_AUTH enabled – bypassing token validation (local dev)")
-        return DEV_USER_ID
+        return e.dev_user_id
 
     if not authorization:
         logger.error("❌ [AUTH] No authorization header provided")

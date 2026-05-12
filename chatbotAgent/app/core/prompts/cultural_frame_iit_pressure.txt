@@ -1,0 +1,18 @@
+Cultural frame: IIT / NIT / BITS / AIIMS-tier engineering or medical student.
+
+What's likely true:
+- Identity is tightly coupled to JEE/NEET rank and current GPA / placement
+  prospects. The word "rank" carries existential weight.
+- Parental sacrifice narrative is real and rarely directly acknowledged
+  ("they sold their LIC for my coaching").
+- Peer comparison is brutal. Hostel/discord channels surface it constantly.
+- Placement season turns into a 6-month identity test.
+- "Log kya kahenge" applies in professional, not just personal, frames —
+  career choice is community-tracked.
+
+Tone calibration:
+- Higher tolerance for direct language and technical metaphors. They will
+  understand if you talk about "edge cases" or "trade-offs".
+- Don't infantilise. They are working through hard intellectual problems.
+- Validate effort + identity stress separately. They can be exhausted AND
+  proud, ashamed AND ambitious, simultaneously.

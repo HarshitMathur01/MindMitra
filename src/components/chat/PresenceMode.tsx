@@ -5,9 +5,9 @@
  * mounts the existing TalkingHeadAvatar inside a calm bust-shot frame,
  * and provides a clean entry/exit transition. Mic, VAD, subtitles,
  * sentence-streaming, emotion indicators, PiP, and safety overlay are
- * added in Phases 2-4 (tracked in CITATIONS.md and the in-repo plan).
+ * added in Phases 2-4 (tracked in docs/research/CITATIONS.md and the in-repo plan).
  *
- * Design references applied here (see CITATIONS.md):
+ * Design references applied here (see docs/research/CITATIONS.md):
  *   - JMIR (2025) PMC12007843 — animation features ↑ trust → invest in
  *     a clean full-screen mount rather than a windowed avatar.
  *   - JMIR Scoping Review 2017 — face-to-face activation of social
@@ -139,7 +139,7 @@ const PresenceMode = ({
 
                         cameraView="upper" produces the bust-shot framing
                         used by therapeutic ECA studies (face + shoulders
-                        visible) — see CITATIONS.md JMIR scoping review. */}
+                        visible) — see docs/research/CITATIONS.md JMIR scoping review. */}
                     <div className="absolute inset-0 z-10 flex items-end sm:items-center justify-center pointer-events-none">
                         <div className="relative h-full w-full pointer-events-auto">
                             <TalkingHeadAvatar
@@ -158,7 +158,7 @@ const PresenceMode = ({
 
                         Showing what's being heard reduces anxiety about
                         being misunderstood (frequent complaint in voice-
-                        first mental-health UX studies — CITATIONS.md
+                        first mental-health UX studies — docs/research/CITATIONS.md
                         IJERT 2024). Showing what the avatar said in
                         parallel (subtitles) addresses voice-fatigue and
                         accessibility for hearing-impaired users (WCAG). */}
@@ -219,7 +219,7 @@ const PresenceMode = ({
                     </div>
 
                     {/* Safety overlay — Phase 4 (Stanley-Brown SPI; see
-                        CITATIONS.md). Always one tap away. */}
+                        docs/research/CITATIONS.md). Always one tap away. */}
                     <PresenceSafetyOverlay />
                 </motion.div>
             )}

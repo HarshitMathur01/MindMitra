@@ -8,9 +8,11 @@
 node_modules/
 dist/
 dist-ssr/
+.tools/
 *.local
 .vite/
 .vercel/
+vite.config.ts.timestamp-*.mjs
 
 # Logs
 logs/
@@ -100,6 +102,7 @@ chatbotAgent/mindmitra-tts-7909061416cd.json
 # Database & User Data
 # ─────────────────────────────────────────────────────────────
 chatbotAgent/user_contexts/
+supabase/.temp/
 *.db
 *.sqlite
 *.sqlite3

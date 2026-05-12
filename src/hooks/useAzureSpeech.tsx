@@ -69,6 +69,7 @@ interface UseAzureSpeechReturn {
   voiceMetrics: VoiceMetrics | null;
   error: string | null;
   noMatchCount: number;
+  lastTranscriptAt: number | null;
   /** Pass a noise-suppressed MediaStream to use PushStream mode (preferred).
    *  If omitted, falls back to fromDefaultMicrophoneInput(). */
   startRecognition: (sharedStream?: MediaStream) => Promise<void>;
@@ -182,6 +183,7 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
   const [voiceMetrics, setVoiceMetrics] = useState<VoiceMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noMatchCount, setNoMatchCount] = useState(0);
+  const [lastTranscriptAt, setLastTranscriptAt] = useState<number | null>(null);
 
   const recognizerRef = useRef<any>(null);
   const wordsRef = useRef<WordData[]>([]);
@@ -234,6 +236,7 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
       setInterimTranscript('');
       setVoiceMetrics(null);
       setNoMatchCount(0);
+      setLastTranscriptAt(null);
       wordsRef.current = [];
       finalTranscriptRef.current = '';
       noMatchCountRef.current = 0;
@@ -261,6 +264,9 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
       speechConfig.setProperty(
         'SpeechServiceConnection_EndSilenceTimeoutMs', '2000',
       );
+      // Bound graceful stop so UI cannot remain in "processing" forever if
+      // the browser SDK/service is slow to finish an open recognition session.
+      speechConfig.setProperty('Recognizer_StopTimeoutMs', '5000');
 
       // ── Dictation mode: treats natural speech pauses as continuation ──────
       speechConfig.enableDictation();
@@ -331,6 +337,7 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
       recognizer.recognizing = (_s, e) => {
         if (e.result.reason === SpeechSDK.ResultReason.RecognizingSpeech) {
           setInterimTranscript(e.result.text);
+          if (e.result.text?.trim()) setLastTranscriptAt(Date.now());
         }
       };
 
@@ -341,6 +348,7 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
           finalTranscriptRef.current += (finalTranscriptRef.current ? ' ' : '') + text;
           setTranscript(finalTranscriptRef.current);
           setInterimTranscript('');
+          if (text.trim()) setLastTranscriptAt(Date.now());
 
           // Extract word-level timestamps + confidence from Azure JSON
           try {
@@ -438,15 +446,21 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
       };
 
       // ── Start continuous recognition ──────────────────────────────────────
-      recognizer.startContinuousRecognitionAsync(
-        () => console.log('🎤 [AzureSpeech] Continuous recognition started'),
-        (err) => {
-          console.error('❌ [AzureSpeech] Failed to start:', err);
-          setError(`Failed to start recognition: ${err}`);
-          setIsListening(false);
-          _teardownAudioPipeline();
-        },
-      );
+      await new Promise<void>((resolve, reject) => {
+        recognizer.startContinuousRecognitionAsync(
+          () => {
+            console.log('🎤 [AzureSpeech] Continuous recognition started');
+            resolve();
+          },
+          (err) => {
+            console.error('❌ [AzureSpeech] Failed to start:', err);
+            setError(`Failed to start recognition: ${err}`);
+            setIsListening(false);
+            _teardownAudioPipeline();
+            reject(new Error(String(err)));
+          },
+        );
+      });
 
     } catch (err: any) {
       console.error('❌ [AzureSpeech] Setup error:', err);
@@ -454,7 +468,7 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
       setIsListening(false);
       _teardownAudioPipeline();
     }
-  }, [azureKey, azureRegion, _teardownAudioPipeline]);
+  }, [azureKey, azureRegion, sttLocale, _teardownAudioPipeline]);
 
   const stopRecognition = useCallback((): Promise<string> => {
     return new Promise((resolve) => {
@@ -465,23 +479,53 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
         return;
       }
 
-      resolveStopRef.current = resolve;
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        resolveStopRef.current = null;
+        resolve(finalTranscriptRef.current);
+      };
+      const stopTimeout = window.setTimeout(() => {
+        console.warn('⚠️ [AzureSpeech] Stop watchdog fired; resolving with latest transcript');
+        try {
+          recognizer.close();
+        } catch (_) { /* ignore */ }
+        recognizerRef.current = null;
+        setIsListening(false);
+        _teardownAudioPipeline();
+        finish();
+      }, 5500);
+
+      resolveStopRef.current = () => {
+        window.clearTimeout(stopTimeout);
+        finish();
+      };
 
       recognizer.stopContinuousRecognitionAsync(
         () => {
           console.log('🛑 [AzureSpeech] Recognition stopped');
-          recognizer.close();
+          window.clearTimeout(stopTimeout);
+          try {
+            recognizer.close();
+          } catch (_) { /* ignore */ }
           recognizerRef.current = null;
+          setIsListening(false);
           // Audio pipeline teardown also happens in sessionStopped event,
           // but call it here too in case sessionStopped doesn't fire.
           _teardownAudioPipeline();
+          finish();
         },
         (err) => {
           console.error('❌ [AzureSpeech] Stop error:', err);
-          recognizer.close();
+          window.clearTimeout(stopTimeout);
+          try {
+            recognizer.close();
+          } catch (_) { /* ignore */ }
           recognizerRef.current = null;
+          setIsListening(false);
           _teardownAudioPipeline();
-          resolve(finalTranscriptRef.current);
+          finish();
         },
       );
     });
@@ -495,6 +539,7 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
     voiceMetrics,
     error,
     noMatchCount,
+    lastTranscriptAt,
     startRecognition,
     stopRecognition,
   };

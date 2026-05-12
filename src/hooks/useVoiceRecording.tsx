@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAzureSpeech, type VoiceMetrics } from '@/hooks/useAzureSpeech';
@@ -96,7 +96,8 @@ async function blobToWavBase64(blob: Blob): Promise<string | null> {
 function buildVoiceAnalysis(
   metrics: VoiceMetrics | null,
   transcript: string,
-  source: 'azure_speech_sdk' | 'groq_whisper_fallback'
+  source: 'azure_speech_sdk' | 'groq_whisper_fallback',
+  language: string,
 ): VoiceAnalysis {
   const text = transcript.toLowerCase();
   const hindiWords = ['yaar', 'bhai', 'didi', 'beta', 'bas', 'kya', 'hai', 'achha', 'theek', 'nahi', 'haan', 'matlab'];
@@ -106,7 +107,7 @@ function buildVoiceAnalysis(
     // Fallback transcript — no Azure word-level metrics available
     return {
       source,
-      language: 'en-IN',
+      language,
       speech_rate_wpm: null,
       speech_rate_category: null,
       avg_pause_duration_ms: null,
@@ -129,7 +130,7 @@ function buildVoiceAnalysis(
 
   return {
     source,
-    language: 'en-IN',
+    language,
     speech_rate_wpm: metrics.speechRate,
     speech_rate_category: metrics.speechRateCategory,
     avg_pause_duration_ms: metrics.avgPauseDuration,
@@ -156,6 +157,8 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
   const [lastVoiceAnalysis, setLastVoiceAnalysis] = useState<VoiceAnalysis | null>(null);
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [hasTranscript, setHasTranscript] = useState(false);
+  const [lastTranscriptAt, setLastTranscriptAt] = useState<number | null>(null);
   
   const azure = useAzureSpeech(sttLocale);
 
@@ -206,7 +209,11 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
         micStreamRef.current = stream;
       }
       audioChunksRef.current = [];
-      const recorder = new MediaRecorder(micStream, { mimeType: 'audio/webm;codecs=opus' });
+      const preferredMime = 'audio/webm;codecs=opus';
+      const recorderOptions = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(preferredMime)
+        ? { mimeType: preferredMime }
+        : undefined;
+      const recorder = new MediaRecorder(micStream, recorderOptions);
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
@@ -262,6 +269,9 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
   // transcript despite audio being captured.  Sends the WAV
   // base64 to the backend /transcribe endpoint which uses
   // whisper-large-v3-turbo for noise-robust transcription.
+  // The route is authenticated; we attach the Supabase JWT so
+  // the MHA stack can resolve the user the same way as the chat
+  // WebSocket does.
   // ═══════════════════════════════════════════════════════════
   const transcribeWithWhisper = useCallback(async (audioData: string): Promise<string> => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -271,10 +281,24 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
     }
     try {
       console.log('🔄 [WHISPER] Azure returned empty — trying Groq Whisper fallback...');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) {
+          headers.Authorization = `Bearer ${data.session.access_token}`;
+        }
+      } catch {
+        // ignore — backend will refuse with 401 if auth is required.
+      }
       const res = await fetch(`${backendUrl}/transcribe`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audio_data: audioData }),
+        headers,
+        body: JSON.stringify({
+          audio_data: audioData,
+          language: sttLocale.split(/[-_]/, 1)[0],
+          locale: sttLocale,
+        }),
       });
       if (!res.ok) {
         const errText = await res.text().catch(() => 'unknown');
@@ -293,7 +317,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
       console.error('❌ [WHISPER] Fallback request failed:', err);
       return '';
     }
-  }, []);
+  }, [sttLocale]);
 
   // ═══════════════════════════════════════════════════════════
   // Start recording — Azure SDK primary, Whisper fallback
@@ -305,6 +329,8 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
     try {
       setCurrentTranscript('');
       setRecordingDuration(0);
+      setHasTranscript(false);
+      setLastTranscriptAt(null);
 
       // Start duration counter
       durationIntervalRef.current = setInterval(() => {
@@ -341,12 +367,6 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
         await azure.startRecognition(sharedStream);
         setIsRecording(true);
 
-        // Auto-stop after 60 seconds
-        timeoutRef.current = setTimeout(() => {
-          console.log('⏰ [VOICE] Auto-stopping after 60 seconds');
-          stopRecording();
-        }, 60000);
-
         toast({
           title: "🎤 Recording Started",
           description: "Speak naturally. Click the mic button when you're done.",
@@ -369,7 +389,19 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
     } catch (error: any) {
       console.error('❌ [VOICE] Failed to start:', error);
       clearTimers();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (_) { /* ignore */ }
+      }
+      micStreamRef.current?.getTracks().forEach(t => t.stop());
+      micStreamRef.current = null;
+      audioChunksRef.current = [];
+      usingAzureRef.current = false;
       setIsRecording(false);
+      setIsProcessing(false);
+      setHasTranscript(false);
+      setLastTranscriptAt(null);
       toast({
         title: "❌ Recording Failed",
         description: error.message,
@@ -437,7 +469,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
 
       if (finalTranscript.trim()) {
         // Build unbiased voice analysis from raw metrics
-        const voiceAnalysis = buildVoiceAnalysis(metrics, finalTranscript, source);
+        const voiceAnalysis = buildVoiceAnalysis(metrics, finalTranscript, source, sttLocale);
         setLastVoiceAnalysis(voiceAnalysis);
         console.log('📊 [VOICE] Voice analysis (raw, unbiased):', voiceAnalysis);
 
@@ -493,6 +525,8 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
         setIsProcessing(false);
         setCurrentTranscript('');
         setRecordingDuration(0);
+        setHasTranscript(false);
+        setLastTranscriptAt(null);
 
         toast({
           title: "✅ Recording Complete",
@@ -505,6 +539,8 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
         setIsProcessing(false);
         setCurrentTranscript('');
         setRecordingDuration(0);
+        setHasTranscript(false);
+        setLastTranscriptAt(null);
         
         toast({
           title: "⚠️ No Speech Detected",
@@ -521,15 +557,23 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
       setIsRecording(false);
       setCurrentTranscript('');
       setRecordingDuration(0);
+      setHasTranscript(false);
+      setLastTranscriptAt(null);
       return { transcript: '', voiceAnalysis: null, audioData: null, success: false };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [azure, toast, clearTimers, stopMediaRecorder, transcribeWithWhisper]);
+  }, [azure, toast, clearTimers, stopMediaRecorder, transcribeWithWhisper, sttLocale]);
 
   // Sync Azure live transcript to currentTranscript
   // (Web Speech updates are done in onresult callback)
   const azureFullTranscript = azure.transcript + (azure.interimTranscript ? ' ' + azure.interimTranscript : '');
   const effectiveTranscript = usingAzureRef.current ? azureFullTranscript : currentTranscript;
+
+  useEffect(() => {
+    if (!isRecording) return;
+    if (!effectiveTranscript.trim()) return;
+    setHasTranscript(true);
+    setLastTranscriptAt(azure.lastTranscriptAt ?? Date.now());
+  }, [azure.lastTranscriptAt, effectiveTranscript, isRecording]);
 
   // Toggle recording
   const toggleRecording = useCallback(async (sessionId?: string, messageId?: string) => {
@@ -566,6 +610,8 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
     setIsProcessing(false);
     setCurrentTranscript('');
     setRecordingDuration(0);
+    setHasTranscript(false);
+    setLastTranscriptAt(null);
 
     toast({
       title: "❌ Recording Cancelled",
@@ -581,6 +627,10 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
     lastVoiceAnalysis,
     currentTranscript: effectiveTranscript,
     recordingDuration,
+    hasTranscript,
+    lastTranscriptAt,
+    azureError: azure.error,
+    noMatchCount: azure.noMatchCount,
     startRecording,
     stopRecording,
     toggleRecording,

@@ -1,6 +1,3 @@
-/* ── Google Font for Devanagari ──────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap');
-
 .mm-devanagari,
 .mm-devanagari * {
     font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;

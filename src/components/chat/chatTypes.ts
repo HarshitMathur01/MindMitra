@@ -25,13 +25,6 @@ export type RecentChatPreview = {
     messageCount: number;
 };
 
-/** Parsed `data: {...}` lines from the chat SSE stream */
-export type ChatSsePayload = {
-    chunk?: string;
-    message?: string;
-    error?: string;
-};
-
 export type MoodOption = {
     emoji: string;
     label: string;

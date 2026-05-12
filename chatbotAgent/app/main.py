@@ -1,119 +1,401 @@
 """
-app/main.py — Slim FastAPI factory.
+app/main.py — FastAPI factory for the MindMitra backend.
 
-Build order (critical for Railway health checks):
-  1. Create FastAPI app
-  2. Register /health immediately
-  3. Decode Google credentials (if base64)
-  4. Add CORS middleware
-  5. Include routers
-  6. Startup event: log env-var status
+This file is the deploy entrypoint Railway / Uvicorn import. The chat surface
+lives behind simple HTTP ``POST /chat`` (see ``app/api/chat_ws.py``). The
+legacy SSE chat / ``MITRA v2`` pipeline has been removed.
+
+Build order is intentional — health must be reachable before any heavy
+import so Railway's startup probes don't time out.
+
+Routers registered:
+
+* ``GET  /health``                  — Railway healthcheck
+* ``POST /chat``                    — request/response chat (Layer 1..8 pipeline)
+* ``POST /onboarding``              — 3-turn onboarding flow
+* ``POST /transcribe``              — Groq Whisper STT for voice input
+* ``POST /admin/crisis-templates/{id}/approve`` — 2-approver governance
+* ``/therapist-bridge/*``           — separate product feature (clinician handoff)
 """
+
+# LIVE REQUEST PATH MAP (audit: MHA chat HTTP)
+#
+# Process boot:
+#   app.main
+#     -> load dotenv from chatbotAgent/.env
+#     -> app.core.logging.configure_logging()
+#     -> FastAPI(lifespan=lifespan)
+#     -> request_logging_middleware for HTTP routes only
+#     -> include health, chat, onboarding, audio, admin,
+#        and therapist-bridge routers
+#
+# Lifespan startup:
+#   app.core.monitoring.init_sentry()
+#   app.core.env.env()
+#   app.services.session_service.verify_keyspace_notifications()
+#     -> app.core.connections.get_redis()
+#   if keyspace notifications are enabled:
+#     session_service.keyspace_listener(_on_expired)
+#   else:
+#     session_service.expiry_sweep(_on_expired)
+#   _on_expired(user_id, session_id)
+#     -> app.jobs.session_end_worker.handle_session_end()
+#
+# Live HTTP chat path for a user message:
+#   POST /chat
+#     -> app.api.chat_ws.chat_http()
+#     -> app.core.env.env()
+#     -> app.core.auth.decode_supabase_jwt()
+#        -> decode Supabase JWT with SUPABASE_JWT_SECRET, or dev SKIP_AUTH
+#     -> app.services.profile_service.ensure_user_row()
+#     -> app.services.session_service.session_startup()
+#        -> load/resume Redis session, or create a new SessionObject
+#        -> parallel profile loads:
+#           profile_service.load_semantic_profile()
+#           profile_service.load_procedural_profile()
+#           profile_service.load_longitudinal()
+#           profile_service.fetch_most_recent_episodic()
+#     -> _process_turn()
+#        Layer 1: app.pipeline.ingestion.ingest_input()
+#        Dependency signal update: app.core.fallback.update_dependency_signals()
+#        Crisis pre-check: app.pipeline.crisis_bypass.crisis_bypass_check()
+#        Parallel L2:
+#          app.pipeline.signal_extraction.extract_signals()
+#          app.memory.embedding.get_or_compute_embedding()
+#        Fresh crisis check:
+#          app.pipeline.crisis_bypass.crisis_bypass_check()
+#        Layer 3: app.pipeline.orchestrator.run_orchestrator()
+#        Parallel L4/L5 partial:
+#          app.pipeline.memory_retrieval.retrieve_memory()
+#          app.pipeline.prompt_builder.build_partial_prompt()
+#        Layer 5 complete:
+#          app.pipeline.prompt_builder.build_full_prompt()
+#        Layer 6:
+#          app.pipeline.llm_core.generate_response()
+#          -> Azure / Groq / GLM clients from app.core.connections
+#        Layer 7:
+#          app.pipeline.safety_gate.run_safety_gate()
+#          -> optional llm_core.generate_safety_retry()
+#          -> app.core.fallback.select_static_fallback()
+#        Layer 8:
+#          append user + assistant turns to SessionObject
+#          app.services.session_service.save_session()
+#          fire-and-forget app.services.profile_service.write_audit_log()
+#          app.core.monitoring.posthog_event()
+#
+# Session-end path:
+#   explicit close hooks, Redis keyspace expiry, or sorted-set sweep
+#     -> app.jobs.session_end_worker.handle_session_end()
+#     -> session_service.acquire_session_end_lock()
+#     -> session_service.load_session()
+#     -> concurrently:
+#        profile_service.write_session_record()
+#        app.memory.episodic_write.generate_and_store_episodic()
+#        app.memory.semantic_write.extract_and_merge_semantic()
+#        app.memory.procedural_update.compute_procedural_ema()
+#        app.memory.longitudinal_update.update_trajectory()
+#     -> session_service.mark_session_ended()
+from __future__ import annotations
+
 import base64
-import logging
+import asyncio
 import os
+import socket
 import tempfile
 import time
 import uuid
 import warnings
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 warnings.filterwarnings("ignore", category=FutureWarning)
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _port_is_available(host: str, port: int) -> bool:
+    bind_host = "" if host in {"0.0.0.0", "::"} else host
+    family = socket.AF_INET6 if ":" in host and host != "0.0.0.0" else socket.AF_INET
+    try:
+        with socket.socket(family, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind((bind_host, port))
+        return True
+    except OSError:
+        return False
 
 from dotenv import load_dotenv
 
 _DOTENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+_RUNTIME_ENV_OVERRIDES = {
+    key: value
+    for key in ("PORT", "HOST", "UVICORN_RELOAD")
+    if (value := os.getenv(key))
+}
 if _DOTENV_PATH.exists():
-    load_dotenv(dotenv_path=_DOTENV_PATH, override=False)
+    load_dotenv(dotenv_path=_DOTENV_PATH, override=True)
 else:
     load_dotenv()
+os.environ.update(_RUNTIME_ENV_OVERRIDES)
 
-# ── logging must be first ──────────────────────────────────────────────────
-from app.core.logging import configure_logging, request_id_var  # noqa: E402 (must be early)
+# Logging must be configured before any other app import.
+from app.core.logging import configure_logging, get_logger, log_context, request_id_var  # noqa: E402
 
 configure_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, layer="startup")
 
-# ── FastAPI app ────────────────────────────────────────────────────────────
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
+if __name__ == "__main__":
+    _early_port = int(os.getenv("PORT", 8000))
+    _early_host = os.getenv("HOST", "0.0.0.0")
+    if not _port_is_available(_early_host, _early_port):
+        logger.error(
+            "backend port already in use",
+            extra=log_context(
+                host=_early_host,
+                port=_early_port,
+                consequence="stop_existing_backend_or_choose_a_different_PORT",
+            ),
+        )
+        raise SystemExit(f"Port {_early_port} is already in use. Stop the old backend process or set PORT to another value.")
+
+# Heavy imports come after cheap env + port validation for the dev entrypoint.
+from fastapi import FastAPI, Request  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 
+async def _startup_check(label: str, check, *, consequence: str, timeout_s: float = 2.0) -> tuple[str, bool, float, str]:
+    started = time.perf_counter()
+    try:
+        result = await asyncio.wait_for(_maybe_await(check()), timeout=timeout_s)
+        ok = bool(result)
+        detail = "connected" if ok else consequence
+    except Exception as exc:  # noqa: BLE001
+        ok = False
+        detail = f"{consequence} ({type(exc).__name__})"
+    return label, ok, (time.perf_counter() - started) * 1000, detail
+
+
+async def _maybe_await(value):
+    if hasattr(value, "__await__"):
+        return await value
+    return value
+
+
+async def _log_startup_report() -> None:
+    from app.core.env import env as _env, validate_required_env
+
+    ok_env, missing_env, prefixes, optional_warnings = validate_required_env()
+    if not ok_env:
+        logger.error(
+            "required environment variables missing — refusing to start",
+            extra=log_context(missing=",".join(missing_env), outcome="startup_blocked"),
+        )
+        raise RuntimeError(f"Missing required environment variables: {', '.join(missing_env)}")
+
+    e = _env()
+
+    checks: list[tuple[str, bool, float, str]] = []
+    checks.extend(
+        [
+            ("Redis", bool(e.redis_url), 0.0, "configured; client initializes lazily"),
+            ("Supabase", bool(e.supabase_url and e.supabase_service_key), 0.0, "configured; client initializes lazily"),
+            ("Qdrant", bool(e.qdrant_url), 0.0, "configured; vector client initializes lazily"),
+            ("Azure OpenAI", bool(e.azure_endpoint and e.azure_api_key), 0.0, "configured; client initializes lazily"),
+            ("Groq", bool(e.groq_api_key), 0.0, "configured; client initializes lazily"),
+            ("Gemini", bool(e.gemini_api_key), 0.0, "configured; writer client initializes lazily"),
+            ("Embedding model", bool(e.embedding_model), 0.0, "configured; model loads on first retrieval"),
+        ]
+    )
+    logger.info("━━━━━━ MHA AGENT STARTING ━━━━━━", extra=log_context())
+    logger.info(
+        "environment validated",
+        extra=log_context(
+            key_prefixes={k: v for k, v in prefixes.items() if not k.endswith("_loaded_from")},
+            aliases={k: v for k, v in prefixes.items() if k.endswith("_loaded_from")},
+            outcome="required_present",
+        ),
+    )
+    for optional_name, warning in optional_warnings.items():
+        logger.warning(warning, extra=log_context(env_var=optional_name, consequence=warning))
+    logger.info("checking connections...", extra=log_context())
+    for label, ok, latency_ms, detail in checks:
+        marker = "✓" if ok else "✗"
+        logger.info(
+            f"{label:<15} {marker} {detail} ({latency_ms:.0f}ms)",
+            extra=log_context(component=label, ok=ok, latency_ms=latency_ms, consequence="none" if ok else detail),
+        )
+    logger.info(
+        "Crisis templates configured for lazy DB verification",
+        extra=log_context(component="crisis_templates", verification="lazy"),
+    )
+    logger.info(
+        "Fallback templates configured for lazy DB verification",
+        extra=log_context(component="fallback_templates", verification="lazy"),
+    )
+    logger.info("feature flags:", extra=log_context())
+    logger.info(f"psychoeducation_mode = {'ENABLED' if e.psychoeducation_enabled else 'DISABLED'}", extra=log_context())
+    logger.info(f"skill_coach_mode = {'ENABLED' if e.skill_coach_enabled else 'DISABLED'}", extra=log_context())
+    logger.info(f"counsellor_dashboard = {'ENABLED' if e.counsellor_dashboard_enabled else 'DISABLED'}", extra=log_context())
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", extra=log_context())
+    logger.info(f"MHA Agent ready on http://localhost:{os.getenv('PORT', '8000')}/chat", extra=log_context(outcome="ready"))
+
+
+async def _count_active_templates(table: str) -> int:
+    from app.core.connections import get_supabase
+
+    sb = get_supabase()
+    if sb is None:
+        return 0
+
+    def _query() -> int:
+        try:
+            resp = sb.table(table).select("id", count="exact").eq("active", True).limit(1).execute()
+            return int(getattr(resp, "count", 0) or 0)
+        except Exception:
+            return 0
+
+    return await asyncio.to_thread(_query)
+
+
+# ── lifespan ───────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup/shutdown lifecycle — replaces deprecated @app.on_event."""
-    logger.info("=" * 70)
-    logger.info("🚀 MindMitra v2 Backend Starting…")
-    logger.info(f"   PORT:                     {os.getenv('PORT', '8000')}")
-    logger.info(f"   LOG_LEVEL:                {os.getenv('LOG_LEVEL', 'INFO')}")
-    logger.info(f"   SKIP_AUTH:                {os.getenv('SKIP_AUTH', 'false')}")
-    logger.info(f"   GROQ_API_KEY:             {'✅' if os.getenv('GROQ_API_KEY') else '❌ Missing'}")
-    logger.info(f"   GOOGLE_API_KEY:           {'✅' if os.getenv('GOOGLE_API_KEY') else '❌ Missing'}")
-    logger.info(f"   ZAI_API_KEY:              {'✅' if os.getenv('ZAI_API_KEY') or os.getenv('ZHIPUAI_API_KEY') else '❌ Missing'}")
-    logger.info(f"   SUPABASE_URL:             {'✅' if os.getenv('SUPABASE_URL') else '❌ Missing'}")
-    logger.info(f"   SUPABASE_KEY:             {'✅' if os.getenv('SUPABASE_KEY') or os.getenv('SUPABASE_SERVICE_ROLE_KEY') else '❌ Missing'}")
-    logger.info(f"   QDRANT_HOST:              {os.getenv('QDRANT_HOST', '⚠️  Not set → localhost')}")
-    logger.info(f"   QDRANT_PORT:              {os.getenv('QDRANT_PORT', '6333 (default)')}")
-    logger.info(f"   QDRANT_COLLECTION:        {os.getenv('QDRANT_COLLECTION', 'companion_memories (default)')}")
-    logger.info(f"   ELEVENLABS_API_KEY:       {'✅' if os.getenv('ELEVENLABS_API_KEY') else '⚠️  Not set (gTTS fallback)'}")
-    logger.info(f"   GOOGLE_CREDENTIALS:       {'✅ base64' if os.getenv('GOOGLE_CREDENTIALS_BASE64') else ('✅ file' if os.getenv('GOOGLE_APPLICATION_CREDENTIALS') else '⚠️  Not set (gTTS fallback)')}")
-    logger.info(f"   OTEL_SERVICE_NAME:        {os.getenv('OTEL_SERVICE_NAME', '⚠️  Not set (spans no-op)')}")
-    logger.info("=" * 70)
+    from app.core.connections import install_async_client_cleanup_filter
 
-    # Lazy-initialise telemetry; safe even when opentelemetry-sdk is absent.
+    install_async_client_cleanup_filter()
+    await _log_startup_report()
+
+    # Monitoring (Sentry / PostHog) — safe no-ops when keys absent.
     try:
-        from app.core.telemetry import init_telemetry
-        init_telemetry()
-    except Exception as exc:  # noqa: BLE001
-        logger.info("telemetry init skipped: %s", exc)
+        from app.core.monitoring import init_sentry as _v3_init_sentry
 
-    # NOTE: Praat (parselmouth) is intentionally NOT imported here. Native
-    # libraries that may stall under macOS Gatekeeper or hold the GIL must
-    # never be loaded inside the FastAPI lifespan or the request hot path.
-    # See docs/MITRA.md → "Future Work" for the
-    # subprocess-based recipe to re-enable prosody safely.
+        _v3_init_sentry()
+    except Exception as exc:  # noqa: BLE001
+        logger.info("monitoring init skipped: %s", exc)
+
+    # Prewarm embedding model in a background thread so first-turn latency
+    # doesn't include ~1–3s model load time. Fire-and-forget; startup completes
+    # before warm-up finishes — the model is thread-safe once loaded.
+    try:
+        from app.core.connections import get_embedding_executor, get_embedding_model
+
+        def _prewarm_embedding() -> None:
+            m = get_embedding_model()
+            if m is not None:
+                m.encode("warm", show_progress_bar=False)
+                logger.info("embedding model warm-up complete", extra=log_context(outcome="prewarm_ok"))
+
+        import asyncio as _asyncio
+        _asyncio.get_event_loop().run_in_executor(get_embedding_executor(), _prewarm_embedding)
+        logger.info("embedding model warm-up started in background", extra=log_context(outcome="prewarm_started"))
+    except Exception as exc:  # noqa: BLE001
+        logger.info("embedding model pre-warm skipped; model loads lazily on first retrieval", extra=log_context(outcome="lazy_embedding_load", error=str(exc)))
+
+
+    # Start the Redis keyspace listener (or polling fallback) outside the
+    # startup critical path. Importing redis.asyncio can load jwt/cryptography
+    # and has been observed to block app startup on macOS.
+    try:
+        from app.core.env import env as _v3_env
+        from app.jobs import session_end_worker as _v3_session_end_worker
+        from app.services import session_service as _v3_session_service
+
+        if _v3_env().enabled:
+            async def _on_expired(user_id: str, session_id: str) -> None:
+                await _v3_session_end_worker.handle_session_end(user_id, session_id)
+
+            async def _start_session_expiry_worker() -> None:
+                try:
+                    await asyncio.wait_for(
+                        asyncio.to_thread(lambda: __import__("redis.asyncio")),
+                        timeout=2.0,
+                    )
+                    ok = await _v3_session_service.verify_keyspace_notifications()
+                    if not ok:
+                        logger.warning(
+                            "Redis keyspace notifications disabled — falling back to periodic expiry sweep",
+                            extra=log_context(consequence="session_end_may_run_up_to_60s_late"),
+                        )
+                        await _v3_session_service.expiry_sweep(_on_expired)
+                    else:
+                        await _v3_session_service.keyspace_listener(_on_expired)
+                except asyncio.CancelledError:
+                    raise
+                except TimeoutError:
+                    logger.warning(
+                        "Redis import timed out; session expiry worker disabled for this process",
+                        extra=log_context(consequence="disconnect_only_session_end"),
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "session expiry worker stopped",
+                        extra=log_context(exception_type=type(exc).__name__, consequence="disconnect_only_session_end"),
+                    )
+
+            app.state.session_expiry_task = asyncio.create_task(_start_session_expiry_worker())
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "session expiry listener failed to start",
+            extra=log_context(exception_type=type(exc).__name__, consequence="disconnect_only_session_end"),
+        )
 
     yield
 
+    # Cancel any background tasks at shutdown.
+    task = getattr(app.state, "session_expiry_task", None)
+    if task is not None and not task.done():
+        task.cancel()
+    try:
+        from app.core.connections import close_async_clients
 
-app = FastAPI(title="MindMitra Chatbot Agent", version="2.0.0", lifespan=lifespan)
+        await close_async_clients()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("async client shutdown cleanup failed: %s", exc)
 
 
+app = FastAPI(title="MindMitra Chatbot Agent", version="3.0.0", lifespan=lifespan)
+
+
+# ── request logging middleware ─────────────────────────────────────────────
 @app.middleware("http")
 async def request_logging_middleware(request: Request, call_next):
-    # Set request ID for tracing
     req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
     request_id_var.set(req_id)
-    
+
     start = time.perf_counter()
     logger.info(f"==> [START] {request.method} {request.url.path}")
-    
+
     try:
         response = await call_next(request)
         duration_ms = (time.perf_counter() - start) * 1000
         logger.info(
             f"<== [END] {request.method} {request.url.path} -> {response.status_code} ({duration_ms:.1f}ms)",
-            extra={"metrics": {"status_code": response.status_code, "duration_ms": round(duration_ms, 2)}}
+            extra={"metrics": {"status_code": response.status_code, "duration_ms": round(duration_ms, 2)}},
         )
         response.headers["X-Request-ID"] = req_id
         return response
-    except Exception as e:
+    except Exception as exc:  # noqa: BLE001
         duration_ms = (time.perf_counter() - start) * 1000
         logger.exception(
-            f"❌ [CRASH] {request.method} {request.url.path} -> 500 ({duration_ms:.1f}ms) | ERROR: {str(e)}",
-            extra={"metrics": {"status_code": 500, "duration_ms": round(duration_ms, 2)}}
+            f"❌ [CRASH] {request.method} {request.url.path} -> 500 ({duration_ms:.1f}ms) | ERROR: {exc}",
+            extra={"metrics": {"status_code": 500, "duration_ms": round(duration_ms, 2)}},
         )
         raise
 
-# ── CRITICAL: register /health BEFORE any heavy imports ───────────────────
-# keep a thin inline definition here as well so health works even if
-# the api.health module fails to import.
-from app.api.health import router as health_router
+
+# ── /health first ──────────────────────────────────────────────────────────
+from app.api.health import router as health_router  # noqa: E402
 
 app.include_router(health_router)
 
-# ── Google credentials (base64 → temp file, sets GOOGLE_APPLICATION_CREDENTIALS) ──
+
+# ── Google credentials passthrough (for any consumer that still uses gcloud) ─
 _GOOGLE_B64 = os.getenv("GOOGLE_CREDENTIALS_BASE64", "")
 _GOOGLE_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
 
@@ -124,55 +406,41 @@ if _GOOGLE_B64:
         _tmp.write(creds_json)
         _tmp.close()
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _tmp.name
-        logger.info(f"✅ [INIT] Google credentials decoded from GOOGLE_CREDENTIALS_BASE64 → {_tmp.name}")
-    except Exception as e:
-        logger.error(f"❌ [INIT] Failed to decode GOOGLE_CREDENTIALS_BASE64: {e}")
+        logger.info("✅ [INIT] Google credentials decoded → %s", _tmp.name)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("❌ [INIT] Failed to decode GOOGLE_CREDENTIALS_BASE64: %s", exc)
 elif _GOOGLE_PATH and os.path.exists(_GOOGLE_PATH):
-    logger.info(f"✅ [INIT] Google credentials loaded from file: {_GOOGLE_PATH}")
-else:
-    logger.warning("⚠️ [INIT] Google Cloud credentials not found — Google TTS will use gTTS fallback")
+    logger.info("✅ [INIT] Google credentials loaded from file: %s", _GOOGLE_PATH)
 
-# ── CORS ──────────────────────────────────────────────────────────────────
-default_cors_origins = [
-    "https://mindmitra.co.in",
-    "https://www.mindmitra.co.in",
-    "https://mindmitra-seven.vercel.app",
-    "http://localhost:8080",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:8000",
-]
 
-extra_cors_origins = [
-    origin.strip()
-    for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(",")
-    if origin.strip()
-]
+# ── CORS ───────────────────────────────────────────────────────────────────
+from app.core.env import env as _runtime_env  # noqa: E402
 
-cors_origins = list(dict.fromkeys(default_cors_origins + extra_cors_origins))
+_settings = _runtime_env()
+cors_origins = list(dict.fromkeys(_settings.cors_allow_origins + _settings.cors_extra_allow_origins))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https?://((localhost|127\.0\.0\.1)(:\d+)?|[a-z0-9-]+\.(ngrok-free\.app|ngrok\.app))$",
+    allow_origin_regex=_settings.cors_allow_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Include routers (after /health) ────────────────────────────────────────
-from app.api.chat import router as chat_router
-from app.api.onboarding import router as onboarding_router
-from app.api.therapist_bridge import router as therapist_bridge_router
-from app.api.me_memory import router as me_memory_router
 
-app.include_router(chat_router)
-app.include_router(onboarding_router)
+# ── routers (MHA is the main stack; therapist-bridge is a sibling feature) ─
+from app.api.therapist_bridge import router as therapist_bridge_router  # noqa: E402
+from app.api.admin import router as v3_admin_router  # noqa: E402
+from app.api.audio import router as v3_audio_router  # noqa: E402
+from app.api.chat_ws import router as v3_chat_router  # noqa: E402
+from app.api.onboarding import router as v3_onboarding_router  # noqa: E402
+
+app.include_router(v3_chat_router)
+app.include_router(v3_onboarding_router)
+app.include_router(v3_audio_router)
+app.include_router(v3_admin_router)
 app.include_router(therapist_bridge_router)
-app.include_router(me_memory_router)
-
-
 
 
 # ── Dev entrypoint ─────────────────────────────────────────────────────────
@@ -180,4 +448,28 @@ if __name__ == "__main__":
     import uvicorn
 
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, log_level="info",reload=True)
+    host = os.getenv("HOST", "0.0.0.0")
+    reload_enabled = _env_bool("UVICORN_RELOAD", False)
+    if not _port_is_available(host, port):
+        logger.error(
+            "backend port already in use",
+            extra=log_context(
+                host=host,
+                port=port,
+                consequence="stop_existing_backend_or_choose_a_different_PORT",
+            ),
+        )
+        raise SystemExit(f"Port {port} is already in use. Stop the old backend process or set PORT to another value.")
+
+    logger.info(
+        "starting uvicorn",
+        extra=log_context(host=host, port=port, reload=reload_enabled),
+    )
+    uvicorn.run(
+        "app.main:app" if reload_enabled else app,
+        host=host,
+        port=port,
+        log_level="info",
+        reload=reload_enabled,
+        reload_dirs=["app"] if reload_enabled else None,
+    )

@@ -87,7 +87,7 @@ export const detectSentiment = (text: string): string => {
 
 // ✅ EXPORTED - Transform backend response to avatar-compatible format
 export const transformToAvatarMessage = (backendResponse: any) => {
-  const text = backendResponse.message || backendResponse.text || backendResponse.content || "I'm here to help.";
+  const text = backendResponse.text || backendResponse.message || backendResponse.content || "I'm here to help.";
   
   devLog('🔄 [Transform] Backend response structure:', {
     hasMessage: 'message' in backendResponse,
@@ -99,6 +99,8 @@ export const transformToAvatarMessage = (backendResponse: any) => {
   devLog(`🔄 [Transform] Detected sentiment from text: "${detectedSentiment}"`);
   
   const avatarMsg = {
+    id: backendResponse.id || backendResponse.utteranceId,
+    utteranceId: backendResponse.utteranceId || backendResponse.id,
     text: text,
     animation: backendResponse.animation || (text.length > 0 ? "Talking_0" : "Idle"),
     facialExpression: backendResponse.facial_expression || detectedSentiment
@@ -160,7 +162,7 @@ export const ChatProvider = ({ children }) => {
 
     const textPreview = typeof messageContent === 'string'
       ? messageContent.substring(0, 100)
-      : (messageContent.message || messageContent.content || '').substring(0, 100);
+      : (messageContent.text || messageContent.message || messageContent.content || '').substring(0, 100);
 
     devLog('🎭 [Avatar Queue] Message preview:', textPreview);
     devLog('🎭 [Avatar Queue] Input type:', typeof messageContent);
@@ -186,7 +188,7 @@ export const ChatProvider = ({ children }) => {
       : messageContent;
     const text = typeof messageContent === 'string'
       ? messageContent
-      : (messageContent.message || messageContent.content || '');
+      : (messageContent.text || messageContent.message || messageContent.content || '');
     if (!text.trim()) return;
 
     const avatarMessage = transformToAvatarMessage(inputData);

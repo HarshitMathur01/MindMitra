@@ -17,7 +17,7 @@
  *       2. Talk to iCall now    → tel: link to vetted national helpline
  *   - "Resume" button to return to the conversation.
  *
- * Citations: see CITATIONS.md (Stanley-Brown SPI; JMIR ECA scoping review).
+ * Citations: see docs/research/CITATIONS.md (Stanley-Brown SPI; JMIR ECA scoping review).
  */
 
 import { useEffect, useRef, useState } from "react";

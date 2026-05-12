@@ -429,7 +429,7 @@ const GESTURE_COOLDOWN_MS = 4000;
  *   Layer 1 — Identity     (stable: set once via showAvatar)
  *   Layer 2 — Expression   (emotion changes via mood + baseline morphs)
  *   Layer 3 — Head Pose    (natural sway from TH + controlled gestures)
- *   Layer 4 — Lip Sync     (TH's built-in visemes + amplitude jaw scaling)
+ *   Layer 4 — Lip Sync     (owned by TalkingHead's built-in visemes)
  *
  * The layers NEVER interfere with each other — expression uses upper-face
  * morph targets, lip sync owns the mouth, head pose uses bone rotations.
@@ -452,6 +452,10 @@ class MindMitraBridge {
 
         // Amplitude data for current utterance
         this.amplitudeFrames = [];
+        // Disabled by default: TalkingHead already drives mouth/jaw from
+        // visemes. A second amplitude-based jaw writer can over-open or
+        // desynchronise RPM lips, especially with Azure word-boundary sync.
+        this.enableAmplitudeJawBoost = false;
 
         // Gesture state
         this._gestureActive = false;
@@ -478,7 +482,6 @@ class MindMitraBridge {
     init() {
         this._injectTherapeuticMoods();
         this._hookPerFrameUpdate();
-        console.log('[MindMitra] Bridge initialized — 6 therapeutic moods injected');
     }
 
     /**
@@ -558,8 +561,9 @@ class MindMitraBridge {
         // Build emotion timeline
         this.emotionTimeline = buildEmotionTimeline(emotionCues);
 
-        // Extract amplitude envelope if audio is provided
-        if (audioBuffer) {
+        // Keep amplitude analysis opt-in. Normal speech leaves mouth/jaw fully
+        // under TalkingHead's viseme control.
+        if (this.enableAmplitudeJawBoost && audioBuffer) {
             this.amplitudeFrames = this.amplitudeAnalyzer.extractFromAudioBuffer(audioBuffer);
         } else {
             this.amplitudeFrames = [];
@@ -727,7 +731,7 @@ class MindMitraBridge {
      * Called every animation frame by TalkingHead's render loop.
      * Handles:
      *   - Emotion timeline progression (Paper #2)
-     *   - Amplitude-based jaw scaling (Paper #1)
+     *   - Optional amplitude-based jaw scaling (disabled by default)
      *   - Gesture animation (Paper #6)
      */
     _perFrameUpdate(dt) {
@@ -750,11 +754,10 @@ class MindMitraBridge {
             }
         }
 
-        // ── Amplitude Jaw Scaling (Paper #1) ─────────────────
-        // Enhanced on top of TalkingHead's built-in volume effect.
-        // TH already amplifies vowel visemes and jawOpen by volume (talkinghead.mjs L2656-2670).
-        // We add extra amplitude-envelope-based scaling for pre-analyzed audio.
-        if (this.amplitudeFrames.length > 0 && this.state === 'speaking') {
+        // ── Optional Amplitude Jaw Scaling (Paper #1) ─────────
+        // Disabled in normal speech so it does not fight TalkingHead's
+        // viseme morphs. Enable only for a controlled experiment.
+        if (this.enableAmplitudeJawBoost && this.amplitudeFrames.length > 0 && this.state === 'speaking') {
             const elapsedSec = (now - this.responseStartTime) / 1000;
             const amp = this.amplitudeAnalyzer.getAmplitudeAtTime(
                 this.amplitudeFrames, elapsedSec

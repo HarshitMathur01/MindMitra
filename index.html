@@ -50,7 +50,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,300&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <!-- Devanagari support for Hindi copy that already appears in modals & disclaimers. -->
@@ -63,11 +63,6 @@
       href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Dancing+Script:wght@500;700&display=swap"
       rel="stylesheet"
     />
-
-    <!-- ═══════════════════════════════════════
-         AOS — Animate on Scroll (lightweight)
-    ═══════════════════════════════════════ -->
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
 
     <!-- ═══════════════════════════════════════
          Base Styles — smooth scroll + font
@@ -116,29 +111,10 @@
       }
     }
     </script>
-
-    <!-- Azure Speech SDK: official browser bundle only (never bundle npm package — breaks Vite prod). -->
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.48.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js"
-      id="azure-speech-sdk-bundle"
-    ></script>
   </head>
 
   <body>
     <div id="root"></div>
-
-    <!-- AOS Init -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-      AOS.init({
-        duration: 750,
-        easing: 'ease-in-out',
-        once: true,
-        offset: 80
-      });
-    </script>
-
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

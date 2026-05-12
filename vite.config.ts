@@ -1,8 +1,9 @@
-import { defineConfig } from "vite";
+import { defineConfig, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { existsSync, readdirSync } from "fs";
-import { componentTagger } from "lovable-tagger";
+import { createReadStream, createWriteStream, existsSync, readdirSync } from "fs";
+import { mkdir, readdir } from "fs/promises";
+import { pipeline } from "stream/promises";
 
 const avatarVideosModuleId = "virtual:avatar-backdrop-videos";
 const resolvedAvatarVideosModuleId = `\0${avatarVideosModuleId}`;
@@ -56,9 +57,9 @@ function avatarBackdropVideosPlugin() {
       if (id !== resolvedAvatarVideosModuleId) return null;
       return `export default ${JSON.stringify(readAvatarBackdropVideos())};`;
     },
-    configureServer(server) {
+    configureServer(server: ViteDevServer) {
       server.watcher.add(avatarVideosDir);
-      server.watcher.on("all", (_event, file) => {
+      server.watcher.on("all", (_event: string, file: string) => {
         const normalizedFile = path.normalize(file);
         if (!normalizedFile.startsWith(`${avatarVideosDir}${path.sep}`)) return;
         if (!avatarMediaPattern.test(normalizedFile)) return;
@@ -71,32 +72,109 @@ function avatarBackdropVideosPlugin() {
   };
 }
 
+function copyPublicAssetsPlugin() {
+  let publicDir = "";
+  let outDir = "";
+
+  async function copyDir(src: string, dest: string): Promise<void> {
+    if (!existsSync(src)) return;
+    await mkdir(dest, { recursive: true });
+
+    for (const entry of await readdir(src, { withFileTypes: true })) {
+      if (entry.name === ".DS_Store") continue;
+
+      const from = path.join(src, entry.name);
+      const to = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        await copyDir(from, to);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+
+      await mkdir(path.dirname(to), { recursive: true });
+      await pipeline(createReadStream(from), createWriteStream(to));
+    }
+  }
+
+  return {
+    name: "copy-public-assets-bytewise",
+    apply: "build" as const,
+    configResolved(config: { root: string; build: { outDir: string } }) {
+      publicDir = path.resolve(config.root, "public");
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
+    async writeBundle() {
+      await copyDir(publicDir, outDir);
+    },
+  };
+}
+
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ command }) => ({
+  cacheDir: "node_modules/.vite-mindmitra",
+  // Vite's default build-time public copy uses fs.copyFile, which can hang on
+  // macOS files carrying provenance xattrs. Dev still serves /public normally;
+  // production builds copy public assets byte-for-byte in the plugin below.
+  publicDir: command === "build" ? false : "public",
   server: {
+    // "::" = dual-stack loopback on macOS: responds to both localhost and
+    // 127.0.0.1 so the browser works regardless of how macOS resolves localhost.
+    // strictPort: true makes Vite fail fast if 8080 is taken instead of
+    // silently moving to 8081 while you keep hitting the wrong port.
     host: "::",
     port: 8080,
+    strictPort: true,
     allowedHosts: [
       "nonshrinkable-averie-unprovidently.ngrok-free.dev",
     ],
+    watch: {
+      ignored: [
+        "**/.git/**",
+        "**/.cursor/**",
+        "**/.pytest_cache/**",
+        "**/chatbotAgent/**",
+        "**/dist/**",
+        "**/docs/**",
+        "**/scripts/**",
+        "**/tests/**",
+        "**/supabase/**",
+        "**/src/sounds/**",
+        "**/src/pages/mindgym/forest/**",
+        "**/src/components/handcrafted_image/**",
+        "**/public/talkinghead/**",
+        "**/*.md",
+      ],
+    },
   },
   plugins: [
     avatarBackdropVideosPlugin(),
+    copyPublicAssetsPlugin(),
     react(),
-    mode === 'development' &&
-    componentTagger(),
   ].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: /^lucide-react$/, replacement: path.resolve(__dirname, "./src/lib/lucide-react.ts") },
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+    ],
   },
   optimizeDeps: {
-    // Only scan the real app entry points — prevents Vite from crawling
-    // public/talkinghead.html which uses an import-map bare specifier
-    // ("talkinghead") that Vite cannot resolve as an npm package.
-    entries: ["index.html", "src/**/*.{ts,tsx,js,jsx}"],
-
+    // Keep dev startup bounded. A broad `src/**/*` glob makes Vite crawl
+    // every lazy route and tool before the server is ready.
+    entries: ["index.html"],
+    include: [
+      "react",
+      "react-dom/client",
+      "react/jsx-runtime",
+      "react-router-dom",
+      "@tanstack/react-query",
+      "@supabase/supabase-js",
+      "framer-motion",
+      "react-helmet-async",
+    ],
+    // We alias lucide-react to a local selective facade below; excluding the
+    // package prevents Vite's optimizer from crawling the upstream all-icons
+    // barrel during the first browser request.
+    exclude: ["lucide-react", "jspdf", "recharts", "react-confetti", "mixpanel-browser"],
   },
   build: {
     // Cap the inlined-asset size so we don't bloat HTML with base64
@@ -107,6 +185,9 @@ export default defineConfig(({ mode }) => ({
     // vendor splits below; bump it modestly so the warning catches
     // *real* regressions only.
     chunkSizeWarningLimit: 600,
+    // Avoid spending extra time gzipping every emitted chunk during local and
+    // CI builds. Real compression is handled by the deploy/CDN layer.
+    reportCompressedSize: false,
     rollupOptions: {
       output: {
         // ── Manual vendor chunking ──────────────────────────────────────

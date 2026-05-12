@@ -156,7 +156,7 @@ export function HeroVideo({
           onLoadedData={() => setLoaded(true)}
           onError={() => setFailed(true)}
           className={cn(
-            "pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-center transition-opacity duration-[600ms] ease-out",
+            "pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-center transition-opacity duration-600 ease-out",
             loaded ? "opacity-100" : "opacity-0",
           )}
         >

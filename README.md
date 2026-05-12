@@ -8,7 +8,7 @@ This README is intentionally concise. Deep technical behavior is documented unde
 
 - Conversational AI companion with personality modes
 - Crisis-aware routing and safety-first responses
-- Streaming chat responses (SSE)
+- HTTP chat request/response through the MHA v3 pipeline
 - Cross-session memory and continuity
 - Voice input support and avatar metadata output
 - Therapeutic game/activity context integration
@@ -30,7 +30,7 @@ npm install
 npm run dev
 ```
 
-Create `.env.local` with at least:
+Create `.env.local` or `.env` with at least:
 
 ```env
 VITE_BACKEND_URL=http://localhost:8000
@@ -54,10 +54,9 @@ Run local vector DB (if needed):
 docker run -d -p 6333:6333 qdrant/qdrant
 ```
 
-Start backend (MITRA v2 requires the stack flag):
+Start backend:
 
 ```bash
-export MITRA_STACK_ENABLED=1
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -90,6 +89,8 @@ MindMitra/
 - **Platform:** [`docs/platform.md`](docs/platform.md) — runbook, memory v2, Qdrant  
 - **Product:** [`docs/product.md`](docs/product.md) — MindGym, bridge, analytics  
 - **API:** [`docs/api_contracts.md`](docs/api_contracts.md) · **AI context:** [`CLAUDE.md`](CLAUDE.md)
+- **Research:** [`docs/research/CITATIONS.md`](docs/research/CITATIONS.md)
+- **Product brief:** [`docs/product_problem_solution.md`](docs/product_problem_solution.md)
 
 ## Notes
 

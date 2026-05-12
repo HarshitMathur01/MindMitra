@@ -427,7 +427,7 @@ function BalloonItem({
         style={{
           background: `radial-gradient(circle at 30% 30%, hsl(${b.hue} 95% 85%), hsl(${b.hue} 85% 65%))`,
           boxShadow: `0 10px 20px hsl(${b.hue} 80% 70% / 0.35)`,
-          // @ts-ignore
+          // @ts-expect-error CSS custom property for balloon sway animation.
           "--sway": swayDur,
         }}
       >

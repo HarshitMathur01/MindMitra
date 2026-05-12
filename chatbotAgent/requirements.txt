@@ -17,9 +17,6 @@ python-multipart>=0.0.9
 # ──────────────────────────────────────────────────────────────
 groq>=0.26.0,<1.0
 openai>=1.0,<2.0
-# zhipuai>=2.1.5
-zai-sdk
-# zai-sdk REMOVED → unstable + conflicts with zhipuai
 
 google-generativeai>=0.8,<1.0
 
@@ -37,11 +34,19 @@ supabase==2.28.2
 postgrest==2.28.2
 
 # ──────────────────────────────────────────────────────────────
-# Memory System (mem0 + Qdrant)
+# Memory System (Qdrant + local embeddings)
 # ──────────────────────────────────────────────────────────────
-mem0ai>=0.1.29
-qdrant-client>=1.9,<2.0
+qdrant-client>=1.17,<2.0
 sentence-transformers>=2.7,<4.0  # local embeddings (all-MiniLM-L6-v2), no API cost
+
+# ──────────────────────────────────────────────────────────────
+# v3 stack: Redis sessions, JWT, tokens, monitoring
+# ──────────────────────────────────────────────────────────────
+redis[hiredis]>=5.0,<6.0      # provides redis.asyncio for v3 sessions
+tiktoken>=0.7,<1.0            # prompt token budget enforcement
+python-jose[cryptography]>=3.3,<4.0  # JWT decode for HTTP chat auth
+posthog>=3.5,<4.0
+sentry-sdk[fastapi]>=2.5,<3.0
 
 # ──────────────────────────────────────────────────────────────
 # Config & Env

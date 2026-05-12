@@ -10,7 +10,7 @@
  *   speaking    — glowing ring synced to avatar talking.
  *   disabled    — greyed-out (no Azure key configured / mic permission denied).
  *
- * Design references (CITATIONS.md):
+ * Design references (docs/research/CITATIONS.md):
  *   - Inworld latency study — visual feedback < 100 ms from intent makes
  *     the user *believe* the system is fast even when audio takes longer.
  *   - Voice-First AI Mental Health Companion (IJERT 2024) — single, big,

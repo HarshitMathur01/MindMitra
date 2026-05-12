@@ -10,18 +10,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/context/ThemeContext";
 import SkipToMain from "@/components/system/SkipToMain";
 
-// ── Eager routes ──────────────────────────────────────────────────────────
-// Three routes are loaded synchronously because they cover the user's first
-// impression and the absolute-must-work paths:
-//   1. `/`     — public marketing landing (SEO + first-paint).
-//   2. `/auth` — must render instantly when an unauthed user is bounced.
-//   3. `/chat` — the core product surface; lazy-loading would add a
-//      Suspense flicker on every cold open from a deep link.
-// Everything else is `React.lazy` below.
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Chat from "./pages/Chat";
-import NotFound from "./pages/NotFound";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import { ProductAnalyticsProvider } from "@/components/analytics/ProductAnalyticsProvider";
 import ErrorBoundary from "@/components/system/ErrorBoundary";
@@ -31,6 +19,9 @@ import ErrorBoundary from "@/components/system/ErrorBoundary";
 // don't pay download cost for screens the user hasn't navigated to. Each
 // `lazy(() => import(...))` produces its own JS chunk and is fetched on
 // demand by React Router.
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Chat = lazy(() => import("./pages/Chat"));
 const QATests = lazy(() => import("./pages/QATests"));
 const EmojiMatch = lazy(() => import("./pages/EmojiMatch"));
 const MoodMountain = lazy(() => import("./pages/MoodMountain"));
@@ -55,10 +46,10 @@ const MindGymHub = lazy(() => import("./pages/mindgym/MindGymHub"));
 const MindGymSectionPage = lazy(() => import("./pages/mindgym/MindGymSectionPage"));
 const MindGymToolPage = lazy(() => import("./pages/mindgym/MindGymToolPage"));
 const Me = lazy(() => import("./pages/Me"));
-const MemoryMirror = lazy(() => import("./pages/MemoryMirror"));
 const SafetyPlan = lazy(() => import("./pages/SafetyPlan"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -112,7 +103,6 @@ function AppContent() {
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/qa-tests" element={<QATests />} />
           <Route path="/me" element={<Me />} />
-          <Route path="/me/memory" element={<MemoryMirror />} />
           <Route path="/safety-plan" element={<SafetyPlan />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />

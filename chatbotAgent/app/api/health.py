@@ -4,9 +4,14 @@ Health routes — registered first so Railway startup checks pass immediately.
 Also hosts ``/debug/memory``, an operator-only memory connectivity probe.
 That route is gated behind both an environment flag and a shared secret so it
 is unreachable in production by default.
+
+Both routes are intentionally lightweight: they must not import any v3
+pipeline modules that would slow down a Railway cold start. The memory
+probe lazily imports v3 helpers only when it actually runs.
 """
+from __future__ import annotations
+
 import logging
-import os
 from typing import Any, Optional
 
 from fastapi import APIRouter, Header, HTTPException
@@ -15,25 +20,19 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _env_truthy(name: str, default: str = "false") -> bool:
-    return os.getenv(name, default).lower() in ("1", "true", "yes")
-
-
 def _debug_memory_enabled() -> bool:
-    """Return True iff /debug/memory should serve any data.
+    from app.core.env import env
 
-    Enabled only when DEBUG=1 / DEBUG_ROUTES=1, OR when ENV is dev/local/test.
-    """
-    env_name = os.getenv("ENV", os.getenv("ENVIRONMENT", "")).strip().lower()
-    if env_name in ("dev", "development", "local", "test", "testing"):
+    e = env()
+    if e.is_non_prod:
         return True
-    return _env_truthy("DEBUG") or _env_truthy("DEBUG_ROUTES")
+    return e.debug_routes_enabled
 
 
 def _debug_memory_token() -> Optional[str]:
-    """Optional shared-secret to gate the route even in non-prod."""
-    token = os.getenv("DEBUG_MEMORY_TOKEN", "").strip()
-    return token or None
+    from app.core.env import env
+
+    return env().debug_memory_token
 
 
 @router.get("/health")
@@ -41,18 +40,18 @@ async def health():
     return {
         "status": "healthy",
         "service": "MindMitra Chatbot Agent",
-        "version": "2.0.0",
+        "version": "3.0.0",
     }
 
 
 @router.get("/")
 async def root():
     payload = {
-        "message": "MindMitra Chatbot Agent v2 is running",
+        "message": "MindMitra Chatbot Agent is running",
         "docs": "/docs",
         "health": "/health",
+        "chat": "POST /chat",
     }
-    # Only advertise the debug probe in environments where it actually serves.
     if _debug_memory_enabled():
         payload["debug_memory"] = "/debug/memory?user_id=<uid> (admin only)"
     return payload
@@ -63,15 +62,13 @@ async def debug_memory(
     user_id: str = "test_user",
     x_debug_token: Optional[str] = Header(default=None, alias="X-Debug-Token"),
 ):
-    """Operator-only mem0 / Qdrant connectivity probe.
+    """Operator-only Qdrant connectivity probe.
 
-    Security:
-      - 404 in production unless ``DEBUG=1`` / ``DEBUG_ROUTES=1`` is set.
-      - 401 if ``DEBUG_MEMORY_TOKEN`` is configured and the request is missing
-        / does not match the ``X-Debug-Token`` header.
+    Reports whether the v3 Qdrant client is reachable and surfaces the
+    latest episodic memories for ``user_id``. Returns 404 in production
+    unless the operator explicitly opts in.
     """
     if not _debug_memory_enabled():
-        # Pretend the route doesn't exist in prod rather than leak its shape.
         raise HTTPException(status_code=404, detail="Not Found")
 
     expected_token = _debug_memory_token()
@@ -79,62 +76,59 @@ async def debug_memory(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     try:
-        from app.memory.qdrant_v2 import (
-            COLLECTION_EPISODIC,
-            COLLECTION_REFLECTIONS,
-            get_qdrant,
-        )
+        from app.core.connections import get_qdrant
+        from app.core.env import env as v3_env
 
+        e = v3_env()
         qdrant = get_qdrant()
         qdrant_ready = qdrant is not None
-        qdrant_kind = type(qdrant).__name__ if qdrant else None
-
-        stats: dict[str, Any] = {}
         recent: list[dict[str, Any]] = []
+        episodic_count: int = 0
+
         if qdrant_ready:
             try:
-                from app.services.supabase_service import supabase_client
+                from qdrant_client import models as qdrant_models
 
-                if supabase_client is not None:
-                    res = (
-                        supabase_client.table("episodic_memories")
-                        .select("id, summary, importance, status, created_at")
-                        .eq("user_id", user_id)
-                        .order("created_at", desc=True)
-                        .limit(5)
-                        .execute()
-                    )
-                    rows = getattr(res, "data", None) or []
-                    stats["episodic_recent_rows"] = len(rows)
-                    recent = [
+                resp = await qdrant.scroll(
+                    collection_name=e.qdrant_episodic_collection,
+                    scroll_filter=qdrant_models.Filter(
+                        must=[
+                            qdrant_models.FieldCondition(
+                                key="user_id",
+                                match=qdrant_models.MatchValue(value=user_id),
+                            )
+                        ]
+                    ),
+                    limit=5,
+                    with_payload=True,
+                )
+                points = (resp or (None, None))[0] or []
+                episodic_count = len(points)
+                for p in points:
+                    payload = getattr(p, "payload", None) or {}
+                    recent.append(
                         {
-                            "id": r.get("id", ""),
-                            "summary": (r.get("summary") or "")[:120],
-                            "importance": r.get("importance"),
-                            "status": r.get("status"),
+                            "id": str(getattr(p, "id", "")),
+                            "session_date": payload.get("session_date"),
+                            "summary": (payload.get("summary_text") or "")[:160],
+                            "topics": payload.get("topic_keywords") or [],
+                            "peak_urgency": payload.get("peak_urgency"),
                         }
-                        for r in rows
-                    ]
-            except Exception as inner_exc:
-                logger.warning(f"⚠️  [DEBUG/MEMORY] supabase probe failed: {inner_exc}")
+                    )
+            except Exception as inner:  # noqa: BLE001
+                logger.warning("[debug/memory] qdrant scroll failed: %s", inner)
 
         return {
             "qdrant_ready": qdrant_ready,
-            "qdrant_kind": qdrant_kind,
-            "qdrant_host": os.getenv("QDRANT_HOST", "localhost"),
-            "qdrant_port": os.getenv("QDRANT_PORT", "6333"),
+            "qdrant_url": e.qdrant_url,
             "collections": {
-                "episodic": COLLECTION_EPISODIC,
-                "reflections": COLLECTION_REFLECTIONS,
+                "episodic": e.qdrant_episodic_collection,
+                "knowledge_base": e.qdrant_kb_collection,
             },
             "user_id": user_id,
-            "stats": stats,
+            "episodic_recent_count": episodic_count,
             "recent_memories_preview": recent,
         }
-    except Exception as exc:
-        logger.error(f"❌ [DEBUG/MEMORY] {exc}")
-        return {
-            "qdrant_ready": False,
-            "error": str(exc),
-            "user_id": user_id,
-        }
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[debug/memory] failed: %s", exc)
+        return {"qdrant_ready": False, "error": str(exc), "user_id": user_id}

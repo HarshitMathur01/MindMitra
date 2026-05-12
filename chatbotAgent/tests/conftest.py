@@ -6,8 +6,8 @@ Run from repository `chatbotAgent/`:
     pytest tests -v
 
 Environment:
-    `chatbotAgent/.env` is loaded automatically before any test runs
-    (`override=False` — existing OS env wins). Set `PYTEST_DOTENV=0` to skip.
+    `chatbotAgent/.env` is loaded automatically before any test runs.
+    Set `PYTEST_DOTENV=0` to skip.
 
 All tests (unit + contract + integration) in one run:
 
@@ -24,6 +24,7 @@ from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
+from fastapi.testclient import TestClient
 
 _CHATBOT_ROOT = Path(__file__).resolve().parents[1]
 _DOTENV_PATH = _CHATBOT_ROOT / ".env"
@@ -33,9 +34,9 @@ def _load_dotenv_for_tests() -> None:
     if os.getenv("PYTEST_DOTENV", "1").lower() in ("0", "false", "no"):
         return
     if _DOTENV_PATH.is_file():
-        load_dotenv(dotenv_path=_DOTENV_PATH, override=False)
+        load_dotenv(dotenv_path=_DOTENV_PATH, override=True)
     else:
-        load_dotenv(override=False)
+        load_dotenv(override=True)
 
 
 _load_dotenv_for_tests()
@@ -53,6 +54,27 @@ def auth_headers() -> dict:
 @pytest.fixture
 def eval_base_url() -> str:
     return os.getenv("EVAL_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+
+
+@pytest.fixture(scope="session")
+def app():
+    """Import the FastAPI app once for offline route/health contract tests."""
+    os.environ.setdefault("ENV", "test")
+    os.environ.setdefault("SKIP_AUTH", "true")
+    os.environ.setdefault("MHA_V3_ENABLED", "1")
+    os.environ.setdefault("DEV_USER_ID", "pytest-health-user")
+
+    from app.core import env as env_mod
+
+    env_mod.reload_env()
+    from app.main import app as fastapi_app
+
+    return fastapi_app
+
+
+@pytest.fixture
+def client(app):
+    return TestClient(app)
 
 
 def pytest_collection_modifyitems(config, items):

@@ -1,16 +1,18 @@
 # MindMitra backend (`chatbotAgent`)
 
-FastAPI service — **MITRA v2** therapeutic chat pipeline, memory v2, crisis fast-path, SSE streaming.
+FastAPI service powering the **MHA v3** conversational stack: 8-layer
+pipeline, simple HTTP chat, Redis-backed sessions, Qdrant
+episodic memory, Supabase relational store. Therapist-bridge is the only
+sibling product feature on the same service.
 
 ## Documentation (read these first)
 
 | Doc | Content |
 |-----|---------|
-| [`../docs/README.md`](../docs/README.md) | Documentation entry and TOC |
-| [`../docs/MITRA.md`](../docs/MITRA.md) | Diagrams, file map, one turn |
-| [`../docs/platform.md`](../docs/platform.md) | Run, env, routes, memory v2, Qdrant |
-| [`../docs/api_contracts.md`](../docs/api_contracts.md) | HTTP contracts |
+| [`../html-to-markdown.md`](../html-to-markdown.md) | The v3 architecture spec we ship to |
+| [`../docs/MITRA.md`](../docs/MITRA.md) | (Legacy) v2 architecture reference, kept for archaeology |
 | [`../CLAUDE.md`](../CLAUDE.md) | AI assistant invariants |
+| [`../LOCAL_DEV.md`](../LOCAL_DEV.md) | Local end-to-end run book |
 
 ## Quick start
 
@@ -18,12 +20,44 @@ FastAPI service — **MITRA v2** therapeutic chat pipeline, memory v2, crisis fa
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-export MITRA_STACK_ENABLED=1
+
+# Put secrets/platform values in .env.
+# Put non-secret runtime behavior in config.yaml.
+
+# Ensure the v3 schema and Qdrant collections are provisioned.
+# (Schema: ../scripts/migrations/v3_schema.sql — run in Supabase SQL editor.
+# Qdrant, from repo root: python -m scripts.migrations.init_qdrant)
+
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 OpenAPI: `http://127.0.0.1:8000/docs`
 
+## Configuration
+
+`config.yaml` is the backend source of truth for non-secret behavior:
+model names, provider chain, timeouts, feature flags, CORS origins, Qdrant
+collection names, and budgets.
+
+`.env` should contain only secrets and platform-injected values such as
+`PORT`, `ENV`, `REDIS_URL`, provider API keys, Supabase service/JWT secrets,
+and admin/debug tokens. Legacy env names still override YAML values for tests
+and emergency deploy changes, but new configuration should start in YAML.
+
+## Routes
+
+| Path | Type | Purpose |
+|------|------|---------|
+| `GET /health` | HTTP | Railway healthcheck |
+| `POST /chat` | HTTP | Simple request/response chat (8-layer pipeline) |
+| `POST /onboarding` | HTTP | 4-turn conversational onboarding |
+| `POST /transcribe` | HTTP | Groq Whisper voice STT |
+| `POST /admin/crisis-templates/{id}/approve` | HTTP | 2-approver crisis governance |
+| `*  /therapist-bridge/*` | HTTP | Clinician-handoff feature (separate product) |
+
 ## Tests
 
-See [`../docs/EVALUATION.md`](../docs/EVALUATION.md) (`pytest`, HTTP eval, memory benchmark).
+```bash
+pytest tests -q -m "not integration"
+RUN_INTEGRATION=1 pytest tests -q
+```

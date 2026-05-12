@@ -12,7 +12,7 @@ import logging
 import re
 from typing import Any, Dict, List, Tuple
 
-from ..core.config import config
+from ..core.env import env
 from ..utils.json_utils import parse_json_from_llm_output
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,8 @@ def synthesize_narrative_bundle(
     """
     from groq import Groq
 
-    api_key = config.get_api_key("groq")
+    e = env()
+    api_key = e.groq_api_key
     if not api_key:
         logger.warning("⚠️ [THERAPIST-SYNTH] Groq missing — skipping narrative")
         return {}, "none", "n/a"
@@ -111,7 +112,7 @@ def synthesize_narrative_bundle(
     prompt_full = SYSTEM + "\n\n" + user_msg
     prompt_hash = hashlib.sha256(prompt_full.encode("utf-8")).hexdigest()[:16]
 
-    model = config.get_model("screening") or config.get_model("nlp")
+    model = e.groq_safety_model
     try:
         client = Groq(api_key=api_key)
         resp = client.chat.completions.create(

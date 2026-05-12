@@ -1,6 +1,6 @@
-import mixpanel from 'mixpanel-browser';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+type MixpanelClient = typeof import('mixpanel-browser').default;
 
 const DNT_VALUES = new Set(['1', 'yes', 'true']);
 
@@ -53,6 +53,8 @@ const MAX_STRING_LEN = 120;
 
 let initialized = false;
 let optedOut = false;
+let mixpanelClient: MixpanelClient | null = null;
+let mixpanelPromise: Promise<MixpanelClient> | null = null;
 
 function shouldRun(): boolean {
   if (typeof window === 'undefined') return false;
@@ -62,10 +64,28 @@ function shouldRun(): boolean {
   return true;
 }
 
-function ensureMixpanelInit(): void {
-  if (!shouldRun() || initialized) return;
+async function loadMixpanel(): Promise<MixpanelClient | null> {
+  if (!shouldRun() || optedOut) return null;
+  if (mixpanelClient) return mixpanelClient;
+  if (!mixpanelPromise) {
+    mixpanelPromise = import('mixpanel-browser').then((mod) => mod.default);
+  }
+  try {
+    mixpanelClient = await mixpanelPromise;
+    return mixpanelClient;
+  } catch {
+    mixpanelPromise = null;
+    return null;
+  }
+}
+
+async function ensureMixpanelInit(): Promise<MixpanelClient | null> {
+  if (!shouldRun() || optedOut) return null;
+  const mixpanel = await loadMixpanel();
+  if (!mixpanel) return null;
+  if (initialized) return mixpanel;
   const token = mixpanelToken();
-  if (!token) return;
+  if (!token) return null;
 
   mixpanel.init(token, {
     autocapture: false,
@@ -82,6 +102,7 @@ function ensureMixpanelInit(): void {
     batch_flush_interval_ms: 3000,
   });
   initialized = true;
+  return mixpanel;
 }
 
 function isBlockedKey(key: string): boolean {
@@ -143,18 +164,19 @@ async function persistProductEventToSupabase(
  */
 export function identifyProductAnalyticsUser(userId: string | null | undefined): void {
   if (!shouldRun() || optedOut) return;
-  ensureMixpanelInit();
-  if (!initialized) return;
-  if (userId && typeof userId === 'string') {
-    mixpanel.identify(userId);
-  }
+  void (async () => {
+    const mixpanel = await ensureMixpanelInit();
+    if (mixpanel && userId && typeof userId === 'string') {
+      mixpanel.identify(userId);
+    }
+  })();
 }
 
 /** Call on sign-out to clear Mixpanel identity and device id. */
 export function resetProductAnalyticsIdentity(): void {
-  if (!initialized) return;
+  if (!initialized || !mixpanelClient) return;
   try {
-    mixpanel.reset();
+    mixpanelClient.reset();
   } catch {
     /* noop */
   }
@@ -178,16 +200,16 @@ export function trackProductEvent(
   if (!eventName) return;
 
   const props = sanitizeProperties(properties);
-  ensureMixpanelInit();
-  if (!initialized) return;
-
-  try {
-    mixpanel.track(eventName, props);
-  } catch {
-    /* noop */
-  }
 
   void (async () => {
+    const mixpanel = await ensureMixpanelInit();
+    if (!mixpanel) return;
+    try {
+      mixpanel.track(eventName, props);
+    } catch {
+      /* noop */
+    }
+
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user?.id;
     if (uid) await persistProductEventToSupabase(uid, eventName, props);
@@ -197,9 +219,13 @@ export function trackProductEvent(
 /** Optional: respect future in-app privacy toggle (calls Mixpanel opt-out). */
 export function setProductAnalyticsOptOut(optOut: boolean): void {
   optedOut = optOut;
-  if (!initialized && !optOut) return;
-  ensureMixpanelInit();
-  if (!initialized) return;
-  if (optOut) mixpanel.opt_out_tracking();
-  else mixpanel.opt_in_tracking();
+  if (optOut) {
+    if (initialized && mixpanelClient) mixpanelClient.opt_out_tracking();
+    return;
+  }
+
+  void (async () => {
+    const mixpanel = await ensureMixpanelInit();
+    if (mixpanel) mixpanel.opt_in_tracking();
+  })();
 }

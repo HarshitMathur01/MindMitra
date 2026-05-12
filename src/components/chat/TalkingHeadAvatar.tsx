@@ -148,7 +148,9 @@ const TalkingHeadAvatar = ({
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [shouldLoadBackdropVideo, setShouldLoadBackdropVideo] = useState(false);
     const playbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const lastMessageTextRef = useRef<string>("");
+    const synthesisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const currentUtteranceIdRef = useRef<string | null>(null);
+    const currentTextRef = useRef<string>("");
     /** Prevents double onMessagePlayed when iframe speakingEnd and heuristic timer both fire. */
     const messagePlayedForCurrentRef = useRef(false);
 
@@ -195,6 +197,34 @@ const TalkingHeadAvatar = ({
         iframeRef.current?.contentWindow?.postMessage(data, window.location.origin);
     }, []);
 
+    const clearPlaybackTimers = useCallback(() => {
+        if (playbackTimerRef.current) {
+            clearTimeout(playbackTimerRef.current);
+            playbackTimerRef.current = null;
+        }
+        if (synthesisTimerRef.current) {
+            clearTimeout(synthesisTimerRef.current);
+            synthesisTimerRef.current = null;
+        }
+    }, []);
+
+    const finishCurrentUtterance = useCallback((utteranceId?: string | null) => {
+        if (utteranceId && utteranceId !== currentUtteranceIdRef.current) return;
+        clearPlaybackTimers();
+        setIsSpeaking(false);
+        currentUtteranceIdRef.current = null;
+        if (!messagePlayedForCurrentRef.current) {
+            messagePlayedForCurrentRef.current = true;
+            onMessagePlayed();
+        }
+    }, [clearPlaybackTimers, onMessagePlayed]);
+
+    const startPlaybackWatchdog = useCallback((utteranceId: string | null, text: string) => {
+        if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
+        const duration = Math.round(estimateSpeakDurationMs(text) * 1.35 + 2500);
+        playbackTimerRef.current = setTimeout(() => finishCurrentUtterance(utteranceId), duration);
+    }, [finishCurrentUtterance]);
+
     // ── Listen for messages FROM the iframe ────────────────────────────────
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -203,7 +233,9 @@ const TalkingHeadAvatar = ({
             // sibling iframe) could spoof a "needConfig" and exfiltrate keys.
             if (event.origin !== window.location.origin) return;
             if (event.source !== iframeRef.current?.contentWindow) return;
-            const { type, message } = event.data || {};
+            const { type, message, utteranceId } = event.data || {};
+            const currentUtteranceId = currentUtteranceIdRef.current;
+            const isCurrentUtterance = Boolean(utteranceId && utteranceId === currentUtteranceId);
 
             switch (type) {
                 case "needConfig":
@@ -225,22 +257,26 @@ const TalkingHeadAvatar = ({
                     break;
 
                 case "speakingStart":
+                    if (!isCurrentUtterance) return;
+                    if (synthesisTimerRef.current) {
+                        clearTimeout(synthesisTimerRef.current);
+                        synthesisTimerRef.current = null;
+                    }
                     setIsSpeaking(true);
+                    startPlaybackWatchdog(utteranceId, currentTextRef.current);
                     break;
 
                 case "speakingEnd":
-                    setIsSpeaking(false);
-                    if (playbackTimerRef.current) {
-                        clearTimeout(playbackTimerRef.current);
-                        playbackTimerRef.current = null;
-                    }
-                    if (!messagePlayedForCurrentRef.current) {
-                        messagePlayedForCurrentRef.current = true;
-                        onMessagePlayed();
-                    }
+                    if (!isCurrentUtterance) return;
+                    finishCurrentUtterance(utteranceId);
                     break;
 
                 case "error":
+                    if (utteranceId) {
+                        if (!isCurrentUtterance) return;
+                        finishCurrentUtterance(utteranceId);
+                        return;
+                    }
                     setLoadError(message || "Avatar failed to load");
                     break;
             }
@@ -248,15 +284,34 @@ const TalkingHeadAvatar = ({
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [onMessagePlayed, postToIframe, resolvedGoogleKey, resolvedAzureKey, resolvedAzureRegion]);
+    }, [
+        finishCurrentUtterance,
+        postToIframe,
+        resolvedGoogleKey,
+        resolvedAzureKey,
+        resolvedAzureRegion,
+        startPlaybackWatchdog,
+    ]);
 
     // ── React to new avatar messages ────────────────────────────────────────
     useEffect(() => {
         if (!isReady || !avatarCurrentMessage) return;
 
         const text = avatarCurrentMessage.text;
-        if (!text || text === lastMessageTextRef.current) return;
-        lastMessageTextRef.current = text;
+        const utteranceId =
+            avatarCurrentMessage.utteranceId ||
+            avatarCurrentMessage.id ||
+            `${Date.now()}-${hashString(text || "")}`;
+        if (!text || utteranceId === currentUtteranceIdRef.current) return;
+
+        const previousUtteranceId = currentUtteranceIdRef.current;
+        if (previousUtteranceId) {
+            postToIframe({ type: "stopSpeaking", utteranceId: previousUtteranceId });
+        }
+
+        clearPlaybackTimers();
+        currentUtteranceIdRef.current = utteranceId;
+        currentTextRef.current = text;
         messagePlayedForCurrentRef.current = false;
 
         // Neutral mouth/face before TTS: MindMitra therapeutic moods inject mouth
@@ -268,21 +323,15 @@ const TalkingHeadAvatar = ({
         // Split text into sentences and dispatch speakTextStream so the iframe can
         // join text, run Azure/Google once, and call speakAudio with aligned visemes.
         const sentences = splitIntoSentences(text);
-        postToIframe({ type: "speakTextStream", sentences });
+        postToIframe({ type: "speakTextStream", utteranceId, sentences });
 
-        // Fallback: mark message as played after estimated duration
-        // (in case the iframe doesn't send speakingEnd). Slightly padded so we do not
-        // beat real audio + lip-sync on long replies.
-        const duration = Math.round(estimateSpeakDurationMs(text) * 1.2);
-        if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
-        playbackTimerRef.current = setTimeout(() => {
-            setIsSpeaking(false);
-            if (!messagePlayedForCurrentRef.current) {
-                messagePlayedForCurrentRef.current = true;
-                onMessagePlayed();
-            }
-        }, duration);
-    }, [avatarCurrentMessage, isReady, postToIframe, onMessagePlayed]);
+        // Synthesis watchdog only covers the pre-audio stage. Once the iframe
+        // reports speakingStart, a separate playback watchdog begins.
+        synthesisTimerRef.current = setTimeout(() => {
+            postToIframe({ type: "stopSpeaking", utteranceId });
+            finishCurrentUtterance(utteranceId);
+        }, Math.min(45000, Math.max(18000, text.length * 65)));
+    }, [avatarCurrentMessage, clearPlaybackTimers, finishCurrentUtterance, isReady, postToIframe]);
 
     // Let the iframe and controls mount first, then start the decorative
     // backdrop video only when the user's device preferences allow it.
@@ -321,9 +370,11 @@ const TalkingHeadAvatar = ({
     // ── Cleanup timer on unmount ────────────────────────────────────────────
     useEffect(() => {
         return () => {
-            if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
+            clearPlaybackTimers();
+            const utteranceId = currentUtteranceIdRef.current;
+            if (utteranceId) postToIframe({ type: "stopSpeaking", utteranceId });
         };
-    }, []);
+    }, [clearPlaybackTimers, postToIframe]);
 
     return (
         <div

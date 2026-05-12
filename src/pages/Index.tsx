@@ -1,9 +1,11 @@
+import { lazy, Suspense } from "react";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import PublicLanding from "./PublicLanding";
 import SEO from "@/components/system/SEO";
-import SanctuaryHome from "./SanctuaryHome";
+
+const SanctuaryHome = lazy(() => import("./SanctuaryHome"));
 
 /**
  * `/` route gateway:
@@ -28,7 +30,9 @@ const Index = () => {
         path="/"
       />
       <Header />
-      <SanctuaryHome />
+      <Suspense fallback={<DashboardSkeleton />}>
+        <SanctuaryHome />
+      </Suspense>
     </>
   );
 };

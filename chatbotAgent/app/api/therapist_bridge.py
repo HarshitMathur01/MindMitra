@@ -4,6 +4,7 @@ Therapist Bridge API — profile preview, referral creation, clinician magic-lin
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import logging
 import secrets
@@ -13,6 +14,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Header, HTTPException
 
 from ..core.auth import validate_user_token
+from ..core.env import env
 from ..models.therapist_bridge_models import (
     ClinicianBriefResponse,
     ConsentStatePayload,
@@ -100,6 +102,14 @@ def _run_synthesis(
     return emotional, model_id, ph
 
 
+async def _run_blocking(label: str, fn):
+    try:
+        return await asyncio.wait_for(asyncio.to_thread(fn), timeout=env().therapist_bridge_blocking_timeout_s)
+    except asyncio.TimeoutError as exc:
+        logger.warning("[THERAPIST-BRIDGE] %s timed out", label)
+        raise HTTPException(status_code=504, detail=f"{label} timed out") from exc
+
+
 @router.get("/therapists")
 async def list_therapists():
     return MOCK_THERAPISTS
@@ -115,7 +125,7 @@ async def profile_preview(
     authorization: str = Header(None),
 ):
     user_id = await validate_user_token(authorization, supabase_client)
-    bundle = build_profile_bundle(user_id)
+    bundle = await _run_blocking("profile preview", lambda: build_profile_bundle(user_id))
     facts = bundle["facts"]
     metrics = bundle["metrics"]
     emotional = copy.deepcopy(bundle["emotionalProfile"])
@@ -123,8 +133,9 @@ async def profile_preview(
     narrative_meta_model = "none"
     narrative_meta_hash = "n/a"
     if body.include_narrative:
-        emotional, narrative_meta_model, narrative_meta_hash = _run_synthesis(
-            facts, metrics, emotional
+        emotional, narrative_meta_model, narrative_meta_hash = await _run_blocking(
+            "profile synthesis",
+            lambda: _run_synthesis(facts, metrics, emotional),
         )
 
     filtered = apply_consent_to_emotional_profile(emotional, body.consent)
@@ -152,11 +163,14 @@ async def create_referral(
     if not supabase_client:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    bundle = build_profile_bundle(user_id)
+    bundle = await _run_blocking("profile build", lambda: build_profile_bundle(user_id))
     facts = bundle["facts"]
     metrics = bundle["metrics"]
     emotional = copy.deepcopy(bundle["emotionalProfile"])
-    emotional, narrative_model, prompt_hash = _run_synthesis(facts, metrics, emotional)
+    emotional, narrative_model, prompt_hash = await _run_blocking(
+        "profile synthesis",
+        lambda: _run_synthesis(facts, metrics, emotional),
+    )
 
     filtered = apply_consent_to_emotional_profile(emotional, body.consent)
     payload = {
@@ -172,7 +186,7 @@ async def create_referral(
     referral_id = str(uuid.uuid4())
     token = secrets.token_urlsafe(32)
 
-    try:
+    def _insert_referral() -> None:
         supabase_client.table("therapist_profile_snapshots").insert(
             {
                 "id": snapshot_id,
@@ -196,6 +210,9 @@ async def create_referral(
                 "clinician_view_token": token,
             }
         ).execute()
+
+    try:
+        await _run_blocking("referral insert", _insert_referral)
     except Exception as exc:
         logger.error("❌ [THERAPIST-BRIDGE] referral insert failed: %s", exc)
         return ReferralResponse(id=referral_id, status="failed")
@@ -217,7 +234,7 @@ async def clinician_brief(token: str):
     """Opaque token resolves snapshot (service role). Do not log token."""
     if not supabase_client:
         raise HTTPException(status_code=503, detail="Database unavailable")
-    try:
+    def _load_brief():
         rref = (
             supabase_client.table("therapist_referrals")
             .select("snapshot_id, consent, created_at")
@@ -238,10 +255,14 @@ async def clinician_brief(token: str):
         )
         if not snap.data:
             raise HTTPException(status_code=404, detail="Snapshot missing")
-        payload = snap.data[0].get("payload") or {}
+        return rref.data[0], snap.data[0]
+
+    try:
+        row, snap_row = await _run_blocking("clinician brief load", _load_brief)
+        payload = snap_row.get("payload") or {}
         return ClinicianBriefResponse(
-            snapshot_id=sid,
-            created_at=str(snap.data[0].get("created_at", "")),
+            snapshot_id=row["snapshot_id"],
+            created_at=str(snap_row.get("created_at", "")),
             emotional_profile=payload.get("emotionalProfile", {}),
             disclaimer=payload.get("disclaimer", DISCLAIMER),
             consent_scope=row.get("consent") or {},

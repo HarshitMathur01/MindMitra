@@ -23,7 +23,8 @@ import hillsImg from "@/assets/sanctuary/scene-hills.jpg";
 import fireflyImg from "@/assets/sanctuary/scene-firefly.jpg";
 import leafImg from "@/assets/sanctuary/leaf.png";
 import butterflyImg from "@/assets/sanctuary/butterfly.png";
-import closingBgImg from "@/components/handcrafted_image/Gemini_Generated_Image_r4o2gpr4o2gpr4o2 (1).png";
+
+const closingBgImg = "/illustrations/hills-1600.webp";
 
 /* ---------- Soft cursor glow ---------- */
 function CursorGlow() {
@@ -848,7 +849,7 @@ function MomentsStrip() {
                       whileInView={{ scale: 1 }}
                       viewport={{ once: true, amount: 0.2 }}
                       transition={imgTransition}
-                      className={`aspect-square w-full object-cover ${lite ? "" : "mix-blend-multiply"} ${minimal ? "" : "transition-transform duration-[1500ms] ease-out group-hover:scale-105"}`}
+                      className={`aspect-square w-full object-cover ${lite ? "" : "mix-blend-multiply"} ${minimal ? "" : "transition-transform duration-1500 ease-out group-hover:scale-105"}`}
                       style={{ willChange: "transform" }}
                     />
                   </div>

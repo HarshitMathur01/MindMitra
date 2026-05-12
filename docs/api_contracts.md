@@ -1,326 +1,252 @@
-# API Contracts
+# API Contracts (MHA v3)
+
+This is the **only** supported API surface. Chat uses simple HTTP
+`POST /chat`. The legacy SSE endpoints (`/chat/stream`, `/chat/greeting`,
+`/chat/end-session`, `/me-memory`) and the WebSocket chat route are not
+registered.
 
 ## Base
-- Protocol: HTTPS
-- Auth: Bearer token required for chat, streaming, greeting, transcribe
-- Content type: application/json unless stream endpoint
 
-## Error Format
-Most non-stream endpoints return HTTP errors with this body shape:
+- Protocol: HTTPS
+- Auth: Supabase JWT in `Authorization: Bearer <jwt>`.
+- Content type: `application/json` unless otherwise stated.
+
+## Error format
+
+HTTP errors:
 
 ```json
 { "detail": "error message" }
 ```
 
-Streaming endpoint emits SSE error events:
-
-```text
-event: error
-data: {"error":"..."}
-```
+Some validation errors return a structured `detail` object with `message`
+and `reason`.
 
 ---
 
-## 1) POST /chat
-Single-turn chat response.
+## 1) POST `/chat`
+
+Request/response chat endpoint. The same 8-layer MHA pipeline runs here,
+but the frontend receives one final JSON response instead of streamed frames.
 
 ### Request
+
 ```json
 {
-  "user_message": "string",
-  "session_id": "string | null",
-  "voice_analysis": {"any": "json"},
-  "audio_data": "base64 wav | null",
-  "avatar_visible": true,
-  "personality": "mitra|arjun|diya|riya|zen | null",
-  "companion_name": "string | null",
-  "language": "english|hindi|hinglish|japanese|telugu|kannada|tamil | null"
+  "content": "Hello yaar",
+  "session_id": "new | <uuid>",
+  "device_locale": "en-IN"
 }
 ```
 
 ### Response
+
 ```json
 {
-  "message": "string",
-  "animation": "string",
-  "facial_expression": "string",
-  "modality": "string",
-  "confidence": 0.0,
-  "session_insights": {"any": "json"},
-  "eval_trace": null
+  "text": "<final response>",
+  "session_id": "uuid",
+  "is_new_session": true,
+  "mode": "companion",
+  "urgency": 0,
+  "source": "llm_primary",
+  "meta": {
+    "response_source": "llm_primary",
+    "memory_retrieved": false
+  },
+  "timings_ms": { "total": 2500 },
+  "trace_id": "optional"
 }
 ```
 
-Optional **`eval_trace`** (pipeline path, routed intent, memory preview) is returned only when the server has **`ALLOW_EVAL_TRACE=true`** and the client sends header **`X-MindMitra-Eval-Trace: 1`**. See `docs/EVALUATION.md`. Do not enable trace in production without strict access control.
+The `meta.response_source` field tells you which path produced the text:
+`llm_primary | llm_retry | static_fallback | crisis_template | hardcoded_crisis`.
 
 ---
 
-## 2) POST /chat/stream
-SSE streaming chat endpoint.
+## 2) POST `/onboarding`
+
+Four-turn conversational onboarding. The frontend drives the turn
+counter; the backend is stateless across turns (the client carries
+`session_state` between requests).
 
 ### Request
-Same JSON schema as POST /chat.
-
-### Response (SSE events)
-- text_chunk_delta
-- text_chunk
-- avatar_ready
-- complete
-- error
-
-### Event payload examples
-```text
-event: text_chunk_delta
-data: {"chunk":"partial text"}
-
-```
-
-```text
-event: text_chunk
-data: {"message":"full text","modality":"...","confidence":0.8}
-
-```
-
-```text
-event: avatar_ready
-data: {"animation":"Talking_0","facial_expression":"empathy"}
-
-```
-
-```text
-event: complete
-data: {"status":"success"}
-
-```
-
----
-
-## 3) GET /chat/greeting
-Personalized greeting for a session.
-
-### Query Params
-- session_id (optional)
-- user_id (optional)
-- personality (optional)
-- companion_name (optional)
-
-### Response
-Returns greeting payload with message and metadata. Fallback response shape includes:
 
 ```json
 {
-  "greeting": "string",
-  "show_greeting": true,
-  "language_used": "english|hindi|hinglish",
-  "time_slot": "string"
+  "turn": 1 | 2 | 3 | 4,
+  "user_message": "string | null",
+  "session_state": { "...": "carry between turns" }
 }
 ```
 
+### Response
+
+```json
+{
+  "agent_message": "string",
+  "next_turn": 2 | 3 | 4 | null,
+  "onboarding_complete": false | true,
+  "session_state": { "...": "updated carry-state" }
+}
+```
+
+When `onboarding_complete: true` the backend has written:
+
+- `users.onboarding_complete = TRUE`
+- `user_semantic_profiles` (display_name, occupation_detail, city,
+  cultural_frame_id, language_baseline)
+- `user_longitudinal_trajectory` (day-0 affect entry)
+
 ---
 
-## 4) POST /transcribe
-Speech-to-text fallback transcription.
+## 3) POST `/transcribe`
+
+Voice STT fallback (Groq Whisper). Returns a transcript for the WAV
+payload uploaded by the browser.
 
 ### Request
+
 ```json
-{ "audio_data": "base64 wav" }
+{ "audio_data": "base64-wav-or-data-url" }
 ```
 
 ### Response
+
 ```json
-{
-  "transcript": "string",
-  "model": "groq-whisper-large-v3-turbo"
-}
+{ "transcript": "string", "model": "groq-whisper-large-v3-turbo" }
 ```
 
 ---
 
-## 5) POST /onboarding/mirror-response
-Generate short empathic mirror text with crisis screening.
+## 4) POST `/admin/crisis-templates`
+
+Create a new crisis template (sets `active = false` — must pass
+two-approver flow before going live). Requires `X-Admin-Key` header.
 
 ### Request
+
 ```json
-{
-  "user_answer": "string",
-  "language": "en|hi"
-}
+{ "language_variant": "en|hi|hinglish_casual|hinglish_formal|neutral", "content": "..." }
 ```
 
 ### Response
+
 ```json
-{
-  "response_text": "string",
-  "crisis_assessment": {
-    "level": "critical|high|none",
-    "matched": true
-  }
-}
+{ "id": "uuid" }
 ```
 
 ---
 
-## 6) POST /onboarding/crisis-check
-Nuanced LLM crisis check for ambiguous cases.
+## 5) POST `/admin/crisis-templates/{id}/approve`
+
+Two **distinct** admin user UUIDs must approve before a template flips
+`active = true`. The second approval also demotes other active rows for
+the same `language_variant`.
 
 ### Request
+
 ```json
-{
-  "text": "string",
-  "language": "en|hi",
-  "client_level": "critical|high|medium|none"
-}
+{ "approver_id": "<distinct uuid>" }
 ```
 
 ### Response
+
 ```json
-{
-  "level": "critical|high|medium|none",
-  "reasoning": "string",
-  "recommended_action": "string"
-}
+{ "id": "uuid", "status": "first_approval_recorded | activated", "active": false | true }
 ```
 
 ---
 
-## 7) GET /health
-Liveness endpoint.
+## 6) GET `/health`
 
-### Response
+Liveness endpoint. Used by Railway / uptime probes. Lightweight, no
+imports of v3 pipeline modules.
+
 ```json
-{
-  "status": "healthy",
-  "service": "string",
-  "version": "string"
-}
+{ "status": "healthy", "service": "MindMitra Chatbot Agent", "version": "3.0.0" }
 ```
 
 ---
 
-## 8) GET /
-Root info endpoint.
+## 7) GET `/`
 
-### Response
+Root info endpoint. Lists `/health`, `/docs`, and the HTTP chat route.
+
 ```json
 {
-  "message": "string",
+  "message": "MindMitra Chatbot Agent v3 is running",
   "docs": "/docs",
   "health": "/health",
-  "debug_memory": "/debug/memory?user_id=<uid>"
+  "chat": "POST /chat"
 }
 ```
 
 ---
 
-## 9) GET /debug/memory
-Memory diagnostics endpoint.
+## 8) GET `/debug/memory` (operator-only)
 
-### Query Params
-- user_id (optional)
+Qdrant connectivity probe. Returns `404` in production unless
+`DEBUG_ROUTES=1` (and the optional `X-Debug-Token` header matches).
 
 ### Response
+
 ```json
 {
-  "mem0_ready": true,
-  "qdrant_host": "string",
-  "qdrant_port": "string",
-  "collection": "string",
+  "qdrant_ready": true,
+  "qdrant_url": "http://localhost:6333",
+  "collections": { "episodic": "episodic_memories", "knowledge_base": "knowledge_base" },
   "user_id": "string",
-  "stats": {"any": "json"},
+  "episodic_recent_count": 0,
   "recent_memories_preview": []
 }
 ```
 
 ---
 
-## 10) GET /therapist-bridge/therapists
-Directory stub for MVP (JSON list of therapist cards for the web client).
+## 9) Therapist-bridge endpoints
 
-### Response
-Array of therapist objects (see `Therapist` type in the web app).
+The therapist-bridge feature is a separate product surface that shares
+this FastAPI process. Its contracts are unchanged from the legacy
+release. See `app/api/therapist_bridge.py` for the source of truth.
 
----
-
-## 11) POST /therapist-bridge/profile-preview
-Builds a **consent-filterable** emotional profile from Supabase (`user_activities`, `session_summaries`, `crisis_events`, `user_contexts` screening block) plus optional **LLM narrative** (non-diagnostic).
-
-### Auth
-- `Authorization: Bearer <Supabase JWT>` (or dev `SKIP_AUTH` bypass)
-
-### Request
-```json
-{
-  "includeNarrative": true,
-  "narrativeAsync": false,
-  "consent": {
-    "shareFullProfile": true,
-    "shareAssessments": true,
-    "sharePatterns": true,
-    "shareAnonymously": true
-  }
-}
-```
-`consent` may be omitted for an unfiltered preview.
-
-### Response (aliases camelCase in JSON)
-```json
-{
-  "emotionalProfile": {
-    "moodTrends": [],
-    "patterns": [],
-    "topics": [],
-    "assessments": [],
-    "crisisEvents": []
-  },
-  "layers": { "facts": {}, "metrics": {}, "narrative": {} },
-  "disclaimer": "string",
-  "dataGaps": [],
-  "schemaVersion": "1"
-}
-```
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/therapist-bridge/therapists` | GET | Directory stub |
+| `/therapist-bridge/profile-preview` | POST | Consent-filterable emotional profile (with optional LLM narrative) |
+| `/therapist-bridge/referral` | POST | Creates a snapshot + clinician view token |
+| `/therapist-bridge/clinician-brief/{token}` | GET | Returns the snapshot for the clinician UI |
 
 ---
 
-## 12) POST /therapist-bridge/referral
-Creates an immutable **profile snapshot** and **referral** row. Returns an opaque **clinician view token** for the magic-link brief endpoint.
+## v3 Postgres schema
 
-### Auth
-- `Authorization: Bearer <Supabase JWT>`
+The v3 stack uses 8 tables (created by
+`scripts/migrations/v3_schema.sql`):
 
-### Request
-```json
-{
-  "therapistId": "string",
-  "consent": {
-    "shareFullProfile": true,
-    "shareAssessments": true,
-    "sharePatterns": true,
-    "shareAnonymously": true
-  }
-}
-```
+- `users`
+- `user_semantic_profiles`
+- `user_procedural_profiles`
+- `user_longitudinal_trajectory`
+- `sessions`
+- `audit_logs` (service-role only)
+- `crisis_templates` (read-only via RLS; admin writes via `/admin/*`)
+- `static_fallback_templates`
 
-### Response
-```json
-{
-  "id": "uuid",
-  "status": "created | failed",
-  "snapshotId": "uuid | null",
-  "clinicianViewToken": "string | null"
-}
-```
+Plus Qdrant collections from `QDRANT_EPISODIC_COLLECTION` and
+`QDRANT_KB_COLLECTION` (dim=384, Cosine, indexed on `user_id`).
 
----
+## v3 environment flags
 
-## 13) GET /therapist-bridge/clinician-brief/{token}
-Returns the **stored snapshot** for a referral. Intended for clinician-facing UI or PDF export; secured by opaque token (resolve server-side with service role — do not embed PII in URLs in production mailers without additional gates).
-
-### Response
-Same high-level shape as snapshot `emotionalProfile` + `disclaimer` + `consentScope`.
-
----
-
-## Contract Notes
-- This API currently has no explicit versioned prefix.
-- Contracts are derived from current implementation and may evolve; breaking changes should be documented here first.
-- **Therapist Bridge** content is screening and platform-signal summary only — not a diagnosis.
+| Flag | Purpose |
+|------|---------|
+| `ENV` | Must be `production` on Railway; controls auth/debug safety gates. |
+| `MHA_V3_ENABLED` | Master kill-switch; `1` (default) to enable chat routes. |
+| `REDIS_URL` | Session state + embedding cache + keyspace expiry. |
+| `SUPABASE_JWT_SECRET` | Required for Supabase JWT auth on `/chat`. |
+| `AZURE_OPENAI_*` | Primary streaming LLM. |
+| `GROQ_API_KEY` | Signal extraction + safety gate. |
+| `GEMINI_API_KEY` | Episodic summarisation. |
+| `GLM_API_KEY` | Urgency=0 fallback LLM. |
+| `CRISIS_HARDCODED_EN` / `CRISIS_HARDCODED_HI` | Last-resort crisis text. |
+| `V3_ADMIN_KEY` | Required for `/admin/*`. |
+| `SENTRY_DSN`, `POSTHOG_API_KEY` | Optional monitoring. |

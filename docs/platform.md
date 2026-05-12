@@ -1,6 +1,14 @@
-# Platform — backend, memory, vectors, pipeline
+# Platform — legacy v2 backend reference
 
-Grounded in `chatbotAgent/app/`. For the narrative walkthrough, see [MITRA.md](MITRA.md).
+> ⚠️ **Archaeology only.** This document refers to the **legacy MITRA v2**
+> stack which has been removed from the codebase. The current backend
+> run book lives in [`../LOCAL_DEV.md`](../LOCAL_DEV.md); HTTP
+> contracts in [`api_contracts.md`](api_contracts.md). Keep this file
+> for spelunking through old commits — do **not** treat it as
+> authoritative.
+
+Grounded in `chatbotAgent/app/`. For the narrative walkthrough, see
+[MITRA.md](MITRA.md).
 
 ---
 
@@ -182,7 +190,7 @@ Compact index — academic hooks for salience, reflection, stance, and screening
 | Stance / boundaries | Therapeutic disclosure limits | `assembler.py`, `stance_selector.py` |
 | Routed intents | Wang et al. survey ([arXiv:2308.11432](https://arxiv.org/abs/2308.11432)) | `classifier.py` |
 
-Presence-mode and avatar UX research is summarized in the repo root [CITATIONS.md](../CITATIONS.md) (product / design precedent).
+Presence-mode and avatar UX research is summarized in [docs/research/CITATIONS.md](research/CITATIONS.md) (product / design precedent).
 
 ---
 

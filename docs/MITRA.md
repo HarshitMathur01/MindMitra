@@ -1,12 +1,14 @@
 # MindMitra — How the Backend Actually Works
 
+> ⚠️ **Archaeology only.** This document describes the **legacy MITRA v2**
+> architecture, which has been removed. The current runtime is the MHA
+> v3 stack documented in [`../html-to-markdown.md`](../html-to-markdown.md)
+> and [`../CLAUDE.md`](../CLAUDE.md). Use this file to understand how the
+> service used to behave (e.g. when reading old PRs or migrating data);
+> do **not** rely on it to reason about today's code.
+
 > **Audience.** A founder, a clinician, a designer, or a new engineer.
 > No jargon, no hidden assumptions. Diagrams first, words second.
-
-This document is the **canonical** MITRA v2 architecture narrative. The entry
-[`docs/README.md`](README.md) links here, [platform.md](platform.md), and
-[product.md](product.md). If a detail conflicts, **verify in code** and fix docs
-in the same change.
 
 ---
 
@@ -427,8 +429,8 @@ the colour banners — same fields, different renderer.
 | `LOG_LEVEL` | INFO / DEBUG / WARNING. | `INFO` |
 | `LOG_FORMAT` | `colour` (dev) or `json` (prod). | `colour` |
 | `SKIP_AUTH` | Dev only. Replaces JWT validation with `DEV_USER_ID`. | unset |
-| `QDRANT_HOST` / `QDRANT_PORT` | Vector store. Falls back to in-memory if missing. | `localhost:6333` |
-| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Postgres + auth. | required in prod |
+| `QDRANT_URL` | Vector store. | required in prod |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` | Postgres + auth. | required in prod |
 
 The full list lives in `chatbotAgent/.env.example`.
 

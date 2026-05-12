@@ -4,8 +4,7 @@ import { Eyebrow } from "@/components/layout/Eyebrow";
 /**
  * Component name kept as `TestimonialCarousel` to preserve the
  * import path used by `PublicLanding.tsx`. Despite the legacy name,
- * there is no carousel here — the design language rejects them.
- * Three quiet voices, stacked typographically.
+ * there is no carousel here; the landing page uses three quiet voices.
  */
 
 const voices = [
@@ -52,7 +51,7 @@ const TestimonialCarousel = () => {
                     &ldquo;{v.quote}&rdquo;
                   </p>
                   <p className="mt-5 text-sm text-[color:var(--qc-ink-muted)]">
-                    — {v.attribution}
+                    - {v.attribution}
                   </p>
                 </div>
               </article>

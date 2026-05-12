@@ -3,7 +3,6 @@ Supabase Service — session counters, user context, message helpers.
 """
 import json
 import logging
-import os
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -11,24 +10,30 @@ from datetime import datetime, timedelta, timezone
 import threading
 from typing import Any, Dict, List, Optional, Tuple
 
-from supabase import create_client, Client, ClientOptions
+from app.core.env import env
 
 logger = logging.getLogger(__name__)
 
-# ── Supabase client ────────────────────────────────────────────────────────
-_SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-_SUPABASE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "") or os.getenv("SUPABASE_KEY", "")
-
 _thread_local = threading.local()
 
-def get_supabase_client() -> Optional[Client]:
-    if not _SUPABASE_URL or not _SUPABASE_KEY:
+def get_supabase_client() -> Optional[Any]:
+    e = env()
+    if not e.supabase_url or not e.supabase_service_key:
         return None
-    if not hasattr(_thread_local, "client"):
+    current = getattr(_thread_local, "client", None)
+    if (
+        current is None
+        or getattr(_thread_local, "client_url", None) != e.supabase_url
+        or getattr(_thread_local, "client_key", None) != e.supabase_service_key
+    ):
         try:
+            from supabase import ClientOptions, create_client
+
             # ClientOptions quiets the 'timeout' deprecation warning in newer supabase-py
             options = ClientOptions(postgrest_client_timeout=15.0)
-            _thread_local.client = create_client(_SUPABASE_URL, _SUPABASE_KEY, options=options)
+            _thread_local.client = create_client(e.supabase_url, e.supabase_service_key, options=options)
+            _thread_local.client_url = e.supabase_url
+            _thread_local.client_key = e.supabase_service_key
             logger.debug("✅ [Supabase] Thread-local Client initialised")
         except Exception as _e:
             logger.error(f"❌ [Supabase] Client init failed: {_e}")
@@ -39,7 +44,8 @@ class SupabaseProxy:
     """Thread-safe proxy for the Supabase sync client.
     Prevents 'Server disconnected' httpx connection pool races when using asyncio.gather/asyncio.to_thread."""
     def __bool__(self):
-        return bool(_SUPABASE_URL and _SUPABASE_KEY)
+        e = env()
+        return bool(e.supabase_url and e.supabase_service_key)
     
     def __getattr__(self, name):
         client = get_supabase_client()
@@ -48,9 +54,6 @@ class SupabaseProxy:
         return getattr(client, name)
 
 supabase_client = SupabaseProxy()
-
-if not _SUPABASE_URL or not _SUPABASE_KEY:
-    logger.warning("⚠️ [Supabase] SUPABASE_URL or SUPABASE_KEY missing — DB features disabled")
 
 # ── In-memory fallback counter ─────────────────────────────────────────────
 session_message_counters: Dict[str, int] = defaultdict(int)

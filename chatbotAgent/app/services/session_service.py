@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Dict, Optional
@@ -28,6 +29,7 @@ from . import profile_service
 
 logger = get_logger(__name__, layer="ingestion")
 SESSION_EXPIRY_INDEX_KEY = "session_expiry_index"
+_EXPIRY_SWEEP_WARN_AT: float = 0.0
 
 
 # ── in-memory fallback (used only when Redis is unavailable) ──────────────
@@ -525,7 +527,17 @@ async def verify_keyspace_notifications() -> bool:
         value = (cfg or {}).get("notify-keyspace-events", "") if isinstance(cfg, dict) else ""
         return ("E" in value and "x" in value) or "A" in value
     except Exception as exc:  # noqa: BLE001
-        logger.warning("[v3 session] keyspace config_get failed: %s", exc)
+        # Managed Redis providers (e.g. Upstash) often restrict CONFIG. This is
+        # not fatal — the caller can fall back to the expiry sweep worker.
+        logger.info(
+            "[v3 session] keyspace config_get unavailable; treating as disabled",
+            extra=log_context(
+                service="redis",
+                exception_type=type(exc).__name__,
+                error=str(exc)[:160],
+                consequence="use_expiry_sweep",
+            ),
+        )
         return False
 
 
@@ -613,7 +625,14 @@ async def expiry_sweep(
                     await r.zrem(SESSION_EXPIRY_INDEX_KEY, member)
                     await on_expired(user_id, session_id)
             except Exception as exc:  # noqa: BLE001
-                logger.warning("[v3 session] expiry_sweep iteration failed: %s", exc)
+                global _EXPIRY_SWEEP_WARN_AT
+                now_m = time.monotonic()
+                if now_m - _EXPIRY_SWEEP_WARN_AT >= 300.0:
+                    _EXPIRY_SWEEP_WARN_AT = now_m
+                    logger.warning(
+                        "[v3 session] expiry_sweep iteration failed (throttled to 1/5min): %s",
+                        exc,
+                    )
     except asyncio.CancelledError:
         raise
 

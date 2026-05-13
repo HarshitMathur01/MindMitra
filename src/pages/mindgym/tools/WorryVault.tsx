@@ -15,6 +15,8 @@ import { CRISIS_KEYWORDS } from "@/lib/mindgym/types";
 import { trackMindGymEvent } from "@/lib/mindgym/analytics";
 import { cn } from "@/lib/utils";
 
+const DEBUG_AVATAR = Boolean(import.meta.env.VITE_DEBUG_LOGS);
+
 interface WorryVaultProps {
   onAvatarCue?: (text: string, emotion: string) => void;
 }
@@ -139,6 +141,9 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
       setWorryText("");
       setFolding(false);
       setCompleted(true);
+      if (DEBUG_AVATAR) {
+        console.debug("[avatar_cue]", { tool: "worry_vault", cue: "stored", emotion: "calm" });
+      }
       onAvatarCue?.(
         "Your worry is safely stored. You can revisit it at your scheduled worry time.",
         "calm",
@@ -176,6 +181,9 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
         setReviewIdx((i) => i + 1);
       } else {
         setCompleted(true);
+        if (DEBUG_AVATAR) {
+          console.debug("[avatar_cue]", { tool: "worry_vault", cue: "review_complete", emotion: "proud" });
+        }
         onAvatarCue?.(
           "Great job reviewing your worries. Notice how many didn't come true.",
           "proud",

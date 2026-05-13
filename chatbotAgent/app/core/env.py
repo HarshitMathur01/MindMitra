@@ -12,6 +12,7 @@ import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
 from .config import config
 
@@ -79,6 +80,13 @@ class V3Env:
     )
     redis_keyspace_required: bool = field(
         default_factory=lambda: config.get_bool("redis.keyspace_required", True, env="REDIS_KEYSPACE_REQUIRED")
+    )
+    redis_keyspace_mode: str = field(
+        default_factory=lambda: config.get_str(
+            "redis.keyspace_mode",
+            "auto",
+            env="REDIS_KEYSPACE_MODE",
+        ).lower()
     )
     redis_session_lock_ttl_s: int = field(
         default_factory=lambda: config.get_int("redis.session_lock_ttl_s", 60, env="REDIS_SESSION_LOCK_TTL_S")
@@ -479,9 +487,61 @@ def _first_present(aliases: tuple[str, ...]) -> tuple[str, str]:
     return aliases[0], ""
 
 
-def validate_required_env() -> tuple[bool, List[str], Dict[str, str], Dict[str, str]]:
-    """Validate startup config/env contract without exposing secret values."""
+def validate_redis_url(redis_url: str) -> Optional[str]:
+    """Return a human-readable error if ``REDIS_URL`` is not usable, else ``None``.
+
+    Fails fast on common production mistakes (e.g. Upstash without TLS) instead
+    of silently rewriting URLs at runtime.
+    """
+    raw = (redis_url or "").strip()
+    if not raw:
+        return None
+    parsed = urlparse(raw)
+    scheme = (parsed.scheme or "").lower()
+    host = (parsed.hostname or "").lower()
+
+    if scheme in ("http", "https"):
+        return (
+            "REDIS_URL must be a Redis protocol URL (redis:// or rediss://), "
+            "not an HTTP/HTTPS endpoint; use the TCP URL from your provider."
+        )
+    if scheme not in ("redis", "rediss"):
+        return (
+            f"REDIS_URL has invalid scheme {scheme!r}; use redis:// or rediss:// "
+            "(see provider docs for TLS)."
+        )
+    if not host:
+        return "REDIS_URL must include a hostname."
+
+    # Upstash and similar managed endpoints expect TLS on the standard port.
+    if host.endswith(".upstash.io") and scheme != "rediss":
+        return (
+            "REDIS_URL points to Upstash but uses redis://; Upstash requires TLS. "
+            "Set REDIS_URL to rediss://default:<password>@<host>:6379 "
+            "(copy the TLS URL from the Upstash console)."
+        )
+
+    return None
+
+
+def validate_required_env() -> tuple[bool, List[str], List[str], Dict[str, str], Dict[str, str]]:
+    """Validate startup config/env contract without exposing secret values.
+
+    Returns
+    -------
+    ok
+        True when nothing required is missing and semantic checks pass.
+    missing
+        Canonical names of required variables not set.
+    config_errors
+        Operator-facing messages for invalid values (e.g. bad ``REDIS_URL``).
+    present_prefixes
+        Which required values are present (values are coarse, never secrets).
+    optional_warnings
+        Map of optional env name → startup warning if unset.
+    """
     missing: List[str] = []
+    config_errors: List[str] = []
     present_prefixes: Dict[str, str] = {}
     optional_warnings: Dict[str, str] = {}
     for canonical, aliases in REQUIRED_SECRET_ENV_VARS.items():
@@ -492,6 +552,10 @@ def validate_required_env() -> tuple[bool, List[str], Dict[str, str], Dict[str, 
             present_prefixes[canonical] = "present"
             if loaded_name != canonical:
                 present_prefixes[f"{canonical}_loaded_from"] = loaded_name
+            if canonical == "REDIS_URL":
+                err = validate_redis_url(value)
+                if err:
+                    config_errors.append(err)
     for canonical, config_path in REQUIRED_CONFIG_VARS.items():
         value = config.get_str(config_path, "", env=canonical)
         if not value:
@@ -504,4 +568,5 @@ def validate_required_env() -> tuple[bool, List[str], Dict[str, str], Dict[str, 
             optional_warnings[optional] = warning
         else:
             present_prefixes[optional] = "present"
-    return not missing, missing, present_prefixes, optional_warnings
+    ok = not missing and not config_errors
+    return ok, missing, config_errors, present_prefixes, optional_warnings

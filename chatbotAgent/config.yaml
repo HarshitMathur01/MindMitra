@@ -42,6 +42,8 @@ session:
 
 redis:
   keyspace_required: true
+  # auto | listener | sweep — Upstash/managed Redis: prefer sweep (env REDIS_KEYSPACE_MODE)
+  keyspace_mode: auto
   session_lock_ttl_s: 60
 
 supabase:

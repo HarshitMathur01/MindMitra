@@ -13,6 +13,8 @@ import ToolShell from "@/components/mindgym/ToolShell";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
+const DEBUG_AVATAR = Boolean(import.meta.env.VITE_DEBUG_LOGS);
+
 interface EmotionCompassProps {
   onAvatarCue?: (text: string, emotion: string) => void;
 }
@@ -342,6 +344,14 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
       }
 
       const emotion = EMOTIONS[emotionIdx];
+      if (DEBUG_AVATAR) {
+        console.debug("[avatar_cue]", {
+          tool: "emotion_compass",
+          cue: "segment_click",
+          emotion: emotion.name.toLowerCase(),
+          level: emotion.levels[levelIdx],
+        });
+      }
       onAvatarCue?.(
         `${emotion.levels[levelIdx]}... I see. Let's explore that.`,
         emotion.name.toLowerCase(),
@@ -365,6 +375,13 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
         date: new Date().toISOString(),
       });
       setStep(3);
+      if (DEBUG_AVATAR) {
+        console.debug("[avatar_cue]", {
+          tool: "emotion_compass",
+          cue: "supportive_suggestions",
+          emotion: "supportive",
+        });
+      }
       onAvatarCue?.(
         "Here are some things that might help right now.",
         "supportive",

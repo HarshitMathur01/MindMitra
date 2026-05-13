@@ -53,6 +53,49 @@ logger = get_logger(__name__, layer="delivery")
 router = APIRouter()
 
 
+def _create_logged_task(
+    coro: Any,
+    *,
+    name: str,
+    extra: Optional[Dict[str, Any]] = None,
+    log_success: bool = False,
+) -> asyncio.Task[Any]:
+    """Create a task and log if it fails (optionally on success)."""
+    task = asyncio.create_task(coro, name=name)
+    ctx = dict(extra or {})
+
+    def _done(t: asyncio.Task[Any]) -> None:
+        try:
+            if t.cancelled():
+                return
+            exc = t.exception()
+            if exc is None:
+                if log_success:
+                    logger.debug(
+                        "background task complete",
+                        extra=log_context(task=name, outcome="ok", async_task=True, **ctx),
+                    )
+                return
+            logger.warning(
+                "background task failed",
+                extra=log_context(
+                    task=name,
+                    outcome="failed",
+                    async_task=True,
+                    exception_type=type(exc).__name__,
+                    error=str(exc)[:160],
+                    **ctx,
+                ),
+            )
+            capture_exception(exc)
+        except Exception:  # noqa: BLE001
+            # Never let task callbacks crash the loop.
+            return
+
+    task.add_done_callback(_done)
+    return task
+
+
 class ChatRequest(BaseModel):
     content: str
     session_id: Optional[str] = None
@@ -259,7 +302,7 @@ async def chat_ws(websocket: WebSocket):
                 logger.info("keepalive stopped", extra=log_context(user_id=user_id, session_id=session.session_id if session else None, exception_type=type(exc).__name__))
                 return
 
-    keepalive_task = asyncio.create_task(_keepalive())
+    keepalive_task = asyncio.create_task(_keepalive(), name="ws.keepalive")
     try:
         while True:
             raw_event = await websocket.receive_json()
@@ -269,8 +312,10 @@ async def chat_ws(websocket: WebSocket):
             if etype == "session_close":
                 logger.info("session_close received", extra=log_context(user_id=user_id, session_id=session.session_id if session else None))
                 if session:
-                    asyncio.create_task(
-                        session_end_worker.handle_session_end(user_id, session.session_id)
+                    _create_logged_task(
+                        session_end_worker.handle_session_end(user_id, session.session_id),
+                        name="session_end_worker.handle_session_end",
+                        extra=log_context(user_id=user_id, session_id=session.session_id),
                     )
                 await websocket.send_json({
                     "type": "session_closed",
@@ -451,8 +496,10 @@ async def chat_ws(websocket: WebSocket):
     finally:
         keepalive_task.cancel()
         if session is not None:
-            asyncio.create_task(
-                session_end_worker.handle_session_end(user_id, session.session_id)
+            _create_logged_task(
+                session_end_worker.handle_session_end(user_id, session.session_id),
+                name="session_end_worker.handle_session_end",
+                extra=log_context(user_id=user_id, session_id=session.session_id),
             )
 
 
@@ -528,7 +575,11 @@ async def _process_turn(
             await _emit_crisis(websocket, crisis_resp.content, crisis_resp.crisis_numbers)
             await _append_turns(session, ingested, crisis_resp.content,
                                 source="crisis_template", urgency=3, mode="crisis_bypass")
-            asyncio.create_task(session_service.save_session(session))
+            _create_logged_task(
+                session_service.save_session(session),
+                name="session_service.save_session",
+                extra=log_context(session_id=session.session_id, user_id=user_id, trace_id=ingested.trace_id),
+            )
             timings["total"] = (time.perf_counter() - started) * 1000.0
             return TurnResult(response=crisis_resp.content, source="crisis_template",
                               urgency=3, mode="crisis_bypass", ingested=ingested, timings_ms=timings, trace_id=ingested.trace_id)
@@ -602,7 +653,11 @@ async def _process_turn(
             await _append_turns(session, ingested, crisis_resp.content,
                                 source="crisis_template", urgency=3, mode="crisis_bypass",
                                 signals=signals)
-            asyncio.create_task(session_service.save_session(session))
+            _create_logged_task(
+                session_service.save_session(session),
+                name="session_service.save_session",
+                extra=log_context(session_id=session.session_id, user_id=user_id, trace_id=ingested.trace_id),
+            )
             timings["total"] = (time.perf_counter() - started) * 1000.0
             return TurnResult(response=crisis_resp.content, source="crisis_template",
                               urgency=3, mode="crisis_bypass", ingested=ingested, signals=signals, timings_ms=timings, trace_id=ingested.trace_id)
@@ -912,11 +967,15 @@ async def _process_turn(
     if llm_result.tokens_used:
         session.llm_tokens_used += int(llm_result.tokens_used.get("total", 0))
     session.set_mode(orchestrator.selected_mode, orchestrator.mode_change_reason)
-    asyncio.create_task(session_service.save_session(session))
+    _create_logged_task(
+        session_service.save_session(session),
+        name="session_service.save_session",
+        extra=log_context(session_id=session.session_id, user_id=user_id, trace_id=ingested.trace_id),
+    )
 
     # ── Async audit log (fire and forget) ──────────────────────────────────
     if llm_result.finish_reason == "content_filter":
-        asyncio.create_task(
+        _create_logged_task(
             profile_service.write_audit_log({
                 "session_id": session.session_id,
                 "user_id": user_id,
@@ -927,9 +986,11 @@ async def _process_turn(
                 "tokens_used": int(llm_result.tokens_used.get("total", 0)),
                 "llm_used": llm_result.llm_used,
                 "safety_flags": safety.safety_flags.model_dump(),
-            })
+            }),
+            name="profile_service.write_audit_log.azure_content_filter",
+            extra=log_context(session_id=session.session_id, user_id=user_id, trace_id=ingested.trace_id),
         )
-    asyncio.create_task(
+    _create_logged_task(
         profile_service.write_audit_log({
             "session_id": session.session_id,
             "user_id": user_id,
@@ -957,7 +1018,9 @@ async def _process_turn(
                 "llm_finish_reason": llm_result.finish_reason,
                 "trace_id": ingested.trace_id,
             },
-        })
+        }),
+        name="profile_service.write_audit_log.turn_completed",
+        extra=log_context(session_id=session.session_id, user_id=user_id, trace_id=ingested.trace_id),
     )
     logger.debug(
         "post-turn writes scheduled",

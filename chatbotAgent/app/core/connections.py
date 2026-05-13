@@ -22,6 +22,11 @@ from .logging import get_logger, log_context
 
 logger = get_logger(__name__)
 
+try:
+    from redis.exceptions import ConnectionError as RedisConnectionError
+except ImportError:  # pragma: no cover - redis is a required dependency at runtime
+    RedisConnectionError = type("RedisConnectionError", (Exception,), {})
+
 T = TypeVar("T")
 
 SERVICE_TIMEOUTS: Dict[str, float] = {
@@ -60,6 +65,14 @@ def _loop_id() -> int:
         return id(asyncio.get_running_loop())
     except RuntimeError:
         return 0
+
+
+def reset_redis_pool(*, loop_id: int | None = None, reason: str = "reset") -> None:
+    """Drop cached Redis connection pool so next call reconnects."""
+    lid = _loop_id() if loop_id is None else int(loop_id)
+    if lid in _REDIS_POOLS:
+        _REDIS_POOLS.pop(lid, None)
+        logger.info("redis pool reset", extra=log_context(service="redis", reason=reason))
 
 
 def install_async_client_cleanup_filter() -> None:
@@ -219,6 +232,21 @@ async def guarded_call(
                     error=str(exc)[:160],
                 ),
             )
+            # Redis connections can be severed by managed providers (Upstash) or
+            # intermediary load balancers. Reset the pool so subsequent calls
+            # re-dial instead of reusing a dead connection.
+            if service == "redis":
+                try:
+                    text_l = str(exc).lower()
+                    if isinstance(exc, (ConnectionError, RedisConnectionError)) or (
+                        "connection closed" in text_l
+                        or "closed by server" in text_l
+                        or "connection reset" in text_l
+                        or "broken pipe" in text_l
+                    ):
+                        reset_redis_pool(reason="connection_error")
+                except Exception:  # noqa: BLE001
+                    pass
             if not retryable:
                 record_failure(service, exc)
                 raise
@@ -287,13 +315,23 @@ def get_redis_pool() -> Any:
     if not e.redis_url:
         logger.warning("[v3 conn] REDIS_URL missing — Redis disabled, sessions will be in-memory only")
         return None
+    redis_url = e.redis_url.strip()
     try:
         import redis.asyncio as redis_asyncio
     except Exception as exc:  # noqa: BLE001
         logger.error("[v3 conn] redis.asyncio import failed: %s", exc)
         return None
     pool = redis_asyncio.ConnectionPool.from_url(
-        e.redis_url, max_connections=20, decode_responses=True
+        redis_url,
+        max_connections=20,
+        decode_responses=True,
+        # Keep connections fresh on managed Redis (Upstash/Railway) where
+        # idle TCP can be dropped. This reduces "Connection closed" surprises.
+        health_check_interval=30,
+        socket_keepalive=True,
+        socket_connect_timeout=2.0,
+        socket_timeout=2.0,
+        retry_on_timeout=True,
     )
     _REDIS_POOLS[loop_id] = pool
     return pool

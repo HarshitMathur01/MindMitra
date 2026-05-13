@@ -111,8 +111,8 @@ print(f"\n[{_ts()}] ── Phase 6: env validation ──", flush=True)
 t0 = time.perf_counter()
 try:
     from app.core.env import env as get_env, validate_required_env
-    ok, missing, prefixes, warnings_ = validate_required_env()
-    print(f"[{_ts()}] env ok={ok}, missing={missing}", flush=True)
+    ok, missing, config_errors, prefixes, warnings_ = validate_required_env()
+    print(f"[{_ts()}] env ok={ok}, missing={missing}, config_errors={config_errors}", flush=True)
 except Exception as exc:
     print(f"[{_ts()}] ✗ env validation FAILED: {exc}", flush=True)
 

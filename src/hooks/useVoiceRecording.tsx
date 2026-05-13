@@ -3,6 +3,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAzureSpeech, type VoiceMetrics } from '@/hooks/useAzureSpeech';
 
+const DEBUG_VOICE = Boolean(import.meta.env.VITE_DEBUG_LOGS);
+const debugLog = (...args: any[]) => {
+  if (DEBUG_VOICE) console.debug(...args);
+};
+
 // ─── Voice analysis sent to backend (raw, unbiased metrics) ───
 // These are objective measurements — the LLM interprets them in context.
 export interface VoiceAnalysis {
@@ -219,7 +224,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
       };
       recorder.start();
       mediaRecorderRef.current = recorder;
-      console.log('🎤 [VOICE] MediaRecorder started (for prosodic analysis)');
+      debugLog('🎤 [VOICE] MediaRecorder started (for prosodic analysis)');
     } catch (err) {
       console.warn('⚠️ [VOICE] MediaRecorder failed to start:', err);
       // Non-fatal — prosodic analysis will just be unavailable
@@ -251,11 +256,11 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
 
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         audioChunksRef.current = [];
-        console.log(`🎤 [VOICE] Audio captured: ${(blob.size / 1024).toFixed(0)}KB`);
+        debugLog(`🎤 [VOICE] Audio captured: ${(blob.size / 1024).toFixed(0)}KB`);
 
         const wavBase64 = await blobToWavBase64(blob);
         if (wavBase64) {
-          console.log(`🎤 [VOICE] WAV encoded: ${(wavBase64.length / 1024).toFixed(0)}KB base64`);
+          debugLog(`🎤 [VOICE] WAV encoded: ${(wavBase64.length / 1024).toFixed(0)}KB base64`);
         }
         resolve(wavBase64);
       };
@@ -280,7 +285,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
       return '';
     }
     try {
-      console.log('🔄 [WHISPER] Azure returned empty — trying Groq Whisper fallback...');
+      debugLog('🔄 [WHISPER] Azure returned empty — trying Groq Whisper fallback...');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       try {
         const { supabase } = await import('@/integrations/supabase/client');
@@ -308,7 +313,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
       const data = await res.json();
       const t = (data.transcript ?? '').trim();
       if (t) {
-        console.log(`✅ [WHISPER] Fallback succeeded | model=${data.model} | "${t.slice(0, 60)}..."`);
+        debugLog(`✅ [WHISPER] Fallback succeeded | model=${data.model} | "${t.slice(0, 60)}..."`);
       } else {
         console.warn('⚠️ [WHISPER] Fallback also returned empty transcript');
       }
@@ -323,8 +328,8 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
   // Start recording — Azure SDK primary, Whisper fallback
   // ═══════════════════════════════════════════════════════════
   const startRecording = useCallback(async () => {
-    console.log('🎤 [VOICE] Starting voice recording...');
-    console.log('🎤 [VOICE] Azure available:', azure.isSupported);
+    debugLog('🎤 [VOICE] Starting voice recording...');
+    debugLog('🎤 [VOICE] Azure available:', azure.isSupported);
     
     try {
       setCurrentTranscript('');
@@ -339,7 +344,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
 
       // ── Try Azure Speech SDK first ──
       if (azure.isSupported) {
-        console.log('🎤 [VOICE] Using Azure Speech SDK (primary) with PushStream noise-suppressed mode');
+        debugLog('🎤 [VOICE] Using Azure Speech SDK (primary) with PushStream noise-suppressed mode');
         usingAzureRef.current = true;
 
         // Acquire ONE noise-suppressed stream shared between Azure's PushStream
@@ -356,7 +361,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
             },
           });
           micStreamRef.current = sharedStream;
-          console.log('🎤 [VOICE] Noise-suppressed stream acquired (noiseSuppression + echoCancellation)');
+          debugLog('🎤 [VOICE] Noise-suppressed stream acquired (noiseSuppression + echoCancellation)');
         } catch (streamErr) {
           console.warn('⚠️ [VOICE] getUserMedia with constraints failed, Azure will use default mic:', streamErr);
         }
@@ -366,6 +371,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
         // Start Azure recognition — passes stream for PushStream mode if available
         await azure.startRecognition(sharedStream);
         setIsRecording(true);
+        debugLog('🎤 [VOICE] Recording started');
 
         toast({
           title: "🎤 Recording Started",
@@ -420,7 +426,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
     sessionId?: string,
     messageId?: string,
   ): Promise<VoiceResult | null> => {
-    console.log('🛑 [VOICE] Stopping recording... (azure:', usingAzureRef.current, ')');
+    debugLog('🛑 [VOICE] Stopping recording... (azure:', usingAzureRef.current, ')');
 
     clearTimers();
     setIsProcessing(true);
@@ -437,14 +443,14 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
       // We call stopRecognition() before stopMediaRecorder() so the PushStream
       // receives a clean close() and Azure fires sessionStopped with full metrics.
       if (usingAzureRef.current) {
-        console.log('🛑 [VOICE] Stopping Azure recognition...');
+        debugLog('🛑 [VOICE] Stopping Azure recognition...');
         finalTranscript = await azure.stopRecognition();
 
         // Brief pause for sessionStopped to settle metrics
         await new Promise(r => setTimeout(r, 300));
         metrics = azure.voiceMetrics;
 
-        console.log(
+        debugLog(
           `📊 [VOICE] Azure result | transcript="${finalTranscript.slice(0, 60)}" ` +
           `words=${metrics?.wordCount ?? 0} ` +
           `noMatchCount=${azure.noMatchCount}`,
@@ -453,11 +459,11 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
 
       // ── Stop MediaRecorder and harvest audio ──
       audioData = await stopMediaRecorder();
-      console.log('🎤 [VOICE] Audio data captured:', audioData ? `${Math.round(audioData.length / 1024)}KB base64` : 'none');
+      debugLog('🎤 [VOICE] Audio data captured:', audioData ? `${Math.round(audioData.length / 1024)}KB base64` : 'none');
 
       // ── Whisper fallback if Azure returned empty transcript ──
       if (usingAzureRef.current && !finalTranscript.trim() && audioData) {
-        console.log('⚠️ [VOICE] Azure transcript empty — invoking Groq Whisper fallback');
+        debugLog('⚠️ [VOICE] Azure transcript empty — invoking Groq Whisper fallback');
         finalTranscript = await transcribeWithWhisper(audioData);
         if (finalTranscript.trim()) {
           source = 'groq_whisper_fallback';
@@ -471,7 +477,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
         // Build unbiased voice analysis from raw metrics
         const voiceAnalysis = buildVoiceAnalysis(metrics, finalTranscript, source, sttLocale);
         setLastVoiceAnalysis(voiceAnalysis);
-        console.log('📊 [VOICE] Voice analysis (raw, unbiased):', voiceAnalysis);
+      debugLog('📊 [VOICE] Voice analysis (raw, unbiased):', voiceAnalysis);
 
         // Save analytics to voice_analysis_events table
         if (sessionId) {
@@ -514,7 +520,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
               if (error) {
                 console.warn('⚠️ [VOICE] DB save failed:', error.message);
               } else {
-                console.log('✅ [VOICE] Analytics saved to voice_analysis_events table');
+                debugLog('✅ [VOICE] Analytics saved to voice_analysis_events table');
               }
             }
           } catch (dbErr) {
@@ -577,7 +583,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
 
   // Toggle recording
   const toggleRecording = useCallback(async (sessionId?: string, messageId?: string) => {
-    console.log('🎤 [HOOK] toggleRecording, isRecording:', isRecording);
+    debugLog('🎤 [HOOK] toggleRecording, isRecording:', isRecording);
     
     if (isRecording) {
       return await stopRecording(sessionId, messageId);
@@ -589,7 +595,7 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
 
   // Cancel recording
   const cancelRecording = useCallback(() => {
-    console.log('❌ [VOICE] Cancelling...');
+    debugLog('❌ [VOICE] Cancelling...');
 
     if (usingAzureRef.current) {
       azure.stopRecognition();

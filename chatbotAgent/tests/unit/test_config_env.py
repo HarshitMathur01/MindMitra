@@ -134,15 +134,16 @@ def test_required_validation_accepts_yaml_backed_non_secrets(
         "GEMINI_API_KEY",
         "SUPABASE_SERVICE_KEY",
         "SUPABASE_JWT_SECRET",
-        "REDIS_URL",
         "SECRET_KEY",
     ):
         monkeypatch.setenv(name, f"{name.lower()}-test")
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
 
-    ok, missing, present, _warnings = env_mod.validate_required_env()
+    ok, missing, errors, present, _warnings = env_mod.validate_required_env()
 
     assert ok is True
     assert missing == []
+    assert errors == []
     assert present["SUPABASE_URL"] == "present"
     assert present["QDRANT_URL"] == "present"
     assert present["AZURE_OPENAI_ENDPOINT"] == "present"
@@ -188,3 +189,45 @@ def test_supabase_proxy_bool_uses_reloaded_settings(
     env_mod.reload_env()
 
     assert bool(supabase_service.supabase_client) is False
+
+
+def test_validate_redis_url_upstash_requires_tls() -> None:
+    from app.core.env import validate_redis_url
+
+    assert validate_redis_url("redis://default:secret@host.upstash.io:6379") is not None
+    assert validate_redis_url("rediss://default:secret@host.upstash.io:6379") is None
+
+
+def test_validate_redis_url_rejects_https() -> None:
+    from app.core.env import validate_redis_url
+
+    err = validate_redis_url("https://host.upstash.io")
+    assert err is not None
+    assert "redis://" in err or "rediss://" in err
+
+
+def test_validate_required_env_fails_on_invalid_redis_url(
+    temp_config_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core import env as env_mod
+    from app.core.config import config
+
+    _write_minimal_config(temp_config_path)
+    config.reload(temp_config_path)
+    for name in (
+        "ENV",
+        "AZURE_OPENAI_API_KEY",
+        "GROQ_API_KEY",
+        "GEMINI_API_KEY",
+        "SUPABASE_SERVICE_KEY",
+        "SUPABASE_JWT_SECRET",
+        "SECRET_KEY",
+    ):
+        monkeypatch.setenv(name, "x")
+    monkeypatch.setenv("REDIS_URL", "redis://default:x@db.upstash.io:6379")
+
+    ok, missing, errors, _present, _warnings = env_mod.validate_required_env()
+    assert ok is False
+    assert not missing
+    assert len(errors) == 1

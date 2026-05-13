@@ -190,13 +190,22 @@ async def _maybe_await(value):
 async def _log_startup_report() -> None:
     from app.core.env import env as _env, validate_required_env
 
-    ok_env, missing_env, prefixes, optional_warnings = validate_required_env()
+    ok_env, missing_env, config_errors, prefixes, optional_warnings = validate_required_env()
     if not ok_env:
         logger.error(
-            "required environment variables missing — refusing to start",
-            extra=log_context(missing=",".join(missing_env), outcome="startup_blocked"),
+            "environment validation failed — refusing to start",
+            extra=log_context(
+                missing=",".join(missing_env),
+                config_errors=" | ".join(config_errors) if config_errors else "",
+                outcome="startup_blocked",
+            ),
         )
-        raise RuntimeError(f"Missing required environment variables: {', '.join(missing_env)}")
+        parts: list[str] = []
+        if missing_env:
+            parts.append(f"missing: {', '.join(missing_env)}")
+        if config_errors:
+            parts.append("; ".join(config_errors))
+        raise RuntimeError("Invalid or incomplete environment: " + " — ".join(parts))
 
     e = _env()
 
@@ -316,14 +325,36 @@ async def lifespan(app: FastAPI):
                         asyncio.to_thread(lambda: __import__("redis.asyncio")),
                         timeout=2.0,
                     )
+                    mode = (_v3_env().redis_keyspace_mode or "auto").lower()
+                    if mode not in ("auto", "listener", "sweep"):
+                        logger.warning(
+                            "Invalid REDIS_KEYSPACE_MODE; defaulting to auto",
+                            extra=log_context(value=mode, consequence="auto_mode"),
+                        )
+                        mode = "auto"
+
+                    if mode == "sweep":
+                        logger.info(
+                            "Redis session expiry worker: sweep mode",
+                            extra=log_context(consequence="session_end_may_run_up_to_60s_late", outcome="started"),
+                        )
+                        await _v3_session_service.expiry_sweep(_on_expired)
+                        return
+
+                    if mode == "listener":
+                        logger.info("Redis session expiry worker: listener mode", extra=log_context(outcome="started"))
+                        await _v3_session_service.keyspace_listener(_on_expired)
+                        return
+
                     ok = await _v3_session_service.verify_keyspace_notifications()
                     if not ok:
-                        logger.warning(
-                            "Redis keyspace notifications disabled — falling back to periodic expiry sweep",
-                            extra=log_context(consequence="session_end_may_run_up_to_60s_late"),
+                        logger.info(
+                            "Redis session expiry worker: keyspace unavailable; using sweep fallback",
+                            extra=log_context(consequence="session_end_may_run_up_to_60s_late", outcome="fallback"),
                         )
                         await _v3_session_service.expiry_sweep(_on_expired)
                     else:
+                        logger.info("Redis session expiry worker: keyspace ok; using listener", extra=log_context(outcome="started"))
                         await _v3_session_service.keyspace_listener(_on_expired)
                 except asyncio.CancelledError:
                     raise

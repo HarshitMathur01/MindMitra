@@ -6,23 +6,22 @@ import TestimonialCarousel from "@/components/sections/TestimonialCarousel";
 import CTABanner from "@/components/sections/CTABanner";
 import { HillsFooter } from "@/components/layout/HillsFooter";
 import SEO from "@/components/system/SEO";
+import { motion, useReducedMotion } from "framer-motion";
 
 /**
- * Public landing — "a room with a warm lamp on".
- *
- * Quiet Companion design language: warm cream canvas, watercolor
- * illustrations, Fraunces serif headlines, generous whitespace,
- * one-idea-per-section rhythm. Honors candlelight night mode via
- * the global ThemeContext (data-theme="dark" on <html>).
+ * Public landing — product-forward, minimal copy, poster-first hero.
+ * QC canvas + night mode via ThemeContext.
  */
 const PublicLanding = () => {
+  const reduce = useReducedMotion();
+
   return (
     <div className="qc-canvas min-h-screen">
       <SEO
-        title="A quiet companion"
-        description="A private place to think out loud, return to the same conversation tomorrow, and reach a real therapist when you're ready. Built for the way young people in India actually talk."
+        title="Think out loud. Pick up tomorrow."
+        description="MindMitra is a private AI companion for students in India — Hindi, English, or Hinglish — that remembers your thread, offers short resets, and connects you to vetted therapists when you want a human."
         path="/"
-        ogVideo="/video/hero.mp4"
+        ogImage="/video/hero-poster.jpg"
       />
       <a
         href="#main-content"
@@ -33,19 +32,48 @@ const PublicLanding = () => {
       <Header />
       <main id="main-content" tabIndex={-1}>
         <HeroVideo
-          headline="something soft to set things down on, for the loud days."
-          subheadline="a private place to think out loud, return to the same conversation tomorrow, and reach a real therapist when you're ready."
-          primaryCta={{ text: "open mindmitra", href: "/auth" }}
-          secondaryCta={{ text: "how it holds you", href: "#how-it-works" }}
+          headline="The layer before therapy — in the language you actually use."
+          subheadline="One thread that remembers. Short tools when your head won’t quiet. A bridge to real people — never a replacement."
+          primaryCta={{ text: "Begin with MindMitra", href: "/auth" }}
+          secondaryCta={{ text: "See the three pieces", href: "#how-it-works" }}
+          showVideo={false}
         />
+
+        <motion.section
+          aria-label="What MindMitra is"
+          className="border-y border-[color:var(--qc-border-stronger)]/60 bg-[color:var(--qc-surface)]/80"
+          initial={{ opacity: reduce ? 1 : 0, y: reduce ? 0 : 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{
+            duration: reduce ? 0.01 : 0.55,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+        >
+          <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-6 py-10 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:px-8 sm:py-12">
+            {[
+              { k: "Language", v: "Hindi · English · Hinglish" },
+              { k: "Memory", v: "Your thread, not a questionnaire" },
+              { k: "Care", v: "Crisis templates + optional therapists" },
+            ].map((row) => (
+              <div key={row.k} className="min-w-0 sm:max-w-[30%] sm:flex-1">
+                <p className="qc-eyebrow text-[11px] tracking-[0.22em]">{row.k}</p>
+                <p className="qc-display mt-1 text-lg leading-snug text-[color:var(--qc-ink)] sm:text-xl">
+                  {row.v}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
         <HowItWorks />
         <FeaturesPreview />
         <TestimonialCarousel />
         <CTABanner />
       </main>
       <HillsFooter
-        message="rest now. tomorrow finds you here."
-        smallPrint="MindMitra · a quiet companion. private by default."
+        message="Same thread tomorrow. No performance required."
+        smallPrint="MindMitra · built for students in India · private by default"
       />
     </div>
   );

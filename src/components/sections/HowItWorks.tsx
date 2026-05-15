@@ -3,22 +3,22 @@ import { Eyebrow } from "@/components/layout/Eyebrow";
 
 const pillars = [
   {
-    kicker: "01 — companion",
-    title: "talk things through, anytime.",
+    kicker: "01 — talk",
+    title: "A voice that stays with you.",
     body:
-      "a continuous conversation that picks up where you left off. mitra notices patterns and remembers the small things, so you don't have to start from scratch.",
+      "Open Mitra between classes, at 2am, or on the walk back to the hostel. She picks up the thread — exam noise, family pressure, loneliness — in Hindi, English, or Hinglish.",
   },
   {
-    kicker: "02 — mind gym",
-    title: "short, research-backed exercises.",
+    kicker: "02 — reset",
+    title: "Two-minute tools when your body says no.",
     body:
-      "two-minute breathing, grounding, and reframing tools you actually finish. built around the moments stress shows up, not a clinical schedule.",
+      "Mind Gym is not therapy — short breathing, grounding, and reframing you can finish between bells. For the spiral, not the spreadsheet.",
   },
   {
-    kicker: "03 — therapist bridge",
-    title: "when a person makes more sense.",
+    kicker: "03 — bridge",
+    title: "Humans when you want a person in the room.",
     body:
-      "connect with vetted therapists. they receive a clean, bias-free summary of how you've been — never raw chat — so the first session starts further along.",
+      "Therapist Bridge matches you with vetted counsellors. They get a careful summary — not raw chat — so session one skips the cold start.",
   },
 ];
 
@@ -29,14 +29,13 @@ const HowItWorks = () => {
       className="mx-auto max-w-[1200px] px-6 py-16 sm:px-8 sm:py-24"
     >
       <FadeUp className="max-w-[60ch]">
-        <Eyebrow>how it holds you</Eyebrow>
+        <Eyebrow>three moves</Eyebrow>
         <h2 className="qc-display mt-3 text-4xl text-[color:var(--qc-ink)] sm:text-5xl">
-          three things, kept simple on purpose.
+          Built for loud semesters — not a clinic waiting room.
         </h2>
-        <p className="mt-6 max-w-[52ch] text-base leading-[1.6] text-[color:var(--qc-ink-soft)]">
-          most apps stack features. mindmitra is built around the few moments
-          that matter: the late-night spiral, the ten quiet minutes between
-          classes, the day you decide it's time to talk to someone.
+        <p className="mt-6 max-w-[52ch] text-base leading-[1.65] text-[color:var(--qc-ink-soft)]">
+          MindMitra is the zero-th layer: think out loud, return tomorrow, escalate only when you choose.
+          No streaks. No scores. No pretending you are “fine.”
         </p>
       </FadeUp>
 
@@ -50,7 +49,7 @@ const HowItWorks = () => {
                   <h3 className="qc-display text-2xl text-[color:var(--qc-ink)] sm:text-3xl">
                     {p.title}
                   </h3>
-                  <p className="mt-4 text-base leading-[1.6] text-[color:var(--qc-ink-soft)]">
+                  <p className="mt-4 text-base leading-[1.65] text-[color:var(--qc-ink-soft)]">
                     {p.body}
                   </p>
                 </div>

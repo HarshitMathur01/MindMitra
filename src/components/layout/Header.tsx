@@ -37,32 +37,39 @@ const Header = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Nav surface — kept to 5 destinations max so the bar stays calm on
-  // laptop widths. Therapy is highlighted (one of the product MVPs that
-  // users miss when it lives only in /chat or in the footer).
+  // Nav surface — ≤5 items. Hash links scroll on `/` or navigate home first from `/auth`.
   const navItems: { label: string; path: string; highlight?: boolean }[] = user
     ? [
         { label: "Chat", path: "/chat" },
         { label: "Mind Gym", path: "/mindgym" },
-        { label: "Therapy", path: "/therapist-bridge", highlight: true },
+        { label: "Therapist bridge", path: "/therapist-bridge", highlight: true },
         { label: "Resources", path: "/psychological-content" },
         { label: "You", path: "/me" },
       ]
     : [
-        { label: "How it holds you", path: "#how-it-works" },
-        { label: "A live look", path: "#features" },
-        { label: "Therapy", path: "/therapy", highlight: true },
-        { label: "Resources", path: "/psychological-content" },
+        { label: "Three moves", path: "#how-it-works" },
+        { label: "Tone", path: "#features" },
+        { label: "Voices", path: "#about" },
+        { label: "Human support", path: "/therapy", highlight: true },
+        { label: "Reads", path: "/psychological-content" },
       ];
 
   const handleNavClick = (path: string) => {
     setMobileMenuOpen(false);
     if (path.startsWith("#")) {
-      const el = document.querySelector(path);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    } else {
-      navigate(path);
+      const id = path.slice(1);
+      if (location.pathname !== "/") {
+        navigate({ pathname: "/", hash: id });
+        window.setTimeout(() => {
+          document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 280);
+        return;
+      }
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
     }
+    navigate(path);
   };
 
   return (

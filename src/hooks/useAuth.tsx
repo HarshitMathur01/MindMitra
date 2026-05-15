@@ -15,6 +15,8 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
+  /** Supabase recovery email; add `${origin}/auth` to Supabase redirect URLs. */
+  resetPasswordForEmail: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -132,6 +134,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return { error };
   };
 
+  const resetPasswordForEmail = async (email: string) => {
+    const redirectTo = `${window.location.origin}/auth`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Reset link failed",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Check your inbox",
+        description:
+          "If an account exists for that email, you’ll get a reset link shortly.",
+      });
+    }
+    return { error };
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -162,6 +185,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signUp,
     signIn,
     signInWithGoogle,
+    resetPasswordForEmail,
     signOut
   };
 

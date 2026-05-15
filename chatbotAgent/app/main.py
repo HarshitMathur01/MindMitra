@@ -32,6 +32,8 @@ Routers registered:
 # Lifespan startup:
 #   app.core.monitoring.init_sentry()
 #   app.core.env.env()
+#   _log_startup_report() -> health_check("redis") (PING) when REDIS_URL set;
+#     non-dev ENV aborts startup if ping fails
 #   app.services.session_service.verify_keyspace_notifications()
 #     -> app.core.connections.get_redis()
 #   if keyspace notifications are enabled:
@@ -188,6 +190,7 @@ async def _maybe_await(value):
 
 
 async def _log_startup_report() -> None:
+    from app.core.connections import health_check
     from app.core.env import env as _env, validate_required_env
 
     ok_env, missing_env, config_errors, prefixes, optional_warnings = validate_required_env()
@@ -209,18 +212,45 @@ async def _log_startup_report() -> None:
 
     e = _env()
 
-    checks: list[tuple[str, bool, float, str]] = []
-    checks.extend(
-        [
-            ("Redis", bool(e.redis_url), 0.0, "configured; client initializes lazily"),
-            ("Supabase", bool(e.supabase_url and e.supabase_service_key), 0.0, "configured; client initializes lazily"),
-            ("Qdrant", bool(e.qdrant_url), 0.0, "configured; vector client initializes lazily"),
-            ("Azure OpenAI", bool(e.azure_endpoint and e.azure_api_key), 0.0, "configured; client initializes lazily"),
-            ("Groq", bool(e.groq_api_key), 0.0, "configured; client initializes lazily"),
-            ("Gemini", bool(e.gemini_api_key), 0.0, "configured; writer client initializes lazily"),
-            ("Embedding model", bool(e.embedding_model), 0.0, "configured; model loads on first retrieval"),
-        ]
-    )
+    # Real TCP check: env validation only parses REDIS_URL; wrong TLS (e.g. redis://
+    # to Upstash) still used to pass startup then fail in background workers.
+    redis_row: tuple[str, bool, float, str]
+    if e.redis_url.strip():
+        rh = await health_check("redis")
+        redis_ok = bool(rh.get("ok"))
+        redis_ms = float(rh.get("latency_ms") or 0.0)
+        err = str(rh.get("error") or "")
+        if redis_ok:
+            redis_row = ("Redis", True, redis_ms, f"ping ok ({redis_ms:.1f}ms)")
+        else:
+            redis_row = ("Redis", False, redis_ms, f"ping failed: {err[:160]}" if err else "ping failed")
+        if not redis_ok:
+            logger.error(
+                "Redis startup PING failed",
+                extra=log_context(
+                    component="Redis",
+                    error=err[:200],
+                    env_name=e.env_name,
+                    consequence="sessions_and_session_end_degraded",
+                ),
+            )
+            if not e.is_non_prod:
+                raise RuntimeError(
+                    "Redis unreachable at startup (non-dev ENV). "
+                    "Fix REDIS_URL — Upstash requires rediss:// — then redeploy."
+                )
+    else:
+        redis_row = ("Redis", False, 0.0, "REDIS_URL missing")
+
+    checks: list[tuple[str, bool, float, str]] = [
+        redis_row,
+        ("Supabase", bool(e.supabase_url and e.supabase_service_key), 0.0, "configured; client initializes lazily"),
+        ("Qdrant", bool(e.qdrant_url), 0.0, "configured; vector client initializes lazily"),
+        ("Azure OpenAI", bool(e.azure_endpoint and e.azure_api_key), 0.0, "configured; client initializes lazily"),
+        ("Groq", bool(e.groq_api_key), 0.0, "configured; client initializes lazily"),
+        ("Gemini", bool(e.gemini_api_key), 0.0, "configured; writer client initializes lazily"),
+        ("Embedding model", bool(e.embedding_model), 0.0, "configured; model loads on first retrieval"),
+    ]
     logger.info("━━━━━━ MHA AGENT STARTING ━━━━━━", extra=log_context())
     logger.info(
         "environment validated",

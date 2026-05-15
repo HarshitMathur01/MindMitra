@@ -12,19 +12,17 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
+import Footer from "@/components/layout/Footer";
 import { ROUND_THE_CLOCK_HELPLINE } from "@/lib/helplines";
-import heroImg from "@/assets/sanctuary/hero-morning.jpg";
-import treeMountainImg from "@/assets/sanctuary/scene-tree-mountain.jpg";
+import heroImg from "@/assets/sanctuary/mm-hero-monk-tree.webp";
+// import treeMountainImg from "@/assets/sanctuary/scene-tree-mountain.jpg";
+import landingSecondImg from "@/assets/sanctuary/mindmitra-landing-2nd.png";
 import lakeImg from "@/assets/sanctuary/scene-lake.jpg";
-import meadowImg from "@/assets/sanctuary/scene-meadow.jpg";
 import forestImg from "@/assets/sanctuary/scene-forest.jpg";
 import windowImg from "@/assets/sanctuary/scene-window.jpg";
-import hillsImg from "@/assets/sanctuary/scene-hills.jpg";
 import fireflyImg from "@/assets/sanctuary/scene-firefly.jpg";
 import leafImg from "@/assets/sanctuary/leaf.png";
 import butterflyImg from "@/assets/sanctuary/butterfly.png";
-
-const closingBgImg = "/illustrations/hills-1600.webp";
 
 /* ---------- Soft cursor glow ---------- */
 function CursorGlow() {
@@ -91,14 +89,10 @@ function PaperGrain() {
 
 /* ---------- Scene registry & progress nav ---------- */
 const SCENES = [
-  { id: "hero", label: "Sunrise" },
-  { id: "scene-1", label: "Settle" },
-  { id: "breath", label: "Breathe" },
-  { id: "scene-2", label: "Open" },
-  { id: "hills", label: "Wander" },
-  { id: "moments", label: "Moments" },
-  { id: "scene-3", label: "Drift" },
-  { id: "closing", label: "Rest" },
+  { id: "hero", label: "Hello" },
+  { id: "scene-1", label: "Thread" },
+  { id: "moments", label: "Doors" },
+  { id: "scene-3", label: "Night" },
 ] as const;
 
 function SceneNav({ activeId }: { activeId: string }) {
@@ -278,7 +272,7 @@ function RevealWords({
 }
 
 /* ---------- Hero ---------- */
-function HeroScene({ firstName }: { firstName: string }) {
+function HeroScene({ firstName, canResume }: { firstName: string; canResume: boolean }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, "100px");
   const reduceMotion = useReducedMotion();
@@ -303,7 +297,7 @@ function HeroScene({ firstName }: { firstName: string }) {
     >
       <motion.img
         src={heroImg}
-        alt="A young woman meditating peacefully under a great tree at sunrise"
+        alt="A robed figure sits in quiet meditation beneath a wide tree, soft golden light through the leaves"
         width={1920}
         height={1080}
         className="absolute inset-0 h-full w-full object-cover mix-blend-multiply"
@@ -338,51 +332,114 @@ function HeroScene({ firstName }: { firstName: string }) {
       />
 
       <motion.div
-        style={{ y: textY }}
-        className="relative z-10 flex h-full flex-col items-end justify-center px-8 md:px-20"
+        style={{ y, opacity }}
+        className="relative z-10 flex h-full flex-col items-start justify-center pl-10 pr-8 md:pl-32 md:pr-20 pt-24 md:pt-32"
       >
-        <div className="max-w-2xl text-right">
+        <div className="max-w-xl text-left xl:max-w-2xl mt-10 md:mt-16">
+          
+          {/* Eyebrow Greeting */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 1 }}
+            className="flex items-center gap-3 mb-8"
+          >
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#2E5F4A' }}></span>
+            <span 
+              className="text-xs md:text-sm font-semibold tracking-[0.2em]" 
+              style={{ color: 'rgba(40, 35, 30, 0.9)' }}
+            >
+              {new Date().getHours() < 12 ? "GOOD MORNING" : new Date().getHours() < 18 ? "GOOD AFTERNOON" : "GOOD EVENING"}, {firstName?.toUpperCase() || 'FRIEND'}
+            </span>
+          </motion.div>
+
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9, duration: 1.2 }}
+            className="leading-[1.1] md:leading-[1.05] font-light"
+            style={{
+              fontFamily: "var(--font-serif-display, 'DM Serif Display', 'Fraunces', serif)",
+              color: "rgba(25, 20, 15, 0.95)", // Very dark ink matching the image
+              fontSize: "clamp(3.5rem, 8vw, 6.5rem)",
+              letterSpacing: "-0.02em",
+              textShadow: "0 4px 32px rgba(255, 255, 255, 0.7)", // Gentle glow for readability against pure sun without blur
+            }}
+          >
+            <span className="block">The light</span>
+            <span className="block">is soft,</span>
+            <span className="block italic" style={{ color: '#2E5F4A' }}>and I am</span>
+            <span className="block italic" style={{ color: '#2E5F4A' }}>listening.</span>
+          </motion.h1>
+
+          {/* Subtext */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 1.4 }}
-            className="leading-snug italic"
+            transition={{ delay: 1.3, duration: 1.2 }}
+            className="mt-6 leading-relaxed max-w-lg"
             style={{
-              fontFamily: "var(--font-sans)",
-              color: "var(--ink-soft)",
-              fontSize: "clamp(1.3rem, 2.2vw, 1.9rem)",
-              fontWeight: 700,
+              fontFamily: "var(--font-sans, 'Inter', sans-serif)",
+              color: "#1C1917", // Pure dark ink for crisp visibility
+              fontSize: "clamp(0.95rem, 1.2vw, 1.15rem)",
+              fontWeight: 500, // Thickened slightly to hold over detailed background
+              textShadow: "0 0 16px rgba(255, 255, 255, 0.95), 0 0 40px rgba(255, 255, 255, 0.8), 0 1px 2px rgba(255, 255, 255, 1)", // Massive dense halo buffer
               letterSpacing: "0.01em",
             }}
           >
-            sun's up — so are new possibilities.
+            Hindi, English, ya Hinglish — jis bhi zubaan mein dil khulta ho. Mitra remembers, adapts, and stays beside you.
           </motion.p>
 
-          <h1
-            className="mt-6 leading-[1.05] font-medium"
-            style={{
-              fontFamily: "var(--font-script)",
-              color: "var(--ink)",
-              fontSize: "clamp(2.8rem, 6vw, 5.5rem)",
-            }}
+          {/* Action Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.6, duration: 1 }}
+            className="mt-10 flex flex-wrap items-center justify-start gap-6"
           >
-            <RevealWords text="Good morning," delay={1.2} />
-            <br />
-            <RevealWords
-              text={`${firstName}.`}
-              delay={1.6}
-              style={{ fontFamily: "var(--font-script)", fontWeight: 600 }}
-            />
-          </h1>
+            <Link
+              to="/chat"
+              className="group flex items-center gap-4 rounded-full p-2 pr-6 transition-all hover:scale-105 active:scale-95 shadow-xl"
+              style={{ backgroundColor: 'rgba(25, 20, 15, 0.95)' }}
+            >
+              <div 
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:rotate-12"
+                style={{ backgroundColor: '#2E5F4A' }}
+              >
+                {/* Voice/Mic SVG Icon */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                </svg>
+              </div>
+              <span className="text-sm font-medium tracking-wide text-[#FDFBF7]" style={{ fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}>
+                Start a conversation
+              </span>
+            </Link>
+
+            <Link
+              to="/chat"
+              className="group flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-md px-6 py-2.5 text-sm font-semibold shadow-[0_4px_24px_rgba(255,255,255,0.5)] transition-all hover:scale-105 hover:bg-white active:scale-95 border border-white/40"
+              style={{ color: "#1C1917", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}
+            >
+              Try the avatar
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1 group-hover:-translate-y-1">
+                <line x1="7" y1="17" x2="17" y2="7"></line>
+                <polyline points="7 7 17 7 17 17"></polyline>
+              </svg>
+            </Link>
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 2.8, duration: 1.6 }}
-            className="mt-10 flex items-center justify-end gap-4"
+            className="mt-8 flex items-center justify-end gap-4"
             style={{ color: "var(--ink-soft)", fontFamily: "var(--font-sans)" }}
           >
-            <span className="text-xs uppercase tracking-[0.4em]">scroll, gently</span>
+            <span className="text-xs uppercase tracking-[0.4em]">scroll the tour</span>
             <motion.span
               animate={ambient ? { y: [0, 8, 0] } : { y: 0 }}
               transition={{ duration: 2.4, repeat: ambient ? Infinity : 0, ease: "easeInOut" }}
@@ -566,186 +623,6 @@ function ScrollScene({
   );
 }
 
-/* ---------- Breath pause ---------- */
-function BreathPause() {
-  const ref = useRef<HTMLElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const inView = useInView(ref, "150px");
-  const reduceMotion = useReducedMotion();
-  const breathe = inView && !reduceMotion;
-
-  // Pause/play with viewport visibility to avoid wasted decode work off-screen.
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (inView && !reduceMotion) {
-      v.play().catch(() => { });
-    } else {
-      v.pause();
-    }
-  }, [inView, reduceMotion]);
-
-  return (
-    <section
-      ref={ref}
-      id="breath"
-      className="relative flex min-h-[80vh] w-full flex-col items-center justify-center overflow-hidden px-6 py-32"
-      style={{ backgroundColor: "var(--paper-deep)", contain: "layout paint" }}
-    >
-      {!reduceMotion && (
-        <video
-          ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
-          src={inView ? "/videos/inhale_exhale.mp4" : undefined}
-          loop
-          muted
-          playsInline
-          preload="none"
-          poster={treeMountainImg}
-          aria-hidden
-        />
-      )}
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: "var(--paper-deep)", opacity: 0.55 }}
-        aria-hidden
-      />
-      <motion.div
-        className="relative flex items-center justify-center"
-        style={{ width: 320, height: 320 }}
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 2 }}
-      >
-        {[0, 0.4, 0.8].map((d, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              inset: i * 32,
-              border: "1px solid var(--accent-sage-soft)",
-              willChange: "opacity",
-            }}
-            animate={
-              breathe
-                ? {
-                  scale: [0.7 + i * 0.05, 1, 0.7 + i * 0.05],
-                  opacity: [0.25, 0.7, 0.25],
-                }
-                : { scale: 0.7 + i * 0.05, opacity: 0.25 }
-            }
-            transition={{
-              duration: 8,
-              repeat: breathe ? Infinity : 0,
-              ease: "easeInOut",
-              delay: d,
-            }}
-          />
-        ))}
-        <motion.div
-          className="absolute inset-20 rounded-full"
-          style={{ backgroundColor: "var(--accent-sage-soft)", opacity: 0.18, willChange: "transform" }}
-          animate={breathe ? { scale: [0.85, 1.08, 0.85] } : { scale: 0.85 }}
-          transition={{ duration: 8, repeat: breathe ? Infinity : 0, ease: "easeInOut" }}
-        />
-        <motion.span
-          className="relative z-10 -translate-y-16 rounded-full px-6 py-3 text-center italic font-semibold tracking-[0.08em]"
-          style={{
-            fontFamily: "var(--font-script)",
-            color: "var(--paper-soft)",
-            fontSize: "clamp(1.9rem, 3vw, 2.8rem)",
-            backgroundColor: "rgba(0, 0, 0, 0.16)",
-            backdropFilter: "blur(6px)",
-            textShadow: "0 2px 12px rgba(0, 0, 0, 0.75)",
-            boxShadow: "0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 28px rgba(0, 0, 0, 0.14)",
-          }}
-          animate={breathe ? { opacity: [0.35, 0.85, 0.35] } : { opacity: 0.6 }}
-          transition={{ duration: 8, repeat: breathe ? Infinity : 0, ease: "easeInOut" }}
-        >
-          breathe in… and out
-        </motion.span>
-      </motion.div>
-
-      <motion.p
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1.6, delay: 0.6 }}
-        className="mt-16 max-w-md text-center italic"
-        style={{
-          fontFamily: "var(--font-sans)",
-          color: "var(--ink-soft)",
-          fontSize: "clamp(1rem, 1.4vw, 1.2rem)",
-        }}
-      >
-        there is nowhere to be. only here, only this.
-      </motion.p>
-    </section>
-  );
-}
-
-
-/* ---------- Wide parallax banner ---------- */
-function ParallaxBanner({
-  id,
-  image,
-  alt,
-  caption,
-  height = "70vh",
-}: {
-  id?: string;
-  image: string;
-  alt: string;
-  caption?: string;
-  height?: string;
-}) {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"],
-  });
-  const y = useTransform(scrollYProgress, [0, 1], ["-12%", "12%"]);
-  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [1.15, 1.05, 1.15]);
-  const captionOpacity = useTransform(scrollYProgress, [0.2, 0.5, 0.8], [0, 1, 0]);
-
-  return (
-    <section
-      ref={ref}
-      id={id}
-      className="relative w-full overflow-hidden"
-      style={{ height, contain: "layout paint" }}
-    >
-      <motion.img
-        src={image}
-        alt={alt}
-        loading="lazy"
-        width={1600}
-        height={900}
-        className="absolute inset-0 h-[125%] w-full object-cover mix-blend-multiply"
-        style={{ y, scale, top: "-12%", willChange: "transform" }}
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to bottom, color-mix(in oklab, var(--paper-soft) 50%, transparent), transparent 35%, transparent 65%, color-mix(in oklab, var(--paper-soft) 60%, transparent))",
-        }}
-      />
-      {caption && (
-        <motion.p
-          style={{ opacity: captionOpacity, fontFamily: "var(--font-serif)", color: "var(--ink)" }}
-
-          className="absolute inset-x-0 bottom-12 mx-auto max-w-xl px-6 text-center italic"
-        >
-          <span style={{ fontSize: "clamp(1.1rem, 1.6vw, 1.4rem)" }}>{caption}</span>
-        </motion.p>
-      )}
-    </section>
-  );
-}
-
 /* ---------- Image trio strip ---------- */
 function MomentsStrip() {
   const ref = useRef<HTMLElement>(null);
@@ -767,9 +644,9 @@ function MomentsStrip() {
   const y2 = useSpring(rawY2, { stiffness: 60, damping: 22, mass: 0.9 });
   const ys = [y0, y1, y2];
   const items = [
-    { src: windowImg, alt: "Open window with morning tea", label: "resources", to: "/psychological-content" },
-    { src: forestImg, alt: "Misty forest path", label: "mindgym", to: "/mindgym" },
-    { src: fireflyImg, alt: "Hand cupping a firefly", label: "the therapist bridge", to: "/therapist-bridge" },
+    { src: windowImg, alt: "Open window with morning tea", label: "Reads & explainers", to: "/psychological-content" },
+    { src: forestImg, alt: "Misty forest path", label: "Mind Gym micro-tools", to: "/mindgym" },
+    { src: fireflyImg, alt: "Hand cupping a firefly", label: "Therapist bridge", to: "/therapist-bridge" },
   ];
 
   return (
@@ -788,7 +665,7 @@ function MomentsStrip() {
           className="mb-14 text-center text-xs uppercase tracking-[0.45em]"
           style={{ color: "var(--ink-soft)", fontFamily: "var(--font-sans)" }}
         >
-          small moments · gathered softly
+          pick a door · same private account
         </motion.p>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-10">
@@ -873,103 +750,15 @@ function MomentsStrip() {
   );
 }
 
-/* ---------- Closing ---------- */
-function ClosingScene() {
-  const helplineLine = `if you need to talk, ${ROUND_THE_CLOCK_HELPLINE.name} is open 24/7 · ${ROUND_THE_CLOCK_HELPLINE.display}.`;
-  const footerLinks = [
-    { label: "Privacy", to: "/privacy" },
-    { label: "Terms", to: "/terms" },
-    { label: "Safety plan", to: "/safety-plan" },
-    { label: "Resources", to: "/psychological-content" },
-  ];
-  return (
-    <section
-      id="closing"
-      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden px-6 py-32"
-      style={{ backgroundColor: "var(--paper-soft)" }}
-    >
-      <img
-        aria-hidden
-        alt=""
-        src={closingBgImg}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
-        style={{ transform: "scale(1.02)" }}
-      />
-
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(circle at center, rgba(250, 247, 241, 0) 28%, rgba(250, 247, 241, 0.22) 72%, rgba(250, 247, 241, 0.38) 100%)",
-        }}
-      />
-
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/5" />
-
-      <div className="relative z-10 flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 text-center">
-        <h2
-          className="max-w-2xl text-center italic leading-[1.05] font-medium"
-          style={{
-            fontFamily: "var(--font-script)",
-            color: "var(--ink)",
-            fontSize: "clamp(2.4rem, 4.5vw, 4.4rem)",
-            textShadow: "0 2px 10px rgba(255, 248, 238, 0.85)",
-          }}
-        >
-          <RevealWords text="rest now. tomorrow finds you here." />
-        </h2>
-
-      </div>
-
-      <div className="absolute inset-x-0 bottom-8 z-10 flex w-full flex-col items-center gap-6 px-6 text-center sm:bottom-10">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 2, delay: 0.8 }}
-          className="flex w-full flex-wrap items-stretch justify-center gap-4 text-xl sm:text-2xl"
-          style={{
-            color: "var(--ink)",
-            fontFamily: "var(--font-sans)",
-            textShadow: "0 1px 6px rgba(255, 248, 238, 0.7)",
-          }}
-        >
-          {footerLinks.map((l, i, arr) => (
-            <span key={l.label} className="flex min-w-[9rem] flex-1 items-center justify-center gap-x-2">
-              <Link to={l.to} className="transition-opacity hover:opacity-60">
-                {l.label}
-              </Link>
-              {i < arr.length - 1 && <span aria-hidden>·</span>}
-            </span>
-          ))}
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 2, delay: 1.2 }}
-          className="w-full max-w-none text-lg leading-relaxed sm:text-xl"
-          style={{
-            color: "var(--ink)",
-            fontFamily: "var(--font-sans)",
-            textShadow: "0 1px 6px rgba(255, 248, 238, 0.7)",
-          }}
-        >
-          a companion, not a clinician - a bridge to care, not a replacement.
-          {" "}
-          {helplineLine}
-        </motion.p>
-      </div>
-    </section>
-  );
-}
-
 export default function SanctuaryHome() {
   const { scrollYProgress } = useScroll();
   const activeId = useActiveScene();
   const { user } = useAuth();
+  const [canResume, setCanResume] = useState(false);
+
+  useEffect(() => {
+    setCanResume(!!localStorage.getItem("currentChatSession"));
+  }, []);
 
   // Mirrors the displayName derivation used in pages/Index.tsx so the hero
   // greeting matches whatever the rest of the product calls the user.
@@ -995,54 +784,32 @@ export default function SanctuaryHome() {
       <ScrollThread progress={scrollYProgress} />
       <SceneNav activeId={activeId} />
 
-      <HeroScene firstName={firstName} />
+      <HeroScene firstName={firstName} canResume={canResume} />
 
       <ScrollScene
         id="scene-1"
         index={1}
-        image={treeMountainImg}
-        alt="Watercolor of a figure meditating beneath a tree before soft mountains"
-        eyebrow="settle"
-        title="Let the morning hold you, gently."
-        body="Nothing to perform. Nothing to fix. Just a slow noticing - the weight of your shoulders, the warmth of the light, the quiet between thoughts."
-      />
-
-      <BreathPause />
-
-      <ScrollScene
-        id="scene-2"
-        index={2}
-        reverse
-        tint="var(--background)"
-        image={meadowImg}
-        alt="Watercolor of a wide meadow with wildflowers and a single bird flying"
-        eyebrow="open"
-        title="A small bird, a wide sky."
-        body="Possibility doesn't shout. It rustles in the grass, hums in the wind. Step into the day with the same softness - and let it surprise you."
-      />
-
-      <ParallaxBanner
-        id="hills"
-        image={hillsImg}
-        alt="Soft watercolor hills at dawn with a tiny figure walking"
-        caption="one slow step is still forward."
-        height="80vh"
+        image={landingSecondImg}
+        alt="Watercolor of a figure sitting gracefully beneath a large leafing tree"
+        eyebrow="thread"
+        title="She remembers the subplot, not just the headline."
+        body="Mitra keeps the emotional through-line across days — the lab partner tension, the scholarship worry, the homesick Sundays. You don’t re-introduce yourself every time."
       />
 
       <MomentsStrip />
 
       <ScrollScene
         id="scene-3"
-        index={3}
+        index={2}
         tint="var(--paper-deep)"
         image={lakeImg}
         alt="Watercolor of a still lake at twilight with a small boat and a glowing moon"
-        eyebrow="drift"
-        title="Stillness has its own current."
-        body="When the day grows heavy, return here. Float a while. The water holds you. The moon keeps watch. You don't have to row."
+        eyebrow="night mode honesty"
+        title="Crisis words are fixed templates — never improvised."
+        body="If tonight is unsafe, Mitra routes you to clinician-reviewed lines and helplines. The rest of the time she stays conversational, messy, human-shaped."
       />
 
-      <ClosingScene />
+      <Footer />
     </main>
   );
 }

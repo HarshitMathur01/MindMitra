@@ -13,27 +13,27 @@ const CTABanner = () => {
         </div>
 
         <h2 className="qc-display text-3xl text-[color:var(--qc-ink)] sm:text-[2.5rem] sm:leading-[1.1]">
-          start with one sentence.
+          One honest sentence is enough.
         </h2>
-        <p className="mx-auto mt-5 max-w-[44ch] text-base leading-[1.6] text-[color:var(--qc-ink-soft)]">
-          that's it. tell mitra one true thing about today, and let the
-          conversation go where it needs to.
+        <p className="mx-auto mt-5 max-w-[44ch] text-base leading-[1.65] text-[color:var(--qc-ink-soft)]">
+          Tell Mitra what is loudest today. She won&apos;t rush you to solutions — sometimes
+          being heard is the first reset.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <button
             type="button"
             onClick={() => navigate("/auth")}
-            className="qc-pill-primary"
+            className="qc-pill-primary min-h-[48px] min-w-[200px] px-8"
           >
-            open mindmitra
+            Create your space
           </button>
           <button
             type="button"
             onClick={() => navigate("/psychological-content")}
-            className="qc-pill-outline"
+            className="qc-pill-outline min-h-[48px] min-w-[200px] px-8"
           >
-            read something first
+            Browse resources
           </button>
         </div>
       </FadeUp>

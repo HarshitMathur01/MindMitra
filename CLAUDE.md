@@ -6,15 +6,66 @@ runs.
 
 ## What MindMitra is (one paragraph)
 
-React/Vite SPA backed by a FastAPI service (`chatbotAgent`). Chat runs
-on the **MHA v3** architecture: an 8-layer pipeline currently served over
-a simple JWT-authenticated HTTP `POST /chat` endpoint. Auth and relational data live in
-**Supabase** (8 v3 tables, RLS-enforced). Session state and embedding
-caches live in **Redis** with keyspace expiry notifications driving the
-session-end pipeline. **Qdrant** holds episodic memory vectors. The
-legacy MITRA v2 SSE/WebSocket stack, `mem0`-based memory layer, and one-shot
-greeting service have all been removed; this is the only conversational
-runtime.
+MindMitra — Product Context
+What MindMitra Is
+MindMitra is an AI-powered mental health companion for Indian college students and young adults. It is the zero-th layer of mental health care — the first touchpoint before professional therapy, designed to close India's 83% mental health treatment gap.
+It is not a therapy app. It is the bridge between struggling in silence and seeking real help.
+
+Core Product
+A conversational AI agent that:
+
+Talks in the user's natural language — Hindi, English, or Hinglish
+Adapts its tone to match the user's emotional state and communication style over time
+Remembers across sessions (episodic memory) — not like a form, like a person
+Detects distress signals and escalates through a tiered safety system
+Never diagnoses, never prescribes, never replaces a therapist
+
+Target users: Indian college students (18–25), primarily in engineering and medical colleges, hostel-living, high academic pressure environments.
+
+Key Features
+Conversational Agent
+The core product. A chat interface where users talk to MindMitra's AI. The agent:
+
+Operates in 5 modes: Companion, Active Listener, Psychoeducation, Skill Coach, Referral Bridge
+Selects mode dynamically based on affect signals each turn
+Personalises tone over time using an EMA-based style convergence engine
+Runs on Azure GPT-4o (primary) with GLM-4 fallback
+
+Avatar Interaction
+Users can interact with a lipsync-enabled AI avatar that speaks the agent's responses aloud. The avatar animates in real-time to match the AI's spoken output — making the interaction feel less like a chatbot and more like talking to someone. This significantly reduces the cold, transactional feel of text-only mental health tools.
+Therapist Handoff
+
+
+Therapist Bridge
+A structured referral layer connecting MindMitra users to verified therapists and counsellors:
+Positions therapy as an add-on, not a replacement of the MindMitra relationship
+
+MindGym
+A structured, activity-based mental wellness module — not therapy, not chat. Evidence-based micro-interventions packaged as short, engaging exercises:
+
+Breathing techniques (box breathing, 4-7-8)
+Grounding exercises (5-4-3-2-1 sensory)
+etc
+
+Crisis responses are fixed, clinician-reviewed templates — never LLM-generated.
+
+What MindMitra Is Not
+
+Not a diagnostic tool
+Not a replacement for therapy
+Not a chatbot with canned responses
+Not another mood tracker with streaks and badges
+
+
+Compliance
+
+DPDP Act 2023 (India) compliant
+UGC mental health guidelines 2023 aligned
+Data stored on Indian servers
+User-controlled memory: view, edit, delete at any time
+Append-only audit log for every data access
+
+
 
 ## Single source of narrative
 
@@ -113,16 +164,12 @@ POST /chat → resolve authenticated user               — JWT
   `chatbotAgent/.env.example`, and audit the startup log in
   `app/main.py` so missing prod values fail loud.
 
-## Testing commands (sanity)
-
-```bash
-cd chatbotAgent
-pytest tests -q -m "not integration"
-RUN_INTEGRATION=1 pytest tests -q
-```
 
 ## Tone for this repo
 
 Mental-health adjacent: prefer **conservative** behaviour on ambiguity,
 **explicit** logging for safety paths, and **small PRs** with doc
 updates in the same change set.
+
+After implementing the new code, make sure to remove old used codes to clean the codebase and also tell about deleting some file if not in use.
+Run tests always after implementation.

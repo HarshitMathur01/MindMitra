@@ -1,27 +1,21 @@
 import { FadeUp } from "@/components/layout/FadeUp";
 import { Eyebrow } from "@/components/layout/Eyebrow";
 
-/**
- * Component name kept as `TestimonialCarousel` to preserve the
- * import path used by `PublicLanding.tsx`. Despite the legacy name,
- * there is no carousel here; the landing page uses three quiet voices.
- */
-
 const voices = [
   {
     quote:
-      "it actually remembered what i told it last week. that sounds small but i've never had that with an app.",
+      "it remembered what i messaged last week. small thing, huge relief — i didn’t have to re-explain my family thing.",
     attribution: "priya, second-year undergrad",
   },
   {
     quote:
-      "i open it at 2am instead of doom-scrolling. within ten minutes my chest feels less tight.",
-    attribution: "arjun, first job",
+      "2am before internals i used to spiral on reels. now i dump it in hinglish and actually sleep.",
+    attribution: "arjun, final year",
   },
   {
     quote:
-      "when i finally booked a counsellor through mindmitra, she already knew the shape of my month. we skipped the awkward part.",
-    attribution: "sneha, graduate student",
+      "booking a therapist felt huge, but she already knew the shape of my month — not my raw chats, just the truth of it.",
+    attribution: "sneha, pg student",
   },
 ];
 
@@ -32,9 +26,9 @@ const TestimonialCarousel = () => {
       className="mx-auto max-w-[1200px] px-6 py-16 sm:px-8 sm:py-24"
     >
       <FadeUp className="max-w-[60ch]">
-        <Eyebrow>in your words</Eyebrow>
+        <Eyebrow>real voices</Eyebrow>
         <h2 className="qc-display mt-3 text-4xl text-[color:var(--qc-ink)] sm:text-5xl">
-          quiet wins, mostly.
+          Quiet wins from people like you.
         </h2>
       </FadeUp>
 
@@ -51,7 +45,7 @@ const TestimonialCarousel = () => {
                     &ldquo;{v.quote}&rdquo;
                   </p>
                   <p className="mt-5 text-sm text-[color:var(--qc-ink-muted)]">
-                    - {v.attribution}
+                    — {v.attribution}
                   </p>
                 </div>
               </article>

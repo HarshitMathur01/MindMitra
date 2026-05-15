@@ -25,8 +25,8 @@ const Index = () => {
   return (
     <>
       <SEO
-        title="Your quiet companion"
-        description="A calm, scrolling sanctuary — pause, breathe, and pick up where you left off with Mitra."
+        title="Your thread, still here"
+        description="Pick up with Mitra, breathe in Mind Gym, or open the therapist bridge — one calm home screen before you dive in."
         path="/"
       />
       <Header />

@@ -44,6 +44,10 @@ collection names, and budgets.
 and admin/debug tokens. Legacy env names still override YAML values for tests
 and emergency deploy changes, but new configuration should start in YAML.
 
+### Railway / Upstash Redis
+
+Set `REDIS_URL` to the **TLS** URL from the Upstash console (`rediss://…`, not `redis://`). Plain `redis://` against `*.upstash.io` is rejected by env validation when current code is deployed, and otherwise fails at runtime with connection errors. On startup the app **PING**s Redis and refuses to boot when `ENV` is not a dev-like value and the ping fails, so misconfigured deploys fail fast instead of only logging in background workers. If `CONFIG GET` is blocked by the provider but Redis otherwise works, set `REDIS_KEYSPACE_MODE=sweep`. Rotate the database password in Upstash if it was ever exposed.
+
 ## Routes
 
 | Path | Type | Purpose |

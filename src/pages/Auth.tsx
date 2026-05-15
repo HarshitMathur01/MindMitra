@@ -38,11 +38,11 @@ import { WatercolorScene } from "@/components/layout/WatercolorScene";
 import { cn } from "@/lib/utils";
 
 const AFFIRMATIONS = [
-  "You don't have to carry it alone.",
-  "Small steps still move you forward.",
-  "Whatever you're feeling is allowed here.",
-  "Rest is also progress.",
-  "Be gentle with yourself today.",
+  "Not therapy. A thread you can drop into in Hindi, English, or Hinglish.",
+  "Remembers your story across nights — not like a form, like continuity.",
+  "Short resets when your head won’t quiet. Humans when you want a person.",
+  "Never a diagnosis. Never a prescription. A bridge, not a replacement.",
+  "Your data stays in India. You control what’s remembered.",
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -53,20 +53,26 @@ type FormValues = { email: string; password: string };
 const Auth = () => {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
-  const { user, signIn, signUp, signInWithGoogle } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, resetPasswordForEmail } = useAuth();
 
   const [mode, setMode] = useState<Mode>("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [affirmIdx, setAffirmIdx] = useState(0);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
     reset,
   } = useForm<FormValues>({ mode: "onBlur" });
+
+  const watchedEmail = watch("email");
 
   useEffect(() => {
     if (user) navigate("/");
@@ -99,6 +105,21 @@ const Auth = () => {
   const toggleMode = () => {
     setMode((m) => (m === "signin" ? "signup" : "signin"));
     reset();
+    setForgotOpen(false);
+  };
+
+  const openForgot = () => {
+    setForgotOpen(true);
+    setForgotEmail((watchedEmail || "").trim());
+  };
+
+  const sendForgot = async () => {
+    const e = forgotEmail.trim();
+    if (!EMAIL_RE.test(e)) return;
+    setForgotSending(true);
+    await resetPasswordForEmail(e);
+    setForgotSending(false);
+    setForgotOpen(false);
   };
 
   const container = reduce
@@ -234,10 +255,44 @@ const Auth = () => {
               </p>
             )}
 
-            {mode === "signin" && (
-              <a href="#" className="mm-forgot" tabIndex={0}>
+            {mode === "signin" && !forgotOpen && (
+              <button type="button" className="mm-forgot" onClick={openForgot}>
                 forgot password?
-              </a>
+              </button>
+            )}
+
+            {mode === "signin" && forgotOpen && (
+              <div className="mm-forgot-panel" role="region" aria-label="Reset password">
+                <label htmlFor="forgot-email" className="mm-forgot-label">
+                  email for reset link
+                </label>
+                <input
+                  id="forgot-email"
+                  type="email"
+                  className="mm-forgot-input"
+                  value={forgotEmail}
+                  onChange={(ev) => setForgotEmail(ev.target.value)}
+                  autoComplete="email"
+                  aria-invalid={forgotEmail.length > 0 && !EMAIL_RE.test(forgotEmail)}
+                />
+                <div className="mm-forgot-actions">
+                  <button
+                    type="button"
+                    className="mm-link-peach"
+                    onClick={() => setForgotOpen(false)}
+                  >
+                    cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="mm-btn-primary mm-btn-primary--inline"
+                    disabled={forgotSending || !EMAIL_RE.test(forgotEmail.trim())}
+                    onClick={sendForgot}
+                  >
+                    {forgotSending ? "sending…" : "send link"}
+                  </button>
+                </div>
+              </div>
             )}
 
             <button
@@ -553,8 +608,62 @@ const styles = `
   padding: 4px 0;
   cursor: pointer;
   font-family: inherit;
+  text-align: left;
 }
 .mm-forgot:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.mm-forgot-panel {
+  margin-top: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--mm-sage-rgb), 0.35);
+  background: var(--mm-cream);
+}
+
+.mm-forgot-label {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--mm-slate);
+  margin-bottom: 8px;
+}
+
+.mm-forgot-input {
+  width: 100%;
+  height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--mm-sage);
+  border-radius: 10px;
+  background: var(--mm-cream-warm);
+  color: var(--mm-ink);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+}
+.mm-forgot-input:focus {
+  border-color: var(--mm-forest);
+  box-shadow: 0 0 0 4px rgba(var(--mm-peach-rgb), 0.18);
+}
+.mm-forgot-input[aria-invalid="true"] {
+  border-color: var(--mm-peach-deep);
+}
+
+.mm-forgot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.mm-btn-primary--inline {
+  width: auto;
+  min-width: 128px;
+  margin-top: 0;
+  height: 44px;
+  padding: 0 18px;
+}
 
 /* ── primary button ──────────────────────────────────────── */
 .mm-btn-primary {

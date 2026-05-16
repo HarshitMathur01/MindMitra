@@ -50,15 +50,15 @@ const PublicLanding = () => {
             ease: [0.22, 1, 0.36, 1],
           }}
         >
-          <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-6 py-10 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:px-8 sm:py-12">
+          <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-4 py-8 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:px-6 sm:py-10 md:px-8 md:py-12">
             {[
               { k: "Language", v: "Hindi · English · Hinglish" },
               { k: "Memory", v: "Your thread, not a questionnaire" },
               { k: "Care", v: "Crisis templates + optional therapists" },
             ].map((row) => (
               <div key={row.k} className="min-w-0 sm:max-w-[30%] sm:flex-1">
-                <p className="qc-eyebrow text-[11px] tracking-[0.22em]">{row.k}</p>
-                <p className="qc-display mt-1 text-lg leading-snug text-[color:var(--qc-ink)] sm:text-xl">
+                <p className="qc-eyebrow text-[10px] sm:text-[11px] tracking-[0.22em]">{row.k}</p>
+                <p className="qc-display mt-1 text-base sm:text-lg leading-snug text-[color:var(--qc-ink)] sm:text-xl">
                   {row.v}
                 </p>
               </div>

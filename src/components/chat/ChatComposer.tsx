@@ -56,7 +56,7 @@ const ChatComposer = ({
             transition={CHAT_SOFT_SPRING}
             className="sticky bottom-0 z-20 shrink-0 border-t border-border bg-card/95 backdrop-blur p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]"
         >
-            <div className="max-w-3xl mx-auto">
+            <div className="mx-auto w-full max-w-3xl px-2 sm:px-0">
                 <div className="chat-input relative rounded-full bg-background border border-input transition-all duration-base">
                     <Input
                         value={inputValue}
@@ -66,7 +66,7 @@ const ChatComposer = ({
                         // h-14 on mobile gives the input enough vertical
                         // air to clear the larger touch targets and feels
                         // less cramped under thumbs. h-12 stays on sm+.
-                        className="pr-[6.5rem] sm:pr-24 h-14 sm:h-12 text-[16px] sm:text-[15px] rounded-full bg-transparent border-0 text-foreground placeholder:text-ink-5 shadow-none focus-visible:outline-none focus-visible:ring-0"
+                        className="pr-[5.5rem] sm:pr-[6.5rem] md:pr-24 h-14 sm:h-12 text-[16px] sm:text-[15px] rounded-full bg-transparent border-0 text-foreground placeholder:text-ink-5 shadow-none focus-visible:outline-none focus-visible:ring-0"
                         disabled={isLoading}
                         // Calmer mobile keyboard — no autocorrect surprises
                         // when typing emotionally charged content; no

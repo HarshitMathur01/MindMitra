@@ -58,53 +58,42 @@ function avatarBackdropVideosPlugin() {
       return `export default ${JSON.stringify(readAvatarBackdropVideos())};`;
     },
     configureServer(server: ViteDevServer) {
-      server.watcher.add(avatarVideosDir);
-      server.watcher.on("all", (_event: string, file: string) => {
-        const normalizedFile = path.normalize(file);
-        if (!normalizedFile.startsWith(`${avatarVideosDir}${path.sep}`)) return;
-        if (!avatarMediaPattern.test(normalizedFile)) return;
+      // Defer watcher setup until server is ready to prevent blocking HTTP responses
+      server.httpServer?.once('listening', () => {
+        server.watcher.add(avatarVideosDir);
+        server.watcher.on("all", (_event: string, file: string) => {
+          const normalizedFile = path.normalize(file);
+          if (!normalizedFile.startsWith(`${avatarVideosDir}${path.sep}`)) return;
+          if (!avatarMediaPattern.test(normalizedFile)) return;
 
-        const mod = server.moduleGraph.getModuleById(resolvedAvatarVideosModuleId);
-        if (mod) server.moduleGraph.invalidateModule(mod);
-        server.ws.send({ type: "full-reload" });
+          const mod = server.moduleGraph.getModuleById(resolvedAvatarVideosModuleId);
+          if (mod) {
+            // Use setImmediate to avoid blocking the event loop
+            setImmediate(() => {
+              server.moduleGraph.invalidateModule(mod);
+              server.ws.send({ type: "full-reload" });
+            });
+          }
+        });
       });
     },
   };
 }
 
-function copyPublicAssetsPlugin() {
-  let publicDir = "";
-  let outDir = "";
-
-  async function copyDir(src: string, dest: string): Promise<void> {
-    if (!existsSync(src)) return;
-    await mkdir(dest, { recursive: true });
-
-    for (const entry of await readdir(src, { withFileTypes: true })) {
-      if (entry.name === ".DS_Store") continue;
-
-      const from = path.join(src, entry.name);
-      const to = path.join(dest, entry.name);
-      if (entry.isDirectory()) {
-        await copyDir(from, to);
-        continue;
-      }
-      if (!entry.isFile()) continue;
-
-      await mkdir(path.dirname(to), { recursive: true });
-      await pipeline(createReadStream(from), createWriteStream(to));
-    }
-  }
-
+function stripXattrsPlugin() {
   return {
-    name: "copy-public-assets-bytewise",
+    name: "strip-xattrs",
     apply: "build" as const,
-    configResolved(config: { root: string; build: { outDir: string } }) {
-      publicDir = path.resolve(config.root, "public");
-      outDir = path.resolve(config.root, config.build.outDir);
-    },
-    async writeBundle() {
-      await copyDir(publicDir, outDir);
+    async configResolved(config: { root: string }) {
+      const publicDir = path.resolve(config.root, "public");
+      if (process.platform === "darwin" && existsSync(publicDir)) {
+        const { spawn } = await import("child_process");
+        await new Promise<void>((resolve, reject) => {
+          const proc = spawn("xattr", ["-cr", publicDir], { stdio: "inherit" });
+          proc.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`xattr failed with code ${code}`))));
+          proc.on("error", reject);
+        });
+      }
     },
   };
 }
@@ -113,9 +102,8 @@ function copyPublicAssetsPlugin() {
 export default defineConfig(({ command }) => ({
   cacheDir: "node_modules/.vite-mindmitra",
   // Vite's default build-time public copy uses fs.copyFile, which can hang on
-  // macOS files carrying provenance xattrs. Dev still serves /public normally;
-  // production builds copy public assets byte-for-byte in the plugin below.
-  publicDir: command === "build" ? false : "public",
+  // macOS files carrying provenance xattrs. We strip xattrs before build to avoid this.
+  publicDir: "public",
   server: {
     // "::" = dual-stack loopback on macOS: responds to both localhost and
     // 127.0.0.1 so the browser works regardless of how macOS resolves localhost.
@@ -148,7 +136,6 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [
     avatarBackdropVideosPlugin(),
-    copyPublicAssetsPlugin(),
     react(),
   ].filter(Boolean),
   resolve: {

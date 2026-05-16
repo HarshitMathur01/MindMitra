@@ -56,7 +56,7 @@ function ScrollThread({ progress }: { progress: MotionValue<number> }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed right-6 top-0 z-[40] hidden h-screen w-px md:block"
+      className="pointer-events-none fixed right-4 sm:right-6 top-0 z-[40] hidden h-screen w-px md:block"
       style={{ backgroundColor: "color-mix(in oklab, var(--ink) 12%, transparent)" }}
     >
       <motion.div
@@ -104,7 +104,7 @@ function SceneNav({ activeId }: { activeId: string }) {
   return (
     <nav
       aria-label="Scene navigation"
-      className="pointer-events-auto fixed left-4 top-1/2 z-[45] hidden -translate-y-1/2 md:block"
+      className="pointer-events-auto fixed left-2 sm:left-4 top-1/2 z-[45] hidden -translate-y-1/2 md:block"
     >
       <ul className="flex flex-col gap-5">
         {SCENES.map((s) => {
@@ -333,20 +333,20 @@ function HeroScene({ firstName, canResume }: { firstName: string; canResume: boo
 
       <motion.div
         style={{ y, opacity }}
-        className="relative z-10 flex h-full flex-col items-start justify-center pl-10 pr-8 md:pl-32 md:pr-20 pt-24 md:pt-32"
+        className="relative z-10 flex h-full flex-col items-start justify-center pl-6 pr-4 sm:pl-10 sm:pr-8 md:pl-20 md:pr-16 lg:pl-32 lg:pr-20 pt-20 md:pt-24 lg:pt-32"
       >
-        <div className="max-w-xl text-left xl:max-w-2xl mt-10 md:mt-16">
+        <div className="max-w-lg text-left sm:max-w-xl md:max-w-xl lg:max-w-2xl mt-8 sm:mt-10 md:mt-16">
           
           {/* Eyebrow Greeting */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 1 }}
-            className="flex items-center gap-3 mb-8"
+            className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8"
           >
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#2E5F4A' }}></span>
-            <span 
-              className="text-xs md:text-sm font-semibold tracking-[0.2em]" 
+            <span
+              className="text-[10px] sm:text-xs md:text-sm font-semibold tracking-[0.2em]"
               style={{ color: 'rgba(40, 35, 30, 0.9)' }}
             >
               {new Date().getHours() < 12 ? "GOOD MORNING" : new Date().getHours() < 18 ? "GOOD AFTERNOON" : "GOOD EVENING"}, {firstName?.toUpperCase() || 'FRIEND'}
@@ -358,11 +358,11 @@ function HeroScene({ firstName, canResume }: { firstName: string; canResume: boo
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 1.2 }}
-            className="leading-[1.1] md:leading-[1.05] font-light"
+            className="leading-[1.15] sm:leading-[1.1] md:leading-[1.05] font-light"
             style={{
               fontFamily: "var(--font-serif-display, 'DM Serif Display', 'Fraunces', serif)",
               color: "rgba(25, 20, 15, 0.95)", // Very dark ink matching the image
-              fontSize: "clamp(3.5rem, 8vw, 6.5rem)",
+              fontSize: "clamp(2.5rem, 10vw, 6.5rem)",
               letterSpacing: "-0.02em",
               textShadow: "0 4px 32px rgba(255, 255, 255, 0.7)", // Gentle glow for readability against pure sun without blur
             }}
@@ -378,11 +378,11 @@ function HeroScene({ firstName, canResume }: { firstName: string; canResume: boo
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.3, duration: 1.2 }}
-            className="mt-6 leading-relaxed max-w-lg"
+            className="mt-5 sm:mt-6 leading-relaxed max-w-md sm:max-w-lg"
             style={{
               fontFamily: "var(--font-sans, 'Inter', sans-serif)",
               color: "#1C1917", // Pure dark ink for crisp visibility
-              fontSize: "clamp(0.95rem, 1.2vw, 1.15rem)",
+              fontSize: "clamp(0.875rem, 1.5vw, 1.15rem)",
               fontWeight: 500, // Thickened slightly to hold over detailed background
               textShadow: "0 0 16px rgba(255, 255, 255, 0.95), 0 0 40px rgba(255, 255, 255, 0.8), 0 1px 2px rgba(255, 255, 255, 1)", // Massive dense halo buffer
               letterSpacing: "0.01em",
@@ -396,15 +396,15 @@ function HeroScene({ firstName, canResume }: { firstName: string; canResume: boo
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.6, duration: 1 }}
-            className="mt-10 flex flex-wrap items-center justify-start gap-6"
+            className="mt-8 sm:mt-10 flex flex-col sm:flex-wrap items-start sm:items-center justify-start gap-4 sm:gap-6"
           >
             <Link
               to="/chat"
-              className="group flex items-center gap-4 rounded-full p-2 pr-6 transition-all hover:scale-105 active:scale-95 shadow-xl"
+              className="group flex items-center gap-3 sm:gap-4 rounded-full p-2 pr-5 sm:pr-6 transition-all hover:scale-105 active:scale-95 shadow-xl w-full sm:w-auto"
               style={{ backgroundColor: 'rgba(25, 20, 15, 0.95)' }}
             >
-              <div 
-                className="flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:rotate-12"
+              <div
+                className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full transition-transform group-hover:rotate-12"
                 style={{ backgroundColor: '#2E5F4A' }}
               >
                 {/* Voice/Mic SVG Icon */}
@@ -421,7 +421,7 @@ function HeroScene({ firstName, canResume }: { firstName: string; canResume: boo
 
             <Link
               to="/chat"
-              className="group flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-md px-6 py-2.5 text-sm font-semibold shadow-[0_4px_24px_rgba(255,255,255,0.5)] transition-all hover:scale-105 hover:bg-white active:scale-95 border border-white/40"
+              className="group flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-md px-5 sm:px-6 py-2.5 text-sm font-semibold shadow-[0_4px_24px_rgba(255,255,255,0.5)] transition-all hover:scale-105 hover:bg-white active:scale-95 border border-white/40 w-full sm:w-auto justify-center sm:justify-start"
               style={{ color: "#1C1917", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}
             >
               Try the avatar
@@ -516,7 +516,7 @@ function ScrollScene({
     <section
       ref={ref}
       id={id}
-      className="relative w-full overflow-hidden py-32 md:py-44"
+      className="relative w-full overflow-hidden py-20 sm:py-24 md:py-32 lg:py-44"
       style={{ backgroundColor: tint, contain: "layout paint" }}
     >
       {/* faint chapter number */}
@@ -525,7 +525,7 @@ function ScrollScene({
         className="pointer-events-none absolute select-none"
         style={{
           fontFamily: "var(--font-sans)",
-          fontSize: "clamp(8rem, 22vw, 22rem)",
+          fontSize: "clamp(4rem, 15vw, 22rem)",
           color: "var(--ink)",
           opacity: 0.04,
           fontStyle: "italic",
@@ -540,14 +540,14 @@ function ScrollScene({
       </motion.span>
 
       <div
-        className={`relative mx-auto flex max-w-6xl flex-col items-center gap-14 px-6 md:gap-24 md:px-12 ${reverse ? "md:flex-row-reverse" : "md:flex-row"}`}
+        className={`relative mx-auto flex max-w-6xl flex-col items-center gap-12 px-4 sm:px-6 sm:gap-16 md:gap-24 md:px-12 ${reverse ? "md:flex-row-reverse" : "md:flex-row"}`}
       >
         <motion.div
           className="relative w-full md:w-1/2"
           style={{ x: imgX, scale: imgScale, rotate: imgRotate, opacity: imgOpacity }}
         >
           <div
-            className="relative overflow-hidden rounded-[2rem]"
+            className="relative overflow-hidden rounded-[1.5rem] sm:rounded-[2rem]"
             style={{
               boxShadow:
                 "0 30px 80px -40px color-mix(in oklab, var(--ink) 30%, transparent)",
@@ -563,7 +563,7 @@ function ScrollScene({
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 rounded-[2rem]"
+              className="pointer-events-none absolute inset-0 rounded-[1.5rem] sm:rounded-[2rem]"
               style={{
                 boxShadow: "inset 0 0 60px 10px color-mix(in oklab, var(--paper-soft) 60%, transparent)",
               }}
@@ -582,11 +582,11 @@ function ScrollScene({
             {eyebrow}
           </p>
           <h2
-            className="leading-[1.1] font-medium"
+            className="leading-[1.15] sm:leading-[1.1] font-medium"
             style={{
               fontFamily: "var(--font-script)",
               color: "var(--ink)",
-              fontSize: "clamp(2rem, 4vw, 3.4rem)",
+              fontSize: "clamp(1.5rem, 5vw, 3.4rem)",
             }}
           >
             <RevealWords text={title} />
@@ -596,11 +596,11 @@ function ScrollScene({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.5 }}
             transition={{ duration: 1.4, delay: 0.5 }}
-            className="mt-7 leading-relaxed"
+            className="mt-6 sm:mt-7 leading-relaxed"
             style={{
               fontFamily: "var(--font-sans)",
               color: "var(--ink-soft)",
-              fontSize: "clamp(1.05rem, 1.4vw, 1.25rem)",
+              fontSize: "clamp(0.95rem, 1.5vw, 1.25rem)",
             }}
           >
             {body}
@@ -653,22 +653,22 @@ function MomentsStrip() {
     <section
       ref={ref}
       id="moments"
-      className="relative w-full overflow-hidden py-28 md:py-36"
+      className="relative w-full overflow-hidden py-20 sm:py-24 md:py-28 lg:py-36"
       style={{ backgroundColor: "var(--paper-soft)", contain: "layout paint" }}
     >
-      <div className="mx-auto max-w-6xl px-6 md:px-12">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-12">
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: minimal ? 0.4 : 1.6 }}
-          className="mb-14 text-center text-xs uppercase tracking-[0.45em]"
+          className="mb-10 sm:mb-14 text-center text-[10px] sm:text-xs uppercase tracking-[0.35em] sm:tracking-[0.45em]"
           style={{ color: "var(--ink-soft)", fontFamily: "var(--font-sans)" }}
         >
           pick a door · same private account
         </motion.p>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-10">
+        <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3 md:gap-10">
           {items.map((it, i) => {
             const figureStyle = lite
               ? { marginTop: 0, willChange: "opacity" as const }
@@ -709,7 +709,7 @@ function MomentsStrip() {
               >
                 <Link to={it.to} aria-label={it.label} className="block">
                   <div
-                    className="relative overflow-hidden rounded-[1.75rem]"
+                    className="relative overflow-hidden rounded-[1.25rem] sm:rounded-[1.5rem] md:rounded-[1.75rem]"
                     style={{
                       boxShadow:
                         "0 24px 60px -32px color-mix(in oklab, var(--ink) 35%, transparent)",
@@ -735,7 +735,7 @@ function MomentsStrip() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, amount: 0.2 }}
                     transition={captionTransition}
-                    className="mt-5 text-center text-xs uppercase tracking-[0.4em]"
+                    className="mt-4 sm:mt-5 text-center text-[10px] sm:text-xs uppercase tracking-[0.35em] sm:tracking-[0.4em]"
                     style={{ color: "var(--ink-soft)", fontFamily: "var(--font-sans)" }}
                   >
                     {it.label}

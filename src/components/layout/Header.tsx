@@ -80,16 +80,16 @@ const Header = () => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: DURATION.long, ease: EASE.outExpo }}
       >
-        <div className="mx-auto flex max-w-page items-center justify-between gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 sm:py-3 lg:px-8">
+        <div className="mx-auto flex max-w-page items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <button
             type="button"
-            className="flex items-center gap-2 transition-opacity hover:opacity-80"
+            className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
             onClick={() => navigate("/")}
           >
-            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl sm:h-9 sm:w-9">
-              <img src="/image.png" alt="MindMitra" className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl">
+              <img src="/image.png" alt="MindMitra" className="h-9 w-9 object-contain" />
             </div>
-            <span className="font-display text-base tracking-tight text-foreground sm:text-lg">
+            <span className="font-display text-lg tracking-tight text-foreground">
               MindMitra
             </span>
           </button>
@@ -97,7 +97,7 @@ const Header = () => {
           <nav className="hidden items-center gap-1 lg:flex">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
-              const baseClasses = "rounded-full px-3 py-2 text-sm font-medium transition-colors xl:px-4";
+              const baseClasses = "rounded-full px-4 py-2 text-sm font-medium transition-colors";
               const stateClasses = isActive
                 ? "bg-[hsl(var(--accent-100))] text-[hsl(var(--accent-700))]"
                 : item.highlight
@@ -198,7 +198,7 @@ const Header = () => {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: DURATION.base, ease: EASE.outExpo }}
             >
-              <div className="mx-auto max-w-page space-y-1 px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:py-4">
+              <div className="mx-auto max-w-page space-y-1 px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path;
                   const stateClasses = isActive
@@ -211,7 +211,7 @@ const Header = () => {
                       key={item.path}
                       type="button"
                       onClick={() => handleNavClick(item.path)}
-                      className={`flex w-full items-center rounded-xl px-4 py-3.5 text-sm font-medium transition-colors ${stateClasses}`}
+                      className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors ${stateClasses}`}
                     >
                       {item.label}
                     </button>

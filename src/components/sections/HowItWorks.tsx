@@ -26,30 +26,30 @@ const HowItWorks = () => {
   return (
     <section
       id="how-it-works"
-      className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 sm:py-16 md:px-8 md:py-20 lg:py-24"
+      className="mx-auto max-w-[1200px] px-6 py-16 sm:px-8 sm:py-24"
     >
       <FadeUp className="max-w-[60ch]">
         <Eyebrow>three moves</Eyebrow>
-        <h2 className="qc-display mt-3 text-3xl sm:text-4xl md:text-5xl text-[color:var(--qc-ink)]">
+        <h2 className="qc-display mt-3 text-4xl text-[color:var(--qc-ink)] sm:text-5xl">
           Built for loud semesters — not a clinic waiting room.
         </h2>
-        <p className="mt-5 sm:mt-6 max-w-[52ch] text-base leading-[1.65] text-[color:var(--qc-ink-soft)]">
+        <p className="mt-6 max-w-[52ch] text-base leading-[1.65] text-[color:var(--qc-ink-soft)]">
           MindMitra is the zero-th layer: think out loud, return tomorrow, escalate only when you choose.
-          No streaks. No scores. No pretending you are "fine."
+          No streaks. No scores. No pretending you are “fine.”
         </p>
       </FadeUp>
 
-      <ul className="mt-12 sm:mt-16 md:mt-20 divide-y divide-[color:var(--qc-border)]">
+      <ul className="mt-16 divide-y divide-[color:var(--qc-border)] sm:mt-20">
         {pillars.map((p, i) => (
           <li key={p.kicker}>
             <FadeUp delay={i * 60}>
-              <article className="grid gap-6 py-10 sm:py-12 md:grid-cols-[14ch_1fr] md:gap-16 md:py-16">
+              <article className="grid gap-6 py-12 sm:grid-cols-[14ch_1fr] sm:gap-16 sm:py-16">
                 <p className="qc-eyebrow pt-2">{p.kicker}</p>
                 <div className="max-w-[60ch]">
-                  <h3 className="qc-display text-xl sm:text-2xl md:text-3xl text-[color:var(--qc-ink)]">
+                  <h3 className="qc-display text-2xl text-[color:var(--qc-ink)] sm:text-3xl">
                     {p.title}
                   </h3>
-                  <p className="mt-3 sm:mt-4 text-base leading-[1.65] text-[color:var(--qc-ink-soft)]">
+                  <p className="mt-4 text-base leading-[1.65] text-[color:var(--qc-ink-soft)]">
                     {p.body}
                   </p>
                 </div>

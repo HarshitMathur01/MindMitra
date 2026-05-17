@@ -666,10 +666,9 @@ img {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   Mobile responsiveness (mobile-first approach)
+   Mobile responsiveness (375px baseline)
    ══════════════════════════════════════════════════════════════════ */
 
-/* Small mobile (375px baseline) */
 @media (max-width: 480px) {
     .mm-bubble {
         padding: 12px 14px;
@@ -701,47 +700,14 @@ img {
     }
 }
 
-/* Mobile (481px - 640px) */
-@media (min-width: 481px) and (max-width: 640px) {
-    .mm-bubble {
-        max-width: 86%;
-    }
-
-    .mm-bubble--user {
-        max-width: 80%;
-    }
-}
-
-/* Tablet (641px - 768px) */
-@media (min-width: 641px) and (max-width: 768px) {
+/* ── Tablet responsiveness ── */
+@media (min-width: 481px) and (max-width: 768px) {
     .mm-bubble {
         max-width: 84%;
     }
 
     .mm-bubble--user {
         max-width: 78%;
-    }
-}
-
-/* Small desktop (769px - 1024px) */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .mm-bubble {
-        max-width: 82%;
-    }
-
-    .mm-bubble--user {
-        max-width: 76%;
-    }
-}
-
-/* Large desktop (1025px+) */
-@media (min-width: 1025px) {
-    .mm-bubble {
-        max-width: 80%;
-    }
-
-    .mm-bubble--user {
-        max-width: 74%;
     }
 }
 

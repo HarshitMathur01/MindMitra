@@ -139,7 +139,7 @@ const ChatMessageList = ({
                                           re-announcement on re-render.
                                         */}
                                         <div
-                                            className="rounded-[18px] rounded-tl-md bg-ink-1 px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[92%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[70%]"
+                                            className="rounded-[18px] rounded-tl-md bg-ink-1 px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[94%] sm:max-w-[80%] lg:max-w-[70%]"
                                             {...(isLastAi && isLoading
                                                 ? {
                                                       "aria-live": "polite" as const,
@@ -222,7 +222,7 @@ const ChatMessageList = ({
                             ) : (
                                 <div className="flex gap-2 sm:gap-3 justify-end items-start">
                                     <div className="flex-1 flex flex-col items-end min-w-0">
-                                        <div className="bg-ink-2 text-ink-8 rounded-[18px] rounded-tr-md px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[92%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[70%]">
+                                        <div className="bg-ink-2 text-ink-8 rounded-[18px] rounded-tr-md px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[94%] sm:max-w-[80%] lg:max-w-[70%]">
                                             <span className="chat-bubble-text text-[15px] leading-[1.55] whitespace-pre-wrap">
                                                 {message.content}
                                             </span>

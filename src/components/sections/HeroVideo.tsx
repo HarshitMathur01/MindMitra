@@ -198,8 +198,8 @@ export function HeroVideo({
         />
       )}
 
-      <div className="relative z-10 mx-auto w-full max-w-[800px] px-4 pb-10 pt-4 text-center sm:px-5 sm:pb-12 sm:pt-6">
-        <h1 className="qc-display text-balance text-[clamp(1.75rem,6vw,3.75rem)] leading-[1.1] sm:leading-[1.08] text-[color:var(--qc-ink)] [text-shadow:0_1px_2px_color-mix(in_oklab,var(--qc-canvas)_80%,transparent)]">
+      <div className="relative z-10 mx-auto w-full max-w-[800px] px-5 pb-12 pt-6 text-center sm:px-8">
+        <h1 className="qc-display text-balance text-[clamp(2.15rem,5.2vw,3.75rem)] leading-[1.08] text-[color:var(--qc-ink)] [text-shadow:0_1px_2px_color-mix(in_oklab,var(--qc-canvas)_80%,transparent)]">
           {headlineWords.map((w, i) => (
             <motion.span
               key={`${w}-${i}`}
@@ -225,7 +225,7 @@ export function HeroVideo({
 
         {subheadline && (
           <motion.p
-            className="mx-auto mt-5 sm:mt-6 max-w-[52ch] text-pretty text-[clamp(0.9375rem,2.5vw,1.2rem)] leading-[1.65] text-[color:var(--qc-ink-soft)]"
+            className="mx-auto mt-6 max-w-[52ch] text-pretty text-[clamp(1rem,2.1vw,1.2rem)] leading-[1.65] text-[color:var(--qc-ink-soft)]"
             initial={{ opacity: 0, y: reduce ? 0 : 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
@@ -239,7 +239,7 @@ export function HeroVideo({
         )}
 
         <motion.div
-          className="mt-8 sm:mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center"
+          className="mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center"
           initial={{ opacity: 0, y: reduce ? 0 : 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
@@ -248,11 +248,11 @@ export function HeroVideo({
             ease: childEase,
           }}
         >
-          <a href={primaryCta.href} className="qc-pill-primary min-h-[48px] px-6 sm:px-8 py-3 text-center">
+          <a href={primaryCta.href} className="qc-pill-primary min-h-[48px] px-8 py-3 text-center">
             {primaryCta.text}
           </a>
           {secondaryCta && (
-            <a href={secondaryCta.href} className="qc-pill-outline min-h-[48px] px-6 sm:px-8 py-3 text-center">
+            <a href={secondaryCta.href} className="qc-pill-outline min-h-[48px] px-8 py-3 text-center">
               {secondaryCta.text}
             </a>
           )}

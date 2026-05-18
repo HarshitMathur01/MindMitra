@@ -235,18 +235,36 @@ class LipsyncEn {
     };
 
     // Per-viseme intensity: how strongly each viseme drives blend shapes
-    // Vowels generally need more mouth opening, consonants less
+    // Vowels need prominent mouth opening; consonants tuned for readability
     this.visemeIntensity = {
-      'aa': 0.75, 'E': 0.68, 'I': 0.55, 'O': 0.72, 'U': 0.65,
-      'PP': 0.90, 'SS': 0.45, 'TH': 0.50, 'DD': 0.55, 'FF': 0.85,
-      'kk': 0.50, 'nn': 0.40, 'RR': 0.50, 'CH': 0.55, 'sil': 0.0
+      'aa': 0.82, 'E': 0.72, 'I': 0.60, 'O': 0.76, 'U': 0.70,
+      'PP': 0.92, 'SS': 0.62, 'TH': 0.60, 'DD': 0.68, 'FF': 0.88,
+      'kk': 0.62, 'nn': 0.58, 'RR': 0.65, 'CH': 0.62, 'sil': 0.0
     };
 
-    // Jaw opening weight per viseme (how much jawOpen should accompany the viseme)
+    // Jaw opening weight per viseme — more open for expressive natural speech
     this.visemeJaw = {
-      'aa': 0.35, 'E': 0.22, 'I': 0.15, 'O': 0.30, 'U': 0.18,
-      'PP': 0.0, 'SS': 0.05, 'TH': 0.08, 'DD': 0.10, 'FF': 0.02,
-      'kk': 0.08, 'nn': 0.05, 'RR': 0.12, 'CH': 0.10, 'sil': 0.0
+      'aa': 0.45, 'E': 0.30, 'I': 0.18, 'O': 0.40, 'U': 0.22,
+      'PP': 0.0,  'SS': 0.06, 'TH': 0.10, 'DD': 0.12, 'FF': 0.03,
+      'kk': 0.10, 'nn': 0.06, 'RR': 0.16, 'CH': 0.13, 'sil': 0.0
+    };
+
+    // Secondary lip shapes: morphs that co-articulate with each viseme
+    // These layer on top of the primary viseme blend shape for realism
+    this.visemeLip = {
+      'PP': { mouthRollLower: 0.20, mouthRollUpper: 0.20, mouthClose: 0.25 },
+      'FF': { mouthLowerDownLeft: 0.15, mouthLowerDownRight: 0.15 },
+      'TH': { mouthLowerDownLeft: 0.10, mouthLowerDownRight: 0.10 },
+      'DD': { mouthRollLower: 0.08 },
+      'SS': { mouthStretchLeft: 0.14, mouthStretchRight: 0.14 },
+      'CH': { mouthStretchLeft: 0.12, mouthStretchRight: 0.12 },
+      'nn': { mouthRollLower: 0.10, mouthClose: 0.08 },
+      'aa': { mouthLowerDownLeft: 0.12, mouthLowerDownRight: 0.12 },
+      'E':  { mouthStretchLeft: 0.10, mouthStretchRight: 0.10 },
+      'O':  { mouthFunnel: 0.28, mouthPucker: 0.10 },
+      'U':  { mouthPucker: 0.38, mouthFunnel: 0.12 },
+      'RR': { mouthPucker: 0.22 },
+      'sil': {},
     };
 
     // Coarticulation blending: how much the next/previous viseme bleeds into current
@@ -259,13 +277,14 @@ class LipsyncEn {
     };
 
     // Coarticulation amount: how much the next viseme anticipates (0=none, 0.4=heavy)
+    // Strengthened vowel→vowel and stop→vowel transitions for more natural blending
     this.coarticulationForward = {
-      'vowel': { 'vowel': 0.30, 'stop': 0.10, 'fricative': 0.20, 'nasal': 0.25, 'liquid': 0.25, 'silence': 0.0 },
-      'stop': { 'vowel': 0.15, 'stop': 0.05, 'fricative': 0.10, 'nasal': 0.10, 'liquid': 0.10, 'silence': 0.0 },
-      'fricative': { 'vowel': 0.20, 'stop': 0.05, 'fricative': 0.15, 'nasal': 0.15, 'liquid': 0.15, 'silence': 0.0 },
-      'nasal': { 'vowel': 0.25, 'stop': 0.08, 'fricative': 0.15, 'nasal': 0.10, 'liquid': 0.20, 'silence': 0.0 },
-      'liquid': { 'vowel': 0.25, 'stop': 0.08, 'fricative': 0.15, 'nasal': 0.20, 'liquid': 0.15, 'silence': 0.0 },
-      'silence': { 'vowel': 0.0, 'stop': 0.0, 'fricative': 0.0, 'nasal': 0.0, 'liquid': 0.0, 'silence': 0.0 }
+      'vowel':    { 'vowel': 0.38, 'stop': 0.08, 'fricative': 0.22, 'nasal': 0.28, 'liquid': 0.28, 'silence': 0.0 },
+      'stop':     { 'vowel': 0.22, 'stop': 0.05, 'fricative': 0.12, 'nasal': 0.12, 'liquid': 0.15, 'silence': 0.0 },
+      'fricative':{ 'vowel': 0.22, 'stop': 0.05, 'fricative': 0.18, 'nasal': 0.18, 'liquid': 0.18, 'silence': 0.0 },
+      'nasal':    { 'vowel': 0.28, 'stop': 0.08, 'fricative': 0.18, 'nasal': 0.12, 'liquid': 0.22, 'silence': 0.0 },
+      'liquid':   { 'vowel': 0.28, 'stop': 0.08, 'fricative': 0.18, 'nasal': 0.22, 'liquid': 0.18, 'silence': 0.0 },
+      'silence':  { 'vowel': 0.0,  'stop': 0.0,  'fricative': 0.0,  'nasal': 0.0,  'liquid': 0.0,  'silence': 0.0  }
     };
 
     // Pauses in relative units (1=average)
@@ -532,7 +551,7 @@ class LipsyncEn {
   wordsToVisemes(w) {
     let o = {
       words: w.toUpperCase(), visemes: [], times: [], durations: [],
-      intensities: [], jaw: [], coartWeights: [], i: 0
+      intensities: [], jaw: [], lip: [], coartWeights: [], i: 0
     };
     let t = 0;
 
@@ -558,6 +577,7 @@ class LipsyncEn {
                 o.durations.push(d);
                 o.intensities.push(this.visemeIntensity[viseme] || 0.6);
                 o.jaw.push(this.visemeJaw[viseme] || 0);
+                o.lip.push(this.visemeLip[viseme] || {});
                 t += d;
               }
             })

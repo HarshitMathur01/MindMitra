@@ -339,6 +339,10 @@ class TalkingHead {
       names.add(x)
     });
     this.posePropNames = [...names];
+    this.modelRigProfile = null;
+    this.modelPoseMode = null;
+    this.modelPoseProps = null;
+    this.modelArmRest = null;
 
     // Use "side" as the first pose, weight on left leg
     this.poseName = "side"; // First pose
@@ -816,6 +820,8 @@ class TalkingHead {
 
     // Morph targets
     this.mtAvatar = {};
+    this.mtDrivers = {};
+    this.mtDriverRest = new Map();
     this.mtCustoms = [
       "handFistLeft", "handFistRight", 'bodyRotateX', 'bodyRotateY',
       'bodyRotateZ', 'headRotateX', 'headRotateY', 'headRotateZ', 'chestInhale'
@@ -825,22 +831,28 @@ class TalkingHead {
     this.mtAccExceptions = {
       eyeBlinkLeft: 0.1, eyeBlinkRight: 0.1, eyeLookOutLeft: 0.1,
       eyeLookInLeft: 0.1, eyeLookOutRight: 0.1, eyeLookInRight: 0.1,
-      // Faster acceleration for viseme-related morph targets
-      viseme_aa: 0.06, viseme_E: 0.06, viseme_I: 0.06, viseme_O: 0.06,
-      viseme_U: 0.06, viseme_PP: 0.08, viseme_SS: 0.05, viseme_TH: 0.05,
-      viseme_DD: 0.06, viseme_FF: 0.07, viseme_kk: 0.06, viseme_nn: 0.05,
-      viseme_RR: 0.05, viseme_CH: 0.06, viseme_sil: 0.04,
-      jawOpen: 0.06, mouthOpen: 0.05
+      // Faster acceleration for viseme morph targets; stops need extra crispness
+      viseme_aa: 0.07, viseme_E: 0.07, viseme_I: 0.07, viseme_O: 0.07,
+      viseme_U: 0.07, viseme_PP: 0.14, viseme_SS: 0.06, viseme_TH: 0.06,
+      viseme_DD: 0.12, viseme_FF: 0.08, viseme_kk: 0.11, viseme_nn: 0.06,
+      viseme_RR: 0.06, viseme_CH: 0.07, viseme_sil: 0.04,
+      jawOpen: 0.07, mouthOpen: 0.06,
+      mouthPucker: 0.08, mouthFunnel: 0.08, mouthRollLower: 0.07,
+      mouthRollUpper: 0.07, mouthClose: 0.12, mouthStretchLeft: 0.07,
+      mouthStretchRight: 0.07, mouthLowerDownLeft: 0.07, mouthLowerDownRight: 0.07
     };
     this.mtMaxVDefault = 5; // Maximum velocity [rad / s]
     this.mtMaxVExceptions = {
       bodyRotateX: 1, bodyRotateY: 1, bodyRotateZ: 1,
       // headRotateX: 1, headRotateY: 1, headRotateZ: 1
-      // Faster peak velocity for viseme morph targets
-      viseme_aa: 8, viseme_E: 8, viseme_I: 8, viseme_O: 8, viseme_U: 8,
-      viseme_PP: 10, viseme_SS: 7, viseme_TH: 7, viseme_DD: 8,
-      viseme_FF: 9, viseme_kk: 8, viseme_nn: 7, viseme_RR: 7,
-      viseme_CH: 8, viseme_sil: 6, jawOpen: 8, mouthOpen: 7
+      // Peak velocity per viseme; stops need sharp snap
+      viseme_aa: 9, viseme_E: 9, viseme_I: 9, viseme_O: 9, viseme_U: 9,
+      viseme_PP: 16, viseme_SS: 8, viseme_TH: 8, viseme_DD: 14,
+      viseme_FF: 10, viseme_kk: 14, viseme_nn: 8, viseme_RR: 8,
+      viseme_CH: 9, viseme_sil: 6, jawOpen: 9, mouthOpen: 8,
+      mouthPucker: 9, mouthFunnel: 9, mouthRollLower: 8,
+      mouthRollUpper: 8, mouthClose: 14, mouthStretchLeft: 8,
+      mouthStretchRight: 8, mouthLowerDownLeft: 8, mouthLowerDownRight: 8
     };
     this.mtBaselineDefault = 0; // Default baseline value
     this.mtBaselineExceptions = {
@@ -856,16 +868,16 @@ class TalkingHead {
     this.mtMaxDefault = 1;
     this.mtMaxExceptions = {};
     this.mtLimits = {
-      eyeBlinkLeft: (v) => (Math.max(v, (this.avatar?.baseline?.hasOwnProperty("eyeBlinkLeft") ? this.avatar.baseline.eyeBlinkLeft : 1) * (this.mtAvatar['eyesLookDown'].value + this.mtAvatar['browDownLeft'].value) / 2) - this.mtAvatar['eyesClosed'].applied),
-      eyeBlinkRight: (v) => (Math.max(v, (this.avatar?.baseline?.hasOwnProperty("eyeBlinkRight") ? this.avatar.baseline.eyeBlinkRight : 1) * (this.mtAvatar['eyesLookDown'].value + this.mtAvatar['browDownRight'].value) / 2) - this.mtAvatar['eyesClosed'].applied)
+      eyeBlinkLeft: (v) => (Math.max(v, (this.avatar?.baseline?.hasOwnProperty("eyeBlinkLeft") ? this.avatar.baseline.eyeBlinkLeft : 1) * ((this.mtAvatar['eyesLookDown']?.value || 0) + (this.mtAvatar['browDownLeft']?.value || 0)) / 2) - (this.mtAvatar['eyesClosed']?.applied || 0)),
+      eyeBlinkRight: (v) => (Math.max(v, (this.avatar?.baseline?.hasOwnProperty("eyeBlinkRight") ? this.avatar.baseline.eyeBlinkRight : 1) * ((this.mtAvatar['eyesLookDown']?.value || 0) + (this.mtAvatar['browDownRight']?.value || 0)) / 2) - (this.mtAvatar['eyesClosed']?.applied || 0))
     };
     this.mtOnchange = {
       eyesLookDown: () => {
-        this.mtAvatar['eyeBlinkLeft'].needsUpdate = true;
-        this.mtAvatar['eyeBlinkRight'].needsUpdate = true;
+        if (this.mtAvatar['eyeBlinkLeft']) this.mtAvatar['eyeBlinkLeft'].needsUpdate = true;
+        if (this.mtAvatar['eyeBlinkRight']) this.mtAvatar['eyeBlinkRight'].needsUpdate = true;
       },
-      browDownLeft: () => { this.mtAvatar['eyeBlinkLeft'].needsUpdate = true; },
-      browDownRight: () => { this.mtAvatar['eyeBlinkRight'].needsUpdate = true; }
+      browDownLeft: () => { if (this.mtAvatar['eyeBlinkLeft']) this.mtAvatar['eyeBlinkLeft'].needsUpdate = true; },
+      browDownRight: () => { if (this.mtAvatar['eyeBlinkRight']) this.mtAvatar['eyeBlinkRight'].needsUpdate = true; }
     };
     this.mtRandomized = [
       'mouthDimpleLeft', 'mouthDimpleRight', 'mouthLeft', 'mouthPressLeft',
@@ -977,7 +989,9 @@ class TalkingHead {
       this.renderer.setSize(this.nodeAvatar.clientWidth, this.nodeAvatar.clientHeight);
       this.renderer.outputColorSpace = THREE.SRGBColorSpace;
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      this.renderer.shadowMap.enabled = false;
+      this.renderer.toneMappingExposure = 1.15;
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       this.nodeAvatar.appendChild(this.renderer.domElement);
       this.camera = new THREE.PerspectiveCamera(10, this.nodeAvatar.clientWidth / this.nodeAvatar.clientHeight, 0.1, 2000);
       this.scene = new THREE.Scene();
@@ -1338,6 +1352,96 @@ class TalkingHead {
   }
 
   /**
+  * Configure virtual morph targets that drive bones or control objects.
+  * This is useful for Blender rigs that expose facial animation as armature
+  * controls instead of ARKit/Oculus morph target names.
+  * @param {Object} drivers Morph name -> driver object(s)
+  * @param {Object3D} root Scene/root object used as a secondary lookup scope
+  */
+  setupMorphDrivers(drivers = null, root = null) {
+    this.mtDrivers = {};
+    this.mtDriverRest = new Map();
+
+    if (!drivers || typeof drivers !== 'object') return;
+
+    const toVector = (value) => {
+      if (!value) return null;
+      if (Array.isArray(value)) {
+        return new THREE.Vector3(value[0] || 0, value[1] || 0, value[2] || 0);
+      }
+      return new THREE.Vector3(value.x || 0, value.y || 0, value.z || 0);
+    };
+
+    Object.entries(drivers).forEach(([mt, defs]) => {
+      const list = Array.isArray(defs) ? defs : [defs];
+      list.forEach(def => {
+        if (!def || !def.bone) return;
+        const object = this.findModelObject(def.bone, root);
+        if (!object) return;
+
+        if (!this.mtDriverRest.has(object.uuid)) {
+          this.mtDriverRest.set(object.uuid, {
+            object,
+            position: object.position.clone(),
+            quaternion: object.quaternion.clone(),
+            scale: object.scale.clone()
+          });
+        }
+
+        const driver = {
+          object,
+          position: toVector(def.position),
+          rotation: toVector(def.rotation),
+          scale: toVector(def.scale),
+          weight: Number.isFinite(def.weight) ? def.weight : 1
+        };
+        if (!driver.position && !driver.rotation && !driver.scale) return;
+        if (!this.mtDrivers[mt]) this.mtDrivers[mt] = [];
+        this.mtDrivers[mt].push(driver);
+      });
+    });
+  }
+
+  /**
+  * Apply all virtual morph target bone drivers from current mtAvatar values.
+  */
+  applyMorphDrivers() {
+    if (!this.mtDriverRest || !this.mtDriverRest.size) return;
+
+    const states = new Map();
+    this.mtDriverRest.forEach((rest, uuid) => {
+      states.set(uuid, {
+        rest,
+        position: new THREE.Vector3(),
+        rotation: new THREE.Vector3(),
+        scale: new THREE.Vector3()
+      });
+    });
+
+    Object.entries(this.mtDrivers).forEach(([mt, drivers]) => {
+      const value = this.mtAvatar[mt]?.applied || 0;
+      if (!value) return;
+      drivers.forEach(driver => {
+        const state = states.get(driver.object.uuid);
+        if (!state) return;
+        const weighted = value * driver.weight;
+        if (driver.position) state.position.addScaledVector(driver.position, weighted);
+        if (driver.rotation) state.rotation.addScaledVector(driver.rotation, weighted);
+        if (driver.scale) state.scale.addScaledVector(driver.scale, weighted);
+      });
+    });
+
+    states.forEach(state => {
+      const object = state.rest.object;
+      object.position.copy(state.rest.position).add(state.position);
+      object.scale.copy(state.rest.scale).add(state.scale);
+      q.setFromEuler(e.set(state.rotation.x, state.rotation.y, state.rotation.z, 'XYZ'));
+      object.quaternion.copy(state.rest.quaternion).multiply(q);
+      object.updateMatrixWorld(true);
+    });
+  }
+
+  /**
   * Retarget current armature.
   * 
   * @param {Object} transforms
@@ -1348,6 +1452,85 @@ class TalkingHead {
     if (this.armature) {
       retarget(this.armature, transforms);
     }
+  }
+
+  /**
+  * Get the best available point to use as the avatar's face/look anchor.
+  * @param {THREE.Vector3} target Vector to write to.
+  * @return {THREE.Vector3|null} Anchor point, or null if unavailable.
+  */
+  getAvatarLookAnchor(target = new THREE.Vector3()) {
+    const eyeObjects = [this.objectLeftEye, this.objectRightEye].filter(Boolean);
+    if (eyeObjects.length) {
+      const point = new THREE.Vector3();
+      target.set(0, 0, 0);
+      eyeObjects.forEach(obj => {
+        obj.updateMatrixWorld(true);
+        target.add(point.setFromMatrixPosition(obj.matrixWorld));
+      });
+      return target.divideScalar(eyeObjects.length);
+    }
+
+    const object = this.objectHead || this.objectNeck || this.objectHips;
+    if (object) {
+      object.updateMatrixWorld(true);
+      return target.setFromMatrixPosition(object.matrixWorld);
+    }
+
+    if (this.armature) {
+      const box = new THREE.Box3().setFromObject(this.armature);
+      if (Number.isFinite(box.min.x) && Number.isFinite(box.max.x)) {
+        return box.getCenter(target);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+  * Build the current upper-body/head world quaternion from the available pose props.
+  * @param {THREE.Quaternion} target Quaternion to write to.
+  * @return {THREE.Quaternion}
+  */
+  getHeadWorldQuaternion(target = new THREE.Quaternion()) {
+    if (this.armature) {
+      target.copy(this.armature.quaternion);
+    } else {
+      target.identity();
+    }
+    ['Hips.quaternion', 'Spine.quaternion', 'Spine1.quaternion',
+      'Spine2.quaternion', 'Neck.quaternion', 'Head.quaternion'].forEach(key => {
+        const prop = this.poseTarget?.props?.[key];
+        if (prop?.isQuaternion && this.poseAvatar?.props?.[key]) {
+          target.multiply(prop);
+        }
+      });
+    return target;
+  }
+
+  /**
+  * Find a model object by exact name, or by GLTFLoader's sanitized form.
+  * Blender exports can contain '.', '/', and spaces that Three sanitizes.
+  * @param {string} name Object or bone name
+  * @param {Object3D} [root=null] Optional secondary root
+  * @return {Object3D|null}
+  */
+  findModelObject(name, root = null) {
+    const direct = this.armature?.getObjectByName(name) || root?.getObjectByName(name);
+    if (direct) return direct;
+
+    const compact = value => String(value || '').replace(/[./\s]/g, '');
+    const wanted = compact(name);
+    if (!wanted || wanted === name) return null;
+
+    let found = null;
+    const visit = obj => {
+      if (!found && compact(obj.name) === wanted) found = obj;
+    };
+    this.armature?.traverse(visit);
+    if (found) return found;
+    if (root && root !== this.armature) root.traverse(visit);
+    return found;
   }
 
   /**
@@ -1387,15 +1570,6 @@ class TalkingHead {
     gltf.scene.traverse(x => {
       if (x.isBone) {
         x.name = x.name.replaceAll('mixamorig', '');
-      }
-    });
-
-    // Check the gltf
-    const required = [];
-    this.posePropNames.forEach(x => required.push(x.split('.')[0]));
-    required.forEach(x => {
-      if (!gltf.scene.getObjectByName(x)) {
-        throw new Error('Avatar object ' + x + ' not found');
       }
     });
 
@@ -1439,10 +1613,33 @@ class TalkingHead {
     // Expose GLB animations and userData
     this.animations = gltf.animations;
     this.userData = gltf.userData;
+    this.modelRigProfile = avatar.modelRigProfile ||
+      gltf.userData?.talkingHeadRigProfile ||
+      gltf.scene?.userData?.talkingHeadRigProfile ||
+      null;
+    this.modelPoseMode = avatar.modelPoseMode ||
+      gltf.userData?.talkingHeadPoseMode ||
+      gltf.scene?.userData?.talkingHeadPoseMode ||
+      null;
+    this.modelArmRest = avatar.modelArmRest ||
+      gltf.userData?.talkingHeadArmRest ||
+      gltf.scene?.userData?.talkingHeadArmRest ||
+      null;
+    const modelPoseProps = avatar.modelPoseProps ||
+      gltf.userData?.talkingHeadPoseProps ||
+      gltf.scene?.userData?.talkingHeadPoseProps ||
+      null;
+    this.modelPoseProps = Array.isArray(modelPoseProps) ? new Set(modelPoseProps) : null;
 
-    // Morph targets
+    // Morph targets and available bones
     this.morphs = [];
-    this.armature.traverse(x => {
+    this.avatarBoneNames = new Set();
+    const modelScene = gltf.scene || this.armature;
+    modelScene.traverse(x => {
+      if (x.isBone) {
+        this.avatarBoneNames.add(x.name);
+      }
+
       if (x.morphTargetInfluences && x.morphTargetInfluences.length &&
         x.morphTargetDictionary) {
         this.morphs.push(x);
@@ -1450,9 +1647,23 @@ class TalkingHead {
 
       // Workaround for #40, hands culled from the rendering process
       x.frustumCulled = false;
+      if (x.isMesh || x.isSkinnedMesh) {
+        x.castShadow = true;
+        x.receiveShadow = true;
+      }
     });
-    if (this.morphs.length === 0) {
-      throw new Error('Blend shapes not found');
+
+    const morphDriverConfig = avatar.modelMorphDrivers ||
+      gltf.userData?.talkingHeadMorphDrivers ||
+      gltf.scene?.userData?.talkingHeadMorphDrivers ||
+      null;
+    this.setupMorphDrivers(morphDriverConfig, modelScene);
+    const morphDriverKeys = Object.keys(this.mtDrivers);
+
+    if (this.morphs.length === 0 && morphDriverKeys.length === 0) {
+      console.warn('Blend shapes not found; avatar will render with available bones, but facial lip-sync morphs are disabled.');
+    } else if (this.morphs.length === 0) {
+      console.warn('Blend shapes not found; using facial bone drivers for lip-sync and expressions.');
     }
 
     // Morph target keys and values
@@ -1460,6 +1671,7 @@ class TalkingHead {
     this.morphs.forEach(x => {
       Object.keys(x.morphTargetDictionary).forEach(y => keys.add(y));
     });
+    morphDriverKeys.forEach(y => keys.add(y));
 
     // Add RPM extra blend shapes, if missing
     this.mtExtras.forEach(x => {
@@ -1512,11 +1724,24 @@ class TalkingHead {
 
     // Objects for needed properties
     this.poseAvatar = { props: {} };
-    this.posePropNames.forEach(x => {
+    this.poseMissingPropNames = [];
+    const posePropNames = this.modelPoseProps ?
+      this.posePropNames.filter(x => this.modelPoseProps.has(x)) :
+      this.posePropNames;
+    const useModelRestPose = this.modelPoseMode === 'rest';
+    posePropNames.forEach(x => {
       const ids = x.split('.');
-      const o = this.armature.getObjectByName(ids[0]);
+      const o = this.findModelObject(ids[0], modelScene);
+      if (!o || !o[ids[1]] || typeof o[ids[1]].copy !== 'function') {
+        this.poseMissingPropNames.push(x);
+        return;
+      }
+
       this.poseAvatar.props[x] = o[ids[1]];
-      if (this.poseBase.props.hasOwnProperty(x)) {
+      if (useModelRestPose) {
+        this.poseBase.props[x] = this.poseAvatar.props[x].clone();
+        this.poseTarget.props[x] = this.poseAvatar.props[x].clone();
+      } else if (this.poseBase.props.hasOwnProperty(x)) {
         this.poseAvatar.props[x].copy(this.poseBase.props[x]);
       } else {
         this.poseBase.props[x] = this.poseAvatar.props[x].clone();
@@ -1531,13 +1756,34 @@ class TalkingHead {
       this.poseTarget.props[x].t = this.animClock;
       this.poseTarget.props[x].d = 2000;
     });
+    this.foldMissingShouldersIntoArms(this.poseTarget.props);
+    if (this.poseMissingPropNames.length) {
+      const missingObjects = [...new Set(this.poseMissingPropNames.map(x => x.split('.')[0]))];
+      console.warn('Avatar is missing ' + missingObjects.length + ' pose bone/object(s); using available bones only: ' + missingObjects.join(', '));
+    }
 
     // Reset IK bone positions
     this.ikMesh.traverse(x => {
       if (x.isBone) {
-        x.position.copy(this.armature.getObjectByName(x.name).position);
+        const source = this.armature.getObjectByName(x.name);
+        if (source) {
+          x.position.copy(source.position);
+        }
       }
     });
+
+    // Find objects that we need in animation helpers. Any of these may be null
+    // for custom/sparse rigs, and the animation code below will skip gracefully.
+    this.objectLeftToeBase = this.findModelObject('LeftToeBase', modelScene);
+    this.objectRightToeBase = this.findModelObject('RightToeBase', modelScene);
+    this.objectLeftEye = this.findModelObject('LeftEye', modelScene);
+    this.objectRightEye = this.findModelObject('RightEye', modelScene);
+    this.objectLeftArm = this.findModelObject('LeftArm', modelScene);
+    this.objectRightArm = this.findModelObject('RightArm', modelScene);
+    this.objectHips = this.findModelObject('Hips', modelScene);
+    this.objectHead = this.findModelObject('Head', modelScene);
+    this.objectNeck = this.findModelObject('Neck', modelScene);
+    this.applyModelArmRestPose(this.modelArmRest);
 
     if (this.isAvatarOnly) {
       if (this.scene) {
@@ -1551,7 +1797,7 @@ class TalkingHead {
       this.scene.add(this.lightAmbient);
       this.scene.add(this.lightDirect);
       this.scene.add(this.lightSpot);
-      this.lightSpot.target = this.armature.getObjectByName('Head');
+      this.lightSpot.target = this.objectHead || this.objectNeck || this.objectHips || this.armature;
     }
 
     // Setup Dynamic Bones
@@ -1564,24 +1810,17 @@ class TalkingHead {
       }
     }
 
-    // Find objects that we need in the animate function
-    this.objectLeftToeBase = this.armature.getObjectByName('LeftToeBase');
-    this.objectRightToeBase = this.armature.getObjectByName('RightToeBase');
-    this.objectLeftEye = this.armature.getObjectByName('LeftEye');
-    this.objectRightEye = this.armature.getObjectByName('RightEye');
-    this.objectLeftArm = this.armature.getObjectByName('LeftArm');
-    this.objectRightArm = this.armature.getObjectByName('RightArm');
-    this.objectHips = this.armature.getObjectByName('Hips');
-    this.objectHead = this.armature.getObjectByName('Head');
-    this.objectNeck = this.armature.getObjectByName('Neck');
-
-    // Estimate avatar height based on eye level
-    const plEye = new THREE.Vector3();
-    this.objectLeftEye.getWorldPosition(plEye);
-    this.avatarHeight = plEye.y + 0.2;
+    // Estimate avatar height based on eye level, or fall back to the model bounds.
+    const lookAnchor = this.getAvatarLookAnchor(new THREE.Vector3());
+    const avatarBox = new THREE.Box3().setFromObject(this.armature);
+    if ((this.objectLeftEye || this.objectRightEye) && lookAnchor) {
+      this.avatarHeight = lookAnchor.y + 0.2;
+    } else if (Number.isFinite(avatarBox.min.y) && Number.isFinite(avatarBox.max.y)) {
+      this.avatarHeight = Math.max(0.1, avatarBox.max.y - avatarBox.min.y);
+    }
 
     // Skeleton helper, FOR TESTING ONLY
-    if (this.avatar.skeletonHelper) {
+    if (this.avatar.skeletonHelper && this.avatarBoneNames.size) {
       const skeletonHelper = new THREE.SkeletonHelper(this.armature);
       this.scene.add(skeletonHelper);
     }
@@ -1701,6 +1940,17 @@ class TalkingHead {
     if (opt.hasOwnProperty("lightDirectPhi") && opt.hasOwnProperty("lightDirectTheta")) {
       this.lightDirect.position.setFromSphericalCoords(2, opt.lightDirectPhi, opt.lightDirectTheta);
     }
+    this.lightDirect.castShadow = true;
+    this.lightDirect.shadow.mapSize.width = 1024;
+    this.lightDirect.shadow.mapSize.height = 1024;
+    this.lightDirect.shadow.camera.near = 0.1;
+    this.lightDirect.shadow.camera.far = 10;
+    this.lightDirect.shadow.camera.left = -1.5;
+    this.lightDirect.shadow.camera.right = 1.5;
+    this.lightDirect.shadow.camera.top = 2.5;
+    this.lightDirect.shadow.camera.bottom = -0.5;
+    this.lightDirect.shadow.bias = -0.002;
+    this.lightDirect.shadow.radius = 4;
 
     // Spot light
     if (opt.hasOwnProperty("lightSpotColor")) {
@@ -1771,6 +2021,7 @@ class TalkingHead {
       if (d.x === 0 && d.y === 0 && d.z === 0) continue;
       e.set(d.x, d.y, d.z);
       const o = this.poseAvatar.props[key];
+      if (!o) continue;
       if (o.isQuaternion) {
         q.setFromEuler(e);
         o.multiply(q);
@@ -1981,6 +2232,8 @@ class TalkingHead {
 
       }
     }
+
+    this.applyMorphDrivers();
   }
 
   /**
@@ -2021,6 +2274,10 @@ class TalkingHead {
     if (this.gesture && this.gesture.hasOwnProperty(target)) {
       return this.gesture[target].clone();
     } else {
+      if (this.modelPoseMode === 'rest' && this.poseBase?.props?.[target]) {
+        return this.poseBase.props[target].clone();
+      }
+
       let source = ids[0] + '.' + (ids[1] === 'quaternion' ? 'rotation' : ids[1]);
       if (!this.poseWeightOnLeft) {
         if (source.startsWith('Left')) {
@@ -2079,8 +2336,120 @@ class TalkingHead {
       // Custom properties
       r[key].t = val.t;
       r[key].d = val.d;
+      if (val._missingShoulderFolded) r[key]._missingShoulderFolded = true;
     }
     return r;
+  }
+
+  /**
+  * Copy the internal marker used when a sparse rig has shoulder motion folded
+  * into the upper-arm bone.
+  * @param {Quaternion|Vector3} target Target property
+  * @param {Quaternion|Vector3} source Source property
+  */
+  syncMissingShoulderFlag(target, source) {
+    if (!target || !source) return;
+    if (source._missingShoulderFolded) {
+      target._missingShoulderFolded = true;
+    } else {
+      delete target._missingShoulderFolded;
+    }
+  }
+
+  /**
+  * Some custom rigs, including the Olaf Blender rig, do not have separate
+  * LeftShoulder/RightShoulder bones. Preserve pose and gesture arm motion by
+  * baking the missing shoulder rotation into the upper-arm quaternion.
+  * @param {Object} props Pose property map
+  * @return {Object} The same property map.
+  */
+  foldMissingShouldersIntoArms(props) {
+    if (!props || !this.poseAvatar?.props) return props;
+
+    ['Left', 'Right'].forEach(side => {
+      const shoulderKey = side + 'Shoulder.quaternion';
+      const armKey = side + 'Arm.quaternion';
+      if (this.poseAvatar.props[shoulderKey] || !this.poseAvatar.props[armKey]) return;
+
+      const shoulder = props[shoulderKey];
+      const arm = props[armKey];
+      if (!shoulder?.isQuaternion || !arm?.isQuaternion || arm._missingShoulderFolded) return;
+
+      const t = arm.t;
+      const d = arm.d;
+      arm.premultiply(shoulder).normalize();
+      arm.t = t;
+      arm.d = d;
+      arm._missingShoulderFolded = true;
+    });
+
+    return props;
+  }
+
+  /**
+  * Move sparse character arms from exported T/A pose toward a relaxed side
+  * rest pose. This is intentionally used only by rig profiles that ask for it.
+  * @param {string} rest Rest preset name.
+  */
+  applyModelArmRestPose(rest = null) {
+    const restPreset = typeof rest === 'string' ? rest : rest?.preset;
+    if (restPreset !== 'down' || !this.armature || !this.poseAvatar?.props) return;
+    const restSide = Number.isFinite(rest?.side) ? rest.side : 0.18;
+    const restDown = Number.isFinite(rest?.down) ? rest.down : 0.78;
+    const restForward = Number.isFinite(rest?.forward) ? rest.forward : 0.05;
+
+    this.armature.updateMatrixWorld(true);
+    const center = new THREE.Vector3();
+    this.armature.getWorldPosition(center);
+
+    ['Left', 'Right'].forEach(side => {
+      const arm = this.armature.getObjectByName(side + 'Arm');
+      const middle = this.armature.getObjectByName(side + 'HandMiddle1');
+      const hand = this.armature.getObjectByName(side + 'Hand');
+      const effectorName = middle ? (side + 'HandMiddle1') : (hand ? (side + 'Hand') : null);
+      const effector = effectorName ? this.armature.getObjectByName(effectorName) : null;
+      if (!arm || !effector || !this.poseAvatar.props[side + 'Arm.quaternion']) return;
+
+      const armPos = new THREE.Vector3();
+      const effectorPos = new THREE.Vector3();
+      arm.getWorldPosition(armPos);
+      effector.getWorldPosition(effectorPos);
+      const reach = Math.max(0.001, armPos.distanceTo(effectorPos));
+      const sideSign = Math.sign(armPos.x - center.x) || (side === 'Left' ? -1 : 1);
+      const target = armPos.clone().add(new THREE.Vector3(
+        sideSign * reach * restSide,
+        -reach * restDown,
+        reach * restForward
+      ));
+
+      const links = [
+        { link: side + 'Hand' },
+        { link: side + 'ForeArm' },
+        { link: side + 'Arm' }
+      ].filter(x => x.link !== effectorName && this.poseAvatar.props[x.link + '.quaternion']);
+      if (!links.length) return;
+
+      const ok = this.ikSolve({
+        iterations: 35,
+        root: side + 'Arm',
+        effector: effectorName,
+        links
+      }, target, false, 1);
+      if (!ok) return;
+
+      links.forEach(x => {
+        const key = x.link + '.quaternion';
+        const targetProp = this.poseTarget.props[key];
+        const avatarProp = this.poseAvatar.props[key];
+        if (!targetProp || !avatarProp) return;
+        targetProp.t = this.animClock;
+        targetProp.d = 1;
+        this.poseBase.props[key] = targetProp.clone();
+        this.poseBase.props[key].t = this.animClock;
+        this.poseBase.props[key].d = 1;
+        avatarProp.copy(targetProp);
+      });
+    });
   }
 
   /**
@@ -2092,6 +2461,21 @@ class TalkingHead {
   poseFactory(template, ms = 2000) {
 
     // Pose object
+    if (this.modelPoseMode === 'rest' && this.modelPoseProps && this.poseBase?.props) {
+      const restProps = {};
+      this.modelPoseProps.forEach(key => {
+        const prop = this.poseBase.props[key] || this.poseAvatar?.props?.[key];
+        if (!prop?.clone) return;
+        restProps[key] = prop.clone();
+        restProps[key].t = this.animClock;
+        restProps[key].d = ms;
+      });
+      return {
+        template: template,
+        props: restProps
+      };
+    }
+
     const o = {
       template: template,
       props: this.propsToThreeObjects(template.props)
@@ -2157,6 +2541,7 @@ class TalkingHead {
       for (let [p, val] of Object.entries(this.gesture)) {
         if (this.poseTarget.props.hasOwnProperty(p)) {
           this.poseTarget.props[p].copy(val);
+          this.syncMissingShoulderFlag(this.poseTarget.props[p], val);
           this.poseTarget.props[p].t = val.t;
           this.poseTarget.props[p].d = val.d;
         }
@@ -2171,6 +2556,8 @@ class TalkingHead {
         this.poseTarget.props[key].d = duration;
       }
     });
+
+    this.foldMissingShouldersIntoArms(this.poseTarget.props);
 
   }
 
@@ -2653,7 +3040,7 @@ class TalkingHead {
               m.ref = x.vs;
             }
 
-            // Volume effect on vowel visemes and jaw during speech
+            // Volume effect on visemes, jaw, and secondary lip shapes during speech
             if (vol) {
               const volFactor = 1 + vol / 255 - 0.5;
               switch (mt) {
@@ -2665,8 +3052,19 @@ class TalkingHead {
                   m.newvalue *= volFactor;
                   break;
                 case 'jawOpen':
-                  // Amplify jaw movement with speech volume
                   m.newvalue *= Math.max(1, volFactor * 0.8);
+                  break;
+                case 'mouthPucker':
+                case 'mouthFunnel':
+                case 'mouthLowerDownLeft':
+                case 'mouthLowerDownRight':
+                  m.newvalue *= (0.7 + volFactor * 0.3);
+                  break;
+                case 'mouthStretchLeft':
+                case 'mouthStretchRight':
+                case 'mouthRollLower':
+                case 'mouthRollUpper':
+                  m.newvalue *= (0.8 + volFactor * 0.2);
                   break;
               }
             }
@@ -2741,14 +3139,22 @@ class TalkingHead {
 
         case 'moveto':
           Object.entries(j.props).forEach(y => {
+            const prop = this.poseTarget.props[y[0]];
+            if (!prop) return;
+            let source = y[1];
             if (y[1]) {
-              this.poseTarget.props[y[0]].copy(y[1]);
+              prop.copy(y[1]);
             } else {
-              this.poseTarget.props[y[0]].copy(this.getPoseTemplateProp(y[0]));
+              const templateProp = this.getPoseTemplateProp(y[0]);
+              if (!templateProp) return;
+              source = templateProp;
+              prop.copy(templateProp);
             }
-            this.poseTarget.props[y[0]].t = this.animClock;
-            this.poseTarget.props[y[0]].d = (y[1] && y[1].d) ? y[1].d : (y.duration || 2000);
+            this.syncMissingShoulderFlag(prop, source);
+            prop.t = this.animClock;
+            prop.d = (y[1] && y[1].d) ? y[1].d : (y.duration || 2000);
           });
+          this.foldMissingShouldersIntoArms(this.poseTarget.props);
           break;
 
         case 'handLeft':
@@ -2777,7 +3183,7 @@ class TalkingHead {
     }
 
     // Eye contact
-    if (isEyeContact || isHeadMove) {
+    if ((isEyeContact || isHeadMove) && this.poseAvatar?.props?.['Head.quaternion']) {
 
       // Get head position
       e.setFromQuaternion(this.poseAvatar.props['Head.quaternion']);
@@ -2785,12 +3191,12 @@ class TalkingHead {
       e.y = Math.max(-0.9, Math.min(0.9, -2.5 * e.y));
 
       if (isEyeContact) {
-        Object.assign(this.mtAvatar['eyesLookDown'], { system: e.x < 0 ? -e.x : 0, needsUpdate: true });
-        Object.assign(this.mtAvatar['eyesLookUp'], { system: e.x < 0 ? 0 : e.x, needsUpdate: true });
-        Object.assign(this.mtAvatar['eyeLookInLeft'], { system: e.y < 0 ? -e.y : 0, needsUpdate: true });
-        Object.assign(this.mtAvatar['eyeLookOutLeft'], { system: e.y < 0 ? 0 : e.y, needsUpdate: true });
-        Object.assign(this.mtAvatar['eyeLookInRight'], { system: e.y < 0 ? 0 : e.y, needsUpdate: true });
-        Object.assign(this.mtAvatar['eyeLookOutRight'], { system: e.y < 0 ? -e.y : 0, needsUpdate: true });
+        if (this.mtAvatar['eyesLookDown']) Object.assign(this.mtAvatar['eyesLookDown'], { system: e.x < 0 ? -e.x : 0, needsUpdate: true });
+        if (this.mtAvatar['eyesLookUp']) Object.assign(this.mtAvatar['eyesLookUp'], { system: e.x < 0 ? 0 : e.x, needsUpdate: true });
+        if (this.mtAvatar['eyeLookInLeft']) Object.assign(this.mtAvatar['eyeLookInLeft'], { system: e.y < 0 ? -e.y : 0, needsUpdate: true });
+        if (this.mtAvatar['eyeLookOutLeft']) Object.assign(this.mtAvatar['eyeLookOutLeft'], { system: e.y < 0 ? 0 : e.y, needsUpdate: true });
+        if (this.mtAvatar['eyeLookInRight']) Object.assign(this.mtAvatar['eyeLookInRight'], { system: e.y < 0 ? 0 : e.y, needsUpdate: true });
+        if (this.mtAvatar['eyeLookOutRight']) Object.assign(this.mtAvatar['eyeLookOutRight'], { system: e.y < 0 ? -e.y : 0, needsUpdate: true });
 
         // Head move
         if (isHeadMove) {
@@ -2805,7 +3211,7 @@ class TalkingHead {
         }
 
       } else {
-        i = this.mtAvatar['eyeLookInLeft'].value - this.mtAvatar['eyeLookOutLeft'].value;
+        i = (this.mtAvatar['eyeLookInLeft']?.value || 0) - (this.mtAvatar['eyeLookOutLeft']?.value || 0);
         j = this.gaussianRandom(-0.2, 0.2);
         this.animQueue.push(this.animFactory({
           name: "headmove",
@@ -2826,7 +3232,7 @@ class TalkingHead {
     if (this.viewName !== 'full' || this.isAvatarOnly) {
       i = this.mtRandomized[Math.floor(Math.random() * this.mtRandomized.length)];
       j = this.mtAvatar[i];
-      if (!j.needsUpdate) {
+      if (j && !j.needsUpdate) {
         Object.assign(j, { base: (this.mood.baseline[i] || 0) + (1 + vol / 255) * Math.random() / 5, needsUpdate: true });
       }
     }
@@ -2861,20 +3267,23 @@ class TalkingHead {
       k = j * (this.volumeHeadEasing(Math.min(1, this.volumeHeadVelocity * dt / 1000 / j) / 2 + 0.5) - 0.5);
       this.volumeHeadCurrent += Math.sign(i) * Math.min(j, k);
     }
-    if (Math.abs(this.volumeHeadCurrent) > 0.0001) {
+    const volumeHeadObject = this.objectNeck || this.objectHead;
+    if (Math.abs(this.volumeHeadCurrent) > 0.0001 && volumeHeadObject) {
       q.setFromAxisAngle(axisx, this.volumeHeadCurrent);
-      this.objectNeck.quaternion.multiply(q);
+      volumeHeadObject.quaternion.multiply(q);
     }
 
     // Hip-feet balance
-    box.setFromObject(this.armature);
-    this.objectLeftToeBase.getWorldPosition(v);
-    v.sub(this.armature.position);
-    this.objectRightToeBase.getWorldPosition(w);
-    w.sub(this.armature.position);
-    this.objectHips.position.y -= box.min.y / 2;
-    this.objectHips.position.x -= (v.x + w.x) / 4;
-    this.objectHips.position.z -= (v.z + w.z) / 2;
+    if (this.objectLeftToeBase && this.objectRightToeBase && this.objectHips) {
+      box.setFromObject(this.armature);
+      this.objectLeftToeBase.getWorldPosition(v);
+      v.sub(this.armature.position);
+      this.objectRightToeBase.getWorldPosition(w);
+      w.sub(this.armature.position);
+      this.objectHips.position.y -= box.min.y / 2;
+      this.objectHips.position.x -= (v.x + w.x) / 4;
+      this.objectHips.position.z -= (v.z + w.z) / 2;
+    }
 
     // Update Dynamic Bones
     this.dynamicbones.update(dt);
@@ -2947,6 +3356,24 @@ class TalkingHead {
         }
       });
     });
+
+    [
+      ...this.visemeNames.map(x => 'viseme_' + x),
+      'jawOpen', 'mouthOpen', 'mouthClose', 'mouthFunnel', 'mouthPucker',
+      'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthRollLower',
+      'mouthRollUpper', 'mouthStretchLeft', 'mouthStretchRight',
+      'mouthSmile', 'mouthSmileLeft', 'mouthSmileRight'
+    ].forEach(mt => {
+      const o = this.mtAvatar[mt];
+      if (!o) return;
+      const baseline = o.baseline || 0;
+      Object.assign(o, {
+        realtime: null, system: null, systemd: null, newvalue: null,
+        base: null, ref: null, value: baseline, applied: baseline,
+        v: 0, needsUpdate: false
+      });
+    });
+    this.applyMorphDrivers();
   }
 
   /**
@@ -2986,6 +3413,58 @@ class TalkingHead {
   lipsyncWordsToVisemes(word, lang) {
     const o = this.lipsync[lang] || Object.values(this.lipsync)[0];
     return o.wordsToVisemes(word);
+  }
+
+  /**
+  * Build a richer morph target set for a viseme. The primary viseme still
+  * leads, but secondary jaw/round/stretch shapes make sparse rigs read better.
+  * @param {string} viseme Oculus viseme id
+  * @param {number} intensity Peak value for the primary viseme
+  * @param {number} [jawValue=0] Optional jaw override from a lip-sync module
+  * @param {Object} [lipShapes=null] Optional secondary shapes from module
+  * @return {Object} Animation value map
+  */
+  getVisemeMorphValues(viseme, intensity = 0.6, jawValue = 0, lipShapes = null) {
+    const vs = {};
+    const set = (mt, value) => {
+      const v = Math.max(0, Math.min(1, value));
+      const current = vs[mt]?.[1] || 0;
+      if (v > current) vs[mt] = [null, v, 0];
+    };
+
+    set('viseme_' + viseme, intensity);
+
+    const profiles = {
+      aa: { jawOpen: 0.48, mouthOpen: 0.30 },
+      E: { jawOpen: 0.24, mouthOpen: 0.14, mouthStretchLeft: 0.34, mouthStretchRight: 0.34 },
+      I: { jawOpen: 0.16, mouthStretchLeft: 0.42, mouthStretchRight: 0.42, mouthSmileLeft: 0.10, mouthSmileRight: 0.10 },
+      O: { jawOpen: 0.24, mouthFunnel: 0.46, mouthPucker: 0.34 },
+      U: { jawOpen: 0.12, mouthFunnel: 0.24, mouthPucker: 0.52, mouthClose: 0.12 },
+      PP: { mouthClose: 0.72, mouthPucker: 0.10 },
+      FF: { mouthClose: 0.48, mouthStretchLeft: 0.22, mouthStretchRight: 0.22 },
+      TH: { jawOpen: 0.18, mouthOpen: 0.10, mouthStretchLeft: 0.18, mouthStretchRight: 0.18 },
+      DD: { jawOpen: 0.16, mouthClose: 0.32 },
+      kk: { jawOpen: 0.22, mouthOpen: 0.12 },
+      nn: { mouthClose: 0.28, mouthOpen: 0.08 },
+      RR: { jawOpen: 0.16, mouthFunnel: 0.20, mouthPucker: 0.28 },
+      CH: { mouthClose: 0.18, mouthFunnel: 0.16, mouthPucker: 0.20, mouthStretchLeft: 0.20, mouthStretchRight: 0.20 },
+      SS: { mouthClose: 0.44, mouthStretchLeft: 0.34, mouthStretchRight: 0.34 },
+      sil: { mouthClose: 0.10 }
+    };
+
+    const profile = profiles[viseme] || null;
+    if (profile) {
+      Object.entries(profile).forEach(([mt, value]) => set(mt, value * intensity));
+    }
+
+    if (jawValue > 0.02) set('jawOpen', jawValue);
+    if (lipShapes) {
+      for (const [mt, value] of Object.entries(lipShapes)) {
+        if (value > 0) set(mt, value);
+      }
+    }
+
+    return vs;
   }
 
 
@@ -3070,27 +3549,45 @@ class TalkingHead {
           if (val && val.visemes && val.visemes.length) {
             const d = val.times[val.visemes.length - 1] + val.durations[val.visemes.length - 1];
             for (let j = 0; j < val.visemes.length; j++) {
-              // Use per-viseme intensity if available, fallback to old logic
+              const viseme = val.visemes[j];
+
+              // Per-viseme intensity with coarticulation boost
               let intensity = (val.intensities && val.intensities[j] !== undefined)
-                ? val.intensities[j] : ((val.visemes[j] === 'PP' || val.visemes[j] === 'FF') ? 0.9 : 0.6);
-              // Apply coarticulation: slightly boost if next viseme is similar
+                ? val.intensities[j] : ((viseme === 'PP' || viseme === 'FF') ? 0.9 : 0.6);
               const coart = (val.coartWeights && val.coartWeights[j]) || 0;
               if (coart > 0 && j < val.visemes.length - 1) {
                 intensity = Math.min(1.0, intensity * (1 + coart * 0.3));
               }
-              const vs = {
-                ['viseme_' + val.visemes[j]]: [null, intensity, 0]
-              };
-              // Add jaw coupling for open visemes
+
+              // Jaw coupling
               const jawVal = (val.jaw && val.jaw[j]) || 0;
-              if (jawVal > 0.02) {
-                vs['jawOpen'] = [null, jawVal, 0];
+
+              // Secondary lip shapes (mouthPucker, mouthFunnel, mouthClose, etc.)
+              const lipShapes = (val.lip && val.lip[j]) || {};
+              const vs = this.getVisemeMorphValues(viseme, intensity, jawVal, lipShapes);
+
+              // Transition window tuned per phoneme class:
+              // Stops (PP, DD, kk): tight snap — no early ramp, short tail
+              // Vowels: wide gentle blend
+              // Others: moderate
+              let pre, peak, tail;
+              if (viseme === 'PP' || viseme === 'DD' || viseme === 'kk') {
+                pre = -0.4; peak = 0.4; tail = 0.4;
+              } else if (viseme === 'aa' || viseme === 'O' || viseme === 'E' ||
+                         viseme === 'I' || viseme === 'U') {
+                pre = -0.9; peak = 0.8; tail = 0.9;
+              } else {
+                pre = -0.7; peak = 0.7; tail = 0.7;
               }
-              // Wider transition windows for more relaxed, natural viseme blending
+
               lipsyncAnim.push({
                 mark: markId,
                 template: { name: 'viseme' },
-                ts: [(val.times[j] - 0.8) / d, (val.times[j] + 0.7) / d, (val.times[j] + val.durations[j] + 0.7) / d],
+                ts: [
+                  (val.times[j] + pre) / d,
+                  (val.times[j] + peak) / d,
+                  (val.times[j] + val.durations[j] + tail) / d
+                ],
                 vs: vs
               });
             }
@@ -3307,14 +3804,10 @@ class TalkingHead {
                   if (coart > 0 && j < val.visemes.length - 1) {
                     intensity = Math.min(1.0, intensity * (1 + coart * 0.25));
                   }
-                  const vs = {
-                    ['viseme_' + val.visemes[j]]: [null, intensity, 0]
-                  };
                   // Add jaw coupling
                   const jawVal = (val.jaw && val.jaw[j]) || 0;
-                  if (jawVal > 0.02) {
-                    vs['jawOpen'] = [null, jawVal, 0];
-                  }
+                  const lipShapes = (val.lip && val.lip[j]) || {};
+                  const vs = this.getVisemeMorphValues(val.visemes[j], intensity, jawVal, lipShapes);
                   lipsyncAnim.push({
                     template: { name: 'viseme' },
                     ts: [t - Math.min(60, 2 * d / 3), t + Math.min(25, d / 2), t + d + Math.min(60, d / 2)],
@@ -3333,12 +3826,12 @@ class TalkingHead {
           const viseme = r.visemes[i];
           const time = r.vtimes[i];
           const duration = r.vdurations[i];
+          const isVowel = (viseme === 'aa' || viseme === 'E' || viseme === 'I' || viseme === 'O' || viseme === 'U');
+          const intensity = (viseme === 'PP' || viseme === 'FF') ? 0.92 : (isVowel ? 0.76 : 0.62);
           lipsyncAnim.push({
             template: { name: 'viseme' },
             ts: [time - 2 * duration / 3, time + duration / 2, time + duration + duration / 2],
-            vs: {
-              ['viseme_' + viseme]: [null, (viseme === 'PP' || viseme === 'FF') ? 0.9 : 0.6, 0]
-            }
+            vs: this.getVisemeMorphValues(viseme, intensity)
           });
         }
       }
@@ -3922,13 +4415,17 @@ class TalkingHead {
         const viseme = r.visemes[i];
         const time = audioStart + r.vtimes[i];
         const duration = r.vdurations[i];
+        const isStop = (viseme === 'PP' || viseme === 'DD' || viseme === 'kk');
+        const isVowel = (viseme === 'aa' || viseme === 'E' || viseme === 'I' || viseme === 'O' || viseme === 'U');
+        const preFrac = isStop ? 0.35 : (isVowel ? 0.70 : 0.55);
+        const tailFrac = isStop ? 0.35 : (isVowel ? 0.70 : 0.55);
+        const intensity = (viseme === 'PP' || viseme === 'FF') ? 0.92 : (isVowel ? 0.76 : 0.62);
+        const vs = this.getVisemeMorphValues(viseme, intensity);
         const animObj = {
           template: { name: 'viseme' },
-          ts: [time - 2 * duration / 3, time + duration / 2, time + duration + duration / 2],
-          vs: {
-            ['viseme_' + viseme]: [null, (viseme === 'PP' || viseme === 'FF') ? 0.9 : 0.6, 0]
-          }
-        }
+          ts: [time - preFrac * duration, time + 0.5 * duration, time + duration + tailFrac * duration],
+          vs: vs
+        };
         this.animQueue.push(animObj);
       }
     }
@@ -3973,16 +4470,18 @@ class TalkingHead {
                   if (coart > 0 && j < val.visemes.length - 1) {
                     intensity = Math.min(1.0, intensity * (1 + coart * 0.25));
                   }
-                  const vs = {
-                    ['viseme_' + val.visemes[j]]: [null, intensity, 0]
-                  };
+                  const sv = val.visemes[j];
+                  const isStopSt = (sv === 'PP' || sv === 'DD' || sv === 'kk');
+                  const isVowelSt = (sv === 'aa' || sv === 'E' || sv === 'I' || sv === 'O' || sv === 'U');
+                  const preSt = isStopSt ? Math.min(25, d / 4) : Math.min(60, 2 * d / 3);
+                  const tailSt = isStopSt ? Math.min(25, d / 4) : Math.min(60, d / 2);
                   const jawVal = (val.jaw && val.jaw[j]) || 0;
-                  if (jawVal > 0.02) {
-                    vs['jawOpen'] = [null, jawVal, 0];
-                  }
+                  // Secondary lip shapes
+                  const lipShapes = (val.lip && val.lip[j]) || {};
+                  const vs = this.getVisemeMorphValues(sv, intensity, jawVal, lipShapes);
                   this.animQueue.push({
                     template: { name: 'viseme' },
-                    ts: [t - Math.min(60, 2 * d / 3), t + Math.min(25, d / 2), t + d + Math.min(60, d / 2)],
+                    ts: [t - preSt, t + Math.min(25, d / 2), t + d + tailSt],
                     vs: vs
                   });
                 }
@@ -4120,15 +4619,16 @@ class TalkingHead {
     let target;
     if (this.speakTo) {
       target = new THREE.Vector3();
-      if (this.speakTo.objectLeftEye?.isObject3D) {
+      if (this.speakTo.objectLeftEye?.isObject3D || this.speakTo.objectRightEye?.isObject3D) {
 
         // Target eyes
-        const o = this.speakTo.armature.objectHead;
-        this.speakTo.objectLeftEye.updateMatrixWorld(true);
-        this.speakTo.objectRightEye.updateMatrixWorld(true);
-        v.setFromMatrixPosition(this.speakTo.objectLeftEye.matrixWorld);
-        w.setFromMatrixPosition(this.speakTo.objectRightEye.matrixWorld);
-        target.addVectors(v, w).divideScalar(2);
+        const eyes = [this.speakTo.objectLeftEye, this.speakTo.objectRightEye].filter(Boolean);
+        target.set(0, 0, 0);
+        eyes.forEach(obj => {
+          obj.updateMatrixWorld(true);
+          target.add(v.setFromMatrixPosition(obj.matrixWorld));
+        });
+        target.divideScalar(eyes.length);
 
       } else if (this.speakTo.isObject3D) {
         this.speakTo.getWorldPosition(target);
@@ -4157,21 +4657,12 @@ class TalkingHead {
     // TODO: Improve the logic, if possible
 
     // Eyes position and head world rotation
-    this.objectLeftEye.updateMatrixWorld(true);
-    this.objectRightEye.updateMatrixWorld(true);
-    v.setFromMatrixPosition(this.objectLeftEye.matrixWorld);
-    w.setFromMatrixPosition(this.objectRightEye.matrixWorld);
-    v.add(w).divideScalar(2);
-    q.copy(this.armature.quaternion);
-    q.multiply(this.poseTarget.props['Hips.quaternion']);
-    q.multiply(this.poseTarget.props['Spine.quaternion']);
-    q.multiply(this.poseTarget.props['Spine1.quaternion']);
-    q.multiply(this.poseTarget.props['Spine2.quaternion']);
-    q.multiply(this.poseTarget.props['Neck.quaternion']);
-    q.multiply(this.poseTarget.props['Head.quaternion']);
+    const avatarAnchor = this.getAvatarLookAnchor(new THREE.Vector3());
+    if (!avatarAnchor) return;
+    this.getHeadWorldQuaternion(q);
 
     // Direction from object to speakto target
-    const dir = new THREE.Vector3().subVectors(target, v).normalize();
+    const dir = new THREE.Vector3().subVectors(target, avatarAnchor).normalize();
 
     // Remove roll: compute yaw + pitch only
     const yaw = Math.atan2(dir.x, dir.z); // rotation around Y
@@ -4236,11 +4727,8 @@ class TalkingHead {
 
     // Eyes position
     const rect = this.nodeAvatar.getBoundingClientRect();
-    this.objectLeftEye.updateMatrixWorld(true);
-    this.objectRightEye.updateMatrixWorld(true);
-    const plEye = new THREE.Vector3().setFromMatrixPosition(this.objectLeftEye.matrixWorld);
-    const prEye = new THREE.Vector3().setFromMatrixPosition(this.objectRightEye.matrixWorld);
-    const pEyes = new THREE.Vector3().addVectors(plEye, prEye).divideScalar(2);
+    const pEyes = this.getAvatarLookAnchor(new THREE.Vector3());
+    if (!pEyes) return;
 
     pEyes.project(this.camera);
     let eyesx = (pEyes.x + 1) / 2 * rect.width + rect.left;
@@ -4251,13 +4739,7 @@ class TalkingHead {
     if (y === null) y = eyesy;
 
     // Use body/camera rotation to determine the required head rotation
-    q.copy(this.armature.quaternion);
-    q.multiply(this.poseTarget.props['Hips.quaternion']);
-    q.multiply(this.poseTarget.props['Spine.quaternion']);
-    q.multiply(this.poseTarget.props['Spine1.quaternion']);
-    q.multiply(this.poseTarget.props['Spine2.quaternion']);
-    q.multiply(this.poseTarget.props['Neck.quaternion']);
-    q.multiply(this.poseTarget.props['Head.quaternion']);
+    this.getHeadWorldQuaternion(q);
     e.setFromQuaternion(q);
     let rx = e.x / (40 / 24); // Refer to setValue(bodyRotateX)
     let ry = e.y / (9 / 4); // Refer to setValue(bodyRotateY)
@@ -4323,6 +4805,7 @@ class TalkingHead {
     raycaster.setFromCamera(pointer, this.camera);
     const intersects = raycaster.intersectObject(this.armature);
     if (intersects.length > 0) {
+      if (!this.objectLeftArm || !this.objectRightArm) return true;
       const target = intersects[0].point;
       const LeftArmPos = new THREE.Vector3();
       const RightArmPos = new THREE.Vector3();
@@ -4354,10 +4837,16 @@ class TalkingHead {
     } else {
       ["LeftArm", "LeftForeArm", "LeftHand", "RightArm", "RightForeArm", "RightHand"].forEach(x => {
         let key = x + ".quaternion";
-        this.poseTarget.props[key].copy(this.getPoseTemplateProp(key));
-        this.poseTarget.props[key].t = this.animClock;
-        this.poseTarget.props[key].d = 1000;
+        const prop = this.poseTarget.props[key];
+        const templateProp = this.getPoseTemplateProp(key);
+        if (prop && templateProp) {
+          prop.copy(templateProp);
+          this.syncMissingShoulderFlag(prop, templateProp);
+          prop.t = this.animClock;
+          prop.d = 1000;
+        }
       });
+      this.foldMissingShouldersIntoArms(this.poseTarget.props);
     }
 
     return (intersects.length > 0);
@@ -4370,11 +4859,17 @@ class TalkingHead {
   */
   speakWithHands(delay = 0, prob = 0.5) {
 
-    // Only if we are standing and not bending and probabilities match up
-    if (this.mixer || this.gesture || !this.poseTarget.template.standing || this.poseTarget.template.bend || Math.random() > prob) return;
+    // Only if we are standing and not bending
+    if (this.mixer || this.gesture || !this.poseTarget.template.standing || this.poseTarget.template.bend) return;
+    if (!this.poseAvatar?.props?.['LeftArm.quaternion'] || !this.poseAvatar?.props?.['RightArm.quaternion']) return;
+
+    const hasShoulders = !!(this.poseAvatar?.props?.['LeftShoulder.quaternion'] &&
+      this.poseAvatar?.props?.['RightShoulder.quaternion']);
+    const moveProbability = hasShoulders ? prob : 1;
+    if (Math.random() > moveProbability) return;
 
     // Random targets for left hand
-    this.ikSolve({
+    const leftIkOk = this.ikSolve({
       root: "LeftShoulder", effector: "LeftHandMiddle1",
       links: [
         { link: "LeftHand", minx: -0.5, maxx: 0.5, miny: -1, maxy: 1, minz: -0.5, maxz: 0.5 },
@@ -4388,7 +4883,7 @@ class TalkingHead {
     ), true);
 
     // Random target for right hand
-    this.ikSolve({
+    const rightIkOk = this.ikSolve({
       root: "RightShoulder", effector: "RightHandMiddle1",
       links: [
         { link: "RightHand", minx: -0.5, maxx: 0.5, miny: -1, maxy: 1, minz: -0.5, maxz: 0.5 },
@@ -4414,8 +4909,45 @@ class TalkingHead {
       }
     });
     ["LeftArm", "LeftForeArm", "RightArm", "RightForeArm"].forEach(x => {
-      moveto[0].props[x + '.quaternion'] = this.ikMesh.getObjectByName(x).quaternion.clone();
+      const bone = this.ikMesh.getObjectByName(x);
+      if (bone) {
+        moveto[0].props[x + '.quaternion'] = bone.quaternion.clone();
+      }
     });
+
+    // Sparse rigs can have no shoulder roots. If the IK root fallback still
+    // solves from the upper arm, prefer that; use direct FK only as a true
+    // fallback for incompatible axes.
+    if (!leftIkOk || !rightIkOk) {
+      const withDelta = (key, rx, ry, rz) => {
+        const base = this.poseTarget.props[key] || this.poseBase.props[key] || this.poseAvatar.props[key];
+        if (!base?.isQuaternion) return null;
+        const out = base.clone();
+        q.setFromEuler(e.set(rx, ry, rz, 'XYZ'));
+        out.multiply(q);
+        if (base._missingShoulderFolded || key === 'LeftArm.quaternion' || key === 'RightArm.quaternion') {
+          out._missingShoulderFolded = true;
+        }
+        return out;
+      };
+      const sparseRig = !hasShoulders;
+      const leftLift = sparseRig ? this.gaussianRandom(0.14, 0.32) : this.gaussianRandom(0.35, 0.75);
+      const rightLift = sparseRig ? this.gaussianRandom(0.14, 0.32) : this.gaussianRandom(0.35, 0.75);
+      const leftSide = sparseRig ? this.gaussianRandom(0.10, 0.28) : this.gaussianRandom(0.25, 0.65);
+      const rightSide = sparseRig ? this.gaussianRandom(0.10, 0.28) : this.gaussianRandom(0.25, 0.65);
+      const wristTurn = sparseRig ? 0.24 + Math.random() * 0.18 : 0.8 + Math.random() * 0.5;
+      const fallback = {
+        'LeftArm.quaternion': withDelta('LeftArm.quaternion', this.gaussianRandom(-0.18, 0.14), this.gaussianRandom(-0.14, 0.14), leftLift),
+        'LeftForeArm.quaternion': withDelta('LeftForeArm.quaternion', this.gaussianRandom(0.08, 0.32), this.gaussianRandom(-0.14, 0.14), leftSide),
+        'LeftHand.quaternion': withDelta('LeftHand.quaternion', this.gaussianRandom(-0.14, 0.14), -wristTurn, this.gaussianRandom(-0.14, 0.14)),
+        'RightArm.quaternion': withDelta('RightArm.quaternion', this.gaussianRandom(-0.18, 0.14), this.gaussianRandom(-0.14, 0.14), -rightLift),
+        'RightForeArm.quaternion': withDelta('RightForeArm.quaternion', this.gaussianRandom(0.08, 0.32), this.gaussianRandom(-0.14, 0.14), -rightSide),
+        'RightHand.quaternion': withDelta('RightHand.quaternion', this.gaussianRandom(-0.14, 0.14), wristTurn, this.gaussianRandom(-0.14, 0.14))
+      };
+      Object.entries(fallback).forEach(([key, val]) => {
+        if (val) moveto[0].props[key] = val;
+      });
+    }
 
     // Return to original target
     dt.push(1000 + Math.round(Math.random() * 500));
@@ -4655,10 +5187,12 @@ class TalkingHead {
         v.d = 1000;
         if (this.poseTarget.props.hasOwnProperty(p)) {
           this.poseTarget.props[p].copy(v);
+          this.syncMissingShoulderFlag(this.poseTarget.props[p], v);
           this.poseTarget.props[p].t = this.animClock;
           this.poseTarget.props[p].d = 1000;
         }
       }
+      this.foldMissingShouldersIntoArms(this.poseTarget.props);
     }
 
     // Restart pose animation
@@ -4808,6 +5342,7 @@ class TalkingHead {
         this.gesture["RightArm.quaternion"].rotateTowards(new THREE.Quaternion(0, 1, 0, 0), -0.25);
         this.gesture["LeftArm.quaternion"].rotateTowards(new THREE.Quaternion(0, 1, 0, 0), -0.25);
       }
+      this.foldMissingShouldersIntoArms(this.gesture);
 
       // Apply to target
       for (let [p, val] of Object.entries(this.gesture)) {
@@ -4815,6 +5350,7 @@ class TalkingHead {
         val.d = ms;
         if (this.poseTarget.props.hasOwnProperty(p)) {
           this.poseTarget.props[p].copy(val);
+          this.syncMissingShoulderFlag(this.poseTarget.props[p], val);
           this.poseTarget.props[p].t = this.animClock;
           this.poseTarget.props[p].d = ms;
         }
@@ -4889,11 +5425,15 @@ class TalkingHead {
       this.gesture = null;
       for (const [p, val] of gs) {
         if (this.poseTarget.props.hasOwnProperty(p)) {
-          this.poseTarget.props[p].copy(this.getPoseTemplateProp(p));
+          const templateProp = this.getPoseTemplateProp(p);
+          if (!templateProp) continue;
+          this.poseTarget.props[p].copy(templateProp);
+          this.syncMissingShoulderFlag(this.poseTarget.props[p], templateProp);
           this.poseTarget.props[p].t = this.animClock;
           this.poseTarget.props[p].d = ms;
         }
       }
+      this.foldMissingShouldersIntoArms(this.poseTarget.props);
     }
 
     // Stop animated emoji gesture, if any
@@ -4923,19 +5463,40 @@ class TalkingHead {
     const axis = new THREE.Vector3();
     const vector = new THREE.Vector3();
 
-    // Reset IK setup positions and rotations
-    const root = this.ikMesh.getObjectByName(ik.root);
-    root.position.setFromMatrixPosition(this.armature.getObjectByName(ik.root).matrixWorld);
-    root.quaternion.setFromRotationMatrix(this.armature.getObjectByName(ik.root).matrixWorld);
+    // Reset IK setup positions and rotations. Sparse rigs such as Olaf do not
+    // always have shoulder roots, so fall back to the highest available link.
+    let rootName = ik.root;
+    let root = this.ikMesh.getObjectByName(rootName);
+    let rootSource = this.armature?.getObjectByName(rootName);
+    if ((!root || !rootSource) && Array.isArray(ik.links)) {
+      for (let i = ik.links.length - 1; i >= 0; i--) {
+        const linkName = ik.links[i].link;
+        const linkRoot = this.ikMesh.getObjectByName(linkName);
+        const linkSource = this.armature?.getObjectByName(linkName);
+        if (linkRoot && linkSource && this.poseAvatar?.props?.[linkName + ".quaternion"]) {
+          rootName = linkName;
+          root = linkRoot;
+          rootSource = linkSource;
+          break;
+        }
+      }
+    }
+    if (!root || !rootSource) return false;
+    root.position.setFromMatrixPosition(rootSource.matrixWorld);
+    root.quaternion.setFromRotationMatrix(rootSource.matrixWorld);
     if (target && relative) {
       target.applyQuaternion(this.armature.quaternion).add(root.position);
     }
     const effector = this.ikMesh.getObjectByName(ik.effector);
     const links = ik.links;
-    links.forEach(x => {
+    if (!effector || !Array.isArray(links)) return false;
+    for (const x of links) {
+      if (!this.poseAvatar?.props?.[x.link + ".quaternion"]) return false;
       x.bone = this.ikMesh.getObjectByName(x.link);
-      x.bone.quaternion.copy(this.getPoseTemplateProp(x.link + '.quaternion'));
-    });
+      const templateProp = this.getPoseTemplateProp(x.link + '.quaternion');
+      if (!x.bone || !templateProp) return false;
+      x.bone.quaternion.copy(templateProp);
+    }
     root.updateMatrixWorld(true);
     const iterations = ik.iterations || 10;
 
@@ -4994,11 +5555,15 @@ class TalkingHead {
     // Apply
     if (d) {
       links.forEach(x => {
-        this.poseTarget.props[x.link + ".quaternion"].copy(x.bone.quaternion);
-        this.poseTarget.props[x.link + ".quaternion"].t = this.animClock;
-        this.poseTarget.props[x.link + ".quaternion"].d = d;
+        const prop = this.poseTarget.props[x.link + ".quaternion"];
+        if (prop) {
+          prop.copy(x.bone.quaternion);
+          prop.t = this.animClock;
+          prop.d = d;
+        }
       });
     }
+    return true;
   }
 
   /**

@@ -60,6 +60,7 @@
     <script type="module">
         import { TalkingHead } from "talkinghead";
         import { MindMitraBridge } from "mindmitra-bridge";
+        import { mindmitraPreprocess } from "/talkinghead/modules/mindmitra-rig-preprocess.mjs";
 
         // -- Config: secrets via postMessage, public via URL --------------------------------
         // Security note: TTS API keys USED to be passed via URL search params,
@@ -537,7 +538,7 @@
             try {
                 let loadedAvatarUrl = avatarUrl;
                 try {
-                    await head.showAvatar(avatarConfig(avatarUrl), avatarProgress);
+                    await head.showAvatar(avatarConfig(avatarUrl), avatarProgress, mindmitraPreprocess);
                 } catch (primaryErr) {
                     if (avatarUrl === FALLBACK_AVATAR_URL) throw primaryErr;
                     avatarLog(
@@ -551,7 +552,7 @@
                     );
                     setStatus("Loading fallback avatar\u2026");
                     loadedAvatarUrl = FALLBACK_AVATAR_URL;
-                    await head.showAvatar(avatarConfig(FALLBACK_AVATAR_URL), avatarProgress);
+                    await head.showAvatar(avatarConfig(FALLBACK_AVATAR_URL), avatarProgress, mindmitraPreprocess);
                 }
                 setStatus(null);
 

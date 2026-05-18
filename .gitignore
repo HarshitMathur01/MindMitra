@@ -154,6 +154,9 @@ Thumbs.db
 
 # TalkingHead library bundle — large file, comes from npm / CDN, not source code
 public/talkinghead/modules/
+!public/talkinghead/modules/
+public/talkinghead/modules/*
+!public/talkinghead/modules/mindmitra-rig-preprocess.mjs
 
 # 3D avatar models — large binary assets, track via Git LFS or external storage
 # Uncomment the line below if you move GLBs to a CDN/LFS

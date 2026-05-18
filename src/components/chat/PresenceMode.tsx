@@ -63,6 +63,7 @@ const PresenceMode = ({
     } = useChat();
     const reduceMotion = useReducedMotion();
     const isSpeaking = micState === "speaking" && Boolean(avatarCurrentMessage?.text);
+    const avatarCameraView = /\/Olaf\.glb(?:$|\?)/i.test(avatarUrl) ? "full" : "upper";
 
     // Lock body scroll + ESC-to-exit while presence mode is open.
     // We do this in a single effect so the cleanup pairs with the
@@ -146,7 +147,7 @@ const PresenceMode = ({
                                 avatarUrl={avatarUrl}
                                 ttsLang={ttsLang}
                                 ttsVoice={ttsVoice}
-                                cameraView="upper"
+                                cameraView={avatarCameraView}
                                 hideChrome
                                 transparentBackground
                             />

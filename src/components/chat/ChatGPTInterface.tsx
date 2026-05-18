@@ -52,7 +52,7 @@ import {
 } from "./chatExports";
 import type { Message, RecentChatPreview } from "./chatTypes";
 
-import { AVATAR_OPTIONS } from "@/lib/avatarOptions";
+import { AVATAR_OPTIONS, normalizeAvatarModelId } from "@/lib/avatarOptions";
 import {
     voiceForLocale,
     sttLocale as getSttLocale,
@@ -197,13 +197,14 @@ const ChatGPTInterface = () => {
     );
 
     const [selectedAvatarId, setSelectedAvatarId] = useState<string>(
-        settings?.avatar_model ?? "brunette",
+        normalizeAvatarModelId(settings?.avatar_model),
     );
     useEffect(() => {
-        if (settings?.avatar_model) setSelectedAvatarId(settings.avatar_model);
+        if (settings?.avatar_model) setSelectedAvatarId(normalizeAvatarModelId(settings.avatar_model));
     }, [settings?.avatar_model]);
     const selectedAvatar =
         AVATAR_OPTIONS.find((a) => a.id === selectedAvatarId) ?? AVATAR_OPTIONS[0];
+    const selectedAvatarCameraView = selectedAvatar.id === "olaf" ? "full" : undefined;
 
     useEffect(() => {
         avatarPlaybackEnabledRef.current = isAvatarVisible || isPresenceMode;
@@ -1096,6 +1097,7 @@ const ChatGPTInterface = () => {
                                     avatarUrl={selectedAvatar.url}
                                     ttsLang={voiceForLocale(settings?.language).ttsLang}
                                     ttsVoice={voiceForLocale(settings?.language).ttsVoice}
+                                    cameraView={selectedAvatarCameraView}
                                 />
                             </Suspense>
                             <AnimatePresence>

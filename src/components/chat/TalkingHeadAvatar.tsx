@@ -91,8 +91,16 @@ function hashString(value: string): number {
 
 type AvatarBackdropVideo = (typeof avatarBackdropVideos)[number];
 
+const OLAF_BACKDROP_VIDEO_PATH = "/videos/Avatar_videos/mp_ (2).mp4";
+
 function resolveAvatarBackdropVideo(avatarUrl: string): AvatarBackdropVideo | undefined {
     if (avatarBackdropVideos.length === 0) return undefined;
+    if (avatarUrl.toLowerCase().includes("olaf.glb")) {
+        const olafBackdropVideo = avatarBackdropVideos.find(
+            (video) => decodeURI(video.src) === OLAF_BACKDROP_VIDEO_PATH,
+        );
+        if (olafBackdropVideo) return olafBackdropVideo;
+    }
     return avatarBackdropVideos[hashString(avatarUrl) % avatarBackdropVideos.length];
 }
 

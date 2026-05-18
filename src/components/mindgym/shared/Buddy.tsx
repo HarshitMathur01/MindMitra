@@ -40,13 +40,13 @@ interface BuddyProps {
   reduceMotion?: boolean;
 }
 
-const DEFAULT_AVATAR = "/talkinghead/avatars/Valentina.glb";
+const DEFAULT_AVATAR = "/talkinghead/avatars/Olaf.glb";
 
 export default function Buddy({
   enabled = true,
   avatar = DEFAULT_AVATAR,
   cue,
-  cameraView = "upper",
+  cameraView = "full",
   transparent = true,
   ttsLang = "en-IN",
   ttsVoice = "en-IN-Neural2-A",

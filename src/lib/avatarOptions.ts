@@ -11,10 +11,10 @@ export const AVATAR_OPTIONS = [
     url: '/talkinghead/avatars/brunette.glb',
   },
   {
-    id: 'valentina',
-    name: 'Valentina',
-    description: 'Radiant & bold',
-    url: '/talkinghead/avatars/Valentina.glb',
+    id: 'olaf',
+    name: 'Olaf',
+    description: 'Gentle & playful',
+    url: '/talkinghead/avatars/Olaf.glb',
   },
   {
     id: 'avaturn',
@@ -25,3 +25,10 @@ export const AVATAR_OPTIONS = [
 ] as const;
 
 export type AvatarModelId = (typeof AVATAR_OPTIONS)[number]['id'];
+
+export function normalizeAvatarModelId(id: string | null | undefined): AvatarModelId {
+  if (id === 'valentina') return 'olaf';
+  return AVATAR_OPTIONS.some((avatar) => avatar.id === id)
+    ? (id as AvatarModelId)
+    : 'brunette';
+}

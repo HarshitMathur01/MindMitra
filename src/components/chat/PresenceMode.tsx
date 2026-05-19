@@ -63,7 +63,12 @@ const PresenceMode = ({
     } = useChat();
     const reduceMotion = useReducedMotion();
     const isSpeaking = micState === "speaking" && Boolean(avatarCurrentMessage?.text);
-    const avatarCameraView = /\/Olaf\.glb(?:$|\?)/i.test(avatarUrl) ? "full" : "upper";
+    const avatarCameraView = "upper";
+    // Namaste greeting on Presence-Mode entry — Olaf only. Maps to the
+    // product's "session start" beat and uses the existing TalkingHead
+    // built-in `namaste` gesture template (both-hands symmetric, so it
+    // reads cleanly on Olaf's shoulderless rig).
+    const greetingGesture = /\/Olaf\.glb(?:$|\?)/i.test(avatarUrl) ? "namaste" : undefined;
 
     // Lock body scroll + ESC-to-exit while presence mode is open.
     // We do this in a single effect so the cleanup pairs with the
@@ -150,6 +155,7 @@ const PresenceMode = ({
                                 cameraView={avatarCameraView}
                                 hideChrome
                                 transparentBackground
+                                greetingGesture={greetingGesture}
                             />
                         </div>
                     </div>

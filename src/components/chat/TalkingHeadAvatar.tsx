@@ -79,6 +79,12 @@ interface Props {
      * so the sage gradient backdrop is continuous behind the avatar.
      */
     transparentBackground?: boolean;
+    /**
+     * Optional one-shot gesture fired ~600ms after the iframe reports
+     * ready. Use cases: "namaste" greeting on Presence-Mode entry for
+     * Olaf. Pass undefined to skip.
+     */
+    greetingGesture?: string;
 }
 
 function hashString(value: string): number {
@@ -148,6 +154,7 @@ const TalkingHeadAvatar = ({
     cameraView,
     hideChrome = false,
     transparentBackground = false,
+    greetingGesture,
 }: Props) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -262,6 +269,13 @@ const TalkingHeadAvatar = ({
                 case "ready":
                     setIsReady(true);
                     setLoadError(null);
+                    if (greetingGesture) {
+                        // Slight delay so the iframe finishes its initial pose
+                        // before the gesture animation overlays it.
+                        setTimeout(() => {
+                            postToIframe({ type: "triggerGesture", gesture: greetingGesture });
+                        }, 600);
+                    }
                     break;
 
                 case "speakingStart":
@@ -299,6 +313,7 @@ const TalkingHeadAvatar = ({
         resolvedAzureKey,
         resolvedAzureRegion,
         startPlaybackWatchdog,
+        greetingGesture,
     ]);
 
     // ── React to new avatar messages ────────────────────────────────────────
@@ -322,11 +337,18 @@ const TalkingHeadAvatar = ({
         currentTextRef.current = text;
         messagePlayedForCurrentRef.current = false;
 
-        // Neutral mouth/face before TTS: MindMitra therapeutic moods inject mouth
-        // morphs in baselines; those fight Oculus viseme phoneme tracks (TalkingHead
-        // README: viseme-driven lip-sync needs a neutral mouth baseline). Upper-face
-        // empathy can be reintroduced later via iframe APIs if product wants it.
-        postToIframe({ type: "setEmotion", emotion: "neutral" });
+        // Upper-face emotion during speech. The bridge registers a
+        // `<mood>_speech` variant of every therapeutic mood whose baseline
+        // strips out mouth/jaw/viseme keys — so brows/eyes/cheeks stay
+        // expressive while TalkingHead's viseme engine owns the mouth.
+        // Defaults to `acknowledgment_speech` (warm + attentive) when the
+        // backend hasn't supplied a facial expression cue or the cue maps
+        // to flat neutral.
+        const rawExpression = (avatarCurrentMessage as { facialExpression?: string })
+            .facialExpression;
+        const mapped = rawExpression ? EXPRESSION_TO_EMOTION[rawExpression] : undefined;
+        const therapeuticMood = (mapped && mapped !== "neutral") ? mapped : "acknowledgment";
+        postToIframe({ type: "setEmotion", emotion: `${therapeuticMood}_speech` });
 
         // Split text into sentences and dispatch speakTextStream so the iframe can
         // join text, run Azure/Google once, and call speakAudio with aligned visemes.
@@ -386,9 +408,8 @@ const TalkingHeadAvatar = ({
 
     return (
         <div
-            className={`relative w-full h-full overflow-hidden ${
-                useTransparentStage ? "bg-transparent" : "bg-[#1a1a2e]"
-            }`}
+            className={`relative w-full h-full overflow-hidden ${useTransparentStage ? "bg-transparent" : "bg-[#1a1a2e]"
+                }`}
         >
             {backdropVideo?.poster && (
                 <img
@@ -430,9 +451,8 @@ const TalkingHeadAvatar = ({
             {/* Loading overlay — shown until iframe reports ready */}
             {!isReady && !loadError && (
                 <div
-                    className={`absolute inset-0 flex flex-col items-center justify-center z-10 p-6 space-y-6 animate-pulse ${
-                        useTransparentStage ? "bg-black/30 backdrop-blur-sm" : "bg-[#1a1a2e]"
-                    }`}
+                    className={`absolute inset-0 flex flex-col items-center justify-center z-10 p-6 space-y-6 animate-pulse ${useTransparentStage ? "bg-black/30 backdrop-blur-sm" : "bg-[#1a1a2e]"
+                        }`}
                 >
                     <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-primary/10 border-4 border-primary/20 flex flex-col items-center justify-center space-y-4">
                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />

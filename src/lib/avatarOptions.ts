@@ -2,7 +2,19 @@
  * Available TalkingHead avatar models.
  * The `id` values must match the `avatar_model` column in Supabase `user_settings`
  * and the filenames in public/talkinghead/avatars/ (mind the capitalisation).
+ *
+ * Optional `ttsVoice`/`ttsLang` pin a per-avatar voice override that takes
+ * precedence over the language-derived locale voice.
  */
+type AvatarOption = {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly url: string;
+  readonly ttsVoice?: string;
+  readonly ttsLang?: string;
+};
+
 export const AVATAR_OPTIONS = [
   {
     id: 'brunette',
@@ -15,6 +27,8 @@ export const AVATAR_OPTIONS = [
     name: 'Olaf',
     description: 'Gentle & playful',
     url: '/talkinghead/avatars/Olaf.glb',
+    ttsVoice: 'en-US-DavisNeural',
+    ttsLang: 'en-US',
   },
   {
     id: 'avaturn',
@@ -22,7 +36,7 @@ export const AVATAR_OPTIONS = [
     description: 'Photorealistic',
     url: '/talkinghead/avatars/avaturn.glb',
   },
-] as const;
+] as const satisfies readonly AvatarOption[];
 
 export type AvatarModelId = (typeof AVATAR_OPTIONS)[number]['id'];
 

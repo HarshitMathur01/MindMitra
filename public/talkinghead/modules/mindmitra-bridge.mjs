@@ -285,6 +285,20 @@ const THERAPEUTIC_INTENSITIES = {
     listening: 1.0,  // always subtle
 };
 
+// Lower-face morphs are owned by the viseme lipsync engine while the
+// avatar is speaking. Stripping them out of mood baselines lets us keep
+// upper-face emotion (brows, eyes, cheeks) on during speech without the
+// mouth/jaw fighting the phoneme tracks.
+const LOWER_FACE_PREFIXES = ['mouth', 'jaw', 'viseme_'];
+function stripLowerFace(baseline) {
+    const out = {};
+    for (const [key, value] of Object.entries(baseline)) {
+        const isLowerFace = LOWER_FACE_PREFIXES.some(p => key.startsWith(p));
+        if (!isLowerFace) out[key] = value;
+    }
+    return out;
+}
+
 
 // ═══════════════════════════════════════════════════════════════════
 //  2. EMOTION TIMELINE — Expression changes MID-RESPONSE
@@ -416,7 +430,25 @@ const EMOTION_TO_GESTURE = {
     calm: null, // no gesture for calm
 };
 
+// Parallel map of emotion → TalkingHead hand-gesture template name.
+// These move arm/forearm/hand/fingers — independent of the head/body
+// gestures in EMOTION_TO_GESTURE, so both can fire simultaneously.
+const EMOTION_TO_HAND_GESTURE = {
+    empathy: 'hand_to_chest',
+    concern: 'hand_to_chest',
+    acknowledgment: 'open_palm_welcome',
+    encouragement: 'open_palm_welcome',
+    listening: null,    // stay still while user talks
+    calm: null,         // never gesture during grounding
+    neutral: null,      // let the beat scheduler handle this
+};
+
 const GESTURE_COOLDOWN_MS = 4000;
+
+// Interval between periodic "accent beat" gestures during long speech.
+// 8s keeps Olaf feeling alive without becoming twitchy.
+const BEAT_INTERVAL_MS = 8000;
+const BEAT_DURATION_S = 1.5;
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -438,9 +470,14 @@ class MindMitraBridge {
 
     /**
      * @param {TalkingHead} head  An already-constructed TalkingHead instance.
+     * @param {Object} [opts]
+     * @param {number} [opts.styleMultiplier=1.0]  Per-avatar amplitude scale
+     *   for expression intensities. Stylised/cartoon rigs (e.g. Olaf) need
+     *   ~1.5× to read as warmly as human avatars at the same baselines.
      */
-    constructor(head) {
+    constructor(head, opts = {}) {
         this.head = head;
+        this.styleMultiplier = opts.styleMultiplier ?? 1.0;
         this.amplitudeAnalyzer = new AmplitudeAnalyzer();
 
         // State
@@ -462,6 +499,10 @@ class MindMitraBridge {
         this._gestureStart = 0;
         this._gesture = null;
         this._lastGestureEnd = 0;
+
+        // Periodic hand-beat scheduler — fires accent_beat every
+        // BEAT_INTERVAL_MS while the avatar is speaking (except in calm).
+        this._lastBeatTime = 0;
 
         // Per-frame callback reference (so we can remove it)
         this._originalUpdate = null;
@@ -501,6 +542,35 @@ class MindMitraBridge {
                 baseline: { ...mood.baseline },
                 speech: { ...mood.speech },
                 anims: JSON.parse(JSON.stringify(source.anims)),  // deep clone
+            };
+
+            // Upper-face-only variant: used while the avatar is speaking so
+            // visemes get a neutral mouth canvas while brows/eyes/cheeks
+            // still carry the emotion.
+            const speechBaseline = stripLowerFace(mood.baseline);
+            if (name === 'encouragement') {
+                // Smile-while-speaking should show some mouth interior.
+                // Olaf has no separate teeth mesh — this jaw bias is the
+                // closest honest "show some teeth" approximation. Small
+                // enough that visemes still own moment-to-moment shape.
+                speechBaseline.jawOpen = 0.08;
+                speechBaseline.mouthOpen = 0.05;
+            }
+            builtInMoods[`${name}_speech`] = {
+                baseline: speechBaseline,
+                speech: { ...mood.speech },
+                anims: JSON.parse(JSON.stringify(source.anims)),
+            };
+        }
+
+        // Also provide a no-op `neutral_speech` so the React layer can
+        // fall back to it without TalkingHead warning about an unknown mood.
+        const neutralSource = builtInMoods['neutral'];
+        if (neutralSource && !builtInMoods['neutral_speech']) {
+            builtInMoods['neutral_speech'] = {
+                baseline: stripLowerFace(neutralSource.baseline || {}),
+                speech: { ...(neutralSource.speech || {}) },
+                anims: JSON.parse(JSON.stringify(neutralSource.anims)),
             };
         }
     }
@@ -579,7 +649,19 @@ class MindMitraBridge {
             // reply fights the face and reads as jitter.
             const gesture = EMOTION_TO_GESTURE[first.emotion];
             if (gesture && first.emotion !== "neutral") this._triggerGesture(gesture);
+
+            // Hand gesture (arm/forearm/hand) — runs in parallel with the
+            // head/body gesture above. Skipped for null entries (listening,
+            // calm, neutral) to keep grounding/listening still.
+            const handGesture = EMOTION_TO_HAND_GESTURE[first.emotion];
+            if (handGesture && typeof this.head.playGesture === 'function') {
+                try { this.head.playGesture(handGesture, 3.5, false); } catch (e) { /* noop */ }
+            }
         }
+
+        // Reset beat schedule so each new reply starts fresh — first beat
+        // will fire BEAT_INTERVAL_MS after speech begins.
+        this._lastBeatTime = performance.now();
     }
 
     /**
@@ -590,6 +672,7 @@ class MindMitraBridge {
         this.emotionTimeline = null;
         this.amplitudeFrames = [];
         this._releaseOwnedMorphs();
+        this._lastBeatTime = 0;
 
         // Gentle return to neutral over 600ms
         this.setEmotion('neutral', 1.0);
@@ -622,7 +705,13 @@ class MindMitraBridge {
         }
 
         this.currentEmotion = moodName;
-        this.currentIntensity = intensity ?? THERAPEUTIC_INTENSITIES[moodName] ?? 1.0;
+        // Look up therapeutic intensity by the un-suffixed mood name so
+        // both "empathy" and "empathy_speech" resolve to the same default.
+        const baseMoodName = moodName.endsWith('_speech')
+            ? moodName.slice(0, -'_speech'.length)
+            : moodName;
+        const resolvedIntensity = intensity ?? THERAPEUTIC_INTENSITIES[baseMoodName] ?? 1.0;
+        this.currentIntensity = resolvedIntensity * this.styleMultiplier;
 
         const mood = this.head.animMoods[moodName];
         if (this.currentIntensity !== 1.0 && mood && mood.baseline) {
@@ -776,6 +865,21 @@ class MindMitraBridge {
 
         // ── Therapeutic Gestures (Paper #6) ──────────────────
         this._updateGesture(now);
+
+        // ── Beat scheduler — periodic accent_beat during long speech ───
+        // Keeps the avatar alive during multi-sentence replies without
+        // looking twitchy. Skipped for calm (grounding) and when a head/
+        // body gesture is currently animating.
+        if (
+            this.state === 'speaking' &&
+            this.currentEmotion !== 'calm' &&
+            !this._gestureActive &&
+            now - this._lastBeatTime > BEAT_INTERVAL_MS &&
+            typeof this.head.playGesture === 'function'
+        ) {
+            try { this.head.playGesture('accent_beat', BEAT_DURATION_S, false); } catch (e) { /* noop */ }
+            this._lastBeatTime = now;
+        }
 
         // Chain to original update callback if present
         if (this._originalUpdate) {

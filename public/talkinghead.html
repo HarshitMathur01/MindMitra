@@ -71,19 +71,22 @@
         //
         // The keys are now sent via `postMessage` from the React parent AFTER
         // the iframe loads. The URL only carries non-sensitive presentation
-        // config (avatar model, voice name, BCP-47 language tag, camera
-        // framing). `init()` is gated on receipt of the config message so
+        // config (avatar model, voice name, optional avatar-specific voice
+        // override, BCP-47 language tag, camera framing). `init()` is gated on receipt of the config message so
         // TalkingHead is constructed with the correct credentials on the
         // first frame — no race, no second init.
         const params = new URLSearchParams(window.location.search);
-        let googleKey   = "";   // populated from postMessage("config")
-        let azureKey    = "";   // populated from postMessage("config")
+        let googleKey = "";   // populated from postMessage("config")
+        let azureKey = "";   // populated from postMessage("config")
         let azureRegion = "eastasia";
 
-        const ttsVoice   = params.get("ttsVoice")   || "en-IN-Neural2-A";
-        const ttsLang    = params.get("ttsLang")    || "en-IN";
+        const ttsVoice = params.get("ttsVoice") || "en-IN-Neural2-A";
+        const voiceId = params.get("voiceId") || "";
+        const ttsLang = params.get("ttsLang") || "en-IN";
+        const voiceLang = voiceId ? voiceId.split("-").slice(0, 2).join("-") : "";
+        const azureLang = voiceLang || ttsLang;
         const FALLBACK_AVATAR_URL = "/talkinghead/avatars/brunette.glb";
-        const avatarUrl  = params.get("avatarUrl")  || FALLBACK_AVATAR_URL;
+        const avatarUrl = params.get("avatarUrl") || FALLBACK_AVATAR_URL;
         // Camera framing preset — supplied by the React wrapper. Defaults to "mid"
         // (legacy behavior) when absent. PresenceMode passes "upper" for a
         // bust-shot that fills the screen and reads as face-to-face.
@@ -105,7 +108,7 @@
         };
 
         function resolveAzureVoice(lang) {
-            return AZURE_VOICE_TABLE[lang] || ttsVoice || "en-IN-NeerjaNeural";
+            return voiceId || AZURE_VOICE_TABLE[lang] || ttsVoice || "en-IN-NeerjaNeural";
         }
 
         // ── TTS endpoint selection ────────────────────────────────────────────────────────
@@ -117,13 +120,13 @@
         // When no Google key is provided, a sentinel endpoint + fetch interceptor is used.
         // TalkingHead runs text-based lipsync; Web Speech API handles audio.
         const GOOGLE_TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1beta1/text:synthesize";
-        const SENTINEL_ENDPOINT   = "https://eu-texttospeech.googleapis.com/v1beta1/text:synthesize";
+        const SENTINEL_ENDPOINT = "https://eu-texttospeech.googleapis.com/v1beta1/text:synthesize";
         const AVATAR_DEBUG = params.get("debug") === "1" || ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
         // These get set after the parent's `config` postMessage arrives.
         let ttsEndpoint = SENTINEL_ENDPOINT;
-        let ttsApikey   = "";
-        let TTS_MODE    = "pending-config";
+        let ttsApikey = "";
+        let TTS_MODE = "pending-config";
         const utteranceMetrics = new Map();
 
         function shortId(value) {
@@ -253,10 +256,10 @@
 
         function recomputeTtsMode() {
             ttsEndpoint = googleKey ? GOOGLE_TTS_ENDPOINT : SENTINEL_ENDPOINT;
-            ttsApikey   = googleKey ? googleKey           : "";
-            TTS_MODE    = googleKey ? "google-cloud-tts"
-                        : azureKey  ? "azure-tts"
-                        :             "webspeech-fallback";
+            ttsApikey = googleKey ? googleKey : "";
+            TTS_MODE = googleKey ? "google-cloud-tts"
+                : azureKey ? "azure-tts"
+                    : "webspeech-fallback";
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────────────────
@@ -292,7 +295,7 @@
         /** XML-escape a word so it is safe inside an SSML <speak> element. */
         function escapeXml(t) {
             return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+                .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
         }
 
         /**
@@ -407,7 +410,7 @@
         }
 
         // ── TalkingHead init ─────────────────────────────────────────────────────────────
-        let head = null;        let bridge = null;        const statusEl = document.getElementById("status");
+        let head = null; let bridge = null; const statusEl = document.getElementById("status");
 
         function setStatus(msg) {
             statusEl.textContent = msg || "";
@@ -489,7 +492,7 @@
                 // Real Google TTS endpoint when key is present → word timestamps → perfect lipsync.
                 // Sentinel endpoint when absent → intercepted → empty response.
                 ttsEndpoint: ttsEndpoint,
-                ttsApikey:   ttsApikey,
+                ttsApikey: ttsApikey,
                 lipsyncModules: ["en"],
                 cameraView: cameraView,
                 avatarIdleEyeContact: 0.6,      // default 0.2 — hold gaze 60% of idle/listening time
@@ -526,10 +529,10 @@
                 url,
                 body: "F",
                 avatarMood: "neutral",
-                ttsLang:  ttsLang,
+                ttsLang: ttsLang,
                 ttsVoice: ttsVoice,
                 // ttsRate maps to Google speakingRate (0.25–4.0). 0.9 = slightly slower.
-                ttsRate:  0.9,
+                ttsRate: 0.9,
                 // ttsPitch maps to Google pitch in semitones (-20 to +20). +2 = gentle warmth.
                 ttsPitch: 2,
                 lipsyncLang: "en",
@@ -562,7 +565,15 @@
                 //   • Therapeutic gesture support (nods, lean-forward, tilt)
                 //   • Amplitude-based jaw boost (dormant until audio data is passed)
                 // Lip sync continues to be driven entirely by TalkingHead’s viseme engine.
-                bridge = new MindMitraBridge(head);
+                //
+                // Olaf is a stylised/cartoon rig — its face under-reads at the
+                // human-tuned baselines. The 1.5× styleMultiplier scales every
+                // mood's amplitude so his empathy/encouragement land as warmly
+                // as Aria/Maya at the same THERAPEUTIC_INTENSITIES defaults.
+                const isOlafAvatar = /\/Olaf\.glb(?:$|\?)/i.test(loadedAvatarUrl);
+                bridge = new MindMitraBridge(head, {
+                    styleMultiplier: isOlafAvatar ? 1.5 : 1.0,
+                });
                 bridge.init();
 
                 avatarLog("avatar.ready", {
@@ -584,8 +595,8 @@
             if (!window.speechSynthesis) return false;
             window.speechSynthesis.cancel();
             const utter = new SpeechSynthesisUtterance(text);
-            utter.lang  = ttsLang || "en-IN";
-            utter.rate  = 0.9;
+            utter.lang = azureLang || ttsLang || "en-IN";
+            utter.rate = 0.9;
             utter.pitch = 1.05;
             const voices = window.speechSynthesis.getVoices();
             const femaleVoice = voices.find(v =>
@@ -600,7 +611,7 @@
                 } catch (e) { /* noop */ }
                 postSpeakingEnd(utteranceId);
             };
-            utter.onend   = finish;
+            utter.onend = finish;
             utter.onerror = finish;
             window.speechSynthesis.speak(utter);
             return true;
@@ -621,7 +632,7 @@
                 try { await head.audioCtx.resume(); audioResumed = true; } catch { /* noop */ }
             }
         }
-        document.addEventListener("click",       ensureAudioCtx);
+        document.addEventListener("click", ensureAudioCtx);
         document.addEventListener("pointerdown", ensureAudioCtx);
 
         // ── Azure Speech SDK — lazy loader ───────────────────────────────────────────────
@@ -634,7 +645,7 @@
                     if (window.SpeechSDK) { resolve(window.SpeechSDK); return; }
                     const s = document.createElement('script');
                     s.src = 'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.48.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js';
-                    s.onload  = () => window.SpeechSDK
+                    s.onload = () => window.SpeechSDK
                         ? resolve(window.SpeechSDK)
                         : reject(new Error('SpeechSDK global not found after load'));
                     s.onerror = () => reject(new Error('Failed to load Azure Speech SDK from CDN'));
@@ -662,7 +673,7 @@
                 speechConfig.speechSynthesisOutputFormat =
                     SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz96KBitRateMonoMp3;
 
-                speechConfig.speechSynthesisVoiceName = resolveAzureVoice(ttsLang);
+                speechConfig.speechSynthesisVoiceName = resolveAzureVoice(azureLang);
 
                 // null audioConfig → synthesizer captures audio internally (no speaker output).
                 // The full audio is returned in result.audioData as an ArrayBuffer.
@@ -686,9 +697,9 @@
                         : /\w/.test(event.text);
                     if (isWord && event.text) {
                         wordBoundaries.push({
-                            text:        event.text,
+                            text: event.text,
                             audioOffset: event.audioOffset,    // 100-nanosecond ticks from audio start
-                            duration:    event.duration || 0,  // 100-nanosecond ticks (0 in old SDKs)
+                            duration: event.duration || 0,  // 100-nanosecond ticks (0 in old SDKs)
                         });
                     }
                 };
@@ -734,11 +745,11 @@
         async function fetchAzureTTS(words) {
             const text = words.join(" ");
             // Build SSML — Azure requires <voice> element with exact voice name
-            const azureVoice = resolveAzureVoice(ttsLang);
-            const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${ttsLang}">` +
-                         `<voice name="${azureVoice}">` +
-                         `<prosody rate="-10%" pitch="+5%">${escapeXml(text)}</prosody>` +
-                         `</voice></speak>`;
+            const azureVoice = resolveAzureVoice(azureLang);
+            const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${azureLang}">` +
+                `<voice name="${azureVoice}">` +
+                `<prosody rate="-10%" pitch="+5%">${escapeXml(text)}</prosody>` +
+                `</voice></speak>`;
 
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), AZURE_REST_TIMEOUT_MS);
@@ -873,8 +884,8 @@
                 });
 
                 const audioBuffers = [];
-                const allWords     = [];
-                const allWtimes    = [];
+                const allWords = [];
+                const allWtimes = [];
                 const allWdurations = [];
                 let cumulativeMs = 0;
 
@@ -970,9 +981,9 @@
 
                     // Convert SDK word boundaries (100-ns ticks) to TalkingHead wtimes/wdurations.
                     // audioOffset / 10 000 = milliseconds from audio start.
-                    const sdkWords    = [];
-                    const sdkWtimes   = [];
-                    const sdkWdurs    = [];
+                    const sdkWords = [];
+                    const sdkWtimes = [];
+                    const sdkWdurs = [];
                     for (let i = 0; i < wordBoundaries.length; i++) {
                         const wb = wordBoundaries[i];
                         sdkWords.push(wb.text);
@@ -1037,11 +1048,11 @@
                         return fetchAzureTTS(tokenizeForTTS(s));
                     });
 
-                    const audioBuffers  = [];
-                    const allWords      = [];
-                    const allWtimes     = [];
+                    const audioBuffers = [];
+                    const allWords = [];
+                    const allWtimes = [];
                     const allWdurations = [];
-                    let cumulativeMs    = 0;
+                    let cumulativeMs = 0;
 
                     for (let i = 0; i < ttsPromises.length; i++) {
                         if (!isActiveUtterance(utteranceId)) return false;
@@ -1049,14 +1060,14 @@
                         try { result = await ttsPromises[i]; } catch (e) { result = null; }
                         if (!result) continue;
                         try {
-                            const audioBuf   = await head.audioCtx.decodeAudioData(result.audioBuffer);
+                            const audioBuf = await head.audioCtx.decodeAudioData(result.audioBuffer);
                             if (!isActiveUtterance(utteranceId)) return false;
                             const durationMs = audioBuf.duration * 1000;
-                            const sentWords  = tokenizeForTTS(cleanSentences[i]);
+                            const sentWords = tokenizeForTTS(cleanSentences[i]);
                             const n = Math.max(sentWords.length, 1);
                             for (let j = 0; j < sentWords.length; j++) {
                                 const wStart = cumulativeMs + Math.round((j / n) * durationMs);
-                                const wEnd   = j + 1 < sentWords.length
+                                const wEnd = j + 1 < sentWords.length
                                     ? cumulativeMs + Math.round(((j + 1) / n) * durationMs)
                                     : cumulativeMs + durationMs;
                                 allWords.push(sentWords[j]);

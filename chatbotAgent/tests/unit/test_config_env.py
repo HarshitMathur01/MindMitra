@@ -17,17 +17,35 @@ def temp_config_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "SESSION_TTL_SECONDS",
         "CHAT_DAILY_LIMIT",
         "SUPABASE_URL",
+        "SUPABASE_SERVICE_KEY",
+        "SUPABASE_KEY",
+        "SUPABASE_JWT_SECRET",
         "QDRANT_URL",
         "QDRANT_EPISODIC_COLLECTION",
+        "REDIS_URL",
+        "SECRET_KEY",
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_API_KEY",
         "AZURE_OPENAI_ENDPOINT",
         "AZURE_OPENAI_DEPLOYMENT_NAME",
         "AZURE_MODEL_FAMILY",
         "LLM_PROVIDER_CHAIN",
+        "GROQ_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "GLM_API_KEY",
+        "ZAI_API_KEY",
+        "ZHIPUAI_API_KEY",
+        "GLM_API_BASE",
+        "GLM_BASE_URL",
         "LOG_LEVEL",
         "LOG_FORMAT",
         "LOG_VERBOSE_CONTEXT",
         "SKIP_AUTH",
         "DEV_USER_ID",
+        "QDRANT_API_KEY",
+        "AZURE_SPEECH_KEY",
+        "AZURE_TTS_KEY",
     )
     for name in override_names:
         monkeypatch.delenv(name, raising=False)
@@ -147,6 +165,63 @@ def test_required_validation_accepts_yaml_backed_non_secrets(
     assert present["SUPABASE_URL"] == "present"
     assert present["QDRANT_URL"] == "present"
     assert present["AZURE_OPENAI_ENDPOINT"] == "present"
+
+
+def test_validate_required_env_allows_dev_fallbacks(
+    temp_config_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core import env as env_mod
+    from app.core.config import config
+
+    _write_minimal_config(temp_config_path)
+    config.reload(temp_config_path)
+    for name in (
+        "ENV",
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_API_KEY",
+        "GROQ_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "SUPABASE_SERVICE_KEY",
+        "SUPABASE_KEY",
+        "SUPABASE_JWT_SECRET",
+        "REDIS_URL",
+        "SECRET_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ENV", "development")
+
+    ok, missing, errors, _present, _warnings = env_mod.validate_required_env()
+
+    assert ok is True
+    assert missing == []
+    assert errors == []
+
+
+def test_legacy_env_aliases_populate_v3_env(
+    temp_config_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core import env as env_mod
+    from app.core.config import config
+
+    _write_minimal_config(temp_config_path)
+    config.reload(temp_config_path)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("SUPABASE_KEY", "legacy-service-key")
+    monkeypatch.setenv("AZURE_API_KEY", "legacy-azure-key")
+    monkeypatch.setenv("GOOGLE_API_KEY", "legacy-google-key")
+    monkeypatch.setenv("ZAI_API_KEY", "legacy-glm-key")
+    monkeypatch.setenv("GLM_BASE_URL", "https://legacy-glm.example/v4")
+
+    e = env_mod.reload_env()
+
+    assert e.supabase_service_key == "legacy-service-key"
+    assert e.azure_api_key == "legacy-azure-key"
+    assert e.gemini_api_key == "legacy-google-key"
+    assert e.glm_api_key == "legacy-glm-key"
+    assert e.glm_api_base == "https://legacy-glm.example/v4"
 
 
 @pytest.mark.asyncio

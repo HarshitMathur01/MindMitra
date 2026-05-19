@@ -302,6 +302,54 @@ class TalkingHead {
       },
       'namaste': {
         'RightShoulder.rotation': { x: 1.758, y: 0.099, z: 1.604 }, 'RightArm.rotation': { x: 0.862, y: -0.292, z: -0.932 }, 'RightForeArm.rotation': { x: 0.083, y: 0.066, z: -1.791 }, 'RightHand.rotation': { x: -0.52, y: -0.001, z: -0.176 }, 'RightHandThumb1.rotation': { x: 0.227, y: 0.418, z: -0.776 }, 'RightHandThumb2.rotation': { x: -0.011, y: -0.003, z: 0.171 }, 'RightHandThumb3.rotation': { x: -0.041, y: -0.001, z: -0.013 }, 'RightHandIndex1.rotation': { x: -0.236, y: 0.003, z: -0.028 }, 'RightHandIndex2.rotation': { x: 0.004, y: 0, z: 0.001 }, 'RightHandIndex3.rotation': { x: 0.002, y: 0, z: 0 }, 'RightHandMiddle1.rotation': { x: -0.236, y: 0.003, z: -0.028 }, 'RightHandMiddle2.rotation': { x: 0.004, y: 0, z: 0.001 }, 'RightHandMiddle3.rotation': { x: 0.002, y: 0, z: 0 }, 'RightHandRing1.rotation': { x: -0.236, y: 0.003, z: -0.028 }, 'RightHandRing2.rotation': { x: 0.004, y: 0, z: 0.001 }, 'RightHandRing3.rotation': { x: 0.002, y: 0, z: 0 }, 'RightHandPinky1.rotation': { x: -0.236, y: 0.003, z: -0.028 }, 'RightHandPinky2.rotation': { x: 0.004, y: 0, z: 0.001 }, 'RightHandPinky3.rotation': { x: 0.002, y: 0, z: 0 }, 'LeftShoulder.rotation': { x: 1.711, y: -0.002, z: -1.625 }, 'LeftArm.rotation': { x: 0.683, y: 0.334, z: 0.977 }, 'LeftForeArm.rotation': { x: 0.086, y: -0.066, z: 1.843 }, 'LeftHand.rotation': { x: -0.595, y: -0.229, z: 0.096 }, 'LeftHandThumb1.rotation': { x: 0.404, y: -0.05, z: 0.537 }, 'LeftHandThumb2.rotation': { x: -0.02, y: 0.004, z: -0.154 }, 'LeftHandThumb3.rotation': { x: -0.049, y: 0.002, z: -0.019 }, 'LeftHandIndex1.rotation': { x: -0.113, y: -0.001, z: 0.014 }, 'LeftHandIndex2.rotation': { x: 0.003, y: 0, z: 0 }, 'LeftHandIndex3.rotation': { x: 0.002, y: 0, z: 0 }, 'LeftHandMiddle1.rotation': { x: -0.113, y: -0.001, z: 0.014 }, 'LeftHandMiddle2.rotation': { x: 0.004, y: 0, z: 0 }, 'LeftHandMiddle3.rotation': { x: 0.002, y: 0, z: 0 }, 'LeftHandRing1.rotation': { x: -0.113, y: -0.001, z: 0.014 }, 'LeftHandRing2.rotation': { x: 0.003, y: 0, z: 0 }, 'LeftHandRing3.rotation': { x: 0.002, y: 0, z: 0 }, 'LeftHandPinky1.rotation': { x: -0.122, y: -0.001, z: -0.057 }, 'LeftHandPinky2.rotation': { x: 0.012, y: 0.001, z: 0.07 }, 'LeftHandPinky3.rotation': { x: 0.002, y: 0, z: 0 }
+      },
+
+      // MindMitra: therapeutic conversational gestures. Tuned conservatively
+      // so they read well on the cartoony Olaf rig (no shoulder bone — arm
+      // attaches directly to torso) AND on human avatars. Shoulder rotation
+      // intentionally omitted; only Arm/ForeArm/Hand/fingers move.
+      'open_palm_welcome': {
+        'LeftArm.rotation': { x: 1.0, y: -0.30, z: 0.70 },
+        'LeftForeArm.rotation': { x: -0.55, y: 0.20, z: 1.00 },
+        'LeftHand.rotation': { x: -0.15, y: 0.05, z: 0.10 },
+        'LeftHandThumb1.rotation': { x: 0.20, y: -0.10, z: 0.55 },
+        'LeftHandThumb2.rotation': { x: -0.05, y: 0.00, z: -0.10 },
+        'LeftHandThumb3.rotation': { x: 0.00, y: 0.00, z: 0.00 },
+        'LeftHandIndex1.rotation': { x: -0.05, y: -0.02, z: -0.05 },
+        'LeftHandIndex2.rotation': { x: 0.08, y: 0.00, z: -0.04 },
+        'LeftHandIndex3.rotation': { x: 0.00, y: 0.00, z: 0.00 },
+        'LeftHandMiddle1.rotation': { x: 0.00, y: -0.08, z: -0.04 },
+        'LeftHandMiddle2.rotation': { x: 0.10, y: 0.00, z: -0.04 },
+        'LeftHandMiddle3.rotation': { x: 0.00, y: 0.00, z: 0.00 },
+        'LeftHandRing1.rotation': { x: 0.02, y: -0.15, z: -0.06 },
+        'LeftHandRing2.rotation': { x: 0.12, y: 0.00, z: -0.04 },
+        'LeftHandRing3.rotation': { x: 0.00, y: 0.00, z: 0.00 },
+        'LeftHandPinky1.rotation': { x: 0.04, y: -0.22, z: -0.12 },
+        'LeftHandPinky2.rotation': { x: 0.10, y: 0.00, z: 0.00 },
+        'LeftHandPinky3.rotation': { x: 0.00, y: 0.00, z: 0.00 }
+      },
+      'hand_to_chest': {
+        'LeftArm.rotation': { x: 0.80, y: 0.35, z: 1.40 },
+        'LeftForeArm.rotation': { x: -1.00, y: 0.00, z: 1.50 },
+        'LeftHand.rotation': { x: -0.35, y: 0.20, z: 0.00 },
+        'LeftHandThumb1.rotation': { x: 0.40, y: -0.20, z: 0.60 },
+        'LeftHandThumb2.rotation': { x: -0.05, y: 0.00, z: -0.10 },
+        'LeftHandThumb3.rotation': { x: 0.00, y: 0.00, z: 0.00 },
+        'LeftHandIndex1.rotation': { x: 0.30, y: -0.05, z: -0.05 },
+        'LeftHandIndex2.rotation': { x: 0.40, y: 0.00, z: -0.04 },
+        'LeftHandIndex3.rotation': { x: 0.10, y: 0.00, z: 0.00 },
+        'LeftHandMiddle1.rotation': { x: 0.30, y: -0.05, z: -0.04 },
+        'LeftHandMiddle2.rotation': { x: 0.40, y: 0.00, z: -0.04 },
+        'LeftHandMiddle3.rotation': { x: 0.10, y: 0.00, z: 0.00 },
+        'LeftHandRing1.rotation': { x: 0.32, y: -0.10, z: -0.06 },
+        'LeftHandRing2.rotation': { x: 0.42, y: 0.00, z: -0.04 },
+        'LeftHandRing3.rotation': { x: 0.10, y: 0.00, z: 0.00 },
+        'LeftHandPinky1.rotation': { x: 0.34, y: -0.20, z: -0.10 },
+        'LeftHandPinky2.rotation': { x: 0.40, y: 0.00, z: 0.00 },
+        'LeftHandPinky3.rotation': { x: 0.10, y: 0.00, z: 0.00 }
+      },
+      'accent_beat': {
+        'LeftForeArm.rotation': { x: [-0.70, -0.35, 1, 1.2], y: 0.10, z: 0.55 }
       }
     }
 

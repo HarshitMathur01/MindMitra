@@ -101,7 +101,7 @@ class V3Env:
 
     # ── Supabase ───────────────────────────────────────────────────────────
     supabase_url: str = field(default_factory=lambda: config.get_str("supabase.url", "", env="SUPABASE_URL"))
-    supabase_service_key: str = field(default_factory=lambda: _secret("SUPABASE_SERVICE_KEY"))
+    supabase_service_key: str = field(default_factory=lambda: _secret("SUPABASE_SERVICE_KEY", "SUPABASE_KEY"))
     supabase_jwt_secret: str = field(default_factory=lambda: _secret("SUPABASE_JWT_SECRET"))
     secret_key: str = field(default_factory=lambda: _secret("SECRET_KEY"))
 
@@ -129,7 +129,7 @@ class V3Env:
     azure_endpoint: str = field(
         default_factory=lambda: config.get_str("providers.azure_openai.endpoint", "", env="AZURE_OPENAI_ENDPOINT")
     )
-    azure_api_key: str = field(default_factory=lambda: _secret("AZURE_OPENAI_API_KEY"))
+    azure_api_key: str = field(default_factory=lambda: _secret("AZURE_OPENAI_API_KEY", "AZURE_API_KEY"))
     azure_deployment: str = field(
         default_factory=lambda: config.get_str(
             "providers.azure_openai.deployment_name",
@@ -239,17 +239,17 @@ class V3Env:
         default_factory=lambda: config.get_int("speech.azure_token_ttl_s", 540, env="AZURE_SPEECH_TOKEN_TTL_S")
     )
 
-    gemini_api_key: str = field(default_factory=lambda: _secret("GEMINI_API_KEY"))
+    gemini_api_key: str = field(default_factory=lambda: _secret("GEMINI_API_KEY", "GOOGLE_API_KEY"))
     gemini_model: str = field(
         default_factory=lambda: config.get_str("providers.gemini.model", "gemini-1.5-flash", env="GEMINI_MODEL")
     )
 
-    glm_api_key: str = field(default_factory=lambda: _secret("GLM_API_KEY"))
+    glm_api_key: str = field(default_factory=lambda: _secret("GLM_API_KEY", "ZAI_API_KEY", "ZHIPUAI_API_KEY"))
     glm_api_base: str = field(
         default_factory=lambda: config.get_str(
             "providers.glm.api_base",
             "https://open.bigmodel.cn/api/paas/v4/",
-            env="GLM_API_BASE",
+            env=("GLM_API_BASE", "GLM_BASE_URL"),
         )
     )
     glm_model: str = field(default_factory=lambda: config.get_str("providers.glm.model", "glm-4-flash", env="GLM_MODEL"))
@@ -456,10 +456,10 @@ def reload_env() -> V3Env:
 
 REQUIRED_SECRET_ENV_VARS: Dict[str, tuple[str, ...]] = {
     "ENV": ("ENV",),
-    "AZURE_OPENAI_API_KEY": ("AZURE_OPENAI_API_KEY",),
+    "AZURE_OPENAI_API_KEY": ("AZURE_OPENAI_API_KEY", "AZURE_API_KEY"),
     "GROQ_API_KEY": ("GROQ_API_KEY",),
-    "GEMINI_API_KEY": ("GEMINI_API_KEY",),
-    "SUPABASE_SERVICE_KEY": ("SUPABASE_SERVICE_KEY",),
+    "GEMINI_API_KEY": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    "SUPABASE_SERVICE_KEY": ("SUPABASE_SERVICE_KEY", "SUPABASE_KEY"),
     "SUPABASE_JWT_SECRET": ("SUPABASE_JWT_SECRET",),
     "REDIS_URL": ("REDIS_URL",),
     "SECRET_KEY": ("SECRET_KEY",),
@@ -476,6 +476,12 @@ OPTIONAL_ENV_VARS: Dict[str, str] = {
     "GLM_API_KEY": "GLM fallback unavailable",
     "QDRANT_API_KEY": "Qdrant running without auth — OK for localhost",
     "AZURE_SPEECH_KEY": "Browser STT/TTS token endpoint unavailable",
+}
+
+OPTIONAL_ENV_ALIASES: Dict[str, tuple[str, ...]] = {
+    "GLM_API_KEY": ("GLM_API_KEY", "ZAI_API_KEY", "ZHIPUAI_API_KEY"),
+    "QDRANT_API_KEY": ("QDRANT_API_KEY",),
+    "AZURE_SPEECH_KEY": ("AZURE_SPEECH_KEY", "AZURE_TTS_KEY"),
 }
 
 
@@ -540,6 +546,8 @@ def validate_required_env() -> tuple[bool, List[str], List[str], Dict[str, str],
     optional_warnings
         Map of optional env name → startup warning if unset.
     """
+    e = env()
+    strict_mode = not e.is_non_prod
     missing: List[str] = []
     config_errors: List[str] = []
     present_prefixes: Dict[str, str] = {}
@@ -547,7 +555,10 @@ def validate_required_env() -> tuple[bool, List[str], List[str], Dict[str, str],
     for canonical, aliases in REQUIRED_SECRET_ENV_VARS.items():
         loaded_name, value = _first_present(aliases)
         if not value:
-            missing.append(canonical)
+            if strict_mode:
+                missing.append(canonical)
+            else:
+                optional_warnings[canonical] = f"{canonical} missing — feature will degrade in local development"
         else:
             present_prefixes[canonical] = "present"
             if loaded_name != canonical:
@@ -559,14 +570,20 @@ def validate_required_env() -> tuple[bool, List[str], List[str], Dict[str, str],
     for canonical, config_path in REQUIRED_CONFIG_VARS.items():
         value = config.get_str(config_path, "", env=canonical)
         if not value:
-            missing.append(canonical)
+            if strict_mode:
+                missing.append(canonical)
+            else:
+                optional_warnings[canonical] = f"{canonical} missing — feature will degrade in local development"
         else:
             present_prefixes[canonical] = "present"
     for optional, warning in OPTIONAL_ENV_VARS.items():
-        value = os.getenv(optional, "").strip()
+        aliases = OPTIONAL_ENV_ALIASES.get(optional, (optional,))
+        loaded_name, value = _first_present(aliases)
         if not value:
             optional_warnings[optional] = warning
         else:
             present_prefixes[optional] = "present"
+            if loaded_name != optional:
+                present_prefixes[f"{optional}_loaded_from"] = loaded_name
     ok = not missing and not config_errors
     return ok, missing, config_errors, present_prefixes, optional_warnings

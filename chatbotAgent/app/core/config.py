@@ -301,10 +301,10 @@ class Config:
     def get_api_key(self, service: str) -> Optional[str]:
         env_names = {
             "groq": ("GROQ_API_KEY",),
-            "glm": ("GLM_API_KEY",),
-            "gemini": ("GEMINI_API_KEY",),
-            "azure": ("AZURE_OPENAI_API_KEY",),
-            "supabase_key": ("SUPABASE_SERVICE_KEY",),
+            "glm": ("GLM_API_KEY", "ZAI_API_KEY", "ZHIPUAI_API_KEY"),
+            "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+            "azure": ("AZURE_OPENAI_API_KEY", "AZURE_API_KEY"),
+            "supabase_key": ("SUPABASE_SERVICE_KEY", "SUPABASE_KEY"),
             "supabase_url": ("SUPABASE_URL",),
         }.get(service, (f"{service.upper()}_API_KEY",))
         return self._env_value(env_names)

@@ -205,6 +205,9 @@ const ChatGPTInterface = () => {
     const selectedAvatar =
         AVATAR_OPTIONS.find((a) => a.id === selectedAvatarId) ?? AVATAR_OPTIONS[0];
     const selectedAvatarCameraView = selectedAvatar.id === "olaf" ? "full" : undefined;
+    const localeVoice = voiceForLocale(settings?.language);
+    const effectiveTtsVoice = selectedAvatar.ttsVoice ?? localeVoice.ttsVoice;
+    const effectiveTtsLang = selectedAvatar.ttsLang ?? localeVoice.ttsLang;
 
     useEffect(() => {
         avatarPlaybackEnabledRef.current = isAvatarVisible || isPresenceMode;
@@ -607,7 +610,7 @@ const ChatGPTInterface = () => {
                         existingTitlesById.get(session.id) ??
                         (session.firstUserMessage
                             ? session.firstUserMessage.substring(0, 50) +
-                              (session.firstUserMessage.length > 50 ? "..." : "")
+                            (session.firstUserMessage.length > 50 ? "..." : "")
                             : "New Chat"),
                     created_at: session.lastActivity,
                     messageCount: session.messageCount,
@@ -1095,8 +1098,8 @@ const ChatGPTInterface = () => {
                                 <TalkingHeadAvatar
                                     key={`${selectedAvatarId}-${settings?.language}`}
                                     avatarUrl={selectedAvatar.url}
-                                    ttsLang={voiceForLocale(settings?.language).ttsLang}
-                                    ttsVoice={voiceForLocale(settings?.language).ttsVoice}
+                                    ttsLang={effectiveTtsLang}
+                                    ttsVoice={effectiveTtsVoice}
                                     cameraView={selectedAvatarCameraView}
                                 />
                             </Suspense>
@@ -1124,9 +1127,8 @@ const ChatGPTInterface = () => {
                     )}
 
                     <div
-                        className={`flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-y-contain bg-background relative ${
-                            isAvatarVisible ? "lg:w-7/12" : ""
-                        }`}
+                        className={`flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-y-contain bg-background relative ${isAvatarVisible ? "lg:w-7/12" : ""
+                            }`}
                         ref={scrollAreaRef}
                         onScroll={(e) => {
                             const el = e.currentTarget;
@@ -1275,8 +1277,8 @@ const ChatGPTInterface = () => {
                 <Suspense fallback={null}>
                     <PresenceMode
                         avatarUrl={selectedAvatar.url}
-                        ttsLang={voiceForLocale(settings?.language).ttsLang}
-                        ttsVoice={voiceForLocale(settings?.language).ttsVoice}
+                        ttsLang={effectiveTtsLang}
+                        ttsVoice={effectiveTtsVoice}
                         micState={micState}
                         onMicTap={handlePresenceMicTap}
                         interimTranscript={currentTranscript}

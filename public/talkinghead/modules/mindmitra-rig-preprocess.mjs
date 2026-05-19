@@ -270,6 +270,43 @@ const _OLAF_BROW_RIGHT_DOWN_DRIVERS = [
   { bone: 'Main_Eyeborwn_CTRL.R', position: { y: -0.012 }, rotation: { z: -0.05 } },
   { bone: 'Eyebrown_DFM.R.003', position: { y: -0.008 } },
 ];
+// Lower lid pushes up + small cheek pull — the Duchenne marker for a
+// genuine smile. No upper-lid component so it doesn't read as a blink.
+const _OLAF_CHEEK_SQUINT_LEFT_DRIVERS = [
+  { bone: 'CTRL_Lower_EyeLid.L', position: { y: 0.012 } },
+  { bone: 'Eyelid.L.011', position: { y: 0.004 } },
+  { bone: 'Smile.L', position: { x: -0.004, y: 0.008 } },
+];
+const _OLAF_CHEEK_SQUINT_RIGHT_DRIVERS = [
+  { bone: 'CTRL_Lower_EyeLid.R', position: { y: 0.012 } },
+  { bone: 'Eyelid.R.011', position: { y: 0.004 } },
+  { bone: 'Smile.R', position: { x: 0.004, y: 0.008 } },
+];
+// Per-side lip-corner press. Reuses the shared mouth-controls subset of
+// LIP_PRESS but only nudges the matching side's corner inward, so firing
+// L and R together doesn't double the asymmetric pull.
+const _OLAF_MOUTH_PRESS_LEFT_DRIVERS = [
+  { bone: 'Mouth_CTRL.002', position: { y: 0.008, z: -0.003 } },
+  { bone: 'Mouth_CTRL.003', position: { y: -0.006, z: -0.003 } },
+  { bone: 'Mouth_Shapes_CTRL.L', position: { x: 0.008, y: -0.003 } },
+  { bone: 'Mouth_CTRL.L.006', position: { x: 0.006, y: -0.003 } },
+];
+const _OLAF_MOUTH_PRESS_RIGHT_DRIVERS = [
+  { bone: 'Mouth_CTRL.002', position: { y: 0.008, z: -0.003 } },
+  { bone: 'Mouth_CTRL.003', position: { y: -0.006, z: -0.003 } },
+  { bone: 'Mouth_Shapes_CTRL.R', position: { x: -0.008, y: -0.003 } },
+  { bone: 'Mouth_CTRL.R.006', position: { x: -0.006, y: -0.003 } },
+];
+// Shrug = single-lip lift. Upper variant lifts upper lip; lower variant
+// pushes lower lip up (suppressed-emotion pout).
+const _OLAF_SHRUG_LOWER_DRIVERS = [
+  { bone: 'Mouth_CTRL.003', position: { y: 0.012, z: -0.002 } },
+  { bone: 'Mouth_DFM_Shape', scale: { z: 0.006 } },
+];
+const _OLAF_SHRUG_UPPER_DRIVERS = [
+  { bone: 'Mouth_CTRL.002', position: { y: 0.014, z: -0.003 } },
+  { bone: 'Mouth_DFM_Shape', scale: { z: 0.006 } },
+];
 const _OLAF_MORPH_DRIVERS = {
   jawOpen: scaleOlafDrivers(_OLAF_OPEN_DRIVERS, 0.78),
   mouthOpen: scaleOlafDrivers(_OLAF_OPEN_DRIVERS, 0.64),
@@ -289,6 +326,14 @@ const _OLAF_MORPH_DRIVERS = {
   mouthSmileRight: _OLAF_SMILE_RIGHT_DRIVERS,
   mouthFrownLeft: _OLAF_FROWN_LEFT_DRIVERS,
   mouthFrownRight: _OLAF_FROWN_RIGHT_DRIVERS,
+  mouthPressLeft: _OLAF_MOUTH_PRESS_LEFT_DRIVERS,
+  mouthPressRight: _OLAF_MOUTH_PRESS_RIGHT_DRIVERS,
+  mouthDimpleLeft: scaleOlafDrivers(_OLAF_SMILE_LEFT_DRIVERS, 0.40),
+  mouthDimpleRight: scaleOlafDrivers(_OLAF_SMILE_RIGHT_DRIVERS, 0.40),
+  mouthShrugLower: _OLAF_SHRUG_LOWER_DRIVERS,
+  mouthShrugUpper: _OLAF_SHRUG_UPPER_DRIVERS,
+  cheekSquintLeft: _OLAF_CHEEK_SQUINT_LEFT_DRIVERS,
+  cheekSquintRight: _OLAF_CHEEK_SQUINT_RIGHT_DRIVERS,
   browInnerUp: [...scaleOlafDrivers(_OLAF_BROW_LEFT_UP_DRIVERS, 0.7), ...scaleOlafDrivers(_OLAF_BROW_RIGHT_UP_DRIVERS, 0.7)],
   browOuterUpLeft: _OLAF_BROW_LEFT_UP_DRIVERS,
   browOuterUpRight: _OLAF_BROW_RIGHT_UP_DRIVERS,
@@ -394,8 +439,37 @@ function preprocessOlafRig(gltf) {
   gltf.scene.userData.talkingHeadPoseProps = _OLAF_POSE_PROPS;
   gltf.userData.talkingHeadArmRest = { preset: 'down', side: 0.78, down: 0.58, forward: 0.24 };
   gltf.scene.userData.talkingHeadArmRest = { preset: 'down', side: 0.78, down: 0.58, forward: 0.24 };
-  gltf.userData.talkingHeadMorphDrivers = _OLAF_MORPH_DRIVERS;
-  gltf.scene.userData.talkingHeadMorphDrivers = _OLAF_MORPH_DRIVERS;
+
+  // Runtime nose-bone discovery: Olaf's preprocessor doesn't statically
+  // map any nose bones (we don't know the GLB's exact rig). Scan once
+  // for anything matching /nose/i and, if found, synthesise drivers for
+  // noseSneerLeft/Right. Empathy/concern mood baselines already set
+  // these morph weights, so the moods automatically engage them once
+  // the drivers exist. Silent no-op if no nose bones present.
+  const noseBones = [];
+  gltf.scene.traverse(obj => {
+    if (obj.isBone && /nose/i.test(obj.name)) noseBones.push(obj.name);
+  });
+  const morphDrivers = { ..._OLAF_MORPH_DRIVERS };
+  if (noseBones.length) {
+    const isLeft = (n) => /\.L\b|_L\b|left/i.test(n);
+    const isRight = (n) => /\.R\b|_R\b|right/i.test(n);
+    const isCenter = (n) => !isLeft(n) && !isRight(n);
+    const leftBones = [...noseBones.filter(isLeft), ...noseBones.filter(isCenter)];
+    const rightBones = [...noseBones.filter(isRight), ...noseBones.filter(isCenter)];
+    morphDrivers.noseSneerLeft = leftBones.map(bone => ({
+      bone, position: { y: 0.006 }, rotation: { z: -0.04 },
+    }));
+    morphDrivers.noseSneerRight = rightBones.map(bone => ({
+      bone, position: { y: 0.006 }, rotation: { z: 0.04 },
+    }));
+    console.info('[Olaf] nose drivers wired:', noseBones);
+  } else {
+    console.info('[Olaf] no nose bones found — noseSneer left as no-op');
+  }
+  gltf.userData.talkingHeadMorphDrivers = morphDrivers;
+  gltf.scene.userData.talkingHeadMorphDrivers = morphDrivers;
+
   gltf.scene.scale.setScalar(0.165);
   gltf.scene.updateMatrixWorld(true);
 

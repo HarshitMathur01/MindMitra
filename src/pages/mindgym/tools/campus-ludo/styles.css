@@ -1,0 +1,119 @@
+/* Campus Ludo: Hostel Hustle — scoped under .cl-scope so the theme does not leak. */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap");
+
+.cl-scope {
+  /* Design tokens (ported from upstream :root). All colors in oklch. */
+  --background: oklch(0.954 0.025 85);
+  --foreground: oklch(0.22 0.04 40);
+  --card: oklch(0.97 0.022 85);
+  --card-foreground: oklch(0.22 0.04 40);
+  --popover: oklch(0.97 0.022 85);
+  --popover-foreground: oklch(0.22 0.04 40);
+  --primary: oklch(0.38 0.13 22);
+  --primary-foreground: oklch(0.96 0.02 85);
+  --secondary: oklch(0.78 0.14 78);
+  --secondary-foreground: oklch(0.22 0.04 40);
+  --muted: oklch(0.9 0.025 80);
+  --muted-foreground: oklch(0.42 0.04 50);
+  --accent: oklch(0.55 0.09 145);
+  --accent-foreground: oklch(0.96 0.02 85);
+  --destructive: oklch(0.5 0.18 28);
+  --destructive-foreground: oklch(0.96 0.02 85);
+  --border: oklch(0.78 0.05 65);
+  --input: oklch(0.85 0.03 70);
+  --ring: oklch(0.38 0.13 22);
+  --token-topper: oklch(0.45 0.16 250);
+  --token-back: oklch(0.42 0.13 22);
+  --token-fest: oklch(0.65 0.18 35);
+  --token-canteen: oklch(0.55 0.13 145);
+  --shadow-card: 0 1px 0 oklch(1 0 0 / 60%) inset, 0 12px 28px -16px oklch(0.22 0.04 40 / 35%);
+  --radius: 0.375rem;
+
+  /* Map tokens to Tailwind's --color-* variables so utilities like
+     bg-primary, text-muted-foreground, bg-secondary/70 resolve to the
+     Campus Ludo palette inside this scope only. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  color: var(--foreground);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(oklch(0.78 0.05 65 / 0.18) 1px, transparent 1px),
+    radial-gradient(oklch(0.78 0.05 65 / 0.12) 1px, transparent 1px);
+  background-size: 28px 28px, 14px 14px;
+  background-position: 0 0, 14px 14px;
+  font-family: "Work Sans", system-ui, sans-serif;
+}
+
+.cl-scope h1,
+.cl-scope h2,
+.cl-scope h3,
+.cl-scope h4 {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.cl-scope .font-display {
+  font-family: "Cormorant Garamond", Georgia, serif;
+}
+
+.cl-scope .paper-card,
+.cl-scope.paper-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius);
+}
+
+.cl-scope .ornate-border,
+.cl-scope.ornate-border {
+  border: 2px double var(--primary);
+  outline: 1px solid var(--border);
+  outline-offset: 4px;
+}
+
+@keyframes cl-dice-roll {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(540deg) scale(1.15); }
+  100% { transform: rotate(1080deg) scale(1); }
+}
+.cl-scope .animate-dice { animation: cl-dice-roll 0.6s ease-out; }
+
+@keyframes cl-token-hop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.cl-scope .animate-hop { animation: cl-token-hop 0.35s ease-in-out; }
+
+@keyframes cl-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.cl-scope .animate-shake,
+.cl-scope.animate-shake { animation: cl-shake 0.45s ease-in-out; }
+
+@keyframes cl-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cl-scope .animate-fade-in { animation: cl-fade-in 0.3s ease-out; }

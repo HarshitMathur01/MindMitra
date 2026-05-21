@@ -11,6 +11,7 @@ import {
   Palette,
   Smile,
   Grid3x3,
+  Crown,
 } from "lucide-react";
 import type { MindGymTool, BadgeDefinition, MindGymSection } from "./types";
 
@@ -159,6 +160,30 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     gradient: ["#0891b2", "#22d3ee"] as const,
     section: "focus",
   },
+  {
+    id: "campus-chess",
+    title: "Campus Chess",
+    shortDesc: "Play chess with Indian college archetypes — solo or vs the campus AI",
+    clinicalTag: "Cognitive Break",
+    clinicalBasis: "Chess trains working memory, planning, and strategic thinking. A structured playful break reduces mental fatigue and restores focus.",
+    minutes: 15,
+    xp: 50,
+    icon: Crown,
+    gradient: ["#b45309", "#d97706"] as const,
+    section: "fun",
+  },
+  {
+    id: "campus-ludo",
+    title: "Campus Ludo · Hostel Hustle",
+    shortDesc: "A boxed board game of survival, samosas & semesters — roll, hustle, graduate",
+    clinicalTag: "Cognitive Break",
+    clinicalBasis: "Light cognitive break. Dice + stance choices + quick mini-games engage attention, planning and emotion regulation in a low-stakes, playful frame.",
+    minutes: 15,
+    xp: 50,
+    icon: Crown,
+    gradient: ["#7c2d12", "#ea580c"] as const,
+    section: "fun",
+  },
 ] as const;
 
 export const MINDGYM_SECTIONS: readonly MindGymSection[] = [
@@ -166,6 +191,7 @@ export const MINDGYM_SECTIONS: readonly MindGymSection[] = [
   { id: "focus", title: "Focus", blurb: "Gather attention. One thing.", tone: "warmth" },
   { id: "reflect", title: "Reflect", blurb: "Quiet writing prompts.", tone: "sage" },
   { id: "energize", title: "Energize", blurb: "Small, honest lifts.", tone: "warmth" },
+  { id: "fun", title: "Fun", blurb: "Play, recharge, enjoy.", tone: "warmth" },
 ] as const;
 
 export function getToolsBySection(sectionId: MindGymSection["id"]): readonly MindGymTool[] {

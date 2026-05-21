@@ -13,7 +13,7 @@ export interface MindGymTool {
   readonly section: SectionId;
 }
 
-export const SECTION_IDS = ["calm", "focus", "reflect", "energize"] as const;
+export const SECTION_IDS = ["calm", "focus", "reflect", "energize", "fun"] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 
 export interface MindGymSection {
@@ -36,6 +36,8 @@ export const TOOL_IDS = [
   "color-me-mindful",
   "emotion-match",
   "memory-challenge",
+  "campus-chess",
+  "campus-ludo",
 ] as const;
 
 export type ToolId = (typeof TOOL_IDS)[number];

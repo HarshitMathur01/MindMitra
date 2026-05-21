@@ -53,6 +53,8 @@ eggs/
 lib/
 lib64/
 !src/lib/
+!src/pages/mindgym/tools/campus-ludo/lib/
+!src/pages/mindgym/tools/campus-ludo/lib/**
 parts/
 sdist/
 var/

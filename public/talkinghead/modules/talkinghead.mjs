@@ -2599,7 +2599,9 @@ class TalkingHead {
     // Make sure deltas are included in the target
     Object.keys(this.poseDelta.props).forEach(key => {
       if (!this.poseTarget.props.hasOwnProperty(key)) {
-        this.poseTarget.props[key] = this.poseBase.props[key].clone();
+        const baseProp = this.poseBase.props[key];
+        if (!baseProp) return; // avatar/template lacks this bone — skip
+        this.poseTarget.props[key] = baseProp.clone();
         this.poseTarget.props[key].t = this.animClock;
         this.poseTarget.props[key].d = duration;
       }

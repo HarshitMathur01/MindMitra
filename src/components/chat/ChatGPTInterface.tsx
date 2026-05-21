@@ -204,7 +204,7 @@ const ChatGPTInterface = () => {
     }, [settings?.avatar_model]);
     const selectedAvatar =
         AVATAR_OPTIONS.find((a) => a.id === selectedAvatarId) ?? AVATAR_OPTIONS[0];
-    const selectedAvatarCameraView = selectedAvatar.id === "olaf" ? "full" : undefined;
+    const selectedAvatarCameraView = selectedAvatar.id === "olaf" ? "mid" : undefined;
     const localeVoice = voiceForLocale(settings?.language);
     const effectiveTtsVoice = selectedAvatar.ttsVoice ?? localeVoice.ttsVoice;
     const effectiveTtsLang = selectedAvatar.ttsLang ?? localeVoice.ttsLang;

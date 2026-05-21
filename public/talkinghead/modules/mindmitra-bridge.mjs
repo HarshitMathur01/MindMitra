@@ -137,18 +137,18 @@ const THERAPEUTIC_MOODS = {
     // Eyes:  soft squint (warmth) + gentle downward gaze
     'empathy': {
         baseline: {
-            browInnerUp: 0.58,
-            browDownLeft: 0.14, browDownRight: 0.14,
-            browOuterUpLeft: 0.05, browOuterUpRight: 0.05,
-            eyeSquintLeft: 0.22, eyeSquintRight: 0.22,
-            eyeWideLeft: 0.05, eyeWideRight: 0.05,
-            eyeLookDownLeft: 0.04, eyeLookDownRight: 0.04,
+            browInnerUp: 0.72,
+            browDownLeft: 0.18, browDownRight: 0.18,
+            browOuterUpLeft: 0.06, browOuterUpRight: 0.06,
+            eyeSquintLeft: 0.28, eyeSquintRight: 0.28,
+            eyeWideLeft: 0.06, eyeWideRight: 0.06,
+            eyeLookDownLeft: 0.05, eyeLookDownRight: 0.05,
             mouthFrownLeft: 0.20, mouthFrownRight: 0.20,
             mouthPressLeft: 0.12, mouthPressRight: 0.12,   // suppressed emotion
             mouthRollLower: 0.08,                           // bitten lower lip
             mouthShrugLower: 0.06,
-            cheekSquintLeft: 0.12, cheekSquintRight: 0.12,
-            noseSneerLeft: 0.04, noseSneerRight: 0.04,      // micro-crinkle
+            cheekSquintLeft: 0.16, cheekSquintRight: 0.16,
+            noseSneerLeft: 0.05, noseSneerRight: 0.05,      // micro-crinkle
         },
         speech: { deltaRate: -0.10, deltaPitch: -0.05, deltaVolume: 0 },
         anims: null,  // filled at init from TalkingHead's 'sad' mood anims
@@ -160,17 +160,17 @@ const THERAPEUTIC_MOODS = {
     // Eyes:  wide (alert), slight downward lean
     'concern': {
         baseline: {
-            browInnerUp: 0.40,
-            browDownLeft: 0.28, browDownRight: 0.28,
-            browOuterUpLeft: 0.30, browOuterUpRight: 0.30,
-            eyeWideLeft: 0.30, eyeWideRight: 0.30,
-            eyeSquintLeft: 0.04, eyeSquintRight: 0.04,
-            eyeLookDownLeft: 0.03, eyeLookDownRight: 0.03,
+            browInnerUp: 0.50,
+            browDownLeft: 0.35, browDownRight: 0.35,
+            browOuterUpLeft: 0.38, browOuterUpRight: 0.38,
+            eyeWideLeft: 0.38, eyeWideRight: 0.38,
+            eyeSquintLeft: 0.05, eyeSquintRight: 0.05,
+            eyeLookDownLeft: 0.04, eyeLookDownRight: 0.04,
             mouthFrownLeft: 0.20, mouthFrownRight: 0.20,
             mouthStretchLeft: 0.10, mouthStretchRight: 0.10, // tense corners
             mouthPressLeft: 0.06, mouthPressRight: 0.06,
-            cheekSquintLeft: 0.05, cheekSquintRight: 0.05,
-            noseSneerLeft: 0.03, noseSneerRight: 0.03,
+            cheekSquintLeft: 0.07, cheekSquintRight: 0.07,
+            noseSneerLeft: 0.04, noseSneerRight: 0.04,
         },
         speech: { deltaRate: -0.08, deltaPitch: -0.03, deltaVolume: 0 },
         anims: null,  // filled from 'fear' mood anims
@@ -182,17 +182,17 @@ const THERAPEUTIC_MOODS = {
     // Avoids plastic smile by capping mouthSmile and adding cheek involvement
     'encouragement': {
         baseline: {
-            browInnerUp: 0.10,
+            browInnerUp: 0.12,
             browDownLeft: 0.02, browDownRight: 0.02,
-            browOuterUpLeft: 0.18, browOuterUpRight: 0.18,
-            eyeSquintLeft: 0.38, eyeSquintRight: 0.38,   // Duchenne — essential
-            eyeWideLeft: 0.04, eyeWideRight: 0.04,
+            browOuterUpLeft: 0.22, browOuterUpRight: 0.22,
+            eyeSquintLeft: 0.48, eyeSquintRight: 0.48,   // Duchenne — essential
+            eyeWideLeft: 0.05, eyeWideRight: 0.05,
             eyeLookDownLeft: 0.02, eyeLookDownRight: 0.02,
             mouthSmileLeft: 0.44, mouthSmileRight: 0.44,
             mouthDimpleLeft: 0.14, mouthDimpleRight: 0.14,
             mouthShrugUpper: 0.06,                       // slight upper lip lift
-            cheekSquintLeft: 0.32, cheekSquintRight: 0.32, // cheek rise = real smile
-            cheekPuff: 0.04,
+            cheekSquintLeft: 0.40, cheekSquintRight: 0.40, // cheek rise = real smile
+            cheekPuff: 0.05,
         },
         speech: { deltaRate: -0.02, deltaPitch: 0.08, deltaVolume: 0 },
         anims: null,  // filled from 'happy' mood anims
@@ -203,16 +203,16 @@ const THERAPEUTIC_MOODS = {
     // Lower: tiny smile + relaxed mouth → attentive openness
     'acknowledgment': {
         baseline: {
-            browInnerUp: 0.26,
-            browOuterUpLeft: 0.34, browOuterUpRight: 0.34,
+            browInnerUp: 0.32,
+            browOuterUpLeft: 0.42, browOuterUpRight: 0.42,
             browDownLeft: 0.00, browDownRight: 0.00,
-            eyeWideLeft: 0.22, eyeWideRight: 0.22,
-            eyeSquintLeft: 0.06, eyeSquintRight: 0.06,
+            eyeWideLeft: 0.28, eyeWideRight: 0.28,
+            eyeSquintLeft: 0.08, eyeSquintRight: 0.08,
             eyeLookDownLeft: 0.03, eyeLookDownRight: 0.03,
             mouthSmileLeft: 0.12, mouthSmileRight: 0.12,
             mouthStretchLeft: 0.06, mouthStretchRight: 0.06, // slight part
             mouthDimpleLeft: 0.04, mouthDimpleRight: 0.04,
-            cheekSquintLeft: 0.06, cheekSquintRight: 0.06,
+            cheekSquintLeft: 0.08, cheekSquintRight: 0.08,
         },
         speech: { deltaRate: -0.04, deltaPitch: 0.05, deltaVolume: 0 },
         anims: null,  // filled from 'surprised' mood anims
@@ -446,8 +446,9 @@ const EMOTION_TO_HAND_GESTURE = {
 const GESTURE_COOLDOWN_MS = 4000;
 
 // Interval between periodic "accent beat" gestures during long speech.
-// 8s keeps Olaf feeling alive without becoming twitchy.
-const BEAT_INTERVAL_MS = 8000;
+// 5.5s keeps the rig visibly alive across multi-sentence replies without
+// becoming twitchy — paired with the bumped expression baselines above.
+const BEAT_INTERVAL_MS = 5500;
 const BEAT_DURATION_S = 1.5;
 
 

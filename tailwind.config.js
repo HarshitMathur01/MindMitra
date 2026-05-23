@@ -18,8 +18,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				display: ["DM Sans", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
-				sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+				display: ["Caveat", "cursive", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+				sans: ["Kalam", "Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
 				"serif-display": ["Fraunces", "ui-serif", "Georgia", "Cambria", "\"Times New Roman\"", "serif"],
 			},
 			maxWidth: {

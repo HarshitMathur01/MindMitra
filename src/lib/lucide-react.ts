@@ -49,6 +49,7 @@ export { default as ExternalLink } from "lucide-react/dist/esm/icons/external-li
 export { default as Eye } from "lucide-react/dist/esm/icons/eye.js";
 export { default as EyeOff } from "lucide-react/dist/esm/icons/eye-off.js";
 export { default as FileText } from "lucide-react/dist/esm/icons/file-text.js";
+export { default as Film } from "lucide-react/dist/esm/icons/film.js";
 export { default as Flag } from "lucide-react/dist/esm/icons/flag.js";
 export { default as Flame } from "lucide-react/dist/esm/icons/flame.js";
 export { default as Flower2 } from "lucide-react/dist/esm/icons/flower-2.js";
@@ -97,6 +98,7 @@ export { default as Phone } from "lucide-react/dist/esm/icons/phone.js";
 export { default as Play } from "lucide-react/dist/esm/icons/play.js";
 export { default as Plus } from "lucide-react/dist/esm/icons/plus.js";
 export { default as Printer } from "lucide-react/dist/esm/icons/printer.js";
+export { default as Quote } from "lucide-react/dist/esm/icons/quote.js";
 export { default as Redo2 } from "lucide-react/dist/esm/icons/redo-2.js";
 export { default as RefreshCw } from "lucide-react/dist/esm/icons/refresh-cw.js";
 export { default as RotateCcw } from "lucide-react/dist/esm/icons/rotate-ccw.js";

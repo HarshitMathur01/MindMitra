@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Lenovo/Desktop/MM/**)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\MM\\\\chess-temp\\\\\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object FullName | Format-Table -AutoSize)"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "C:\\Users\\Lenovo\\Desktop\\MM\\chess-temp"
+    ],
+    "allow": [
+      "PowerShell(git clone https://github.com/rana-jatin/remix-of-campus-chess-masters.git \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\MM\\\\chess-temp\" 2>&1)"
+    ]
+  }
+}

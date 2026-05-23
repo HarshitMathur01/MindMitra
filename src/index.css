@@ -139,8 +139,8 @@
     --max-page: 1200px;
 
     /* ── Typography ── */
-    --font-display: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-display: 'Caveat', cursive, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-sans: 'Kalam', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --font-mono: var(--font-sans);
 
     /* ── Sanctuary tokens — scoped consumers: SanctuaryHome (post-login `/`).
@@ -153,9 +153,12 @@
     --accent-sage-soft: oklch(0.72 0.05 150);
     --accent-sky: oklch(0.65 0.05 240);
     --accent-blush: oklch(0.78 0.06 30);
+    --paper: oklch(0.975 0.012 85);
+    --ink-faint: oklch(0.62 0.018 60);
+    --accent-amber: oklch(0.78 0.11 70);
     --font-script: 'Caveat', cursive;
     --font-fancy: 'Dancing Script', cursive;
-    --font-serif: 'Cormorant Garamond', serif;
+    --font-serif: 'Caveat', 'Cormorant Garamond', cursive, serif;
   }
 
   [data-theme="dark"] {

@@ -157,11 +157,13 @@ export default defineConfig(({ command }) => ({
       "@supabase/supabase-js",
       "framer-motion",
       "react-helmet-async",
+      // Prebundle recharts so its lodash interop is normalized before the browser loads lazy routes.
+      "recharts",
     ],
     // We alias lucide-react to a local selective facade below; excluding the
     // package prevents Vite's optimizer from crawling the upstream all-icons
     // barrel during the first browser request.
-    exclude: ["lucide-react", "jspdf", "recharts", "react-confetti", "mixpanel-browser"],
+    exclude: ["lucide-react", "jspdf", "react-confetti", "mixpanel-browser"],
   },
   build: {
     // Cap the inlined-asset size so we don't bloat HTML with base64

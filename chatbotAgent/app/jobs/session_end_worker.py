@@ -70,10 +70,14 @@ async def handle_session_end(user_id: str, session_id: str) -> Dict[str, Any]:
         )
         logger.info("running 5 async end tasks...", extra=log_context(session_id=session.session_id, user_id=session.user_id, task_count=5))
 
-        # All 5 tasks run concurrently. ``return_exceptions=True`` keeps a
-        # single failure from cancelling the rest.
+        # All 6 tasks run concurrently. ``return_exceptions=True`` keeps a
+        # single failure from cancelling the rest. The crisis-flag write sits
+        # alongside Task A because it shares the same destination (Supabase
+        # longitudinal table) and is independent of the heavier memory
+        # pipeline in B/C/D/E — failing it must not block the rest.
         results = await asyncio.gather(
             _timed_task("[A] session record → Supabase", _task_a_write_session(session)),
+            _timed_task("[A2] crisis cooldown flag → Supabase", _maybe_set_crisis_flag(session)),
             _timed_task("[B] episodic memory → Gemini → Qdrant", _task_b_generate_episodic(session)),
             _timed_task("[C] semantic facts → Groq → Supabase", _task_c_extract_semantic(session)),
             _timed_task("[D] procedural EMA → Supabase", _task_d_update_procedural(session)),
@@ -81,7 +85,7 @@ async def handle_session_end(user_id: str, session_id: str) -> Dict[str, Any]:
             return_exceptions=True,
         )
 
-        labels = ("write_session", "episodic", "semantic", "procedural", "longitudinal")
+        labels = ("write_session", "crisis_flag", "episodic", "semantic", "procedural", "longitudinal")
         report: Dict[str, Any] = {}
         for label, result in zip(labels, results):
             if isinstance(result, Exception):
@@ -175,6 +179,75 @@ def _final_affect(session: SessionObject) -> Optional[Dict[str, float]]:
         "valence": float(last.get("valence", 0.0)),
         "arousal": float(last.get("arousal", 0.5)),
     }
+
+
+# ── Task A2: crisis cooldown flag (Sanctuary ambient personalization) ────
+async def _maybe_set_crisis_flag(session: SessionObject) -> bool:
+    """Mark the user's longitudinal trajectory with a fresh crisis cooldown.
+
+    The SanctuaryHome landing page reads `recent_crisis_flag` from
+    /me/snapshot and quiets itself (hides WhisperWall, switches the
+    micro-practice card to the sit-with-you variant, locks the orb whisper
+    to its 3-string safe-set) for `CRISIS_COOLDOWN_HOURS`. The flag is also
+    cleared earlier at session_startup() once the user stabilises.
+
+    Crisis bypass only fires at urgency==3 which is already covered by the
+    `>= 2` threshold; sustained urgency 2 also warrants quieting.
+    """
+    if session.session_peak_urgency < 2:
+        return True  # nothing to do — treat as a successful no-op
+    sb = get_supabase()
+    if sb is None:
+        logger.warning(
+            "Supabase unavailable; crisis flag not persisted",
+            extra=log_context(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                peak_urgency=session.session_peak_urgency,
+                consequence="ambience_will_not_quiet",
+            ),
+        )
+        return False
+
+    payload = {
+        "user_id": session.user_id,
+        "recent_crisis_flag": True,
+        "crisis_flag_set_at": _now_iso(),
+    }
+
+    def _write() -> bool:
+        try:
+            sb.table("user_longitudinal_trajectory").upsert(
+                payload, on_conflict="user_id"
+            ).execute()
+            return True
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "crisis flag upsert failed",
+                extra=log_context(
+                    session_id=session.session_id,
+                    user_id=session.user_id,
+                    exception_type=type(exc).__name__,
+                    outcome="failed_non_blocking",
+                ),
+            )
+            return False
+
+    import asyncio as _aio
+
+    ok = await _aio.to_thread(_write)
+    if ok:
+        logger.warning(
+            "CRISIS COOLDOWN FLAG SET",
+            extra=log_context(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                peak_urgency=session.session_peak_urgency,
+                cooldown_hours=env().crisis_cooldown_hours,
+                outcome="flag_set",
+            ),
+        )
+    return ok
 
 
 # ── Task B: generate episodic memory (Gemini → Qdrant) ───────────────────

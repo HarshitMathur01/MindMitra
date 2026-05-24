@@ -338,6 +338,19 @@ class V3Env:
         )
     )
 
+    # ── Sanctuary ambient personalization ─────────────────────────────────
+    # Hours the SanctuaryHome landing page stays in "crisis quiet" mode
+    # after a session ends with peak_urgency >= 2. session_startup() also
+    # clears the flag early once the user's most recent affect shows
+    # valence > 0 + urgency 0 AND at least 6h have passed since it was set.
+    crisis_cooldown_hours: int = field(
+        default_factory=lambda: config.get_int(
+            "safety.crisis_cooldown_hours",
+            24,
+            env="CRISIS_COOLDOWN_HOURS",
+        )
+    )
+
     # ── Monitoring ────────────────────────────────────────────────────────
     sentry_dsn: Optional[str] = field(default_factory=lambda: _secret("SENTRY_DSN") or None)
     sentry_traces_sample_rate: float = field(

@@ -203,6 +203,14 @@ async def session_startup(
         ),
     )
 
+    # If the user's last session left a crisis-cooldown flag set, give the
+    # SanctuaryHome landing page a chance to come back to normal once they
+    # have stabilised (valence > 0, urgency 0, and at least 6h elapsed).
+    # The 6h floor avoids same-session whiplash where a single positive
+    # affect snapshot inside the cooldown window would unquiet the room
+    # prematurely.
+    await _maybe_clear_crisis_cooldown(user_id, longitudinal)
+
     starting_mode = _determine_starting_mode(prev_episodic)
 
     session = SessionObject(
@@ -303,6 +311,92 @@ def _empty_longitudinal(user_id: str) -> Dict[str, Any]:
         "affect_series": [],
         "phq2_scores": [],
     }
+
+
+_CRISIS_COOLDOWN_FLOOR_HOURS = 6
+
+
+async def _maybe_clear_crisis_cooldown(
+    user_id: str, longitudinal: Dict[str, Any]
+) -> None:
+    """Clear `recent_crisis_flag` once the user has stabilised.
+
+    Conditions (all must hold):
+      * `recent_crisis_flag` is true on the loaded longitudinal row,
+      * at least `_CRISIS_COOLDOWN_FLOOR_HOURS` (6) have passed since
+        `crisis_flag_set_at` — protects against same-session whiplash where
+        a single positive turn during the immediate aftermath would unquiet
+        the landing page,
+      * the most recent affect_series entry shows valence > 0 and urgency 0.
+
+    The Supabase write is best-effort; the in-memory `longitudinal` dict is
+    mutated regardless so the rest of session_startup sees the cleared
+    state without an extra round-trip.
+    """
+    if not longitudinal or not longitudinal.get("recent_crisis_flag"):
+        return
+
+    set_at = longitudinal.get("crisis_flag_set_at")
+    if not set_at:
+        return
+
+    try:
+        if isinstance(set_at, datetime):
+            set_at_dt = set_at if set_at.tzinfo else set_at.replace(tzinfo=timezone.utc)
+        else:
+            set_at_dt = datetime.fromisoformat(str(set_at).replace("Z", "+00:00"))
+    except (ValueError, TypeError) as exc:
+        logger.warning(
+            "crisis cooldown clear skipped — unparseable timestamp",
+            extra=log_context(user_id=user_id, exception_type=type(exc).__name__, raw=str(set_at)[:32]),
+        )
+        return
+
+    elapsed_h = (datetime.now(timezone.utc) - set_at_dt).total_seconds() / 3600.0
+    if elapsed_h < _CRISIS_COOLDOWN_FLOOR_HOURS:
+        return
+
+    affect_series = longitudinal.get("affect_series") or []
+    if not affect_series:
+        return
+    last_affect = affect_series[-1] if isinstance(affect_series, list) else None
+    if not isinstance(last_affect, dict):
+        return
+    try:
+        last_valence = float(last_affect.get("valence", 0.0) or 0.0)
+        last_urgency = int(last_affect.get("urgency", 0) or 0)
+    except (TypeError, ValueError):
+        return
+    if last_valence <= 0 or last_urgency != 0:
+        return
+
+    # Conditions met — fire-and-forget the Supabase clear and update the
+    # in-memory snapshot so downstream code observes the cleared state.
+    longitudinal["recent_crisis_flag"] = False
+    longitudinal["crisis_flag_set_at"] = None
+
+    async def _persist_clear() -> None:
+        ok = await profile_service.upsert_longitudinal(
+            user_id,
+            {"recent_crisis_flag": False, "crisis_flag_set_at": None},
+        )
+        if ok:
+            logger.info(
+                "crisis cooldown cleared at session startup",
+                extra=log_context(
+                    user_id=user_id,
+                    elapsed_h=round(elapsed_h, 1),
+                    last_valence=last_valence,
+                    outcome="cooldown_cleared",
+                ),
+            )
+        else:
+            logger.warning(
+                "crisis cooldown clear write failed",
+                extra=log_context(user_id=user_id, outcome="clear_pending"),
+            )
+
+    asyncio.create_task(_persist_clear())
 
 
 def _determine_starting_mode(prev_episodic: Optional[Dict[str, Any]]) -> str:

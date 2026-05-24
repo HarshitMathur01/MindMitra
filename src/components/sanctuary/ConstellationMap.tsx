@@ -1,31 +1,100 @@
 import { motion } from "framer-motion";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { useMoodLog, type MoodLogEntry } from "@/hooks/useMoodLog";
+import { moodSlope } from "@/lib/sanctuary/ambience";
+import { useAmbience } from "./AmbienceProvider";
 
-const WEEK = [
-  { day: "M", v: 0.35, label: "heavy" },
-  { day: "T", v: 0.5, label: "low" },
-  { day: "W", v: 0.42, label: "low" },
-  { day: "T", v: 0.7, label: "okay" },
-  { day: "F", v: 0.6, label: "okay" },
-  { day: "S", v: 0.85, label: "lifting" },
-  { day: "S", v: 0.78, label: "lifting" },
-];
+const W = 560;
+const H = 180;
+const PAD = 30;
+const DAYS = 7;
+
+const VALENCE_TO_AXIS: Record<string, number> = {
+  heavy: 0.18,
+  low: 0.4,
+  okay: 0.55,
+  lifting: 0.78,
+  bright: 0.92,
+};
+
+const DAY_LABEL = (d: Date) =>
+  d.toLocaleDateString(undefined, { weekday: "narrow" });
+
+interface DayPoint {
+  day: string;
+  v: number | null;
+  /** raw log if one exists for this calendar day. */
+  log: MoodLogEntry | null;
+}
+
+function buildWeekGrid(weekLogs: MoodLogEntry[]): DayPoint[] {
+  // Walk back DAYS days from today (inclusive). Today is the rightmost.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const grid: DayPoint[] = [];
+  for (let offset = DAYS - 1; offset >= 0; offset--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - offset);
+    const key = d.toISOString().slice(0, 10);
+    const log =
+      weekLogs.find((e) => e.logged_at.slice(0, 10) === key) ?? null;
+    grid.push({
+      day: DAY_LABEL(d),
+      v: log ? VALENCE_TO_AXIS[log.mood_label] ?? null : null,
+      log,
+    });
+  }
+  return grid;
+}
+
+function deriveHeadlineKey(weekLogs: MoodLogEntry[]): "stillDrawing" | "lift" | "level" | "heavy" {
+  if (weekLogs.length < 3) return "stillDrawing";
+  const slope = moodSlope(weekLogs);
+  if (slope > 0.1) return "lift";
+  if (slope < -0.1) return "heavy";
+  return "level";
+}
 
 export function ConstellationMap() {
-  const W = 560;
-  const H = 180;
-  const pad = 30;
-  const pts = WEEK.map((d, i) => ({
-    x: pad + (i * (W - pad * 2)) / (WEEK.length - 1),
-    y: H - pad - d.v * (H - pad * 2),
-    ...d,
-  }));
-  const path = pts
+  const { t } = useTranslation("sanctuary");
+  const { weekLogs } = useMoodLog();
+  const ambience = useAmbience();
+
+  const grid = useMemo(() => buildWeekGrid(weekLogs), [weekLogs]);
+  const headlineKey = useMemo(() => deriveHeadlineKey(weekLogs), [weekLogs]);
+
+  // Build points, treating missing days as faint placeholder stars at the
+  // midline. Connect only the days with real values via the curve.
+  const points = grid.map((d, i) => {
+    const x = PAD + (i * (W - PAD * 2)) / (DAYS - 1);
+    const fallbackY = H - PAD - 0.5 * (H - PAD * 2);
+    const y = d.v == null ? fallbackY : H - PAD - d.v * (H - PAD * 2);
+    return { ...d, x, y };
+  });
+  const realPoints = points.filter((p) => p.v != null);
+  const path = realPoints
     .map((p, i) =>
       i === 0
         ? `M ${p.x} ${p.y}`
-        : `Q ${(pts[i - 1].x + p.x) / 2} ${(pts[i - 1].y + p.y) / 2 - 6}, ${p.x} ${p.y}`,
+        : `Q ${(realPoints[i - 1].x + p.x) / 2} ${
+            (realPoints[i - 1].y + p.y) / 2 - 6
+          }, ${p.x} ${p.y}`,
     )
     .join(" ");
+
+  // Saturation hint: nudge the background blend toward `valence`. Negative
+  // values cool toward the sky accent, positive ones warm toward blush.
+  const v = ambience.valence;
+  const blendStart = v < 0
+    ? "var(--accent-sky)"
+    : v > 0.3
+      ? "var(--accent-blush)"
+      : "var(--accent-sage)";
+  const inkMix = `${Math.round(86 - v * 8)}%`;
+
+  const headline = t(`constellation.${headlineKey}`);
+  const headlineTail = t(`constellation.${headlineKey}Tail`);
 
   return (
     <section className="mx-auto w-full max-w-6xl px-6 pb-4 md:px-12">
@@ -33,8 +102,7 @@ export function ConstellationMap() {
         className="relative overflow-hidden rounded-3xl border p-6 md:p-8"
         style={{
           borderColor: "var(--border)",
-          background:
-            "linear-gradient(160deg, color-mix(in oklab, var(--ink) 92%, var(--accent-sky)), color-mix(in oklab, var(--ink) 78%, var(--accent-blush)))",
+          background: `linear-gradient(160deg, color-mix(in oklab, var(--ink) ${inkMix}, ${blendStart}), color-mix(in oklab, var(--ink) 78%, var(--accent-blush)))`,
         }}
       >
         <div className="mb-4 flex items-end justify-between gap-4">
@@ -45,7 +113,7 @@ export function ConstellationMap() {
                 color: "color-mix(in oklab, var(--paper) 70%, transparent)",
               }}
             >
-              your week, as a constellation
+              {t("constellation.eyebrow")}
             </p>
             <h3
               className="leading-tight"
@@ -56,8 +124,8 @@ export function ConstellationMap() {
                 fontWeight: 500,
               }}
             >
-              <span style={{ fontStyle: "italic" }}>quiet upward arc.</span>{" "}
-              <span style={{ opacity: 0.7 }}>nothing to prove — just noticing.</span>
+              <span style={{ fontStyle: "italic" }}>{headline}</span>{" "}
+              <span style={{ opacity: 0.7 }}>{headlineTail}</span>
             </h3>
           </div>
         </div>
@@ -66,7 +134,7 @@ export function ConstellationMap() {
           viewBox={`0 0 ${W} ${H}`}
           className="h-auto w-full"
           role="img"
-          aria-label="Mood constellation across seven days"
+          aria-label={t("constellation.eyebrow")}
         >
           {Array.from({ length: 26 }).map((_, i) => (
             <circle
@@ -78,45 +146,51 @@ export function ConstellationMap() {
               opacity={((i * 11) % 35) / 100 + 0.1}
             />
           ))}
-          <motion.path
-            d={path}
-            fill="none"
-            stroke="color-mix(in oklab, white 60%, transparent)"
-            strokeWidth={1}
-            strokeDasharray="2 4"
-            initial={{ pathLength: 0 }}
-            whileInView={{ pathLength: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 2.2, ease: "easeInOut" }}
-          />
-          {pts.map((p, i) => (
-            <g key={i}>
-              <motion.circle
-                cx={p.x}
-                cy={p.y}
-                r={i === pts.length - 1 ? 5 : 3.2}
-                fill="white"
-                initial={{ scale: 0, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.15 * i, type: "spring", stiffness: 200 }}
-                style={{ transformOrigin: `${p.x}px ${p.y}px` }}
-              />
-              {i === pts.length - 1 && (
-                <circle cx={p.x} cy={p.y} r={11} fill="white" opacity={0.18} />
-              )}
-              <text
-                x={p.x}
-                y={H - 8}
-                textAnchor="middle"
-                fontSize={10}
-                fill="color-mix(in oklab, white 60%, transparent)"
-                style={{ letterSpacing: "0.2em" }}
-              >
-                {p.day}
-              </text>
-            </g>
-          ))}
+          {realPoints.length >= 2 && (
+            <motion.path
+              d={path}
+              fill="none"
+              stroke="color-mix(in oklab, white 60%, transparent)"
+              strokeWidth={1}
+              strokeDasharray="2 4"
+              initial={{ pathLength: 0 }}
+              whileInView={{ pathLength: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 2.2, ease: "easeInOut" }}
+            />
+          )}
+          {points.map((p, i) => {
+            const missing = p.v == null;
+            return (
+              <g key={i}>
+                <motion.circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={missing ? 2 : i === points.length - 1 ? 5 : 3.2}
+                  fill="white"
+                  fillOpacity={missing ? 0.22 : 1}
+                  initial={{ scale: 0, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.15 * i, type: "spring", stiffness: 200 }}
+                  style={{ transformOrigin: `${p.x}px ${p.y}px` }}
+                />
+                {i === points.length - 1 && !missing && (
+                  <circle cx={p.x} cy={p.y} r={11} fill="white" opacity={0.18} />
+                )}
+                <text
+                  x={p.x}
+                  y={H - 8}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill="color-mix(in oklab, white 60%, transparent)"
+                  style={{ letterSpacing: "0.2em" }}
+                >
+                  {p.day}
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
     </section>

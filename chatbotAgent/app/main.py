@@ -15,6 +15,7 @@ Routers registered:
 * ``POST /onboarding``              — 3-turn onboarding flow
 * ``POST /transcribe``              — Groq Whisper STT for voice input
 * ``POST /admin/crisis-templates/{id}/approve`` — 2-approver governance
+* ``GET  /me/snapshot``             — landing-page ambience signals (Redis-cached 60s)
 * ``/therapist-bridge/*``           — separate product feature (clinician handoff)
 """
 
@@ -496,11 +497,13 @@ from app.api.admin import router as v3_admin_router  # noqa: E402
 from app.api.audio import router as v3_audio_router  # noqa: E402
 from app.api.chat_ws import router as v3_chat_router  # noqa: E402
 from app.api.onboarding import router as v3_onboarding_router  # noqa: E402
+from app.api.snapshot import router as v3_snapshot_router  # noqa: E402
 
 app.include_router(v3_chat_router)
 app.include_router(v3_onboarding_router)
 app.include_router(v3_audio_router)
 app.include_router(v3_admin_router)
+app.include_router(v3_snapshot_router)
 app.include_router(therapist_bridge_router)
 
 

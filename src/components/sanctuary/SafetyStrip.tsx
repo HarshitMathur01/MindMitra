@@ -1,17 +1,39 @@
 import { ShieldCheck, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { ROUND_THE_CLOCK_HELPLINE } from "@/lib/helplines";
+import { useAmbience } from "./AmbienceProvider";
 
 export function SafetyStrip() {
+  const { t } = useTranslation("sanctuary");
+  const ambience = useAmbience();
+  const quiet = ambience.crisisQuiet;
+
   return (
     <section className="mx-auto w-full max-w-6xl px-6 py-10 md:px-12 md:py-14">
-      <div
+      <motion.div
         className="flex flex-col items-start gap-4 rounded-2xl border p-5 md:flex-row md:items-center md:justify-between md:p-6"
         style={{
           borderColor: "var(--border)",
           backgroundColor:
             "color-mix(in oklab, var(--accent-blush) 10%, var(--paper-soft))",
         }}
+        animate={
+          quiet
+            ? {
+                boxShadow: [
+                  "0 0 0 0 color-mix(in oklab, var(--accent-blush) 35%, transparent)",
+                  "0 0 0 12px color-mix(in oklab, var(--accent-blush) 0%, transparent)",
+                ],
+              }
+            : undefined
+        }
+        transition={
+          quiet
+            ? { duration: 4, repeat: Infinity, ease: "easeInOut" }
+            : undefined
+        }
       >
         <div className="flex items-start gap-3">
           <ShieldCheck
@@ -29,13 +51,13 @@ export function SafetyStrip() {
                 fontSize: "1.05rem",
               }}
             >
-              Not okay tonight?
+              {t("safety.headline")}
             </p>
             <p
               className="mt-1 text-xs leading-relaxed"
               style={{ color: "var(--ink-soft)" }}
             >
-              Round-the-clock listeners. Free. Confidential. Available right now.
+              {t("safety.callLine")}
             </p>
           </div>
         </div>
@@ -47,7 +69,7 @@ export function SafetyStrip() {
             style={{ backgroundColor: "var(--ink)", color: "var(--paper)" }}
           >
             <Phone className="h-3.5 w-3.5" strokeWidth={2} />
-            Call {ROUND_THE_CLOCK_HELPLINE.name}
+            {t("safety.callAction")}
           </a>
           <Link
             to="/safety-plan"
@@ -58,10 +80,10 @@ export function SafetyStrip() {
               backgroundColor: "var(--paper)",
             }}
           >
-            Open my safety plan
+            {t("safety.planAction")}
           </Link>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

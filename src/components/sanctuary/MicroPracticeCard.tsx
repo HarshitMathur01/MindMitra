@@ -1,10 +1,20 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Wind, Pause, Play } from "lucide-react";
+import { useAmbience } from "./AmbienceProvider";
 
 type Phase = "in" | "hold" | "out" | "rest";
+const PHASE_KEY: Record<Phase, "phaseIn" | "phaseHold" | "phaseOut" | "phaseRest"> = {
+  in: "phaseIn",
+  hold: "phaseHold",
+  out: "phaseOut",
+  rest: "phaseRest",
+};
 
 export function MicroPracticeCard() {
+  const { t } = useTranslation("sanctuary");
+  const ambience = useAmbience();
   const [playing, setPlaying] = useState(false);
   const [phase, setPhase] = useState<Phase>("in");
 
@@ -18,7 +28,45 @@ export function MicroPracticeCard() {
     return () => clearTimeout(t);
   }, [playing, phase]);
 
-  const label = { in: "breathe in", hold: "hold", out: "breathe out", rest: "rest" }[phase];
+  // Phase 2: when ambience.crisisQuiet fires, swap the active exercise for
+  // a "sit with me" variant. No CTA, no phase cycling, no urgency.
+  if (ambience.crisisQuiet) {
+    return (
+      <section
+        id="practice"
+        className="mx-auto w-full max-w-6xl px-6 pb-16 md:px-12 md:pb-24"
+      >
+        <div
+          className="relative grid grid-cols-1 items-center gap-8 overflow-hidden rounded-3xl border p-7 md:p-10"
+          style={{
+            borderColor: "var(--border)",
+            background:
+              "linear-gradient(135deg, color-mix(in oklab, var(--accent-sky) 18%, var(--paper-soft)), var(--paper-soft))",
+          }}
+        >
+          <div className="mx-auto max-w-md text-center">
+            <motion.div
+              animate={{ scale: [1, 1.06, 1], opacity: [0.55, 0.85, 0.55] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="mx-auto mb-6 h-20 w-20 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--accent-sky) 50%, transparent), transparent 70%)",
+              }}
+            />
+            <p
+              className="text-sm italic"
+              style={{ color: "var(--ink-soft)", fontFamily: "var(--font-serif)" }}
+            >
+              {t("orb.aria", { companion: "Mitra" })}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const label = t(`microPractice.${PHASE_KEY[phase]}`);
   const scale = { in: 1.25, hold: 1.25, out: 0.85, rest: 0.85 }[phase];
 
   return (
@@ -40,7 +88,7 @@ export function MicroPracticeCard() {
             style={{ color: "var(--ink-faint)" }}
           >
             <Wind className="h-3 w-3" strokeWidth={1.6} />
-            today · 2 minutes
+            {t("microPractice.eyebrow")}
           </p>
           <h2
             className="leading-tight"
@@ -51,14 +99,8 @@ export function MicroPracticeCard() {
               fontWeight: 500,
             }}
           >
-            Box breathing — settle the shoulders before whatever's next.
+            {t("microPractice.heading")}
           </h2>
-          <p
-            className="mt-2 max-w-md text-sm leading-relaxed"
-            style={{ color: "var(--ink-soft)" }}
-          >
-            Four in, four hold, four out, four rest. Loop for two minutes. No streak counted.
-          </p>
 
           <button
             type="button"
@@ -67,7 +109,7 @@ export function MicroPracticeCard() {
             style={{ backgroundColor: "var(--ink)", color: "var(--paper)" }}
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            {playing ? "Pause" : "Begin"}
+            {playing ? t("microPractice.stop") : t("microPractice.start")}
           </button>
         </div>
 

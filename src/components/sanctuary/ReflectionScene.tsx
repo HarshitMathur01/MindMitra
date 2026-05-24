@@ -1,8 +1,10 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import reflectionImg from "@/assets/sanctuary/reflection.jpg";
 
 export function ReflectionScene() {
+  const { t } = useTranslation("sanctuary");
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -43,7 +45,7 @@ export function ReflectionScene() {
             className="mb-4 text-[0.7rem] uppercase tracking-[0.4em]"
             style={{ color: "var(--ink-faint)" }}
           >
-            night-mode honesty
+            {t("reflection.eyebrow")}
           </p>
           <h2
             className="leading-[1.1]"
@@ -54,14 +56,13 @@ export function ReflectionScene() {
               fontWeight: 500,
             }}
           >
-            Crisis words are <span style={{ fontStyle: "italic" }}>fixed templates</span> — never improvised.
+            {t("reflection.heading")}
           </h2>
           <p
             className="mt-5 max-w-md text-base leading-relaxed"
             style={{ color: "var(--ink-soft)" }}
           >
-            If tonight is unsafe, Mitra hands you clinician-reviewed lines and helplines.
-            The rest of the time she stays conversational, messy, human-shaped.
+            {t("reflection.subcopy")}
           </p>
         </motion.div>
       </div>

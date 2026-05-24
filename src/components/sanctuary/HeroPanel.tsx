@@ -2,114 +2,63 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Mic, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import heroImg from "@/assets/sanctuary/hero.jpg";
 import { MoodPulse } from "./MoodPulse";
+import { useAmbience } from "./AmbienceProvider";
+import { usePersonality } from "@/hooks/usePersonality";
+import { useVisitContext } from "@/hooks/useVisitContext";
+import { timeBucketFor } from "@/lib/sanctuary/ambience";
 
-type VariantId = "late-night" | "morning" | "afternoon" | "evening" | "night";
-
-type GreetingVariant = {
-  id: VariantId;
-  eyebrow: string;
-  headline: string;
-  italicTail: string;
-  subcopy: string;
-  accent: string;
-  heroAlt: string;
-};
+type VariantId = "lateNight" | "morning" | "afternoon" | "evening" | "night";
 
 // To give a time-of-day its own artwork, drop the file into
 // src/assets/sanctuary/ and swap the import on the matching line below.
 // e.g. import heroMorning from "@/assets/sanctuary/hero-morning.jpg";
 const heroImages: Record<VariantId, string> = {
-  "late-night": heroImg,
+  lateNight: heroImg,
   morning: heroImg,
   afternoon: heroImg,
   evening: heroImg,
   night: heroImg,
 };
 
-/**
- * Five time-of-day variants for the first slide. The bracket is picked once
- * per mount (memoized on the initial hour) so it stays stable for the session.
- */
-function getGreetingVariant(hour: number): GreetingVariant {
-  if (hour < 5) {
-    return {
-      id: "late-night",
-      eyebrow: "still up",
-      headline: "Still up,",
-      italicTail: "i'm here.",
-      subcopy:
-        "the night gets quieter when you say it out loud. no pressure to be okay yet.",
-      accent: "var(--accent-sky)",
-      heroAlt: "Watercolor of a lamp-lit window against a deep blue sky",
-    };
-  }
-  if (hour < 12) {
-    return {
-      id: "morning",
-      eyebrow: "good morning",
-      headline: "Good morning,",
-      italicTail: "soft start.",
-      subcopy:
-        "let's start with one breath. the rest of the day can wait its turn.",
-      accent: "var(--accent-amber)",
-      heroAlt: "Watercolor of dawn light brushing the edge of a leafing tree",
-    };
-  }
-  if (hour < 17) {
-    return {
-      id: "afternoon",
-      eyebrow: "good afternoon",
-      headline: "Soft afternoon,",
-      italicTail: "let's check in.",
-      subcopy:
-        "what part of the day needs unpacking? pick a door, or just sit with me.",
-      accent: "var(--accent-sage)",
-      heroAlt: "Watercolor of a figure resting beneath a leafing tree",
-    };
-  }
-  if (hour < 21) {
-    return {
-      id: "evening",
-      eyebrow: "good evening",
-      headline: "Good evening,",
-      italicTail: "i remember.",
-      subcopy:
-        "what's the through-line of today — even if it feels tangled right now?",
-      accent: "var(--accent-blush)",
-      heroAlt: "Watercolor of a quiet garden flushed with golden hour",
-    };
-  }
-  return {
-    id: "night",
-    eyebrow: "soft night",
-    headline: "Soft night,",
-    italicTail: "just sit.",
-    subcopy:
-      "leave the loud version of the day at the door. we don't have to fix anything.",
-    accent: "var(--accent-sky)",
-    heroAlt: "Watercolor of a still pond under a soft night sky",
-  };
+function variantForBucket(timeBucket: ReturnType<typeof timeBucketFor>): VariantId {
+  return timeBucket === "late-night" ? "lateNight" : (timeBucket as VariantId);
 }
 
 export function HeroPanel({ name }: { name: string }) {
-  const variant = useMemo(() => getGreetingVariant(new Date().getHours()), []);
+  const { t } = useTranslation("sanctuary");
+  const ambience = useAmbience();
+  const { companionName } = usePersonality();
+  const { bucket } = useVisitContext();
+
+  const variant: VariantId = useMemo(
+    () => variantForBucket(ambience.timeBucket),
+    [ambience.timeBucket],
+  );
+
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
 
+  // Hide first-visit subcopy entirely — even an empty string here would
+  // reserve vertical space and make the layout feel like it's "waiting"
+  // for the user to do something.
+  const visitLine =
+    bucket === "first-visit" ? null : t(`hero.visit.${bucketToKey(bucket)}`);
+
   return (
     <section
       className="relative mx-auto w-full max-w-6xl px-6 pb-10 pt-4 md:px-12 md:pb-16 md:pt-6"
-      aria-label={`${variant.eyebrow} greeting`}
-      data-greeting-variant={variant.id}
+      aria-label={t(`hero.${variant}.eyebrow`)}
+      data-greeting-variant={variant}
     >
       <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
         <motion.div
-          key={variant.id}
+          key={variant}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
@@ -119,7 +68,7 @@ export function HeroPanel({ name }: { name: string }) {
             style={{ color: "var(--ink-faint)" }}
           >
             <span>
-              {variant.eyebrow} · {today}
+              {t(`hero.${variant}.eyebrow`)} · {today}
             </span>
           </p>
 
@@ -133,8 +82,11 @@ export function HeroPanel({ name }: { name: string }) {
               letterSpacing: "-0.01em",
             }}
           >
-            {variant.headline}{" "}
-            <span style={{ fontStyle: "italic", color: variant.accent }}>{name}</span>.
+            {t(`hero.${variant}.headline`)}{" "}
+            <span style={{ fontStyle: "italic", color: ambience.sceneAccent }}>
+              {name}
+            </span>
+            .
             <br />
             <span
               style={{
@@ -143,7 +95,7 @@ export function HeroPanel({ name }: { name: string }) {
                 fontSize: "0.7em",
               }}
             >
-              {variant.italicTail}
+              {t(`hero.${variant}.italicTail`, { companion: companionName })}
             </span>
           </h1>
 
@@ -151,8 +103,17 @@ export function HeroPanel({ name }: { name: string }) {
             className="mt-5 max-w-md text-base leading-relaxed md:text-lg"
             style={{ color: "var(--ink-soft)" }}
           >
-            {variant.subcopy}
+            {t(`hero.${variant}.subcopy`)}
           </p>
+
+          {visitLine && (
+            <p
+              className="mt-3 max-w-md text-sm italic"
+              style={{ color: "var(--ink-faint)", fontFamily: "var(--font-serif)" }}
+            >
+              {visitLine}
+            </p>
+          )}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
@@ -166,11 +127,11 @@ export function HeroPanel({ name }: { name: string }) {
             >
               <span
                 className="grid h-7 w-7 place-items-center rounded-full transition-transform group-hover:rotate-12"
-                style={{ backgroundColor: variant.accent }}
+                style={{ backgroundColor: ambience.sceneAccent }}
               >
                 <Mic className="h-3.5 w-3.5" strokeWidth={2} />
               </span>
-              Continue your thread
+              {t("hero.ctaContinue")}
             </Link>
 
             <Link
@@ -182,7 +143,7 @@ export function HeroPanel({ name }: { name: string }) {
                 backgroundColor: "var(--paper)",
               }}
             >
-              Start fresh
+              {t("hero.ctaFresh")}
               <ArrowUpRight className="h-4 w-4" strokeWidth={1.7} />
             </Link>
           </div>
@@ -206,9 +167,9 @@ export function HeroPanel({ name }: { name: string }) {
             }}
           >
             <img
-              key={variant.id}
-              src={heroImages[variant.id]}
-              alt={variant.heroAlt}
+              key={variant}
+              src={heroImages[variant]}
+              alt={t(`hero.${variant}.heroAlt`)}
               width={1536}
               height={1024}
               className="h-full w-full object-cover mix-blend-multiply"
@@ -228,11 +189,20 @@ export function HeroPanel({ name }: { name: string }) {
             transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
             className="absolute -right-2 top-6 h-12 w-12 rounded-full opacity-70"
             style={{
-              background: `radial-gradient(circle at 30% 30%, ${variant.accent}, transparent 70%)`,
+              background: `radial-gradient(circle at 30% 30%, ${ambience.sceneAccent}, transparent 70%)`,
             }}
           />
         </motion.div>
       </div>
     </section>
   );
+}
+
+function bucketToKey(b: ReturnType<typeof useVisitContext>["bucket"]):
+  | "today"
+  | "thisWeek"
+  | "returningAfterGap" {
+  if (b === "today") return "today";
+  if (b === "this-week") return "thisWeek";
+  return "returningAfterGap";
 }

@@ -1,21 +1,83 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Quote } from "lucide-react";
+import { WHISPERS, type Whisper } from "@/data/whisperWall";
+import { useSettings } from "@/hooks/useSettings";
+import { useSnapshot } from "@/hooks/useSnapshot";
+import { useAmbience } from "./AmbienceProvider";
+import type { SupportedLanguage } from "@/lib/locale";
 
-const WHISPERS = [
-  { text: "i kept the lamp on tonight. small, but mine.", tag: "from a peer · 19" },
-  { text: "told my sister i'm tired. she just sat with me.", tag: "from a peer · 22" },
-  { text: "didn't open the app for a week. came back anyway.", tag: "from a peer · 24" },
-  { text: "the panic passed. it always does. i forget that.", tag: "from a peer · 17" },
-  { text: "ate something warm before replying to the email.", tag: "from a peer · 26" },
-];
+const THEMED_CAP = 3;
+const RANDOM_CAP = 2;
+
+/**
+ * Build the whisper rotation. `dominantThemes` is the user's top recurring
+ * themes from /me/snapshot — we use them to *rank* the pool, never to
+ * label anything on screen. The cap (3 themed + 2 random) keeps the wall
+ * from pigeonholing a user who's just had one rough week of, say, sleep
+ * problems.
+ */
+function filterWhispers(
+  language: SupportedLanguage,
+  lowAffect: boolean,
+  dominantThemes: string[],
+): Whisper[] {
+  // Prefer same-language quotes, fall back to English if none.
+  const sameLang = WHISPERS.filter((w) => w.language === language);
+  const pool = sameLang.length > 0 ? sameLang : WHISPERS.filter((w) => w.language === "english");
+  const safe = lowAffect ? pool.filter((w) => w.lowAffectSafe) : pool;
+  if (safe.length === 0) return [];
+
+  if (dominantThemes.length === 0) return safe;
+
+  const themeSet = new Set(dominantThemes);
+  const themed = safe.filter((w) => w.themes.some((t) => themeSet.has(t)));
+  if (themed.length === 0) return safe;
+
+  const themedPicked = themed.slice(0, THEMED_CAP);
+  const themedIds = new Set(themedPicked.map((w) => w.id));
+  const randomPool = safe.filter((w) => !themedIds.has(w.id));
+  return [...themedPicked, ...randomPool.slice(0, RANDOM_CAP)];
+}
 
 export function WhisperWall() {
+  const { t } = useTranslation("sanctuary");
+  const { settings } = useSettings();
+  const ambience = useAmbience();
+  const { data: snapshot } = useSnapshot();
+
+  const language = (settings?.language as SupportedLanguage) ?? "english";
+  const lowAffect = ambience.valence < -0.3;
+
+  // Phase 2: hide the WhisperWall entirely during a crisis cooldown —
+  // peer voices can land wrong in that window.
+  const hidden = ambience.crisisQuiet;
+
+  const dominantThemes = snapshot?.dominant_themes ?? [];
+
+  const filtered = useMemo(
+    () => filterWhispers(language, lowAffect, dominantThemes),
+    [language, lowAffect, dominantThemes],
+  );
+
   const [i, setI] = useState(0);
+
   useEffect(() => {
-    const t = setInterval(() => setI((p) => (p + 1) % WHISPERS.length), 5500);
+    setI(0);
+  }, [filtered.length]);
+
+  useEffect(() => {
+    if (filtered.length === 0) return;
+    const t = setInterval(
+      () => setI((p) => (p + 1) % filtered.length),
+      5500,
+    );
     return () => clearInterval(t);
-  }, []);
+  }, [filtered.length]);
+
+  if (hidden || filtered.length === 0) return null;
+  const current = filtered[i];
 
   return (
     <section className="mx-auto w-full max-w-6xl px-6 pb-12 md:px-12">
@@ -32,10 +94,10 @@ export function WhisperWall() {
             className="text-[0.7rem] uppercase tracking-[0.4em]"
             style={{ color: "var(--ink-faint)" }}
           >
-            whisper wall · anonymous · moderated
+            {t("whisperWall.eyebrow")}
           </p>
           <span className="flex items-center gap-1.5">
-            {WHISPERS.map((_, idx) => (
+            {filtered.map((_, idx) => (
               <span
                 key={idx}
                 className="h-1 rounded-full transition-all"
@@ -60,7 +122,7 @@ export function WhisperWall() {
           />
           <AnimatePresence mode="wait">
             <motion.div
-              key={i}
+              key={current.id}
               initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
@@ -77,13 +139,13 @@ export function WhisperWall() {
                   fontWeight: 500,
                 }}
               >
-                "{WHISPERS[i].text}"
+                "{current.text}"
               </p>
               <p
                 className="mt-3 text-[0.7rem] uppercase tracking-[0.3em]"
                 style={{ color: "var(--ink-faint)" }}
               >
-                {WHISPERS[i].tag}
+                {current.tag}
               </p>
             </motion.div>
           </AnimatePresence>

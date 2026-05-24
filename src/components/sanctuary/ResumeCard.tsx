@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export function ResumeCard() {
+  const { t } = useTranslation("sanctuary");
   return (
     <section className="mx-auto w-full max-w-6xl px-6 pb-12 md:px-12">
       <motion.div
@@ -46,7 +48,7 @@ export function ResumeCard() {
                 className="text-[0.65rem] uppercase tracking-[0.35em]"
                 style={{ color: "var(--ink-faint)" }}
               >
-                pick up where you left off
+                {t("resume.label")}
               </p>
             </div>
           </div>
@@ -56,23 +58,7 @@ export function ResumeCard() {
               className="hidden text-[0.65rem] uppercase tracking-[0.35em] md:block"
               style={{ color: "var(--ink-faint)" }}
             >
-              pick up where you left off
-            </p>
-            <p
-              className="mt-1 text-lg leading-snug md:text-xl"
-              style={{
-                fontFamily: "var(--font-serif)",
-                color: "var(--ink)",
-                fontStyle: "italic",
-              }}
-            >
-              "your most recent conversation"
-            </p>
-            <p
-              className="mt-1.5 text-xs"
-              style={{ color: "var(--ink-soft)" }}
-            >
-              still listening · ready when you are
+              {t("resume.label")}
             </p>
           </div>
 
@@ -80,7 +66,7 @@ export function ResumeCard() {
             className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-all group-hover:gap-3"
             style={{ backgroundColor: "var(--paper-deep)", color: "var(--ink)" }}
           >
-            Resume
+            {t("resume.action")}
             <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
           </span>
         </Link>

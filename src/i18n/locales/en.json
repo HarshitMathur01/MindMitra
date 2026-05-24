@@ -1,0 +1,163 @@
+{
+  "header": {
+    "logoAria": "MindMitra home",
+    "navDoors": "doors",
+    "navPractice": "practice",
+    "navReflection": "reflection",
+    "profileAria": "Your profile"
+  },
+  "hero": {
+    "lateNight": {
+      "eyebrow": "still up",
+      "headline": "Still up,",
+      "italicTail": "{{companion}} is here.",
+      "subcopy": "the night gets quieter when you say it out loud. no pressure to be okay yet.",
+      "heroAlt": "Watercolor of a lamp-lit window against a deep blue sky"
+    },
+    "morning": {
+      "eyebrow": "good morning",
+      "headline": "Good morning,",
+      "italicTail": "soft start.",
+      "subcopy": "let's start with one breath. the rest of the day can wait its turn.",
+      "heroAlt": "Watercolor of dawn light brushing the edge of a leafing tree"
+    },
+    "afternoon": {
+      "eyebrow": "good afternoon",
+      "headline": "Soft afternoon,",
+      "italicTail": "let's check in.",
+      "subcopy": "what part of the day needs unpacking? pick a door, or just sit with me.",
+      "heroAlt": "Watercolor of a figure resting beneath a leafing tree"
+    },
+    "evening": {
+      "eyebrow": "good evening",
+      "headline": "Good evening,",
+      "italicTail": "{{companion}} remembers.",
+      "subcopy": "what's the through-line of today — even if it feels tangled right now?",
+      "heroAlt": "Watercolor of a quiet garden flushed with golden hour"
+    },
+    "night": {
+      "eyebrow": "soft night",
+      "headline": "Soft night,",
+      "italicTail": "just sit.",
+      "subcopy": "leave the loud version of the day at the door. we don't have to fix anything.",
+      "heroAlt": "Watercolor of a still pond under a soft night sky"
+    },
+    "visit": {
+      "today": "you've been here today already. take your time.",
+      "thisWeek": "you've been here this week. take your time.",
+      "returningAfterGap": "welcome back — the chair's still warm."
+    },
+    "ctaContinue": "Continue your thread",
+    "ctaFresh": "Start fresh"
+  },
+  "moodPulse": {
+    "prompt": "how's the weather, inside?",
+    "logged": "logged · {{label}}",
+    "labels": {
+      "heavy": "heavy",
+      "low": "low",
+      "okay": "okay",
+      "lifting": "lifting",
+      "bright": "bright"
+    }
+  },
+  "innerWeather": {
+    "label": "inner weather:",
+    "since": "based on your last few check-ins",
+    "templates": {
+      "lift": "slow lift through the week, a little more light by evening",
+      "level": "level skies, with a few private clouds",
+      "heavy": "a heavier week, with patches of quiet",
+      "morning_lift": "soft morning, the day's still finding its color",
+      "morning_heavy": "a slow morning — that's allowed",
+      "night_level": "a still night, nothing to fix",
+      "afternoon_lift": "afternoon clearing, easy to breathe in",
+      "evening_heavy": "evening's a little heavy, leave the loud version outside"
+    }
+  },
+  "soundscape": {
+    "label": "soundscape",
+    "rain": "rain",
+    "cafe": "cafe",
+    "tanpura": "tanpura"
+  },
+  "resume": {
+    "label": "you left a thread open",
+    "action": "pick it up"
+  },
+  "constellation": {
+    "eyebrow": "your week, as a constellation",
+    "stillDrawing": "the week's still drawing itself.",
+    "stillDrawingTail": "log a feeling when you want.",
+    "lift": "quiet upward arc.",
+    "liftTail": "nothing to prove — just noticing.",
+    "level": "a level week.",
+    "levelTail": "no shape demanded.",
+    "heavy": "a heavier week — just noticing.",
+    "heavyTail": "you don't have to bounce."
+  },
+  "doors": {
+    "eyebrow": "doors · same private account",
+    "heading": "What kind of company do you need today?",
+    "enter": "enter",
+    "items": {
+      "chat": {
+        "label": "Talk to {{companion}}",
+        "blurb": "Voice or type · she remembers the through-line"
+      },
+      "mindgym": {
+        "label": "Mind Gym",
+        "blurb": "Two-minute tools when the loop won't quiet"
+      },
+      "journal": {
+        "label": "Journal",
+        "blurb": "Private pages · no scoring, no streaks"
+      },
+      "peer": {
+        "label": "Peer Support",
+        "blurb": "Witnessed by people who get it"
+      },
+      "therapist": {
+        "label": "Therapist Bridge",
+        "blurb": "Share a clean summary with your clinician"
+      },
+      "reads": {
+        "label": "Reads & Explainers",
+        "blurb": "Short, gentle, evidence-shaped"
+      }
+    }
+  },
+  "microPractice": {
+    "eyebrow": "two-minute practice · box breathing",
+    "heading": "Slow the room down with four sides of breath.",
+    "phaseIn": "breathe in",
+    "phaseHold": "hold",
+    "phaseOut": "breathe out",
+    "phaseRest": "rest",
+    "start": "begin",
+    "stop": "pause"
+  },
+  "guidedVideo": {
+    "eyebrow": "guided · body scan",
+    "heading": "The room you're in.",
+    "length": "3:14"
+  },
+  "whisperWall": {
+    "eyebrow": "whisper wall · anonymous · moderated"
+  },
+  "reflection": {
+    "eyebrow": "a small reflection",
+    "heading": "We never invent words you didn't say.",
+    "subcopy": "Crisis responses are clinician-reviewed templates — not improvised by the model."
+  },
+  "safety": {
+    "headline": "If it's heavy right now",
+    "callLine": "iCall · 24/7 listeners",
+    "callAction": "call iCall",
+    "planAction": "open your safety plan",
+    "breath": "we're here while you call."
+  },
+  "orb": {
+    "aria": "A small whisper from {{companion}}"
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "_authoring_note": "Hinglish copy authored as deliberate code-mix for Indian college users. Should be reviewed by a native Hinglish speaker before production rollout. Keep tone soft, never clinical, never preachy.",
+  "header": {
+    "logoAria": "MindMitra home",
+    "navDoors": "doors",
+    "navPractice": "practice",
+    "navReflection": "reflection",
+    "profileAria": "Your profile"
+  },
+  "hero": {
+    "lateNight": {
+      "eyebrow": "abhi tak jaag rahe ho",
+      "headline": "Abhi tak jaage ho,",
+      "italicTail": "{{companion}} yahin hai.",
+      "subcopy": "raat thodi shaant ho jaati hai jab keh dete ho. theek hone ki jaldi nahi.",
+      "heroAlt": "Watercolor of a lamp-lit window against a deep blue sky"
+    },
+    "morning": {
+      "eyebrow": "shubh prabhaat",
+      "headline": "Good morning,",
+      "italicTail": "soft start.",
+      "subcopy": "ek saans se shuru karte hain. baaki din ko line mein lagne do.",
+      "heroAlt": "Watercolor of dawn light brushing the edge of a leafing tree"
+    },
+    "afternoon": {
+      "eyebrow": "soft afternoon",
+      "headline": "Soft afternoon,",
+      "italicTail": "ek check-in.",
+      "subcopy": "din ka kaunsa hissa thoda unpack karna hai? door choose karo, ya bas baith jao.",
+      "heroAlt": "Watercolor of a figure resting beneath a leafing tree"
+    },
+    "evening": {
+      "eyebrow": "good evening",
+      "headline": "Good evening,",
+      "italicTail": "{{companion}} ko yaad hai.",
+      "subcopy": "aaj ka through-line kya hai — bhale hi abhi uljha laga rahe?",
+      "heroAlt": "Watercolor of a quiet garden flushed with golden hour"
+    },
+    "night": {
+      "eyebrow": "soft raat",
+      "headline": "Soft raat,",
+      "italicTail": "bas baith jao.",
+      "subcopy": "din ka loud version darwaze ke bahar chhod do. kuch fix nahi karna.",
+      "heroAlt": "Watercolor of a still pond under a soft night sky"
+    },
+    "visit": {
+      "today": "aaj phir aaye ho. koi rush nahi.",
+      "thisWeek": "is hafte aaye ho. apna time lo.",
+      "returningAfterGap": "wapas aaye ho — chair abhi bhi warm hai."
+    },
+    "ctaContinue": "Apna thread continue karo",
+    "ctaFresh": "Naya shuru karo"
+  },
+  "moodPulse": {
+    "prompt": "andar ka mausam kaisa hai?",
+    "logged": "log ho gaya · {{label}}",
+    "labels": {
+      "heavy": "bhaari",
+      "low": "neecha",
+      "okay": "theek",
+      "lifting": "uth raha",
+      "bright": "khila"
+    }
+  },
+  "innerWeather": {
+    "label": "andar ka mausam:",
+    "since": "pichhle kuch check-ins ke aadhaar par",
+    "templates": {
+      "lift": "haftе bhar mein dheeme se halka, shaam ko thoda aur ujala",
+      "level": "smooth aasmaan, beech mein kuch private baadal",
+      "heavy": "thoda bhaari hafta, beech mein shaant patches",
+      "morning_lift": "soft subah, din abhi apna rang dhoond raha hai",
+      "morning_heavy": "dheemi subah — allowed hai",
+      "night_level": "still raat, kuch fix nahi karna",
+      "afternoon_lift": "dopahar saaf ho rahi, saans lena aasaan",
+      "evening_heavy": "shaam thodi bhaari, loud version bahar chhod do"
+    }
+  },
+  "soundscape": {
+    "label": "soundscape",
+    "rain": "baarish",
+    "cafe": "cafe",
+    "tanpura": "tanpura"
+  },
+  "resume": {
+    "label": "ek thread khula chhoda tha",
+    "action": "wahin se uthao"
+  },
+  "constellation": {
+    "eyebrow": "tumhara hafta, ek constellation jaisa",
+    "stillDrawing": "hafta abhi khud ko draw kar raha hai.",
+    "stillDrawingTail": "jab man ho, ek feeling log karo.",
+    "lift": "dheemi upar ki aarc.",
+    "liftTail": "kuch prove nahi karna — bas notice kar rahe.",
+    "level": "ek level hafta.",
+    "levelTail": "koi shape demand nahi.",
+    "heavy": "thoda bhaari hafta — bas notice kar rahe.",
+    "heavyTail": "bounce karna zaroori nahi."
+  },
+  "doors": {
+    "eyebrow": "doors · ek hi private account",
+    "heading": "Aaj kaisi company chahiye?",
+    "enter": "andar jao",
+    "items": {
+      "chat": {
+        "label": "{{companion}} se baat karo",
+        "blurb": "Awaaz ya likh ke · usse through-line yaad rehti hai"
+      },
+      "mindgym": {
+        "label": "Mind Gym",
+        "blurb": "Do minute ke tools, jab loop shaant nahi hota"
+      },
+      "journal": {
+        "label": "Journal",
+        "blurb": "Niji panne · na scoring, na streaks"
+      },
+      "peer": {
+        "label": "Peer Support",
+        "blurb": "Un logon ke saath jo samajhte hain"
+      },
+      "therapist": {
+        "label": "Therapist Bridge",
+        "blurb": "Apne clinician ke saath clean summary share karo"
+      },
+      "reads": {
+        "label": "Reads & Explainers",
+        "blurb": "Chhote, narm, evidence se shaped"
+      }
+    }
+  },
+  "microPractice": {
+    "eyebrow": "do minute ki practice · box breathing",
+    "heading": "Chaar taraf ki saans se kamre ko dheema karo.",
+    "phaseIn": "saans lo",
+    "phaseHold": "ruko",
+    "phaseOut": "saans chhodo",
+    "phaseRest": "thodi der ruko",
+    "start": "shuru",
+    "stop": "pause"
+  },
+  "guidedVideo": {
+    "eyebrow": "guided · body scan",
+    "heading": "Yeh kamra, jismein ho tum.",
+    "length": "3:14"
+  },
+  "whisperWall": {
+    "eyebrow": "whisper wall · anonymous · moderated"
+  },
+  "reflection": {
+    "eyebrow": "ek chhoti reflection",
+    "heading": "Hum kabhi aise shabd nahi gadhte jo tumne kahe nahi.",
+    "subcopy": "Crisis ke jawaab clinician-reviewed templates hain — model ne nahi gadhe."
+  },
+  "safety": {
+    "headline": "Agar abhi bhaari lag raha hai",
+    "callLine": "iCall · 24/7 sunne wale",
+    "callAction": "iCall ko call karo",
+    "planAction": "apna safety plan kholo",
+    "breath": "tum call kar rahe ho, hum yahin hain."
+  },
+  "orb": {
+    "aria": "{{companion}} ki ek chhoti si whisper"
+  }
+}

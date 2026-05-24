@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { MOOD_LABELS, useMoodLog, type MoodLabel } from "@/hooks/useMoodLog";
 
-const LABELS = ["heavy", "low", "okay", "lifting", "bright"] as const;
 const COLORS = [
   "oklch(0.55 0.05 280)",
   "oklch(0.65 0.06 240)",
@@ -11,7 +11,10 @@ const COLORS = [
 ];
 
 export function MoodPulse() {
-  const [picked, setPicked] = useState<number | null>(null);
+  const { t } = useTranslation("sanctuary");
+  const { todayLog, logMood, isSaving } = useMoodLog();
+  const pickedIndex = todayLog?.mood_index ?? null;
+  const pickedLabel: MoodLabel | null = todayLog?.mood_label ?? null;
 
   return (
     <div className="flex flex-col items-start gap-3">
@@ -19,19 +22,20 @@ export function MoodPulse() {
         className="text-[0.7rem] uppercase tracking-[0.35em]"
         style={{ color: "var(--ink-faint)", fontFamily: "var(--font-sans)" }}
       >
-        how's the weather, inside?
+        {t("moodPulse.prompt")}
       </p>
       <div className="flex items-center gap-3">
-        {LABELS.map((label, i) => {
-          const active = picked === i;
+        {MOOD_LABELS.map((label, i) => {
+          const active = pickedIndex === i;
           return (
             <button
               key={label}
               type="button"
-              onClick={() => setPicked(i)}
-              aria-label={`Mood: ${label}`}
+              onClick={() => logMood(i)}
+              disabled={isSaving}
+              aria-label={`Mood: ${t(`moodPulse.labels.${label}`)}`}
               aria-pressed={active}
-              className="group relative grid place-items-center outline-none"
+              className="group relative grid place-items-center outline-none disabled:cursor-wait"
             >
               <motion.span
                 animate={{
@@ -48,19 +52,19 @@ export function MoodPulse() {
                 className="pointer-events-none absolute -bottom-6 text-[0.65rem] uppercase tracking-[0.2em] opacity-0 transition-opacity group-hover:opacity-100"
                 style={{ color: "var(--ink-soft)" }}
               >
-                {label}
+                {t(`moodPulse.labels.${label}`)}
               </span>
             </button>
           );
         })}
-        {picked !== null && (
+        {pickedLabel && (
           <motion.span
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             className="ml-3 text-xs italic"
             style={{ color: "var(--ink-soft)", fontFamily: "var(--font-serif)" }}
           >
-            logged · {LABELS[picked]}
+            {t("moodPulse.logged", { label: t(`moodPulse.labels.${pickedLabel}`) })}
           </motion.span>
         )}
       </div>

@@ -9,6 +9,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/context/ThemeContext";
 import SkipToMain from "@/components/system/SkipToMain";
+import "@/i18n";
 
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import { ProductAnalyticsProvider } from "@/components/analytics/ProductAnalyticsProvider";

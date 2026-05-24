@@ -67,7 +67,12 @@ CREATE TABLE IF NOT EXISTS public.user_longitudinal_trajectory (
     longitudinal_risk_flag BOOLEAN NOT NULL DEFAULT FALSE,
     last_slope           REAL,
     last_computed_at     TIMESTAMPTZ,
-    risk_flag_set_at     TIMESTAMPTZ
+    risk_flag_set_at     TIMESTAMPTZ,
+    -- Sanctuary ambient personalization (Phase 2): set true at session-end
+    -- when peak_urgency >= 2 so /me/snapshot can quiet the landing page.
+    -- Cleared at session_startup() once the user has stabilised.
+    recent_crisis_flag   BOOLEAN NOT NULL DEFAULT FALSE,
+    crisis_flag_set_at   TIMESTAMPTZ
 );
 
 -- ── sessions ───────────────────────────────────────────────────────────────

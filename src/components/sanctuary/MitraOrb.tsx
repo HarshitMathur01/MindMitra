@@ -1,16 +1,25 @@
-import { motion, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  AnimatePresence,
+} from "framer-motion";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Buddy from "@/components/mindgym/shared/Buddy";
-
-const WHISPERS = [
-  "one breath. that's enough for now.",
-  "you don't have to solve it tonight.",
-  "the loop is loud — you are not the loop.",
-  "soft is also a kind of strong.",
-  "name one thing in the room. begin there.",
-];
+import { useAmbience } from "./AmbienceProvider";
+import { usePersonality } from "@/hooks/usePersonality";
+import { useSettings } from "@/hooks/useSettings";
+import { pickOrbWhisper } from "@/data/orbWhispers";
+import type { SupportedLanguage } from "@/lib/locale";
 
 export function MitraOrb() {
+  const { t } = useTranslation("sanctuary");
+  const ambience = useAmbience();
+  const { personality, companionName } = usePersonality();
+  const { settings } = useSettings();
+  const language = (settings?.language as SupportedLanguage) ?? "english";
+
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const sx = useSpring(x, { stiffness: 40, damping: 18, mass: 0.8 });
@@ -34,14 +43,24 @@ export function MitraOrb() {
     return () => clearTimeout(t);
   }, [whisper]);
 
+  const onClick = () => {
+    setWhisper(
+      pickOrbWhisper({
+        personality: personality.id,
+        language,
+        timeBucket: ambience.timeBucket,
+        valenceBucket: ambience.valenceBucket,
+        crisisQuiet: ambience.crisisQuiet,
+      }),
+    );
+  };
+
   return (
     <div className="pointer-events-none fixed bottom-6 right-6 z-40 hidden md:block">
       <motion.button
         type="button"
-        aria-label="A small whisper from Mitra"
-        onClick={() =>
-          setWhisper(WHISPERS[Math.floor(Math.random() * WHISPERS.length)])
-        }
+        aria-label={t("orb.aria", { companion: companionName })}
+        onClick={onClick}
         style={{ x: sx, y: sy }}
         className="pointer-events-auto relative grid h-16 w-16 place-items-center rounded-full"
       >
@@ -51,8 +70,7 @@ export function MitraOrb() {
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
           className="absolute inset-0 rounded-full"
           style={{
-            background:
-              "radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--accent-sage) 70%, transparent), transparent 70%)",
+            background: ambience.orbHalo,
             filter: "blur(2px)",
           }}
         />
@@ -64,7 +82,6 @@ export function MitraOrb() {
         >
           <Buddy
             avatar="/talkinghead/avatars/Little_kid_4.glb"
-
             cameraView="full"
             className="pointer-events-none h-full w-full"
             fallback={

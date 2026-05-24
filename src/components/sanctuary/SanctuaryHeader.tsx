@@ -1,10 +1,16 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export function SanctuaryHeader({ name }: { name: string }) {
+  const { t } = useTranslation("sanctuary");
   const initial = (name?.charAt(0) ?? "M").toUpperCase();
   return (
     <header className="relative z-30 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6 md:px-12 md:py-8">
-      <Link to="/" className="flex items-center gap-2.5 group">
+      <Link
+        to="/"
+        className="flex items-center gap-2.5 group"
+        aria-label={t("header.logoAria")}
+      >
         <span
           className="grid h-9 w-9 place-items-center rounded-full"
           style={{ backgroundColor: "var(--ink)", color: "var(--paper)" }}
@@ -30,13 +36,16 @@ export function SanctuaryHeader({ name }: { name: string }) {
         style={{ color: "var(--ink-soft)" }}
       >
         <a href="#doors" className="transition-colors hover:text-[var(--ink)]">
-          Doors
+          {t("header.navDoors")}
         </a>
         <a href="#practice" className="transition-colors hover:text-[var(--ink)]">
-          Today
+          {t("header.navPractice")}
         </a>
-        <a href="#reflection" className="transition-colors hover:text-[var(--ink)]">
-          Reflect
+        <a
+          href="#reflection"
+          className="transition-colors hover:text-[var(--ink)]"
+        >
+          {t("header.navReflection")}
         </a>
       </nav>
 
@@ -49,7 +58,7 @@ export function SanctuaryHeader({ name }: { name: string }) {
           fontFamily: "var(--font-serif)",
           backgroundColor: "var(--paper)",
         }}
-        aria-label="Account menu"
+        aria-label={t("header.profileAria")}
       >
         {initial}
       </Link>

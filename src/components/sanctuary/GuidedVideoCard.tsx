@@ -1,6 +1,8 @@
 import { Play, Film } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function GuidedVideoCard() {
+  const { t } = useTranslation("sanctuary");
   return (
     <section className="mx-auto w-full max-w-6xl px-6 pb-12 md:px-12">
       <div
@@ -43,13 +45,13 @@ export function GuidedVideoCard() {
             }}
           >
             <Film className="h-3 w-3" strokeWidth={1.6} />
-            video · 3:14 · placeholder
+            {t("guidedVideo.eyebrow")} · {t("guidedVideo.length")}
           </span>
 
           <button
             type="button"
             className="absolute inset-0 grid place-items-center"
-            aria-label="Play guided grounding video"
+            aria-label={t("guidedVideo.heading")}
           >
             <span
               className="grid h-16 w-16 place-items-center rounded-full backdrop-blur transition-transform group-hover:scale-110"
@@ -72,7 +74,7 @@ export function GuidedVideoCard() {
             className="mb-3 text-[0.7rem] uppercase tracking-[0.35em]"
             style={{ color: "var(--ink-faint)" }}
           >
-            tonight's guided sit · 3 min
+            {t("guidedVideo.eyebrow")} · {t("guidedVideo.length")}
           </p>
           <h3
             className="leading-tight"
@@ -83,16 +85,8 @@ export function GuidedVideoCard() {
               fontWeight: 500,
             }}
           >
-            <span style={{ fontStyle: "italic" }}>"the room you're in"</span> — a body-scan
-            for when the chest is loud.
+            <span style={{ fontStyle: "italic" }}>{t("guidedVideo.heading")}</span>
           </h3>
-          <p
-            className="mt-3 text-sm leading-relaxed"
-            style={{ color: "var(--ink-soft)" }}
-          >
-            Watercolor visuals, soft voice. No data sent — the clip lives on your device
-            once cached.
-          </p>
           <div
             className="mt-5 flex flex-wrap gap-2 text-[0.65rem] uppercase tracking-[0.3em]"
             style={{ color: "var(--ink-faint)" }}

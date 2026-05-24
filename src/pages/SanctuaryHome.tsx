@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocalizedT } from "@/hooks/useLocalizedT";
+import { useSnapshot } from "@/hooks/useSnapshot";
 import Footer from "@/components/layout/Footer";
 import { PaperGrain } from "@/components/sanctuary/PaperGrain";
 import { SanctuaryHeader } from "@/components/sanctuary/SanctuaryHeader";
@@ -15,9 +17,14 @@ import { WhisperWall } from "@/components/sanctuary/WhisperWall";
 import { ReflectionScene } from "@/components/sanctuary/ReflectionScene";
 import { SafetyStrip } from "@/components/sanctuary/SafetyStrip";
 import { MitraOrb } from "@/components/sanctuary/MitraOrb";
+import { AmbienceProvider } from "@/components/sanctuary/AmbienceProvider";
 
 export default function SanctuaryHome() {
+  // Mount the localized translator at the page root so the language
+  // preference resolves once and propagates to every child via react-i18next.
+  useLocalizedT();
   const { user } = useAuth();
+  const { data: snapshot } = useSnapshot();
   const [canResume, setCanResume] = useState(false);
 
   useEffect(() => {
@@ -36,30 +43,47 @@ export default function SanctuaryHome() {
       .replace(/^./, (c) => c.toUpperCase());
   }, [user]);
 
+  // Ambience switches to the real affect EMA once /me/snapshot returns; on
+  // first-visit (no chat history) snapshot is undefined and AmbienceProvider
+  // falls back to the Phase 1 MoodPulse + time-of-day path.
+  const ambienceSnapshot = useMemo(
+    () =>
+      snapshot
+        ? {
+            affectEma: snapshot.affect_ema,
+            recentCrisisFlag: snapshot.recent_crisis_flag,
+            longitudinalRiskFlag: snapshot.longitudinal_risk_flag,
+          }
+        : undefined,
+    [snapshot],
+  );
+
   return (
-    <main
-      className="relative min-h-screen w-full overflow-x-hidden"
-      style={{ backgroundColor: "var(--paper-soft)" }}
-    >
-      <PaperGrain />
-      <div className="relative z-10">
-        <SanctuaryHeader name={firstName} />
-        <HeroPanel name={firstName} />
-        <InnerWeather />
-        <div className="mt-6">
-          <SoundscapeBar />
+    <AmbienceProvider snapshot={ambienceSnapshot}>
+      <main
+        className="relative min-h-screen w-full overflow-x-hidden"
+        style={{ backgroundColor: "var(--paper-soft)" }}
+      >
+        <PaperGrain />
+        <div className="relative z-10">
+          <SanctuaryHeader name={firstName} />
+          <HeroPanel name={firstName} />
+          <InnerWeather />
+          <div className="mt-6">
+            <SoundscapeBar />
+          </div>
+          {canResume && <ResumeCard />}
+          <ConstellationMap />
+          <DoorsGrid />
+          <MicroPracticeCard />
+          <GuidedVideoCard />
+          <WhisperWall />
+          <ReflectionScene />
+          <SafetyStrip />
+          <Footer />
         </div>
-        {canResume && <ResumeCard />}
-        <ConstellationMap />
-        <DoorsGrid />
-        <MicroPracticeCard />
-        <GuidedVideoCard />
-        <WhisperWall />
-        <ReflectionScene />
-        <SafetyStrip />
-        <Footer />
-      </div>
-      <MitraOrb />
-    </main>
+        <MitraOrb />
+      </main>
+    </AmbienceProvider>
   );
 }

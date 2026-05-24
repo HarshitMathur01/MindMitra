@@ -1,107 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- ═══════════════════════════════════════
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══════════════════════════════════════
          Favicon & App Icons
     ═══════════════════════════════════════ -->
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
 
-    <!-- ══════════════════════════════════════
+
+  <!-- ══════════════════════════════════════
          Primary Meta
     ═══════════════════════════════════════ -->
-    <title>MindMitra — Your AI Mental Health Companion</title>
-    <meta name="description" content="MindMitra is an AI-powered mental health companion offering 24/7 personalised emotional support through a conversational chatbot and 3D avatar. A bridge between you and professional care — anytime, stigma-free." />
-    <meta name="keywords" content="mental health, AI companion, emotional support, therapy, chatbot, student mental health, anxiety, depression support, MindMitra, 3D avatar, Avatar" />
-    <meta name="author" content="MindMitra" />
-    <meta name="theme-color" content="#FAF9F6" />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://mindmitra.co.in/" />
+  <title>MindMitra — for the 3am thought you haven't said out loud</title>
+  <meta name="description"
+    content="You're not explaining yourself to people who won't get it tonight. Mitra remembers the through-line. Hindi, English, or Hinglish — no fixing, no diagnosis, just a door that's open." />
+  <meta name="keywords"
+    content="can't sleep anxiety student, feeling alone hostel, who to talk to at midnight, not okay college, mental health without therapy, anonymous emotional support India, engineering student burnout, medical student stress, someone to talk to in Hindi, mental health app India, loneliness hostel room, exam pressure anxiety, hinglish mental health, MindMitra" />
+  <meta name="author" content="MindMitra" />
+  <meta name="theme-color" content="#FAF9F6" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://mindmitra.co.in/" />
 
-    <!-- ═══════════════════════════════════════
+  <!-- ═══════════════════════════════════════
          Open Graph (WhatsApp, Facebook, LinkedIn)
     ═══════════════════════════════════════ -->
-    <meta property="og:title" content="MindMitra — Your AI Mental Health Companion" />
-    <meta property="og:description" content="Personalised, memory-driven emotional support through AI — a bridge to professional care, not a replacement. Available 24/7 for personalised emotional support." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://mindmitra.co.in/" />
-    <meta property="og:image" content="https://mindmitra.co.in/og-default.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:alt" content="MindMitra — A quiet companion for the loud days." />
-    <meta property="og:site_name" content="MindMitra" />
-    <meta property="og:locale" content="en_IN" />
+  <meta property="og:title" content="MindMitra — for the nights you kept the lamp on" />
+  <meta property="og:description"
+    content="told her i'm not okay. she didn't try to fix it. that helped. — Mitra is the first door, not the last resort. no fixing. no labels. just the thread." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://mindmitra.co.in/" />
+  <meta property="og:image" content="https://mindmitra.co.in/OG_1.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/svg+xml" />
+  <meta property="og:image:alt" content="A dim hostel room. One warm lamp on. A phone screen glowing softly. The words: for the 3am thought you haven't said out loud." />
+  <meta property="og:site_name" content="MindMitra" />
+  <meta property="og:locale" content="en_IN" />
 
-    <!-- ═══════════════════════════════════════
+  <!-- ═══════════════════════════════════════
          Twitter / X
     ═══════════════════════════════════════ -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="MindMitra — Your AI Mental Health Companion" />
-    <meta name="twitter:description" content="A bridge to professional care, not a replacement. Personalised, memory-driven emotional support — available 24/7." />
-    <meta name="twitter:image" content="https://mindmitra.co.in/og-default.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MindMitra — the 3am thought you almost said out loud" />
+  <meta name="twitter:description"
+    content="tired of explaining yourself to people who say 'just sleep it off'? Mitra remembers what you almost said. no fixing. no streaks. no being told you're strong." />
+  <meta name="twitter:image" content="https://mindmitra.co.in/OG_1.svg" />
 
-    <!-- ═══════════════════════════════════════
+  <!-- ═══════════════════════════════════════
          Fonts — Site defaults + MindGym (scoped)
     ═══════════════════════════════════════ -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Caveat:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Devanagari support for Hindi copy that already appears in modals & disclaimers. -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Sanctuary fonts — Dancing Script kept for legacy --font-fancy token. Caveat now loaded above; Cormorant retired in favor of handwritten Caveat for --font-serif. -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Campus Chess fonts — used only by the CampusChess MindGym tool. -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700;800&family=Work+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Caveat:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <!-- Devanagari support for Hindi copy that already appears in modals & disclaimers. -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <!-- Sanctuary fonts — Dancing Script kept for legacy --font-fancy token. Caveat now loaded above; Cormorant retired in favor of handwritten Caveat for --font-serif. -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet" />
+  <!-- Campus Chess fonts — used only by the CampusChess MindGym tool. -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700;800&family=Work+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
 
-    <!-- ═══════════════════════════════════════
+  <!-- ═══════════════════════════════════════
          Base Styles — smooth scroll + font
     ═══════════════════════════════════════ -->
-    <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      html { scroll-behavior: smooth; }
-      body {
-        font-family: 'Kalam', 'Inter', system-ui, -apple-system, sans-serif;
-        background-color: #FAF9F6;
-        color: #1a1a1a;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      /* Page load fade-in */
-      #root {
-        animation: pageLoad 0.5s ease-in-out;
-      }
-      @keyframes pageLoad {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0);   }
-      }
-    </style>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-    <!-- ═══════════════════════════════════════
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Kalam', 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #FAF9F6;
+      color: #1a1a1a;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Page load fade-in */
+    #root {
+      animation: pageLoad 0.5s ease-in-out;
+    }
+
+    @keyframes pageLoad {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- ═══════════════════════════════════════
          Structured Data (Google Rich Results)
     ═══════════════════════════════════════ -->
-    <script type="application/ld+json">
+  <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "MindMitra",
       "url": "https://mindmitra.co.in",
-      "description": "AI-powered mental health companion providing personalised emotional support through conversational AI and 3D avatar for students and young adults.",
+      "description": "A private, memory-aware companion for Indian college students — talk in Hindi, English, or Hinglish about what's heavy, without judgement or diagnosis.",
       "applicationCategory": "HealthApplication",
       "operatingSystem": "Web",
       "offers": {
@@ -116,10 +133,11 @@
       }
     }
     </script>
-  </head>
+</head>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

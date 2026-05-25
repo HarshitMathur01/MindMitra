@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SaveBar } from '@/components/shared/SaveBar';
 import { useTheme } from '@/context/ThemeContext';
 import type { UserSettings } from '@/lib/types/profile';
-import type { SupportedLanguage } from '@/lib/locale';
+import { LANGUAGE_LABELS, type SupportedLanguage } from '@/lib/locale';
 
 interface GeneralSettingsProps {
     settings: UserSettings | null;
@@ -148,9 +148,11 @@ export function GeneralSettings({ settings, loading, saving, onSave }: GeneralSe
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="hindi">Hindi</SelectItem>
-                        <SelectItem value="hinglish">Hinglish</SelectItem>
+                        {(Object.entries(LANGUAGE_LABELS) as [SupportedLanguage, string][]).map(
+                            ([code, label]) => (
+                                <SelectItem key={code} value={code}>{label}</SelectItem>
+                            ),
+                        )}
                     </SelectContent>
                 </Select>
             </div>

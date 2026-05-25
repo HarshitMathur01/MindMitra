@@ -274,11 +274,31 @@ async def _task_c_extract_semantic(session: SessionObject) -> bool:
 
 # ── Task D: procedural EMA (Python only, no LLM) ─────────────────────────
 async def _task_d_update_procedural(session: SessionObject) -> bool:
-    from ..memory.procedural_update import compute_procedural_ema
+    from ..memory.procedural_update import compute_procedural_ema, update_activity_affinity
 
     updates = compute_procedural_ema(session)
     if not updates:
         return False
+
+    # Fold in this session's activity_feedback rows. Best-effort: a Supabase
+    # outage on the read should leave the affinity untouched, not blow up
+    # the whole procedural write.
+    try:
+        feedback_rows = await profile_service.fetch_recent_activity_feedback(
+            session.user_id, session.started_at,
+        )
+        if feedback_rows:
+            stored = (session.procedural_profile or {}).get("activity_affinity") or {}
+            updates["activity_affinity"] = update_activity_affinity(stored, feedback_rows)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "activity_affinity rollup skipped",
+            extra=log_context(
+                session_id=session.session_id, user_id=session.user_id,
+                exception_type=type(exc).__name__, outcome="skipped",
+            ),
+        )
+
     ok = await profile_service.upsert_procedural(session.user_id, updates)
     if not ok:
         logger.error("procedural Supabase write failed — caching pending update", extra=log_context(session_id=session.session_id, user_id=session.user_id, task="procedural"))

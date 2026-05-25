@@ -15,6 +15,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useLocalizedT } from "@/hooks/useLocalizedT";
 import MessageRenderer from "./MessageRenderer";
 import QuickReplies from "./QuickReplies";
 import {
@@ -36,6 +37,13 @@ interface ChatMessageListProps {
     onCopyMessage: (content: string) => void;
     onFeedback: (kind: "up" | "down") => void;
     onSendMessage: (text: string) => void;
+    /**
+     * Optional spring override for the bubble entry transition. Falls back to
+     * the default CHAT_MESSAGE_SPRING when omitted. Supplied by
+     * useChatPersonalization so warmth from the latest turn's tone params
+     * shapes how new messages land.
+     */
+    messageSpring?: typeof CHAT_MESSAGE_SPRING;
 }
 
 /**
@@ -59,7 +67,10 @@ const ChatMessageList = ({
     onCopyMessage,
     onFeedback,
     onSendMessage,
+    messageSpring,
 }: ChatMessageListProps) => {
+    const spring = messageSpring ?? CHAT_MESSAGE_SPRING;
+    const { t, i18n } = useLocalizedT();
     // Local mirror of the kept-set so toggling re-renders without forcing
     // a parent state lift. Re-syncs on session change.
     const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
@@ -104,7 +115,7 @@ const ChatMessageList = ({
                             <div className="flex items-center gap-3 my-2">
                                 <div className="flex-1 h-px bg-border/60" />
                                 <span className="text-[11px] text-muted-foreground/70 font-medium px-2">
-                                    {formatDateSeparator(message.timestamp)}
+                                    {formatDateSeparator(message.timestamp, t)}
                                 </span>
                                 <div className="flex-1 h-px bg-border/60" />
                             </div>
@@ -114,7 +125,7 @@ const ChatMessageList = ({
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 4 }}
-                            transition={CHAT_MESSAGE_SPRING}
+                            transition={spring}
                             className="group"
                         >
                             {message.sender === "ai" ? (
@@ -155,7 +166,7 @@ const ChatMessageList = ({
 
                                         {isLastAi && (
                                             <QuickReplies
-                                                suggestions={getQuickReplies(message.content)}
+                                                suggestions={getQuickReplies(message.content, i18n.language)}
                                                 onSelect={onSendMessage}
                                                 visible={!isLoading}
                                             />
@@ -172,7 +183,7 @@ const ChatMessageList = ({
                                                         : "text-muted-foreground hover:text-foreground"
                                                 }`}
                                                 onClick={() => handleKeep(message)}
-                                                aria-label={kept ? "Unkeep this" : "Keep this"}
+                                                aria-label={kept ? t("chat.messageActions.keepAriaKept") : t("chat.messageActions.keepAriaUnkept")}
                                                 aria-pressed={kept}
                                             >
                                                 {kept ? (
@@ -180,7 +191,7 @@ const ChatMessageList = ({
                                                 ) : (
                                                     <Bookmark className="h-3.5 w-3.5" />
                                                 )}
-                                                {kept ? "Kept" : "Keep this"}
+                                                {kept ? t("chat.messageActions.kept") : t("chat.messageActions.keepThis")}
                                             </Button>
 
                                             <DropdownMenu>
@@ -189,7 +200,7 @@ const ChatMessageList = ({
                                                         size="sm"
                                                         variant="ghost"
                                                         className="h-8 w-8 p-0 hover:bg-muted/40 transition-all duration-200"
-                                                        aria-label="Message actions"
+                                                        aria-label={t("chat.messageActions.menuAria")}
                                                     >
                                                         <MoreVertical className="h-3.5 w-3.5" />
                                                     </Button>
@@ -197,15 +208,15 @@ const ChatMessageList = ({
                                                 <DropdownMenuContent align="start" className="w-44">
                                                     <DropdownMenuItem onClick={() => onCopyMessage(message.content)}>
                                                         <Copy className="h-4 w-4 mr-2" />
-                                                        Copy
+                                                        {t("chat.messageActions.copy")}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => onFeedback("up")}>
                                                         <ThumbsUp className="h-4 w-4 mr-2" />
-                                                        Helpful
+                                                        {t("chat.messageActions.helpful")}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => onFeedback("down")}>
                                                         <ThumbsDown className="h-4 w-4 mr-2" />
-                                                        Not helpful
+                                                        {t("chat.messageActions.notHelpful")}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -234,7 +245,7 @@ const ChatMessageList = ({
                                                         size="sm"
                                                         variant="ghost"
                                                         className="h-8 w-8 p-0 hover:bg-muted/40 transition-all duration-200"
-                                                        aria-label="Message actions"
+                                                        aria-label={t("chat.messageActions.menuAria")}
                                                     >
                                                         <MoreVertical className="h-3.5 w-3.5" />
                                                     </Button>
@@ -242,7 +253,7 @@ const ChatMessageList = ({
                                                 <DropdownMenuContent align="end" className="w-40">
                                                     <DropdownMenuItem onClick={() => onCopyMessage(message.content)}>
                                                         <Copy className="h-4 w-4 mr-2" />
-                                                        Copy
+                                                        {t("chat.messageActions.copy")}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>

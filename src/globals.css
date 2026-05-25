@@ -461,6 +461,79 @@ img {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   Chat Personalization Layer
+   Driven by `data-mm-mode` + CSS custom properties (--mm-chat-warmth,
+   --mm-chat-accent, --mm-chat-warmth-tilt) propagated from the
+   useChatPersonalization hook. Each mode applies a quiet treatment —
+   never a different theme, just a different *temperature* of the same
+   one. Crisis turns clear data-mm-mode (empty string) so the surface
+   collapses back to neutral, in line with the crisis-safe yield
+   invariant defined in src/lib/chat/turnPersonalization.ts.
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-mm-mode] {
+    --mm-chat-bubble-radius: 18px;
+    --mm-chat-bubble-transition: 320ms ease;
+    --mm-chat-line-height: 1.55;
+}
+
+[data-mm-mode="active_listener"] {
+    --mm-chat-bubble-transition: 450ms ease;
+    --mm-chat-line-height: 1.62;
+}
+
+[data-mm-mode="psychoeducation"] {
+    --mm-chat-bubble-radius: 14px;
+    --mm-chat-line-height: 1.62;
+}
+
+[data-mm-mode="skill_coach"] {
+    --mm-chat-bubble-transition: 280ms ease;
+    --mm-chat-line-height: 1.5;
+}
+
+[data-mm-mode="recovery_check"] {
+    --mm-chat-bubble-transition: 380ms ease;
+}
+
+[data-mm-mode="referral_bridge"] {
+    --mm-chat-bubble-transition: 450ms ease;
+}
+
+/* Adopt the mode-derived line height on the AI message body. Bubble
+   max-width nudges via existing tailwind classes; we don't override them
+   here to avoid fighting layout. */
+[data-mm-mode] .chat-bubble-text {
+    line-height: var(--mm-chat-line-height, 1.55);
+    transition: line-height var(--mm-chat-bubble-transition, 320ms ease);
+}
+
+/* Affect-reactive ambient: a soft bottom-anchored glow tinted by
+   --mm-chat-accent and scaled by --mm-chat-warmth. Painted onto the
+   element's own box (default `background-attachment: scroll`) so the
+   gradient stays pinned to the bottom of the visible scroll area
+   instead of riding far below the viewport with the content. */
+.mm-chat-ambient {
+    background-image: radial-gradient(
+        ellipse 70% 38% at 50% 100%,
+        color-mix(
+            in oklab,
+            var(--mm-chat-accent, hsl(var(--warmth-500))) calc(var(--mm-chat-warmth, 0.85) * 28%),
+            transparent
+        ),
+        transparent 78%
+    );
+    background-repeat: no-repeat;
+    background-position: bottom center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-mm-mode] .chat-bubble-text {
+        transition: none;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
    Streaming Text
    ══════════════════════════════════════════════════════════════════ */
 

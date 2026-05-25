@@ -93,6 +93,47 @@ def test_chat_http_round_trip(client, patched_successful_pipeline) -> None:
 
 
 @pytest.mark.api
+def test_chat_http_meta_carries_personalization_signals(client, patched_successful_pipeline) -> None:
+    """Tone params, affect vector, and cultural frame must flow to the client.
+
+    These fields drive the mode-adaptive surface treatment, warmth-tuned
+    bubble animation, and affect-reactive ambient overlay in
+    useChatPersonalization on the frontend. Regressions here silently
+    break those features without throwing — guard them explicitly.
+    """
+    response = client.post(
+        "/chat",
+        json={"content": "I'm having a tough day", "session_id": "new"},
+        headers={"Authorization": "Bearer dev"},
+    )
+
+    assert response.status_code == 200, response.text
+    meta = response.json()["meta"]
+
+    assert "tone_params" in meta, "tone_params missing from meta"
+    tone = meta["tone_params"]
+    for key in (
+        "formality", "code_mix", "sentence_length", "warmth",
+        "emoji_use", "directness", "humour_tolerance", "pace",
+    ):
+        assert key in tone, f"tone_params.{key} missing"
+        assert isinstance(tone[key], (int, float))
+        assert 0.0 <= float(tone[key]) <= 1.0
+
+    assert "affect_vector" in meta, "affect_vector missing from meta"
+    affect = meta["affect_vector"]
+    for key in ("valence", "arousal", "dominance"):
+        assert key in affect, f"affect_vector.{key} missing"
+    assert -1.0 <= float(affect["valence"]) <= 1.0
+    assert 0.0 <= float(affect["arousal"]) <= 1.0
+    assert 0.0 <= float(affect["dominance"]) <= 1.0
+
+    assert "cultural_frame_id" in meta, "cultural_frame_id missing from meta"
+    assert isinstance(meta["cultural_frame_id"], str)
+    assert meta["cultural_frame_id"]
+
+
+@pytest.mark.api
 def test_chat_rejects_invalid_message_before_pipeline_work(client, patched_successful_pipeline) -> None:
     response = client.post(
         "/chat",

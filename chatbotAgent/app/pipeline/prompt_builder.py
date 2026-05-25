@@ -21,12 +21,13 @@ APIs (Azure / Groq / GLM all expect the chat layout).
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional  # noqa: F401
 
 from ..core.prompts import load_block
 from ..core.logging import get_logger, log_context
 from ..core.session import SessionObject
 from ..models.signals import (
+    ActivitySuggestion,
     IngestedInput,
     MemoryResult,
     OrchestratorOutput,
@@ -93,6 +94,7 @@ def build_full_prompt(
     ingested: IngestedInput,
     orchestrator: OrchestratorOutput,
     signals: Signals,
+    suggested_activity: Optional[ActivitySuggestion] = None,
     max_total_tokens: int = 8000,
     trace_id: str | None = None,
 ) -> PromptBundle:
@@ -102,6 +104,7 @@ def build_full_prompt(
             "memory block empty — skipped",
             extra=log_context(session_id=session.session_id, user_id=session.user_id, trace_id=trace_id, reason="no_retrieved_memory_or_semantic_fact"),
         )
+    block5_5 = _render_activity_invitation(suggested_activity)
     block7_full_turns = list(session.turns)
     block7 = _render_working_memory(block7_full_turns, compress_middle=False)
 
@@ -111,6 +114,7 @@ def build_full_prompt(
         "block3_memory": block3,
         "block4_cultural_frame": partial["block4_cultural_frame"],
         "block5_mode": partial["block5_mode"],
+        "block5_5_activity_invitation": block5_5,
         "block6_anti_sycophancy": partial["block6_anti_sycophancy"],
         "block7_working_memory": block7,
     }
@@ -213,6 +217,21 @@ def _render_mode_block(mode: str, dependency_flag: bool) -> str:
             "response."
         )
     return block
+
+
+def _render_activity_invitation(suggested: Optional[ActivitySuggestion]) -> str:
+    """Render block 5.5 only when a suggestion is present.
+
+    The template intentionally exposes only the *one* selected activity's
+    title to the LLM so it cannot hallucinate other tools. Anti-sycophancy
+    (block 6) still follows so the LLM can't pivot into salesmanship.
+    """
+    if suggested is None:
+        return ""
+    template = load_block("mode_activity_invitation")
+    if not template:
+        return ""
+    return template.format(title=suggested.title, voice_hint=suggested.voice_hint)
 
 
 def _render_memory_block(memory: MemoryResult) -> str:
@@ -360,6 +379,7 @@ def _assemble_system(blocks: Dict[str, str]) -> str:
         "block4_cultural_frame",
         "block5_mode",
         "block3_memory",
+        "block5_5_activity_invitation",
         "block6_anti_sycophancy",
         "block7_working_memory",
     ):

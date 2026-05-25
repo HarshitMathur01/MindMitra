@@ -14,13 +14,20 @@ Dependency counter rules::
     +1 if session had 0 social mentions
     -1 if session had ≥ 2 social mentions
     sessions_this_week increments (reset on Monday 00:00 IST elsewhere)
+
+Activity affinity (added with the chat → activity bridge)::
+
+    For each feedback row in this session:
+      outcome = 1.0 if action in ("accepted","completed") else 0.0
+      ema_new = 0.3 * outcome + 0.7 * ema_old
+    Counters (accept_count, dismiss_count) accumulate alongside the EMA.
 """
 from __future__ import annotations
 
 import logging
 import statistics
-from datetime import date
-from typing import Any, Dict
+from datetime import date, datetime, timezone
+from typing import Any, Dict, Iterable, List
 
 from ..core.session import SessionObject
 
@@ -29,6 +36,7 @@ logger = logging.getLogger(__name__)
 EMA_ALPHA = 0.3
 MAX_DIM_DELTA = 0.12
 WARMTH_FLOOR = 0.45
+ACTIVITY_EMA_ALPHA = 0.3
 
 
 def compute_procedural_ema(session: SessionObject) -> Dict[str, Any]:
@@ -82,6 +90,59 @@ def compute_procedural_ema(session: SessionObject) -> Dict[str, Any]:
         "last_session_date": date.today().isoformat(),
         "consecutive_high_urgency_sessions": consecutive,
     }
+
+
+def update_activity_affinity(
+    stored_affinity: Dict[str, Any] | None,
+    feedback_rows: Iterable[Dict[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """Fold a session's worth of activity_feedback rows into the EMA dict.
+
+    ``stored_affinity`` is the JSONB value already on the user_procedural_profiles
+    row (or empty dict for new users). ``feedback_rows`` is the list of rows
+    fetched from ``activity_feedback`` for this session window. Returns the
+    full new affinity dict to be upserted.
+
+    Idempotency: callers should pass only rows that postdate the last EMA
+    rollup; this function does not deduplicate by row id.
+    """
+    out: Dict[str, Dict[str, Any]] = {}
+    if stored_affinity:
+        for aid, payload in stored_affinity.items():
+            if isinstance(payload, dict):
+                out[aid] = dict(payload)
+
+    for row in feedback_rows:
+        aid = str(row.get("activity_id") or "").strip()
+        if not aid:
+            continue
+        action = str(row.get("action") or "").strip().lower()
+        if action not in ("accepted", "dismissed", "completed"):
+            continue
+        bucket = out.setdefault(aid, {
+            "accept_count": 0,
+            "dismiss_count": 0,
+            "last_shown_at": None,
+            "ema_acceptance": 0.5,
+        })
+        outcome = 1.0 if action in ("accepted", "completed") else 0.0
+        ema_old = float(bucket.get("ema_acceptance", 0.5))
+        bucket["ema_acceptance"] = round(
+            ACTIVITY_EMA_ALPHA * outcome + (1.0 - ACTIVITY_EMA_ALPHA) * ema_old,
+            4,
+        )
+        if outcome >= 1.0:
+            bucket["accept_count"] = int(bucket.get("accept_count", 0)) + 1
+        else:
+            bucket["dismiss_count"] = int(bucket.get("dismiss_count", 0)) + 1
+        # last_shown_at is whichever event is most recent for this activity.
+        row_ts = row.get("created_at")
+        if isinstance(row_ts, str) and row_ts:
+            bucket["last_shown_at"] = row_ts
+        else:
+            bucket["last_shown_at"] = datetime.now(timezone.utc).isoformat()
+
+    return out
 
 
 def _derive_session_style(session: SessionObject) -> Dict[str, float]:

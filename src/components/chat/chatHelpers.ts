@@ -1,11 +1,16 @@
 /**
- * Pure helpers for the Chat surface — no React, no DOM.
- * Keeping these isolated lets us unit-test them without rendering.
+ * Helpers for the Chat surface — no React components, no DOM.
+ *
+ * Pure utilities live here so they can be unit-tested without rendering.
+ * `formatDateSeparator` takes a `t` function from i18next so it stays
+ * caller-locale-aware without becoming a React hook.
  */
 
+import type { TFunction } from "i18next";
+
+import i18n from "@/i18n";
 import {
     moodEmojiPools,
-    moodLabelsByValue,
     CHAT_STORAGE_KEYS,
 } from "./chatConstants";
 import type { MoodOption, RecentChatPreview } from "./chatTypes";
@@ -26,6 +31,11 @@ export const hashSessionSeed = (sessionId: string): number => {
     return hash;
 };
 
+/**
+ * Returns the 5-point mood scale with seed-deterministic emoji per
+ * session, plus a stable English label key (e.g. "okay"). Translated
+ * labels are overlaid by `useMoodOptions()` in `chatI18n.ts`.
+ */
 export const buildMoodOptionsForSession = (sessionId: string | null): MoodOption[] => {
     const values = [1, 2, 3, 4, 5];
     const seed = sessionId ? hashSessionSeed(sessionId) : Math.floor(Math.random() * 1_000_000);
@@ -35,7 +45,7 @@ export const buildMoodOptionsForSession = (sessionId: string | null): MoodOption
         const emoji = pool[(seed + index * 7) % pool.length] ?? pool[0];
         return {
             value,
-            label: moodLabelsByValue[value] ?? "Mood",
+            label: "",
             emoji,
         };
     });
@@ -80,8 +90,13 @@ export const mergeRecentChats = (
     return isSameList ? previousChats : mergedChats;
 };
 
-/** Static, keyword-based reply suggestions under the latest AI message. */
-export const getQuickReplies = (content: string): string[] => {
+/**
+ * Static, keyword-based reply suggestions under the latest AI message.
+ * Returns an empty list on non-English locales — the keyword scan is
+ * English-only and would silently mismatch any non-EN AI reply.
+ */
+export const getQuickReplies = (content: string, lang: string = "en"): string[] => {
+    if (lang !== "en") return [];
     const lower = content.toLowerCase();
     if (lower.includes("breath") || lower.includes("exhale") || lower.includes("inhale"))
         return ["Guide me through it", "How long should I do this?", "What else can help?"];
@@ -100,13 +115,13 @@ export const getQuickReplies = (content: string): string[] => {
     return ["Tell me more", "How can I apply this?", "What should I do next?"];
 };
 
-export const formatDateSeparator = (date: Date): string => {
+export const formatDateSeparator = (date: Date, t: TFunction): string => {
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86_400_000).toDateString();
     const d = date.toDateString();
-    if (d === today) return "Today";
-    if (d === yesterday) return "Yesterday";
-    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    if (d === today) return t("chat.dateSeparator.today");
+    if (d === yesterday) return t("chat.dateSeparator.yesterday");
+    return date.toLocaleDateString(i18n.language, { month: "short", day: "numeric" });
 };
 
 // ─── "Keep this moment" persistence ────────────────────────────────────────

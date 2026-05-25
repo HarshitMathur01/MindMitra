@@ -160,5 +160,157 @@
   },
   "orb": {
     "aria": "{{companion}} ki ek chhoti si whisper"
+  },
+  "activitySuggestion": {
+    "heading": "for you now",
+    "recently": "recently shown",
+    "empty": "abhi kuch suggest nahi — keep going",
+    "beginCta": "begin karo",
+    "dismissCta": "abhi nahi",
+    "dismissAria": "suggestion hatao",
+    "pillPrefix": "for you",
+    "pillAria": "suggested activity kholo",
+    "returnHeading": "{{activity}} se wapas — kaisa laga?",
+    "returnChips": {
+      "better": "better",
+      "same": "same",
+      "notForMe": "not for me"
+    }
+  },
+  "chat": {
+    "emptyState": {
+      "fallback": {
+        "headline": "Jab bhi tum ready ho.",
+        "subcopy": "Koi script nahi. Koi raasta pick karo, ya bas type karna shuru karo."
+      },
+      "greetings": {
+        "lateNight": {
+          "headlineNamed": "Abhi tak jaag rahe ho, {{name}}?",
+          "headlineUnnamed": "Abhi tak jaag rahe ho?",
+          "subcopy": "Slow chal sakte hain. Bas batao, kya ghoom raha hai."
+        },
+        "morning": {
+          "headlineNamed": "Morning, {{name}}.",
+          "headlineUnnamed": "Morning.",
+          "subcopy": "Koi jaldi nahi — aaj kya mind mein hai?"
+        },
+        "afternoon": {
+          "headlineNamed": "Hey, {{name}}.",
+          "headlineUnnamed": "Hey.",
+          "subcopy": "Aaj ka haal sunao, ya bas ek minute baith jao."
+        },
+        "evening": {
+          "headlineNamed": "Evening, {{name}}.",
+          "headlineUnnamed": "Evening.",
+          "subcopy": "Din kaisa raha? Kahin se bhi shuru karo."
+        },
+        "night": {
+          "headlineNamed": "Achha hua tum aaye, {{name}}.",
+          "headlineUnnamed": "Achha hua tum aaye.",
+          "subcopy": "Quiet hours. Apna time lo."
+        }
+      },
+      "bodyCueHeading": "Ya body se shuru karo — kaisa feel ho raha hai",
+      "starters": {
+        "catchUp": "Aaj ka haal sunao",
+        "sitWithMe": "Ek minute saath baith jao",
+        "nameFeeling": "Help me name what I'm feeling"
+      },
+      "bodyCues": {
+        "tenseShoulders": "Kandhe tight",
+        "tightChest": "Chest bhaari",
+        "heavyFoggy": "Heavy / dhundhla",
+        "wiredRestless": "Restless / wired",
+        "numb": "Numb"
+      }
+    },
+    "messageActions": {
+      "keepThis": "Yaad rakho",
+      "kept": "Saved",
+      "keepAriaKept": "Hatao",
+      "keepAriaUnkept": "Yaad rakho",
+      "menuAria": "Message ke options",
+      "copy": "Copy",
+      "helpful": "Helpful tha",
+      "notHelpful": "Helpful nahi tha"
+    },
+    "dateSeparator": {
+      "today": "Aaj",
+      "yesterday": "Kal"
+    },
+    "loadingPhases": {
+      "reading": "Dhyaan se padh rahi hoon",
+      "thinking": "Soch rahi hoon kya kahun",
+      "writing": "Shabd dhoondh rahi hoon"
+    },
+    "header": {
+      "statusIdle": "yahin hoon"
+    },
+    "voice": {
+      "recording": "🎤 Record ho raha hai..."
+    },
+    "moodWidget": {
+      "prompt": "Abhi kaise feel ho raha hai?",
+      "maybeLater": "Baad mein",
+      "labels": {
+        "struggling": "Mushkil",
+        "low": "Low",
+        "okay": "Theek",
+        "good": "Achha",
+        "great": "Bahut achha"
+      }
+    },
+    "scroll": {
+      "toLatestAria": "Latest tak jao"
+    },
+    "toasts": {
+      "copied": {
+        "title": "Copy ho gaya!",
+        "description": "Message clipboard pe le liya."
+      },
+      "feedbackUp": {
+        "title": "Shukriya!",
+        "description": "Feedback save ho gaya."
+      },
+      "feedbackDown": {
+        "title": "Shukriya!",
+        "description": "Hum is reply ko behtar karenge."
+      },
+      "saveFailure": {
+        "title": "Abhi save nahi kar paayi",
+        "description": "Conversation screen pe hai, par yaad rakhne mein dikkat aa rahi hai. Hum try karte rahenge."
+      },
+      "chatServiceError": {
+        "title": "Chat service tak nahi pahunch payi",
+        "description": "Reply lene mein dikkat hui. Thodi der mein phir try karo."
+      },
+      "sessionLoadError": {
+        "title": "Error",
+        "description": "Chat session load nahi ho paya. Phir try karo."
+      },
+      "sessionSwitchError": {
+        "title": "Error",
+        "description": "Chat session switch nahi ho paya. Phir try karo."
+      },
+      "exportEmpty": {
+        "title": "Export karne ko kuch nahi",
+        "description": "Pehle conversation shuru karo, phir try karo."
+      },
+      "exportPdf": {
+        "title": "Chat export ho gayi",
+        "description": "PDF mein download ho gayi."
+      },
+      "exportJson": {
+        "title": "Chat export ho gayi",
+        "description": "JSON mein download ho gayi."
+      },
+      "exportCsv": {
+        "title": "Chat export ho gayi",
+        "description": "CSV mein download ho gayi."
+      }
+    },
+    "errors": {
+      "aiFallback": "Main yahin hoon — par abhi kuch gadbad ho gayi. Phir se try karna chahoge?"
+    }
   }
 }

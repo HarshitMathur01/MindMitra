@@ -183,6 +183,43 @@ class SafetyResult(BaseModel):
     response_source: ResponseSource
 
 
+# ── Layer 3.5: Activity suggestion (deterministic, post-orchestrator) ─────
+ActivityType = Literal["mindgym_tool", "route"]
+
+
+class ActivitySuggestion(BaseModel):
+    """A single, conservative invitation surfaced alongside the AI reply.
+
+    Produced by :mod:`app.pipeline.activity_suggestion`. Always optional —
+    refusal (``None``) is a first-class output. The string ``activity_id``
+    is either a MindGym tool slug (``"breath-sphere"``) for ``mindgym_tool``
+    or an absolute route path (``"/journal"``) for ``route``.
+    """
+
+    activity_id: str
+    activity_type: ActivityType
+    title: str
+    reason_code: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    voice_hint: str
+    crisis_safe: bool = True
+    minutes: Optional[int] = None
+    section: Optional[str] = None
+
+
+class ActivityAffinity(BaseModel):
+    """Per-activity, per-user EMA of acceptance, plus raw counters.
+
+    Lives inside ``procedural_profile.activity_affinity[activity_id]``.
+    Updated at session end by :mod:`app.memory.procedural_update`.
+    """
+
+    accept_count: int = 0
+    dismiss_count: int = 0
+    last_shown_at: Optional[str] = None
+    ema_acceptance: float = Field(ge=0.0, le=1.0, default=0.5)
+
+
 # ── Audit log entry ──────────────────────────────────────────────────────
 class AuditEvent(BaseModel):
     session_id: Optional[str] = None
@@ -210,5 +247,6 @@ class TurnResult(BaseModel):
     llm: Optional[LLMResult] = None
     safety: Optional[SafetyResult] = None
     prompt: Optional[PromptBundle] = None
+    suggested_activity: Optional[ActivitySuggestion] = None
     timings_ms: Dict[str, float] = Field(default_factory=dict)
     trace_id: Optional[str] = None

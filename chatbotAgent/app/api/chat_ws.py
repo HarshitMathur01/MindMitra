@@ -11,10 +11,10 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
-from fastapi import APIRouter, Header, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, ValidationError
+from fastapi import APIRouter, Header, HTTPException, Response, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel, Field, ValidationError
 
 from ..core import fallback as fb_mod
 from ..core.auth import AuthError, authenticate_websocket, decode_supabase_jwt
@@ -25,6 +25,7 @@ from ..core.session import SessionObject
 from ..jobs import session_end_worker
 from ..memory.embedding import get_or_compute_embedding
 from ..models.signals import (
+    ActivitySuggestion,
     AffectVector,
     IngestedInput,
     LLMResult,
@@ -37,6 +38,7 @@ from ..models.signals import (
     TurnResult,
 )
 from ..pipeline import (
+    activity_suggestion as activity_mod,
     crisis_bypass,
     ingestion,
     llm_core,
@@ -239,6 +241,55 @@ async def chat_http(
         timings_ms=result.timings_ms,
         trace_id=result.trace_id,
     )
+
+
+# ── activity feedback endpoint (accept | dismiss | complete) ─────────────
+class ActivityFeedbackRequest(BaseModel):
+    activity_id: str = Field(min_length=1, max_length=120)
+    action: Literal["accepted", "dismissed", "completed"]
+    trace_id: Optional[str] = None
+    session_id: Optional[str] = None
+    reason_code: Optional[str] = Field(default=None, max_length=80)
+
+
+@router.post("/chat/activity-feedback", status_code=204)
+async def chat_activity_feedback(
+    payload: ActivityFeedbackRequest,
+    authorization: Optional[str] = Header(default=None, alias="Authorization"),
+) -> Response:
+    """Persist a single accept/dismiss/complete event for an activity card.
+
+    Best-effort: a Supabase outage MUST NOT block the user's chat flow, so
+    failures are logged at warn but the endpoint still returns 204. The
+    session-end worker rolls these rows into ``activity_affinity``.
+    """
+    user_id = await _resolve_http_user_id(authorization)
+    row = {
+        "user_id": user_id,
+        "activity_id": payload.activity_id[:120],
+        "action": payload.action,
+        "trace_id": (payload.trace_id or "")[:64] or None,
+        "session_id": (payload.session_id or "")[:64] or None,
+        "reason_code": (payload.reason_code or "")[:80] or None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    ok = await profile_service.write_activity_feedback(row)
+    if not ok:
+        logger.warning(
+            "[activity-feedback] write skipped or failed",
+            extra=log_context(user_id=user_id, activity_id=payload.activity_id, action=payload.action),
+        )
+    else:
+        logger.info(
+            f"[activity-feedback] {payload.action}: {payload.activity_id}",
+            extra=log_context(
+                user_id=user_id,
+                activity_id=payload.activity_id,
+                action=payload.action,
+                reason_code=payload.reason_code,
+            ),
+        )
+    return Response(status_code=204)
 
 
 # ── public WebSocket route ───────────────────────────────────────────────
@@ -677,6 +728,19 @@ async def _process_turn(
         ),
     )
 
+    # ── Layer 3.5: activity suggestion (pure Python, deterministic) ────────
+    # Conservative bias: this returns None far more often than it returns
+    # a suggestion. Episodic memory is filled in below; the rule engine reads
+    # session.suggestion_history for cooldown but does NOT use episodic yet —
+    # we pass an empty list and let memory retrieval inform future turns.
+    suggested_activity = activity_mod.suggest_activity(
+        signals=signals,
+        orchestrator=orchestrator,
+        session=session,
+        episodic_techniques_used=[],
+        trace_id=ingested.trace_id,
+    )
+
     # ── PARALLEL C: memory retrieval ───────────────────────────────────────
     logger.debug("L4 memory retrieval started", extra=log_context(session_id=session.session_id, user_id=user_id, trace_id=ingested.trace_id))
     mem_t0 = time.perf_counter()
@@ -715,6 +779,30 @@ async def _process_turn(
         ),
     )
 
+    # ── Layer 3.5b: enrich activity suggestion with episodic context ───────
+    # Now that memory is available, re-bias against techniques the user has
+    # already done very recently in episodic history. We keep the original
+    # rule decision but suppress if the chosen technique appears in the most
+    # recent successful episode (avoids "didn't we just do this?").
+    if suggested_activity is not None and memory.episodic_memories:
+        latest_techniques = {
+            t.lower()
+            for t in (memory.episodic_memories[0].techniques_used or [])
+        }
+        # rough match on activity_id substring (e.g. "breath-sphere" ↔ "breathing")
+        aid_short = suggested_activity.activity_id.lstrip("/").split("-")[0]
+        if any(aid_short in t for t in latest_techniques):
+            logger.info(
+                f"activity suppressed — already used recently: {suggested_activity.activity_id}",
+                extra=log_context(
+                    session_id=session.session_id,
+                    user_id=user_id,
+                    trace_id=ingested.trace_id,
+                    activity_id=suggested_activity.activity_id,
+                ),
+            )
+            suggested_activity = None
+
     # ── Layer 5: full prompt build ──────────────────────────────────────────
     bundle = prompt_builder.build_full_prompt(
         partial=partial,
@@ -723,6 +811,7 @@ async def _process_turn(
         ingested=ingested,
         orchestrator=orchestrator,
         signals=signals,
+        suggested_activity=suggested_activity,
         max_total_tokens=e.max_total_tokens,
         trace_id=ingested.trace_id,
     )
@@ -938,7 +1027,32 @@ async def _process_turn(
         "fallback_chain": llm_result.fallback_chain,
         "memory_retrieved": memory.memory_retrieved,
         "trace_id": ingested.trace_id,
+        # Personalization signals consumed by the chat surface's
+        # useChatPersonalization hook (mode-adaptive treatment, warmth-tuned
+        # animations, affect-reactive ambience). The client's crisis-safe
+        # gate yields to a calm-clinical default on urgency >= 2 regardless.
+        "tone_params": orchestrator.tone_params.model_dump(),
+        "affect_vector": signals.affect_vector.model_dump(),
+        "cultural_frame_id": orchestrator.cultural_frame_id,
     }
+    if suggested_activity is not None and signals.urgency_score < 3:
+        # Defense-in-depth: never leak a suggestion on a crisis turn even if
+        # an upstream bug let one through. The rule engine already refuses
+        # crisis but this is the second kill switch on the wire.
+        payload_meta["suggested_activity"] = suggested_activity.model_dump(exclude_none=True)
+        # Update session state so the cooldown counts against this turn and
+        # the panel's "recently shown" rail can render past suggestions.
+        session.last_suggestion_turn = session.turn_count
+        session.last_suggestion_id = suggested_activity.activity_id
+        session.suggestion_history.append({
+            "turn": session.turn_count,
+            "activity_id": suggested_activity.activity_id,
+            "reason_code": suggested_activity.reason_code,
+            "shown_at": datetime.now(timezone.utc).isoformat(),
+        })
+        # Keep only the last 5 entries — the panel only renders 2.
+        if len(session.suggestion_history) > 5:
+            session.suggestion_history = session.suggestion_history[-5:]
     event_type = "confirmed" if (safety.approved and safety.response_source == "llm_primary") else "replace"
     await _send_turn_event({"type": event_type, "text": safety.approved_response, "meta": payload_meta})
     logger.info(
@@ -1047,6 +1161,7 @@ async def _process_turn(
         llm=llm_result,
         safety=safety,
         prompt=bundle,
+        suggested_activity=suggested_activity,
         timings_ms=timings,
         trace_id=ingested.trace_id,
     )

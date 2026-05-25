@@ -1,6 +1,41 @@
 import { motion } from "framer-motion";
 import Pulse from "@/components/identity/Pulse";
-import { CHAT_MESSAGE_SPRING, emptyStateStarters, bodyCueChips } from "./chatConstants";
+import { useLocalizedT } from "@/hooks/useLocalizedT";
+import { CHAT_MESSAGE_SPRING } from "./chatConstants";
+import { useEmptyStateStarters, useBodyCueChips } from "./chatI18n";
+
+type TimeBucket = "late-night" | "morning" | "afternoon" | "evening" | "night";
+
+const BUCKET_TO_KEY: Record<TimeBucket, string> = {
+    "late-night": "lateNight",
+    morning: "morning",
+    afternoon: "afternoon",
+    evening: "evening",
+    night: "night",
+};
+
+function useGreeting(
+    displayName: string | undefined,
+    timeBucket: TimeBucket | undefined,
+): { headline: string; subcopy: string } {
+    const { t } = useLocalizedT();
+    if (!timeBucket) {
+        return {
+            headline: t("chat.emptyState.fallback.headline"),
+            subcopy: t("chat.emptyState.fallback.subcopy"),
+        };
+    }
+    const firstName = (displayName ?? "").trim().split(/\s+/)[0];
+    const named = Boolean(firstName) && firstName.length <= 24;
+    const bucketKey = BUCKET_TO_KEY[timeBucket];
+    const base = `chat.emptyState.greetings.${bucketKey}`;
+    return {
+        headline: named
+            ? t(`${base}.headlineNamed`, { name: firstName })
+            : t(`${base}.headlineUnnamed`),
+        subcopy: t(`${base}.subcopy`),
+    };
+}
 
 /**
  * Calmer chat opening:
@@ -11,14 +46,24 @@ import { CHAT_MESSAGE_SPRING, emptyStateStarters, bodyCueChips } from "./chatCon
  *      richer than 1–5 mood and more honest about how distress shows
  *      up in the body.
  *
- * Replaces the older "mood widget appears as second message" pattern,
- * which felt procedural and broke the conversational flow.
+ * The headline + subcopy interpolate the user's first name and the
+ * current time bucket when both are known — falls back cleanly when
+ * either is missing so cold-load + first-visit cases still look complete.
  */
 const ChatEmptyState = ({
     onSend,
+    displayName,
+    timeBucket,
 }: {
     onSend: (text: string) => void;
-}) => (
+    displayName?: string;
+    timeBucket?: TimeBucket;
+}) => {
+    const { t } = useLocalizedT();
+    const { headline, subcopy } = useGreeting(displayName, timeBucket);
+    const starters = useEmptyStateStarters();
+    const bodyCues = useBodyCueChips();
+    return (
     <motion.div
         key="empty-state"
         initial={{ opacity: 0, y: 12 }}
@@ -30,16 +75,16 @@ const ChatEmptyState = ({
         <Pulse size={120} state="idle" intensity={0.85} />
 
         <p className="mt-8 font-display text-2xl tracking-tight text-foreground">
-            Whenever you&apos;re ready.
+            {headline}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-            No script. Pick a way in, or just start typing.
+            {subcopy}
         </p>
 
         <div className="mt-6 flex w-full flex-col gap-2">
-            {emptyStateStarters.map((s) => (
+            {starters.map((s) => (
                 <button
-                    key={s.label}
+                    key={s.key}
                     type="button"
                     onClick={() => onSend(s.prompt)}
                     className="rounded-2xl border border-border/50 bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-border hover:bg-[hsl(var(--ink-1))]"
@@ -51,12 +96,12 @@ const ChatEmptyState = ({
 
         <div className="mt-8 w-full">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">
-                Or start with how it feels
+                {t("chat.emptyState.bodyCueHeading")}
             </p>
             <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-                {bodyCueChips.map((chip) => (
+                {bodyCues.map((chip) => (
                     <button
-                        key={chip.label}
+                        key={chip.key}
                         type="button"
                         onClick={() => onSend(chip.prompt)}
                         className="rounded-full border border-border/50 bg-background px-3 py-1.5 text-xs text-ink-7 transition-colors hover:border-border hover:bg-[hsl(var(--ink-1))]"
@@ -67,6 +112,7 @@ const ChatEmptyState = ({
             </div>
         </div>
     </motion.div>
-);
+    );
+};
 
 export default ChatEmptyState;

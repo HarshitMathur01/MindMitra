@@ -1,5 +1,11 @@
 /**
- * Static copy + motion / mood data tables for the Chat surface.
+ * Static motion / mood data tables and LLM-bound prompt strings for the
+ * Chat surface.
+ *
+ * User-facing labels live in i18n (see `src/i18n/locales/*.json` and the
+ * hooks in `chatI18n.ts`). Prompts that get sent TO the model as a user
+ * message stay here in English so backend signal extraction stays
+ * predictable across locales.
  *
  * Kept intentionally token-first (no bespoke per-topic colors) so the
  * surface inherits Sanctuary v4 calm by default.
@@ -15,29 +21,38 @@ export const suggestedPrompts: string[] = [
 ];
 
 /**
- * Calm, contextual entry points for the empty state. Intentionally
- * non-clinical phrasing — no "anxiety", "depression", "stress" up front.
- * Those clinical terms live deeper in the sidebar / resources.
+ * Calm, contextual entry points for the empty state. Labels are i18n'd;
+ * the `prompt` strings stay English because they're sent to the LLM,
+ * which is system-prompted for grounding intent.
  */
-export const emptyStateStarters: { label: string; prompt: string }[] = [
-    { label: "Catch me up on today", prompt: "Catch me up on today — what should I tell you about?" },
-    { label: "Sit with me for a minute", prompt: "I just want to sit for a minute. Can you keep me company?" },
-    { label: "Help me name what I'm feeling", prompt: "Help me name what I'm feeling right now. I'll start." },
-];
+export const EMPTY_STATE_STARTER_KEYS = ["catchUp", "sitWithMe", "nameFeeling"] as const;
+export type EmptyStateStarterKey = typeof EMPTY_STATE_STARTER_KEYS[number];
+export const EMPTY_STATE_STARTER_PROMPTS: Record<EmptyStateStarterKey, string> = {
+    catchUp: "Catch me up on today — what should I tell you about?",
+    sitWithMe: "I just want to sit for a minute. Can you keep me company?",
+    nameFeeling: "Help me name what I'm feeling right now. I'll start.",
+};
 
 /**
- * Somatic body-cue chips. Far richer clinical signal than 1–5 mood:
- * shifting attention to the body is itself a grounding micro-intervention.
- * Tap sends as a one-line message; the model is briefed (system prompt)
- * to respond with a body-aware grounding suggestion.
+ * Somatic body-cue chips. Tap sends as a one-line message; the model is
+ * briefed (system prompt) to respond with a body-aware grounding
+ * suggestion. Labels are i18n'd; prompts stay English (LLM-bound).
  */
-export const bodyCueChips: { label: string; prompt: string }[] = [
-    { label: "Tense shoulders", prompt: "I notice my shoulders are really tense right now." },
-    { label: "Tight chest", prompt: "My chest feels tight. Can we slow down for a second?" },
-    { label: "Heavy / foggy", prompt: "Everything feels heavy and a bit foggy today." },
-    { label: "Wired & restless", prompt: "I feel wired and restless. I can't settle." },
-    { label: "Numb", prompt: "I feel kind of numb. Not great, not bad — just not much." },
-];
+export const BODY_CUE_KEYS = [
+    "tenseShoulders",
+    "tightChest",
+    "heavyFoggy",
+    "wiredRestless",
+    "numb",
+] as const;
+export type BodyCueKey = typeof BODY_CUE_KEYS[number];
+export const BODY_CUE_PROMPTS: Record<BodyCueKey, string> = {
+    tenseShoulders: "I notice my shoulders are really tense right now.",
+    tightChest: "My chest feels tight. Can we slow down for a second?",
+    heavyFoggy: "Everything feels heavy and a bit foggy today.",
+    wiredRestless: "I feel wired and restless. I can't settle.",
+    numb: "I feel kind of numb. Not great, not bad — just not much.",
+};
 
 export const quickCategories = [
     { label: "Mental Health", icon: "🧠", color: "bg-primary/10 text-primary" },
@@ -48,11 +63,12 @@ export const quickCategories = [
     { label: "Therapy", icon: "💬", color: "bg-primary/10 text-primary" },
 ];
 
-export const loadingPhases = [
-    "Reading this with care",
-    "Thinking of what to say",
-    "Putting it into words",
-];
+/**
+ * Translation keys for the rotating loading-phase phrases shown while
+ * the AI is composing a reply. Resolved via `useLoadingPhases()`.
+ */
+export const LOADING_PHASE_KEYS = ["reading", "thinking", "writing"] as const;
+export type LoadingPhaseKey = typeof LOADING_PHASE_KEYS[number];
 
 /** Fast, precise spring for message bubbles */
 export const CHAT_MESSAGE_SPRING = {
@@ -69,12 +85,17 @@ export const CHAT_SOFT_SPRING = {
     mass: 1,
 };
 
-export const moodLabelsByValue: Record<number, string> = {
-    1: "Struggling",
-    2: "Low",
-    3: "Okay",
-    4: "Good",
-    5: "Great",
+/**
+ * Translation-key suffixes for the 5-point mood scale. Used by
+ * `useMoodOptions()` to overlay translated labels onto the
+ * seed-deterministic emoji picker in `buildMoodOptionsForSession`.
+ */
+export const MOOD_LABEL_KEYS: Record<number, "struggling" | "low" | "okay" | "good" | "great"> = {
+    1: "struggling",
+    2: "low",
+    3: "okay",
+    4: "good",
+    5: "great",
 };
 
 export const moodEmojiPools: Record<number, string[]> = {
@@ -88,6 +109,7 @@ export const moodEmojiPools: Record<number, string[]> = {
 /**
  * Sentence-style mood replies sent to the model when a user taps a
  * mood emoji. Phrased so the model sees a self-statement, not metadata.
+ * Stays English on purpose — these are LLM-bound, not UI copy.
  */
 export const moodReplyMap: Record<number, string> = {
     1: "I'm really struggling right now",

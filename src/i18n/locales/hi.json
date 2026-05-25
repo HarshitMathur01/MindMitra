@@ -160,5 +160,157 @@
   },
   "orb": {
     "aria": "{{companion}} की एक छोटी फुसफुसाहट"
+  },
+  "activitySuggestion": {
+    "heading": "abhi tumhare liye",
+    "recently": "haal hi mein dikhaaye gaye",
+    "empty": "abhi koi suggestion nahi — chalte raho",
+    "beginCta": "shuru karo",
+    "dismissCta": "abhi nahi",
+    "dismissAria": "suggestion hatao",
+    "pillPrefix": "tumhare liye",
+    "pillAria": "suggested activity kholo",
+    "returnHeading": "{{activity}} se wapas — kaisa laga?",
+    "returnChips": {
+      "better": "behtar",
+      "same": "waisa hi",
+      "notForMe": "mere liye nahi"
+    }
+  },
+  "chat": {
+    "emptyState": {
+      "fallback": {
+        "headline": "जब भी तुम तैयार हो।",
+        "subcopy": "कोई स्क्रिप्ट नहीं। कोई भी रास्ता चुनो, या बस लिखना शुरू करो।"
+      },
+      "greetings": {
+        "lateNight": {
+          "headlineNamed": "अभी तक जाग रहे हो, {{name}}?",
+          "headlineUnnamed": "अभी तक जाग रहे हो?",
+          "subcopy": "धीरे चल सकते हैं। बताओ, क्या घूम रहा है मन में।"
+        },
+        "morning": {
+          "headlineNamed": "शुभ प्रभात, {{name}}।",
+          "headlineUnnamed": "शुभ प्रभात।",
+          "subcopy": "कोई जल्दी नहीं — आज मन में क्या है?"
+        },
+        "afternoon": {
+          "headlineNamed": "नमस्ते, {{name}}।",
+          "headlineUnnamed": "नमस्ते।",
+          "subcopy": "दिन का हाल सुनाओ, या बस एक मिनट साथ बैठो।"
+        },
+        "evening": {
+          "headlineNamed": "शुभ संध्या, {{name}}।",
+          "headlineUnnamed": "शुभ संध्या।",
+          "subcopy": "दिन कैसा रहा? कहीं से भी शुरू करो।"
+        },
+        "night": {
+          "headlineNamed": "अच्छा हुआ तुम आए, {{name}}।",
+          "headlineUnnamed": "अच्छा हुआ तुम आए।",
+          "subcopy": "शांत घड़ी है। अपना समय लो।"
+        }
+      },
+      "bodyCueHeading": "या वहाँ से शुरू करो — कैसा महसूस हो रहा है",
+      "starters": {
+        "catchUp": "आज का हाल सुनाओ",
+        "sitWithMe": "एक मिनट साथ बैठो",
+        "nameFeeling": "बताओ मैं क्या महसूस कर रहा हूँ"
+      },
+      "bodyCues": {
+        "tenseShoulders": "कंधे तने हुए",
+        "tightChest": "सीना भारी",
+        "heavyFoggy": "भारी / धुंधला",
+        "wiredRestless": "बेचैन / उछलता",
+        "numb": "सुन्न"
+      }
+    },
+    "messageActions": {
+      "keepThis": "याद रखो",
+      "kept": "सहेजा",
+      "keepAriaKept": "हटाओ",
+      "keepAriaUnkept": "याद रखो",
+      "menuAria": "संदेश विकल्प",
+      "copy": "कॉपी",
+      "helpful": "मददगार",
+      "notHelpful": "मददगार नहीं"
+    },
+    "dateSeparator": {
+      "today": "आज",
+      "yesterday": "कल"
+    },
+    "loadingPhases": {
+      "reading": "ध्यान से पढ़ रही हूँ",
+      "thinking": "सोच रही हूँ क्या कहूँ",
+      "writing": "शब्द ढूँढ रही हूँ"
+    },
+    "header": {
+      "statusIdle": "यहीं हूँ जब तुम चाहो"
+    },
+    "voice": {
+      "recording": "🎤 रिकॉर्ड हो रहा है..."
+    },
+    "moodWidget": {
+      "prompt": "अभी कैसा महसूस हो रहा है?",
+      "maybeLater": "बाद में",
+      "labels": {
+        "struggling": "मुश्किल",
+        "low": "नीचे",
+        "okay": "ठीक",
+        "good": "अच्छा",
+        "great": "बहुत अच्छा"
+      }
+    },
+    "scroll": {
+      "toLatestAria": "नवीनतम तक जाओ"
+    },
+    "toasts": {
+      "copied": {
+        "title": "कॉपी हो गया!",
+        "description": "संदेश क्लिपबोर्ड पर ले लिया गया।"
+      },
+      "feedbackUp": {
+        "title": "धन्यवाद!",
+        "description": "फ़ीडबैक सहेज लिया।"
+      },
+      "feedbackDown": {
+        "title": "धन्यवाद!",
+        "description": "हम इस जवाब को बेहतर करेंगे।"
+      },
+      "saveFailure": {
+        "title": "अभी सहेज नहीं पाई",
+        "description": "बातचीत स्क्रीन पर है, पर याद रखने में दिक्कत आ रही है। कोशिश जारी है।"
+      },
+      "chatServiceError": {
+        "title": "चैट सेवा से जुड़ नहीं पाई",
+        "description": "जवाब लेने में दिक्कत हुई। थोड़ी देर में फिर कोशिश करो।"
+      },
+      "sessionLoadError": {
+        "title": "त्रुटि",
+        "description": "चैट सत्र नहीं खुल पाया। फिर कोशिश करो।"
+      },
+      "sessionSwitchError": {
+        "title": "त्रुटि",
+        "description": "चैट सत्र बदलने में दिक्कत हुई। फिर कोशिश करो।"
+      },
+      "exportEmpty": {
+        "title": "निर्यात करने को कुछ नहीं",
+        "description": "पहले बातचीत शुरू करो, फिर कोशिश करो।"
+      },
+      "exportPdf": {
+        "title": "चैट निर्यात हो गई",
+        "description": "PDF के रूप में डाउनलोड हुआ।"
+      },
+      "exportJson": {
+        "title": "चैट निर्यात हो गई",
+        "description": "JSON के रूप में डाउनलोड हुआ।"
+      },
+      "exportCsv": {
+        "title": "चैट निर्यात हो गई",
+        "description": "CSV के रूप में डाउनलोड हुआ।"
+      }
+    },
+    "errors": {
+      "aiFallback": "मैं यहीं हूँ — पर अभी कुछ गड़बड़ हो गई। फिर से कोशिश करना चाहोगे?"
+    }
   }
 }

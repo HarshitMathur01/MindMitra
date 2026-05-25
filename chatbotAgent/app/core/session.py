@@ -102,6 +102,10 @@ class SessionObject:
     # ── caches populated at session start ───────────────────────────────
     semantic_profile: Dict[str, Any] = field(default_factory=dict)
     procedural_profile: Dict[str, Any] = field(default_factory=dict)
+    # ── activity suggestion state (cooldown + recently-shown rail) ──────
+    last_suggestion_turn: int = -10
+    last_suggestion_id: Optional[str] = None
+    suggestion_history: List[Dict[str, Any]] = field(default_factory=list)
 
     # ── (de)serialisation ───────────────────────────────────────────────
     def to_json(self) -> str:

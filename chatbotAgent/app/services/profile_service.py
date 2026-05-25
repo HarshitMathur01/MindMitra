@@ -190,6 +190,52 @@ async def write_audit_log(event: Dict[str, Any]) -> bool:
     return await asyncio.to_thread(_write)
 
 
+# ── activity feedback writer ─────────────────────────────────────────────
+async def write_activity_feedback(event: Dict[str, Any]) -> bool:
+    """Persist a single user accept/dismiss/complete for an activity suggestion.
+
+    The row is later rolled into ``user_procedural_profiles.activity_affinity``
+    by the session-end worker. Best-effort: failures are logged but never
+    surfaced to the user.
+    """
+    sb = get_supabase()
+    if sb is None:
+        return False
+
+    def _write() -> bool:
+        try:
+            sb.table("activity_feedback").insert(event).execute()
+            return True
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[v3 profile] write_activity_feedback failed: %s", exc)
+            return False
+
+    return await asyncio.to_thread(_write)
+
+
+async def fetch_recent_activity_feedback(user_id: str, since_iso: str) -> List[Dict[str, Any]]:
+    """Pull all feedback rows for one user since a timestamp (session-end EMA)."""
+    sb = get_supabase()
+    if sb is None:
+        return []
+
+    def _read() -> List[Dict[str, Any]]:
+        try:
+            res = (
+                sb.table("activity_feedback")
+                .select("activity_id, action, created_at")
+                .eq("user_id", user_id)
+                .gte("created_at", since_iso)
+                .execute()
+            )
+            return list(res.data or [])
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[v3 profile] fetch_recent_activity_feedback failed: %s", exc)
+            return []
+
+    return await asyncio.to_thread(_read)
+
+
 async def write_failed_summary(user_id: str, session_id: str, transcript: str) -> bool:
     return await _write_failed_payload("failed_summaries", user_id, session_id, transcript)
 

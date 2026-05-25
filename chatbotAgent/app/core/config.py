@@ -50,7 +50,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "session": {
         "ttl_seconds": 1500,
         "profile_load_timeout_s": 4.0,
-        "daily_chat_limit": 20,
+        "daily_chat_limit": 40,
         "dev_daily_chat_limit": 1000,
     },
     "redis": {

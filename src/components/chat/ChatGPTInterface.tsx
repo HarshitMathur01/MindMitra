@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useVoiceRecording, type VoiceAnalysis } from "@/hooks/useVoiceRecording";
 import { useAuth } from "@/hooks/useAuth";
 import { useSettings } from "@/hooks/useSettings";
+import { useLocalizedT } from "@/hooks/useLocalizedT";
 import { useChat } from "../../hooks/useChat";
 
 import TypewriterText from "./TypewriterText";
@@ -32,16 +33,28 @@ import ChatComposer from "./ChatComposer";
 import ChatEmptyState from "./ChatEmptyState";
 import ChatThinking from "./ChatThinking";
 import ChatContinueRibbon from "./ChatContinueRibbon";
+import ActivitySuggestionPanel, {
+    ActivitySuggestionPill,
+} from "./ActivitySuggestionPanel";
+import { useActivitySuggestion } from "@/hooks/useActivitySuggestion";
+import {
+    clearChatHandoff,
+    parseSuggestionFromMeta,
+    readChatHandoff,
+    type ChatActivityHandoff,
+} from "@/lib/chat/activitySuggestion";
+import QuickReplies from "./QuickReplies";
 
 import {
     CHAT_MESSAGE_SPRING,
     CHAT_SOFT_SPRING,
     CHAT_STORAGE_KEYS,
-    loadingPhases,
     moodReplyMap,
 } from "./chatConstants";
+import { useLoadingPhases, useMoodOptions } from "./chatI18n";
+import { useChatPersonalization } from "@/hooks/useChatPersonalization";
+import { parseTurnMeta, type TurnMeta } from "@/lib/chat/turnPersonalization";
 import {
-    buildMoodOptionsForSession,
     mergeRecentChats,
     messageLengthBand,
 } from "./chatHelpers";
@@ -135,6 +148,24 @@ const ChatGPTInterface = () => {
     const [moodValue, setMoodValue] = useState<number | null>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
     const [continueDismissed, setContinueDismissed] = useState(false);
+    const [activityPanelOpen, setActivityPanelOpen] = useState(false);
+    const [latestUrgency, setLatestUrgency] = useState(0);
+    const [latestTraceId, setLatestTraceId] = useState<string | undefined>(undefined);
+    const [latestTurnMeta, setLatestTurnMeta] = useState<TurnMeta | null>(null);
+    const [returnHandoff, setReturnHandoff] = useState<ChatActivityHandoff | null>(null);
+    const activitySuggestion = useActivitySuggestion();
+    const { t: tSanctuary } = useLocalizedT();
+    const personalization = useChatPersonalization(latestTurnMeta);
+
+    // On mount, detect a completed chat → activity handoff. If the user
+    // finished a tool launched from chat, surface a small "how did it land?"
+    // QuickReplies chip set just above the composer.
+    useEffect(() => {
+        const handoff = readChatHandoff();
+        if (handoff && handoff.completed) {
+            setReturnHandoff(handoff);
+        }
+    }, []);
 
     // ── Hooks & refs ────────────────────────────────────────────────────────
     const { user, loading: authLoading } = useAuth();
@@ -191,10 +222,7 @@ const ChatGPTInterface = () => {
     const lastSaveFailureToastAtRef = useRef(0);
 
     // ── Derived ─────────────────────────────────────────────────────────────
-    const moodOptions = useMemo(
-        () => buildMoodOptionsForSession(currentSessionId),
-        [currentSessionId],
-    );
+    const moodOptions = useMoodOptions(currentSessionId);
 
     const [selectedAvatarId, setSelectedAvatarId] = useState<string>(
         normalizeAvatarModelId(settings?.avatar_model),
@@ -228,10 +256,15 @@ const ChatGPTInterface = () => {
     const userAvatarUrl = user?.user_metadata?.avatar_url as string | undefined;
     const userInitial = userDisplayName.trim().charAt(0).toUpperCase() || "U";
 
+    const defaultLoadingPhases = useLoadingPhases();
+    const activeLoadingPhases = personalization.loadingPhases.length
+        ? personalization.loadingPhases
+        : defaultLoadingPhases;
     const loadingPhase =
-        loadingPhases[Math.min(Math.floor(loadingProgress / 33), loadingPhases.length - 1)] ??
-        loadingPhases[0];
-    const headerStatusText = isLoading ? loadingPhase : "here when you are";
+        activeLoadingPhases[
+            Math.min(Math.floor(loadingProgress / 33), activeLoadingPhases.length - 1)
+        ] ?? activeLoadingPhases[0];
+    const headerStatusText = isLoading ? loadingPhase : tSanctuary("chat.header.statusIdle");
 
     const filteredMessages = messages.filter(
         (message) =>
@@ -339,12 +372,12 @@ const ChatGPTInterface = () => {
             setMessages((msgs) =>
                 msgs.map((m) =>
                     m.id === voiceTempMsgId
-                        ? { ...m, content: currentTranscript || "🎤 Recording..." }
+                        ? { ...m, content: currentTranscript || tSanctuary("chat.voice.recording") }
                         : m,
                 ),
             );
         }
-    }, [isRecording, currentTranscript, voiceTempMsgId]);
+    }, [isRecording, currentTranscript, voiceTempMsgId, tSanctuary]);
 
     useEffect(() => {
         hasTranscriptRef.current = hasTranscript;
@@ -539,9 +572,8 @@ const ChatGPTInterface = () => {
             ) {
                 lastSaveFailureToastAtRef.current = now;
                 toast({
-                    title: "Couldn't save just now",
-                    description:
-                        "Your conversation is still on screen, but we're having trouble remembering it. We'll keep trying.",
+                    title: tSanctuary("chat.toasts.saveFailure.title"),
+                    description: tSanctuary("chat.toasts.saveFailure.description"),
                 });
             }
             return false;
@@ -650,8 +682,8 @@ const ChatGPTInterface = () => {
             if (error) {
                 console.error("❌ Error loading session messages:", error);
                 toast({
-                    title: "Error",
-                    description: "Failed to load chat session. Please try again.",
+                    title: tSanctuary("chat.toasts.sessionLoadError.title"),
+                    description: tSanctuary("chat.toasts.sessionLoadError.description"),
                     variant: "destructive",
                 });
                 return;
@@ -671,8 +703,8 @@ const ChatGPTInterface = () => {
         } catch (error) {
             console.error("❌ Failed to load session messages:", error);
             toast({
-                title: "Error",
-                description: "Failed to switch to chat session. Please try again.",
+                title: tSanctuary("chat.toasts.sessionSwitchError.title"),
+                description: tSanctuary("chat.toasts.sessionSwitchError.description"),
                 variant: "destructive",
             });
         } finally {
@@ -753,9 +785,23 @@ const ChatGPTInterface = () => {
                 localStorage.setItem(CHAT_STORAGE_KEYS.activeSessionId, finalText.session_id);
             }
 
+            // Surface the deterministic activity suggestion (if any) to the
+            // right-rail panel. The hook owns crisis suppression internally.
+            setLatestUrgency(finalText.urgency ?? 0);
+            setLatestTraceId(finalText.trace_id);
+            setLatestTurnMeta(
+                parseTurnMeta(finalText.meta, finalText.urgency ?? 0),
+            );
+            activitySuggestion.pushFromTurn({
+                suggestion: parseSuggestionFromMeta(finalText.meta),
+                urgency: finalText.urgency ?? 0,
+                trace_id: finalText.trace_id,
+                session_id: finalText.session_id,
+            });
+
             const finalMessage =
                 finalText.text ||
-                "I'm here — but something went wrong on my end just now. Want to try that again?";
+                tSanctuary("chat.errors.aiFallback");
             const finalAi: Message = { ...aiResponse, content: finalMessage };
             resolvedAiResponse = finalAi;
             setMessages((prev) =>
@@ -814,8 +860,8 @@ const ChatGPTInterface = () => {
             console.error("❌ Error sending message:", error);
             if (!mountedRef.current) return;
             toast({
-                title: "Couldn't reach the chat service",
-                description: "We had trouble getting a reply. Please try again in a moment.",
+                title: tSanctuary("chat.toasts.chatServiceError.title"),
+                description: tSanctuary("chat.toasts.chatServiceError.description"),
                 variant: "destructive",
             });
         } finally {
@@ -954,7 +1000,7 @@ const ChatGPTInterface = () => {
                     ...msgs,
                     {
                         id: tempId,
-                        content: "🎤 Recording...",
+                        content: tSanctuary("chat.voice.recording"),
                         sender: "user",
                         timestamp: new Date(),
                     },
@@ -968,13 +1014,17 @@ const ChatGPTInterface = () => {
 
     const copyMessage = (content: string) => {
         navigator.clipboard.writeText(content);
-        toast({ title: "Copied!", description: "Message copied to clipboard." });
+        toast({
+            title: tSanctuary("chat.toasts.copied.title"),
+            description: tSanctuary("chat.toasts.copied.description"),
+        });
     };
 
     const sendFeedback = (kind: "up" | "down") => {
+        const branch = kind === "up" ? "feedbackUp" : "feedbackDown";
         toast({
-            title: "Thanks!",
-            description: kind === "up" ? "Feedback saved." : "We'll improve this response.",
+            title: tSanctuary(`chat.toasts.${branch}.title`),
+            description: tSanctuary(`chat.toasts.${branch}.description`),
         });
     };
 
@@ -1008,7 +1058,11 @@ const ChatGPTInterface = () => {
     if (!user) return null;
 
     return (
-        <div className="flex h-dvh max-h-dvh min-h-0 bg-background text-foreground relative overflow-hidden">
+        <div
+            className="flex h-dvh max-h-dvh min-h-0 bg-background text-foreground relative overflow-hidden"
+            data-mm-mode={personalization.dataMode || undefined}
+            style={personalization.rootStyle}
+        >
             <ChatSidebar
                 sidebarCollapsed={sidebarCollapsed}
                 onExpand={() => setSidebarCollapsed(false)}
@@ -1056,35 +1110,44 @@ const ChatGPTInterface = () => {
                     onExportPdf={async () => {
                         if (messages.length === 0) {
                             toast({
-                                title: "No messages to export",
-                                description: "Start a conversation first, then try again.",
+                                title: tSanctuary("chat.toasts.exportEmpty.title"),
+                                description: tSanctuary("chat.toasts.exportEmpty.description"),
                             });
                             return;
                         }
                         await exportChatAsPdf(messages);
-                        toast({ title: "Chat exported", description: "Downloaded as PDF." });
+                        toast({
+                            title: tSanctuary("chat.toasts.exportPdf.title"),
+                            description: tSanctuary("chat.toasts.exportPdf.description"),
+                        });
                     }}
                     onExportJson={() => {
                         if (messages.length === 0) {
                             toast({
-                                title: "No messages to export",
-                                description: "Start a conversation first, then try again.",
+                                title: tSanctuary("chat.toasts.exportEmpty.title"),
+                                description: tSanctuary("chat.toasts.exportEmpty.description"),
                             });
                             return;
                         }
                         exportChatAsJson(messages, currentSessionId);
-                        toast({ title: "Chat exported", description: "Downloaded as JSON." });
+                        toast({
+                            title: tSanctuary("chat.toasts.exportJson.title"),
+                            description: tSanctuary("chat.toasts.exportJson.description"),
+                        });
                     }}
                     onExportCsv={() => {
                         if (messages.length === 0) {
                             toast({
-                                title: "No messages to export",
-                                description: "Start a conversation first, then try again.",
+                                title: tSanctuary("chat.toasts.exportEmpty.title"),
+                                description: tSanctuary("chat.toasts.exportEmpty.description"),
                             });
                             return;
                         }
                         exportChatAsCsv(messages);
-                        toast({ title: "Chat exported", description: "Downloaded as CSV." });
+                        toast({
+                            title: tSanctuary("chat.toasts.exportCsv.title"),
+                            description: tSanctuary("chat.toasts.exportCsv.description"),
+                        });
                     }}
                 />
 
@@ -1127,7 +1190,7 @@ const ChatGPTInterface = () => {
                     )}
 
                     <div
-                        className={`flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-y-contain bg-background relative ${isAvatarVisible ? "lg:w-7/12" : ""
+                        className={`mm-chat-ambient flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-y-contain bg-background relative ${isAvatarVisible ? "lg:w-7/12" : ""
                             }`}
                         ref={scrollAreaRef}
                         onScroll={(e) => {
@@ -1151,7 +1214,11 @@ const ChatGPTInterface = () => {
                             {/* Empty state */}
                             <AnimatePresence>
                                 {filteredMessages.length === 0 && !isLoading && !loadingSession && (
-                                    <ChatEmptyState onSend={handleSendMessage} />
+                                    <ChatEmptyState
+                                        onSend={handleSendMessage}
+                                        displayName={userDisplayName}
+                                        timeBucket={personalization.timeBucket}
+                                    />
                                 )}
                             </AnimatePresence>
 
@@ -1169,7 +1236,7 @@ const ChatGPTInterface = () => {
                                         transition={CHAT_MESSAGE_SPRING}
                                         className="mx-auto max-w-sm rounded-[24px] bg-[hsl(var(--warmth-50))] p-6 text-center space-y-4"
                                     >
-                                        <p className="text-[15px] text-ink-7">How are you, right now?</p>
+                                        <p className="text-[15px] text-ink-7">{tSanctuary("chat.moodWidget.prompt")}</p>
                                         <div className="flex flex-wrap justify-center gap-2">
                                             {moodOptions.map(({ emoji, label, value }) => (
                                                 <button
@@ -1191,7 +1258,7 @@ const ChatGPTInterface = () => {
                                             onClick={() => setMoodSelected(true)}
                                             className="text-[12px] text-ink-5 hover:text-ink-7 transition-colors"
                                         >
-                                            Maybe later
+                                            {tSanctuary("chat.moodWidget.maybeLater")}
                                         </button>
                                     </motion.div>
                                 )}
@@ -1229,6 +1296,7 @@ const ChatGPTInterface = () => {
                                     onCopyMessage={copyMessage}
                                     onFeedback={sendFeedback}
                                     onSendMessage={handleSendMessage}
+                                    messageSpring={personalization.messageSpring}
                                 />
                             )}
 
@@ -1247,7 +1315,7 @@ const ChatGPTInterface = () => {
                                     transition={CHAT_SOFT_SPRING}
                                     onClick={scrollToBottom}
                                     className="fixed z-30 w-10 h-10 rounded-full bg-card border border-border text-foreground flex items-center justify-center hover:bg-muted/50 transition-colors duration-base right-4 sm:right-6 bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
-                                    aria-label="Scroll to latest"
+                                    aria-label={tSanctuary("chat.scroll.toLatestAria")}
                                 >
                                     <ChevronDown className="h-4 w-4" />
                                 </motion.button>
@@ -1255,6 +1323,34 @@ const ChatGPTInterface = () => {
                         </AnimatePresence>
                     </div>
                 </div>
+
+                {/* Return-from-activity banner — only rendered when the user
+                    completed a tool that was opened from chat. Tapping a chip
+                    posts as a normal user message through the LLM. */}
+                {returnHandoff && (
+                    <div className="border-t border-border bg-card/40 px-4 sm:px-6 pt-3 pb-1">
+                        <div className="max-w-4xl mx-auto flex flex-col gap-1">
+                            <p className="text-[12px] text-ink-5">
+                                {tSanctuary("activitySuggestion.returnHeading", "back from {{activity}} — how did it land?", {
+                                    activity: returnHandoff.activity_id.replace(/^\//, "").replace(/-/g, " "),
+                                })}
+                            </p>
+                            <QuickReplies
+                                visible
+                                suggestions={[
+                                    tSanctuary("activitySuggestion.returnChips.better", "better"),
+                                    tSanctuary("activitySuggestion.returnChips.same", "same"),
+                                    tSanctuary("activitySuggestion.returnChips.notForMe", "not for me"),
+                                ]}
+                                onSelect={(text) => {
+                                    setReturnHandoff(null);
+                                    clearChatHandoff();
+                                    void handleSendMessage(text);
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 <ChatComposer
                     inputValue={inputValue}
@@ -1267,6 +1363,54 @@ const ChatGPTInterface = () => {
                     showSafetyRail
                 />
             </div>
+
+            {/* Desktop floating popup — slides in bottom-right only when a
+                suggestion exists. Hidden on <lg; mobile uses pill + sheet. */}
+            <ActivitySuggestionPanel
+                variant="floating"
+                current={activitySuggestion.currentSuggestion}
+                history={activitySuggestion.history}
+                urgency={latestUrgency}
+                onAccept={(s) =>
+                    activitySuggestion.acceptSuggestion(s, {
+                        trace_id: latestTraceId,
+                        session_id: currentSessionId ?? undefined,
+                    })
+                }
+                onDismiss={(s) =>
+                    activitySuggestion.dismissSuggestion(s, {
+                        trace_id: latestTraceId,
+                        session_id: currentSessionId ?? undefined,
+                    })
+                }
+            />
+
+            {/* Mobile pill — opens the bottom-sheet variant when tapped. */}
+            <ActivitySuggestionPill
+                current={activitySuggestion.currentSuggestion}
+                onOpen={() => setActivityPanelOpen(true)}
+            />
+            <ActivitySuggestionPanel
+                variant="sheet"
+                current={activitySuggestion.currentSuggestion}
+                history={activitySuggestion.history}
+                urgency={latestUrgency}
+                mobileOpen={activityPanelOpen}
+                onMobileOpenChange={setActivityPanelOpen}
+                onAccept={(s) => {
+                    setActivityPanelOpen(false);
+                    activitySuggestion.acceptSuggestion(s, {
+                        trace_id: latestTraceId,
+                        session_id: currentSessionId ?? undefined,
+                    });
+                }}
+                onDismiss={(s) =>
+                    activitySuggestion.dismissSuggestion(s, {
+                        trace_id: latestTraceId,
+                        session_id: currentSessionId ?? undefined,
+                    })
+                }
+            />
 
             {/* Phase 1 — Presence Mode full-screen overlay.
                 Mounts a single TalkingHeadAvatar inside a calm sage

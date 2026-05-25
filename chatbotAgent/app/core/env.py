@@ -34,13 +34,13 @@ def _env_present(name: str, *aliases: str) -> bool:
 def _default_chat_daily_limit() -> int:
     """Keep prod conservative while making local SKIP_AUTH testing usable."""
     if _env_present("CHAT_DAILY_LIMIT"):
-        return config.get_int("session.daily_chat_limit", 20, env="CHAT_DAILY_LIMIT")
+        return config.get_int("session.daily_chat_limit", 40, env="CHAT_DAILY_LIMIT")
 
     env_name = config.get_str("app.environment", "dev", env="ENV").lower()
     skip_auth = config.get_bool("auth.skip_auth", False, env="SKIP_AUTH")
     if skip_auth and env_name in ("", "dev", "development", "local", "test", "testing"):
         return config.get_int("session.dev_daily_chat_limit", 1000)
-    return config.get_int("session.daily_chat_limit", 20)
+    return config.get_int("session.daily_chat_limit", 40)
 
 
 def _azure_model_family() -> str:

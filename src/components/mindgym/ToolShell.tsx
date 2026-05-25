@@ -15,6 +15,13 @@ import { syncMindGymClinicalDataToSupabase } from "@/lib/api/syncMindGymClinical
 import { MINDGYM_TOOLS, MINDGYM_SECTIONS } from "@/lib/mindgym/catalog";
 import { trackMindGymEvent } from "@/lib/mindgym/analytics";
 import type { ToolId } from "@/lib/mindgym/types";
+import {
+  markHandoffCompleted,
+  postActivityFeedback,
+  readChatHandoff,
+  type ChatActivityHandoff,
+} from "@/lib/chat/activitySuggestion";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ToolShellProps {
   toolId: ToolId;
@@ -61,9 +68,16 @@ export default function ToolShell({
   const navigate = useNavigate();
   const [whyOpen, setWhyOpen] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
+  const [chatHandoff, setChatHandoff] = useState<ChatActivityHandoff | null>(null);
 
   useEffect(() => {
     trackMindGymEvent("tool_started", { toolId });
+    // If the user arrived from chat, surface a "back to chat" affordance and
+    // remember the handoff so we can POST `completed` when they finish.
+    const handoff = readChatHandoff();
+    if (handoff && handoff.arrived_from === "chat" && handoff.activity_id) {
+      setChatHandoff(handoff);
+    }
   }, [toolId]);
 
   useEffect(() => {
@@ -77,7 +91,25 @@ export default function ToolShell({
         console.log("[TherapistBridge] Synced Clinical payload for:", res.synced);
       }
     });
-  }, [completed, hasRecorded, toolId, xp]);
+
+    // If this tool was launched from chat, mark the handoff completed and
+    // POST a "completed" feedback row so the affinity EMA picks up the win.
+    // Best-effort: a failure here MUST NOT block the celebration screen.
+    if (chatHandoff) {
+      const updated = markHandoffCompleted();
+      void supabase.auth.getSession().then(({ data }) => {
+        const token = data?.session?.access_token;
+        if (!token) return;
+        void postActivityFeedback(token, {
+          activity_id: updated?.activity_id ?? chatHandoff.activity_id,
+          action: "completed",
+          trace_id: chatHandoff.trace_id,
+          session_id: chatHandoff.session_id,
+          reason_code: chatHandoff.reason_code,
+        });
+      });
+    }
+  }, [completed, hasRecorded, toolId, xp, chatHandoff]);
 
   const isWarmTone = surfaceTone === "warm";
   const accent = getAccent(surfaceTone, themeAccent);
@@ -151,10 +183,11 @@ export default function ToolShell({
             tone={surfaceTone}
             accent={accent}
             xp={xp}
-            primary={{
-              label: "Back to practices",
-              onClick: () => navigate("/mindgym"),
-            }}
+            primary={
+              chatHandoff
+                ? { label: "Back to chat", onClick: () => navigate("/chat") }
+                : { label: "Back to practices", onClick: () => navigate("/mindgym") }
+            }
             onReset={
               onReset
                 ? () => {

@@ -14,6 +14,7 @@ const ChatThinking = ({ loadingPhase }: { loadingPhase: string }) => (
         exit={{ opacity: 0, y: 4 }}
         transition={CHAT_MESSAGE_SPRING}
         className="flex gap-3 items-center"
+        aria-live="polite"
     >
         <div className="flex-shrink-0">
             <Pulse size={48} state="thinking" intensity={0.9} />

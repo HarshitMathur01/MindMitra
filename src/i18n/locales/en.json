@@ -159,5 +159,157 @@
   },
   "orb": {
     "aria": "A small whisper from {{companion}}"
+  },
+  "activitySuggestion": {
+    "heading": "for you now",
+    "recently": "recently shown",
+    "empty": "nothing to suggest yet — keep going",
+    "beginCta": "begin",
+    "dismissCta": "not now",
+    "dismissAria": "dismiss suggestion",
+    "pillPrefix": "for you",
+    "pillAria": "open suggested activity",
+    "returnHeading": "back from {{activity}} — how did it land?",
+    "returnChips": {
+      "better": "better",
+      "same": "same",
+      "notForMe": "not for me"
+    }
+  },
+  "chat": {
+    "emptyState": {
+      "fallback": {
+        "headline": "Whenever you're ready.",
+        "subcopy": "No script. Pick a way in, or just start typing."
+      },
+      "greetings": {
+        "lateNight": {
+          "headlineNamed": "Still up, {{name}}?",
+          "headlineUnnamed": "Still up?",
+          "subcopy": "We can go slow. Tell me what's circling."
+        },
+        "morning": {
+          "headlineNamed": "Morning, {{name}}.",
+          "headlineUnnamed": "Morning.",
+          "subcopy": "No rush — what's on your mind today?"
+        },
+        "afternoon": {
+          "headlineNamed": "Hey, {{name}}.",
+          "headlineUnnamed": "Hey.",
+          "subcopy": "Catch me up on your day, or sit a minute."
+        },
+        "evening": {
+          "headlineNamed": "Evening, {{name}}.",
+          "headlineUnnamed": "Evening.",
+          "subcopy": "How did the day land? Start anywhere."
+        },
+        "night": {
+          "headlineNamed": "Glad you're here, {{name}}.",
+          "headlineUnnamed": "Glad you're here.",
+          "subcopy": "Quiet hours. Take your time."
+        }
+      },
+      "bodyCueHeading": "Or start with how it feels",
+      "starters": {
+        "catchUp": "Catch me up on today",
+        "sitWithMe": "Sit with me for a minute",
+        "nameFeeling": "Help me name what I'm feeling"
+      },
+      "bodyCues": {
+        "tenseShoulders": "Tense shoulders",
+        "tightChest": "Tight chest",
+        "heavyFoggy": "Heavy / foggy",
+        "wiredRestless": "Wired & restless",
+        "numb": "Numb"
+      }
+    },
+    "messageActions": {
+      "keepThis": "Keep this",
+      "kept": "Kept",
+      "keepAriaKept": "Unkeep this",
+      "keepAriaUnkept": "Keep this",
+      "menuAria": "Message actions",
+      "copy": "Copy",
+      "helpful": "Helpful",
+      "notHelpful": "Not helpful"
+    },
+    "dateSeparator": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
+    "loadingPhases": {
+      "reading": "Reading this with care",
+      "thinking": "Thinking of what to say",
+      "writing": "Putting it into words"
+    },
+    "header": {
+      "statusIdle": "here when you are"
+    },
+    "voice": {
+      "recording": "🎤 Recording..."
+    },
+    "moodWidget": {
+      "prompt": "How are you, right now?",
+      "maybeLater": "Maybe later",
+      "labels": {
+        "struggling": "Struggling",
+        "low": "Low",
+        "okay": "Okay",
+        "good": "Good",
+        "great": "Great"
+      }
+    },
+    "scroll": {
+      "toLatestAria": "Scroll to latest"
+    },
+    "toasts": {
+      "copied": {
+        "title": "Copied!",
+        "description": "Message copied to clipboard."
+      },
+      "feedbackUp": {
+        "title": "Thanks!",
+        "description": "Feedback saved."
+      },
+      "feedbackDown": {
+        "title": "Thanks!",
+        "description": "We'll improve this response."
+      },
+      "saveFailure": {
+        "title": "Couldn't save just now",
+        "description": "Your conversation is still on screen, but we're having trouble remembering it. We'll keep trying."
+      },
+      "chatServiceError": {
+        "title": "Couldn't reach the chat service",
+        "description": "We had trouble getting a reply. Please try again in a moment."
+      },
+      "sessionLoadError": {
+        "title": "Error",
+        "description": "Failed to load chat session. Please try again."
+      },
+      "sessionSwitchError": {
+        "title": "Error",
+        "description": "Failed to switch to chat session. Please try again."
+      },
+      "exportEmpty": {
+        "title": "No messages to export",
+        "description": "Start a conversation first, then try again."
+      },
+      "exportPdf": {
+        "title": "Chat exported",
+        "description": "Downloaded as PDF."
+      },
+      "exportJson": {
+        "title": "Chat exported",
+        "description": "Downloaded as JSON."
+      },
+      "exportCsv": {
+        "title": "Chat exported",
+        "description": "Downloaded as CSV."
+      }
+    },
+    "errors": {
+      "aiFallback": "I'm here — but something went wrong on my end just now. Want to try that again?"
+    }
   }
 }

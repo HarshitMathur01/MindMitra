@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PieceGlyph } from "./chess/PieceGlyph";
 import {
   applyMove,
@@ -15,6 +15,12 @@ import { PIECES, type PieceLore } from "./chess/pieces";
 import { EVENTS, type CampusEvent } from "./chess/events";
 import { pickAIMove, type Difficulty } from "./chess/ai";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { GameRulesModal } from "./_shared/GameRulesModal";
+import { useFirstRun } from "./_shared/useFirstRun";
+
+// How long the Campus AI "thinks" before committing its move. A calmer beat
+// (was 350ms) makes the opponent read as considering, not snapping.
+const AI_THINK_MS = 750;
 
 // ---------------------------------------------------------------------------
 // Chess design system — scoped to .cc-chess to avoid polluting MindMitra vars
@@ -85,6 +91,20 @@ const CHESS_CSS = `
   to   { transform: translateX(-33.33%); }
 }
 .cc-chess .cc-marquee { animation: cc-marquee-scroll 40s linear infinite; }
+/* Piece glide — the moved piece slides in from its origin square. --dx/--dy are
+   the source-minus-destination offsets in whole board cells (1 cell = 100%). */
+@keyframes cc-piece-slide {
+  from { transform: translate(calc(var(--dx, 0) * 100%), calc(var(--dy, 0) * 100%)); }
+  to   { transform: translate(0, 0); }
+}
+.cc-chess .cc-piece-slide {
+  display: inline-flex;
+  animation: cc-piece-slide 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-chess .cc-piece-slide { animation: none; }
+}
 `;
 
 // ---------------------------------------------------------------------------
@@ -143,6 +163,17 @@ export default function CampusChess() {
   const [pendingAbility, setPendingAbility] = useState<AbilityKey | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // First-run "how to play" overlay (remembered per device). Opens once the
+  // player reaches the board; the ? button reopens it anytime.
+  const [rulesSeen, markRulesSeen] = useFirstRun("mindmitra_mindgym_rules_campus-chess_v1");
+  const [rulesOpen, setRulesOpen] = useState(false);
+  useEffect(() => {
+    if (page === "play" && rulesSeen) {
+      setRulesOpen(true);
+      markRulesSeen();
+    }
+  }, [page, rulesSeen, markRulesSeen]);
+
   const state = stack[stack.length - 1];
   const gameOver = state.status === "checkmate" || state.status === "stalemate";
 
@@ -177,7 +208,7 @@ export default function CampusChess() {
       const m = pickAIMove(state, difficulty);
       if (m) push(applyMove(state, m.fr, m.fc, m.tr, m.tc));
       setThinking(false);
-    }, 350);
+    }, AI_THINK_MS);
     return () => clearTimeout(t);
   }, [state, mode, aiSide, difficulty, gameOver]);
 
@@ -345,6 +376,13 @@ export default function CampusChess() {
                 >
                   ↺ New semester
                 </button>
+                <button
+                  onClick={() => setRulesOpen(true)}
+                  aria-label="How to play"
+                  className="font-mono text-[11px] uppercase tracking-[0.2em] px-4 py-3 border border-[color:var(--ink)]/40 hover:bg-[color:var(--ink)] hover:text-[color:var(--paper)] transition-colors"
+                >
+                  ? Rules
+                </button>
               </div>
             </header>
 
@@ -401,6 +439,7 @@ export default function CampusChess() {
                         const isSel = selected && selected[0] === r && selected[1] === c;
                         const isLegal = legal.some(([lr, lc]) => lr === r && lc === c);
                         const isLast = lastMove && ((lastMove.fr === r && lastMove.fc === c) || (lastMove.tr === r && lastMove.tc === c));
+                        const movedHere = !!lastMove && lastMove.tr === r && lastMove.tc === c;
                         const isTarget = targets.some(([tr, tc]) => tr === r && tc === c);
                         const locked = isLockedSq(r, c);
                         const frozen = isFrozenSq(r, c);
@@ -425,7 +464,17 @@ export default function CampusChess() {
                                   : undefined,
                             }}
                           >
-                            {piece && <PieceGlyph type={piece.type} color={piece.color} size={44} />}
+                            {piece && (movedHere && lastMove ? (
+                              <span
+                                key={`glide-${state.history.length}`}
+                                className="cc-piece-slide"
+                                style={{ "--dx": lastMove.fc - lastMove.tc, "--dy": lastMove.fr - lastMove.tr } as CSSProperties}
+                              >
+                                <PieceGlyph type={piece.type} color={piece.color} size={44} />
+                              </span>
+                            ) : (
+                              <PieceGlyph type={piece.type} color={piece.color} size={44} />
+                            ))}
                             {(frozen || pawnFrozen) && piece && (
                               <span className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 0 2px color-mix(in oklab, var(--chai) 80%, transparent)", background: "color-mix(in oklab, var(--chai) 18%, transparent)" }} />
                             )}
@@ -516,11 +565,53 @@ export default function CampusChess() {
                     <li>· Undo brings back any move — proxy attendance, basically.</li>
                     <li>· Lose your Class Rep and the semester is over.</li>
                   </ul>
+                  <button
+                    onClick={() => setRulesOpen(true)}
+                    className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] underline underline-offset-4 text-[color:var(--chai)] hover:opacity-80 transition-opacity"
+                  >
+                    ? Full rules &amp; abilities
+                  </button>
                 </div>
               </aside>
             </div>
           </div>
         )}
+
+        <GameRulesModal
+          open={rulesOpen}
+          onClose={() => setRulesOpen(false)}
+          scopeClassName="cc-chess"
+          title="Campus Chess — how to play"
+          solidBg="var(--ink)"
+          solidFg="var(--paper)"
+        >
+          <p>
+            Classic chess, campus drama. Block A (you) vs Block B — capture the
+            enemy <strong>Class Rep</strong> (king) to win the semester.
+          </p>
+          <ol className="list-decimal pl-5 space-y-1.5">
+            <li><strong>Move:</strong> tap a piece, then tap a highlighted square.</li>
+            <li><strong>Abilities:</strong> each side has <strong>one signature ability per game</strong> — spend it wisely.</li>
+            <li><strong>Evolve:</strong> a Fresher (pawn) reaching the far rank becomes a Topper (queen).</li>
+            <li><strong>Undo:</strong> rewind any move — proxy attendance, basically.</li>
+            <li><strong>Game over:</strong> lose your Class Rep and the semester ends.</li>
+          </ol>
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-60 mb-2">Signature abilities</p>
+            <ul className="space-y-1.5">
+              {ABILITY_ORDER.map((k) => (
+                <li key={k}>
+                  <span className="font-semibold" style={{ color: "var(--chai)" }}>{ABILITY_NAMES[k]}</span>
+                  <span className="opacity-80"> — {ABILITY_HINTS[k]}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="opacity-70">
+            Tip: open the <strong>Codex</strong> tab for full archetype lore and the
+            {" "}<strong>Chaos</strong> tab for event cards.
+          </p>
+        </GameRulesModal>
       </div>
     </ToolShell>
   );

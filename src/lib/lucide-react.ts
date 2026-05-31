@@ -53,6 +53,7 @@ export { default as Film } from "lucide-react/dist/esm/icons/film.js";
 export { default as Flag } from "lucide-react/dist/esm/icons/flag.js";
 export { default as Flame } from "lucide-react/dist/esm/icons/flame.js";
 export { default as Flower2 } from "lucide-react/dist/esm/icons/flower-2.js";
+export { default as Gamepad2 } from "lucide-react/dist/esm/icons/gamepad-2.js";
 export { default as Gavel } from "lucide-react/dist/esm/icons/gavel.js";
 export { default as Globe } from "lucide-react/dist/esm/icons/globe.js";
 export { default as GraduationCap } from "lucide-react/dist/esm/icons/graduation-cap.js";

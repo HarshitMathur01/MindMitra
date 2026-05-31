@@ -23,6 +23,7 @@ import {
 import { CHAT_SOFT_SPRING } from "./chatConstants";
 import { LANGUAGE_LABELS, type SupportedLanguage } from "@/lib/locale";
 import { AVATAR_OPTIONS } from "@/lib/avatarOptions";
+import { useLocalizedT } from "@/hooks/useLocalizedT";
 
 type AvatarOption = (typeof AVATAR_OPTIONS)[number];
 
@@ -77,6 +78,7 @@ const ChatHeaderBar = ({
     onExportCsv,
 }: ChatHeaderBarProps) => {
     const navigate = useNavigate();
+    const { t } = useLocalizedT();
 
     return (
         <motion.div
@@ -91,7 +93,7 @@ const ChatHeaderBar = ({
                     size="sm"
                     className="hover:bg-muted/40 transition-colors"
                     onClick={onToggleSidebar}
-                    aria-label={sidebarCollapsed ? "Open conversations" : "Close conversations"}
+                    aria-label={sidebarCollapsed ? t("chat.header.openConversationsAria", "Open conversations") : t("chat.header.closeConversationsAria", "Close conversations")}
                 >
                     {sidebarCollapsed ? (
                         <PanelLeftOpen className="h-4 w-4" />
@@ -105,7 +107,7 @@ const ChatHeaderBar = ({
                             type="button"
                             onClick={() => navigate("/")}
                             className="w-9 h-9 rounded-full bg-accent flex items-center justify-center shadow-xs transition-colors duration-150 hover:bg-accent/80"
-                            aria-label="Go to home"
+                            aria-label={t("chat.header.homeAria", "Go to home")}
                         >
                             <img
                                 src="/image.png"
@@ -123,7 +125,7 @@ const ChatHeaderBar = ({
                         type="button"
                         onClick={() => navigate("/")}
                         className="min-w-0 text-left"
-                        aria-label="Go to home"
+                        aria-label={t("chat.header.homeAria", "Go to home")}
                     >
                         <h1 className="font-display text-[16px] sm:text-[17px] font-normal text-ink-8 leading-tight truncate">
                             MindMitra
@@ -145,10 +147,10 @@ const ChatHeaderBar = ({
                     size="sm"
                     className="flex-shrink-0 gap-1.5 sm:gap-2 border-[hsl(var(--accent-300))]/40 bg-[hsl(var(--accent-100))]/30 text-[hsl(var(--accent-700))] hover:bg-[hsl(var(--accent-100))]/50 hover:border-[hsl(var(--accent-400))]/50 transition-all duration-200"
                     onClick={onEnterPresenceMode}
-                    aria-label="Open Presence Mode — full-screen voice conversation"
+                    aria-label={t("chat.header.presenceAria", "Open Presence Mode — full-screen voice conversation")}
                 >
                     <Sparkles className="h-4 w-4" />
-                    <span className="font-medium hidden sm:inline">Be with Mitra</span>
+                    <span className="font-medium hidden sm:inline">{t("chat.header.presence", "Be with Mitra")}</span>
                 </Button>
 
                 {/* Avatar eye-toggle (legacy half-pane). Hidden on the
@@ -162,7 +164,7 @@ const ChatHeaderBar = ({
                     }`}
                     onClick={onToggleAvatar}
                     aria-pressed={isAvatarVisible}
-                    aria-label={isAvatarVisible ? "Hide avatar pane" : "Show avatar pane"}
+                    aria-label={isAvatarVisible ? t("chat.header.hideAvatarAria", "Hide avatar pane") : t("chat.header.showAvatarAria", "Show avatar pane")}
                 >
                     {isAvatarVisible ? (
                         <Eye className="h-4 w-4 text-primary" />
@@ -181,7 +183,7 @@ const ChatHeaderBar = ({
                             variant="ghost"
                             size="sm"
                             className="hover:bg-muted/40 transition-colors flex-shrink-0"
-                            aria-label="More options"
+                            aria-label={t("chat.header.moreOptionsAria", "More options")}
                         >
                             <MoreVertical className="h-4 w-4" />
                         </Button>
@@ -214,7 +216,7 @@ const ChatHeaderBar = ({
                         <DropdownMenuSeparator />
 
                         <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">
-                            Language
+                            {t("chat.header.language", "Language")}
                         </DropdownMenuLabel>
                         {(Object.entries(LANGUAGE_LABELS) as [SupportedLanguage, string][]).map(
                             ([code, label]) => (
@@ -237,19 +239,19 @@ const ChatHeaderBar = ({
                         <DropdownMenuSeparator />
 
                         <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-[0.2em] text-ink-5">
-                            Export this conversation
+                            {t("chat.header.exportTitle", "Export this conversation")}
                         </DropdownMenuLabel>
                         <DropdownMenuItem onClick={onExportPdf}>
                             <Download className="h-4 w-4 mr-2" />
-                            Export as PDF
+                            {t("chat.header.exportAsPdf", "Export as PDF")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onExportJson}>
                             <Download className="h-4 w-4 mr-2" />
-                            Export as JSON
+                            {t("chat.header.exportAsJson", "Export as JSON")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onExportCsv}>
                             <Download className="h-4 w-4 mr-2" />
-                            Export as CSV
+                            {t("chat.header.exportAsCsv", "Export as CSV")}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

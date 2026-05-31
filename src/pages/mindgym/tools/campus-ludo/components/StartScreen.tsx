@@ -5,9 +5,10 @@ import boxArt from "../assets/box-art.jpg";
 
 interface Props {
   onStart: (humans: ArchetypeId[]) => void;
+  onHowToPlay?: () => void;
 }
 
-export function StartScreen({ onStart }: Props) {
+export function StartScreen({ onStart, onHowToPlay }: Props) {
   const [humans, setHumans] = useState<Set<ArchetypeId>>(new Set(["topper"]));
 
   function toggle(id: ArchetypeId) {
@@ -41,6 +42,14 @@ export function StartScreen({ onStart }: Props) {
               Toggle each archetype as a <strong className="text-foreground">human</strong> (hot-seat) or{" "}
               <strong className="text-foreground">CPU</strong>. Pass the device on each human turn.
             </p>
+            {onHowToPlay && (
+              <button
+                onClick={onHowToPlay}
+                className="mt-3 text-[11px] font-mono uppercase tracking-[0.2em] underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ? How to play
+              </button>
+            )}
           </div>
         </div>
 

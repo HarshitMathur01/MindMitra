@@ -1,10 +1,17 @@
 {
   "permissions": {
+    "allow": [
+      "PowerShell(git clone https://github.com/rana-jatin/remix-of-campus-chess-masters.git \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\MM\\\\chess-temp\" 2>&1)",
+      "Bash(ls -la \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\X_factor\\\\buddy-game\")",
+      "Read(//c/Users/Lenovo/Desktop/X_factor/buddy-game/**)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\X_factor\\\\buddy-game\\\\src\" -Recurse -File | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\('C:\\\\Users\\\\Lenovo\\\\Desktop\\\\X_factor\\\\buddy-game\\\\', ''\\) } | Sort-Object)",
+      "Bash(grep -n 'text-foreground\\\\\\\\\\\\\\\\/')",
+      "Bash(echo \"BUILD_EXIT: $?\")",
+      "Bash(node scripts/check-banned-words.mjs)",
+      "Bash(echo \"LINT_EXIT: $?\")"
+    ],
     "additionalDirectories": [
       "C:\\Users\\Lenovo\\Desktop\\MM\\chess-temp"
-    ],
-    "allow": [
-      "PowerShell(git clone https://github.com/rana-jatin/remix-of-campus-chess-masters.git \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\MM\\\\chess-temp\" 2>&1)"
     ]
   }
 }

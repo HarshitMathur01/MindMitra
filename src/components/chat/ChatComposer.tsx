@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CHAT_SOFT_SPRING } from "./chatConstants";
 import ChatSafetyRail from "./ChatSafetyRail";
+import { useLocalizedT } from "@/hooks/useLocalizedT";
 
 interface ChatComposerProps {
     inputValue: string;
@@ -37,6 +38,7 @@ const ChatComposer = ({
     isProcessing,
     showSafetyRail = true,
 }: ChatComposerProps) => {
+    const { t } = useLocalizedT();
     // `onKeyPress` is deprecated in React and has inconsistent IME / mobile
     // behaviour (notably broken Enter handling on some Android keyboards).
     // `onKeyDown` is the supported, widely-tested handler. We also guard
@@ -62,7 +64,7 @@ const ChatComposer = ({
                         value={inputValue}
                         onChange={(e) => onInputChange(e.target.value)}
                         onKeyDown={onKeyDown}
-                        placeholder="Take your time…"
+                        placeholder={t("chat.composer.placeholder", "Take your time…")}
                         // h-14 on mobile gives the input enough vertical
                         // air to clear the larger touch targets and feels
                         // less cramped under thumbs. h-12 stays on sm+.
@@ -89,7 +91,7 @@ const ChatComposer = ({
                             }`}
                             onClick={onVoiceInput}
                             disabled={isProcessing || isLoading}
-                            aria-label={isRecording ? "Stop recording" : "Speak instead"}
+                            aria-label={isRecording ? t("chat.composer.stopRecordingAria", "Stop recording") : t("chat.composer.speakAria", "Speak instead")}
                         >
                             {isProcessing ? (
                                 <div className="h-5 w-5 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-[hsl(var(--accent-500))] border-t-transparent" />
@@ -101,7 +103,7 @@ const ChatComposer = ({
                             onClick={onSubmit}
                             disabled={!inputValue.trim() || isLoading}
                             className="h-11 w-11 sm:h-9 sm:w-9 p-0 rounded-full transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label="Send"
+                            aria-label={t("chat.composer.sendAria", "Send")}
                         >
                             <Send className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={1.8} />
                         </Button>

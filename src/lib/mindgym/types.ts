@@ -38,6 +38,8 @@ export const TOOL_IDS = [
   "memory-challenge",
   "campus-chess",
   "campus-ludo",
+  "buddy-tictactoe",
+  "read-my-mood",
 ] as const;
 
 export type ToolId = (typeof TOOL_IDS)[number];

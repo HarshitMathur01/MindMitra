@@ -182,6 +182,7 @@ def run_orchestrator(signals: Signals, session: SessionObject, *, trace_id: str 
         },
         topic_keywords_for_retrieval=topic_keywords,
         temperature=TEMPERATURE_BY_MODE.get(mode_decision, 0.7),
+        response_language=getattr(session, "response_language", None),
     )
 
 

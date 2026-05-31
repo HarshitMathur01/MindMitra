@@ -16,9 +16,17 @@ import { EventCardModal } from "./components/EventCardModal";
 import { Button } from "@/components/ui/button";
 import boxArt from "./assets/box-art.jpg";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { GameRulesModal } from "../_shared/GameRulesModal";
+import { useFirstRun } from "../_shared/useFirstRun";
 import "./styles.css";
 
 const ORDER: ArchetypeId[] = ["topper", "back", "fest", "canteen"];
+
+// Pacing — slower, easier to follow without dragging.
+const STEP_MS = 200;          // per-tile token hop while a player advances
+const STEP_SETTLE_MS = 240;   // beat after the token lands before the tile resolves
+const CPU_ROLL_MS = 900;      // delay before a CPU rolls
+const TURN_HANDOFF_MS = 650;  // beat before the turn passes to the next player
 
 interface Pending {
   idx: number;
@@ -38,6 +46,20 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
   const [event, setEvent] = useState<{ idx: number; card: EventCard } | null>(null);
   const [shake, setShake] = useState(false);
   const [ended, setEnded] = useState(false);
+  // Token currently hopping tile-by-tile (overrides its board position visually).
+  const [moving, setMoving] = useState<{ id: ArchetypeId; pos: number } | null>(null);
+  const hopTimer = useRef<number | null>(null);
+
+  // First-run "how to play" overlay (remembered per device).
+  const [rulesSeen, markRulesSeen] = useFirstRun("mindmitra_mindgym_rules_campus-ludo_v1");
+  const [rulesOpen, setRulesOpen] = useState(false);
+  useEffect(() => {
+    if (humans && rulesSeen) {
+      setRulesOpen(true);
+      markRulesSeen();
+    }
+  }, [humans, rulesSeen, markRulesSeen]);
+  useEffect(() => () => { if (hopTimer.current) window.clearInterval(hopTimer.current); }, []);
 
   const activeIdx = useMemo(() => {
     let i = turn % players.length;
@@ -89,7 +111,7 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
   }
 
   function rollDice() {
-    if (rolling || winner || pending || event || ended) return;
+    if (rolling || winner || pending || event || ended || moving) return;
     setRolling(true);
     const roll = 1 + Math.floor(Math.random() * 6);
     // animated cycling faces
@@ -110,20 +132,20 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
   // CPU auto-play
   const cpuTimer = useRef<number | null>(null);
   useEffect(() => {
-    if (!humans || winner || pending || event || rolling || ended) return;
+    if (!humans || winner || pending || event || rolling || ended || moving) return;
     if (isHumanTurn || !active?.alive) {
       if (!active?.alive && humans) advanceTurnSoon();
       return;
     }
-    cpuTimer.current = window.setTimeout(() => rollDice(), 900);
+    cpuTimer.current = window.setTimeout(() => rollDice(), CPU_ROLL_MS);
     return () => {
       if (cpuTimer.current) window.clearTimeout(cpuTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIdx, winner, pending, event, rolling, isHumanTurn, humans, ended]);
+  }, [activeIdx, winner, pending, event, rolling, isHumanTurn, humans, ended, moving]);
 
   function advanceTurnSoon() {
-    window.setTimeout(() => setTurn((t) => t + 1), 400);
+    window.setTimeout(() => setTurn((t) => t + 1), TURN_HANDOFF_MS);
   }
 
   // CPU auto-resolves minigames
@@ -160,7 +182,30 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
     fn(name, { description: parts.join(" · "), duration: 2000 });
   }
 
+  // Animate the token hopping one tile at a time, then resolve the landing tile.
   function stepPlayer(idx: number, steps: number) {
+    const startPos = players[idx].position;
+    const mover = players[idx].id;
+    setMoving({ id: mover, pos: startPos });
+    let k = 0;
+    if (hopTimer.current) window.clearInterval(hopTimer.current);
+    hopTimer.current = window.setInterval(() => {
+      k++;
+      setMoving({ id: mover, pos: (startPos + k) % BOARD.length });
+      if (k >= steps) {
+        if (hopTimer.current) window.clearInterval(hopTimer.current);
+        hopTimer.current = null;
+        window.setTimeout(() => {
+          // Commit position + clear `moving` together (React batches) so the
+          // token never flickers back to its start tile.
+          resolveStep(idx, steps);
+          setMoving(null);
+        }, STEP_SETTLE_MS);
+      }
+    }, STEP_MS);
+  }
+
+  function resolveStep(idx: number, steps: number) {
     setPlayers((prev) => {
       const next = [...prev];
       const moved = move(next[idx], steps);
@@ -265,11 +310,59 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
     });
   }
 
-  if (!humans) return <StartScreen onStart={startGame} />;
+  const rulesModal = (
+    <GameRulesModal
+      open={rulesOpen}
+      onClose={() => setRulesOpen(false)}
+      scopeClassName="cl-scope"
+      title="Campus Ludo — how to play"
+      solidBg="var(--primary)"
+      solidFg="var(--primary-foreground)"
+    >
+      <p>
+        Walk <strong>32 tiles</strong> around campus to <strong>graduate</strong> and win.
+        Each turn: pick a stance, roll the dice, survive the tile you land on.
+      </p>
+      <div>
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-60 mb-2">Your stance each turn</p>
+        <ul className="space-y-1.5">
+          <li><strong>Study</strong> — safest for attendance, lighter on cash.</li>
+          <li><strong>Bunk</strong> — skip the grind, but attendance &amp; reputation slip.</li>
+          <li><strong>Hustle</strong> — chase cash &amp; placements, costs attendance.</li>
+        </ul>
+      </div>
+      <div>
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-60 mb-2">Tiles you'll land on</p>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+          <li>📚 Lecture — proxy mini-game</li>
+          <li>📖 Library — bank attendance</li>
+          <li>🍵 Canteen — haggle mini-game</li>
+          <li>🎤 Festival — perform on stage</li>
+          <li>📝 Exam — cram mini-game</li>
+          <li>💼 Placement — earn cash</li>
+          <li>❗ Surprise — event card / raid</li>
+          <li>🌳 Chill — relax, lose a little</li>
+          <li>🏠 Hostel — safe square, rest up</li>
+        </ul>
+      </div>
+      <p style={{ color: "var(--destructive)" }}>
+        If your <strong>attendance hits 0 you're detained</strong> — out of the game. Keep it above zero!
+      </p>
+      <p className="opacity-70">Mini-games and event cards pop up automatically — just react.</p>
+    </GameRulesModal>
+  );
+
+  if (!humans) return (
+    <>
+      <StartScreen onStart={startGame} onHowToPlay={() => setRulesOpen(true)} />
+      {rulesModal}
+    </>
+  );
 
   const showMinigame = pending && humans.has(players[pending.idx].id);
 
   return (
+    <>
     <main className={`min-h-screen px-3 sm:px-6 py-6 sm:py-10 ${shake ? "animate-shake" : ""}`}>
       <header className="max-w-6xl mx-auto mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
@@ -298,7 +391,7 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         <div>
-          <Board players={players} activeId={active.id} />
+          <Board players={players} activeId={active.id} moving={moving} />
 
           <div className="paper-card mt-6 p-4 sm:p-5 flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -310,7 +403,7 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
                 </div>
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-                    {ended ? "Final bell" : isHumanTurn ? "Your turn" : "CPU rolling"}
+                    {ended ? "Final bell" : moving ? "On the move" : isHumanTurn ? "Your turn" : "CPU rolling"}
                   </p>
                   <p className="font-display text-2xl text-primary">
                     {winner ? `${ARCHETYPES.find((a) => a.id === winner.id)!.name} wins` : ARCHETYPES[activeIdx].name}
@@ -320,7 +413,14 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
                   </p>
                 </div>
               </div>
-              <div className="sm:ml-auto flex gap-2">
+              <div className="sm:ml-auto flex items-center gap-2">
+                <button
+                  onClick={() => setRulesOpen(true)}
+                  aria-label="How to play"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+                >
+                  ?
+                </button>
                 {ended || allDetained ? (
                   <>
                     <Button onClick={() => startGame(Array.from(humans))} className="font-display tracking-wide">New Semester</Button>
@@ -329,10 +429,10 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
                 ) : (
                   <Button
                     onClick={rollDice}
-                    disabled={rolling || !!pending || !!event || !isHumanTurn}
+                    disabled={rolling || !!pending || !!event || !isHumanTurn || !!moving}
                     className="font-display tracking-wide text-base px-6"
                   >
-                    {isHumanTurn ? "Roll the dice" : `${ARCHETYPES[activeIdx].name} thinking…`}
+                    {isHumanTurn ? (moving ? "Moving…" : "Roll the dice") : `${ARCHETYPES[activeIdx].name} thinking…`}
                   </Button>
                 )}
               </div>
@@ -370,6 +470,12 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
             Walk 32 tiles to graduate. Pick a <strong className="text-foreground">stance</strong>{" "}
             each turn, win the tile mini-games, and dodge event cards. Hit zero attendance →{" "}
             <strong className="text-destructive">detained</strong>.
+            <button
+              onClick={() => setRulesOpen(true)}
+              className="mt-2 block text-[11px] uppercase tracking-[0.2em] underline underline-offset-4 text-primary hover:opacity-80 transition-opacity"
+            >
+              ? Full rules
+            </button>
           </div>
         </aside>
       </div>
@@ -400,6 +506,8 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
         onPick={resolveEvent}
       />
     </main>
+    {rulesModal}
+    </>
   );
 }
 

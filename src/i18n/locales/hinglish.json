@@ -244,7 +244,40 @@
       "writing": "Shabd dhoondh rahi hoon"
     },
     "header": {
-      "statusIdle": "yahin hoon"
+      "statusIdle": "yahin hoon",
+      "presence": "Mitra ke saath raho",
+      "presenceAria": "Presence Mode kholo — full-screen voice baat",
+      "openConversationsAria": "Conversations kholo",
+      "closeConversationsAria": "Conversations band karo",
+      "homeAria": "Home pe jao",
+      "showAvatarAria": "Avatar pane dikhao",
+      "hideAvatarAria": "Avatar pane chhupao",
+      "moreOptionsAria": "Aur options",
+      "language": "Language",
+      "exportTitle": "Ye conversation export karo",
+      "exportAsPdf": "PDF me export karo",
+      "exportAsJson": "JSON me export karo",
+      "exportAsCsv": "CSV me export karo"
+    },
+    "composer": {
+      "placeholder": "Aaram se… jab ready ho",
+      "sendAria": "Bhejo",
+      "speakAria": "Bolkar kaho",
+      "stopRecordingAria": "Recording roko"
+    },
+    "sidebar": {
+      "newAria": "Nayi baat shuru karo",
+      "pastConversationsAria": "Purani conversations",
+      "memoryMoodAria": "Memory & mood",
+      "homeAria": "Home",
+      "openProfileAria": "Profile kholo",
+      "accountMenuAria": "Account menu",
+      "searchPlaceholder": "Apni kahi koi baat dhoondo"
+    },
+    "presence": {
+      "rootAria": "Presence Mode — Mitra se voice baat",
+      "exitAria": "Presence Mode se bahar niklo",
+      "typeInsteadAria": "Type karke kaho — text chat pe wapas"
     },
     "voice": {
       "recording": "🎤 Record ho raha hai..."

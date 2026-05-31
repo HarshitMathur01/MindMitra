@@ -116,6 +116,9 @@ class OrchestratorOutput(BaseModel):
     affect_for_retrieval: Dict[str, float]
     topic_keywords_for_retrieval: List[str]
     temperature: float
+    # User-selected response language ("english", "hindi", "tamil", …).
+    # None preserves the existing Hinglish/code-mix pipeline behaviour.
+    response_language: Optional[str] = None
 
 
 # ── Layer 4: Memory retrieval outputs ─────────────────────────────────────

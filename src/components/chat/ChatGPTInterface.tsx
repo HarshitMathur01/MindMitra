@@ -768,6 +768,7 @@ const ChatGPTInterface = () => {
                     content: textToSend,
                     session_id: requestedSessionId,
                     device_locale: navigator.language,
+                    language: selectedLanguage,
                 }),
                 signal: controller.signal,
             });

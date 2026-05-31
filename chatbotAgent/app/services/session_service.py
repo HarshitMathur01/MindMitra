@@ -96,6 +96,7 @@ async def session_startup(
     *,
     requested_session_id: Optional[str] = None,
     device_locale: Optional[str] = None,
+    response_language: Optional[str] = None,
 ) -> SessionObject:
     """Build a fresh session object or resume an existing one.
 
@@ -113,6 +114,8 @@ async def session_startup(
         if existing is not None:
             existing.is_new_session = False
             existing.touch()
+            if response_language is not None:
+                existing.response_language = response_language
             await save_session(existing)
             await _redis_setex(active_session_key(user_id), e.session_ttl_seconds, existing.session_id)
             logger.info(
@@ -134,6 +137,8 @@ async def session_startup(
         if existing is not None and not requested_session_id:
             existing.is_new_session = False
             existing.touch()
+            if response_language is not None:
+                existing.response_language = response_language
             await save_session(existing)
             await _redis_setex(active_session_key(user_id), e.session_ttl_seconds, existing.session_id)
             logger.info(
@@ -227,6 +232,8 @@ async def session_startup(
     )
     if device_locale:
         session.procedural_profile.setdefault("device_locale", device_locale)
+    if response_language is not None:
+        session.response_language = response_language
 
     await save_session(session)
     await _redis_setex(active_session_key(user_id), e.session_ttl_seconds, new_session_id)

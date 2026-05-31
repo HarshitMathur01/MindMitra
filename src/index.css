@@ -1157,3 +1157,100 @@
     }
   }
 }
+
+/* ── Buddy Tic-Tac-Toe animations (scoped to .bt-game) ────────────────────── */
+@keyframes bt-mark-pop {
+  0%   { transform: scale(0.3) rotate(-12deg); opacity: 0; }
+  55%  { transform: scale(1.18) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes bt-shake {
+  0%,100% { transform: translate(0,0); }
+  20%  { transform: translate(-3px,1px); }
+  40%  { transform: translate(3px,-1px); }
+  60%  { transform: translate(-2px,2px); }
+  80%  { transform: translate(2px,-2px); }
+}
+@keyframes bt-cell-ring-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklab,oklch(0.74 0.13 85) 70%,transparent); }
+  100% { box-shadow: 0 0 0 6px transparent; }
+}
+@keyframes bt-cell-win {
+  0%,100% { transform: scale(1); }
+  50%  { transform: scale(1.06); filter: brightness(1.12); }
+}
+@keyframes bt-winline {
+  from { stroke-dashoffset: 150; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes bt-bubble-in {
+  0%   { transform: scale(0.7) translateY(-6px); opacity: 0; }
+  60%  { transform: scale(1.05) translateY(0); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes bt-prop-float {
+  0%,100% { transform: translate(-50%,0); }
+  50% { transform: translate(-50%,-8px); }
+}
+@keyframes bt-prop-rise {
+  0%   { transform: translate(-50%,6px); opacity: 0.2; }
+  50%  { transform: translate(-50%,-6px); opacity: 1; }
+  100% { transform: translate(-50%,-18px); opacity: 0; }
+}
+@keyframes bt-prop-pop {
+  0%   { transform: translate(-50%,4px) scale(0.6); opacity: 0; }
+  40%  { transform: translate(-50%,-2px) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%,0) scale(1); opacity: 1; }
+}
+@keyframes bt-prop-burst {
+  0%   { transform: translateY(0) rotate(0deg) scale(0.5); opacity: 0; }
+  25%  { opacity: 1; }
+  100% { transform: translateY(-120px) rotate(var(--prop-rot,0deg)) scale(1.1); opacity: 0; }
+}
+.bt-game .bt-mark-pop {
+  animation: bt-mark-pop 280ms cubic-bezier(0.34,1.56,0.64,1) both;
+  display: inline-block;
+}
+.bt-game .bt-shake { animation: bt-shake 320ms ease-in-out; }
+.bt-game .bt-cell-ring {
+  box-shadow: inset 0 0 0 2px color-mix(in oklab,oklch(0.74 0.13 85) 60%,transparent);
+  animation: bt-cell-ring-pulse 700ms ease-out 1;
+}
+.bt-game .bt-cell-win { animation: bt-cell-win 720ms ease-in-out infinite; }
+.bt-game .bt-winline {
+  stroke-dasharray: 150;
+  stroke-dashoffset: 150;
+  animation: bt-winline 420ms ease-out 80ms forwards;
+}
+.bt-game .bt-bubble-in { animation: bt-bubble-in 240ms cubic-bezier(0.34,1.56,0.64,1) both; }
+.bt-game .bt-bubble-tail {
+  position: absolute; bottom: -6px; left: 26px;
+  width: 12px; height: 12px;
+  background: rgba(255,255,255,0.95);
+  border-right: 1px solid; border-bottom: 1px solid;
+  transform: rotate(45deg);
+}
+.bt-game .bt-prop-float  { animation: bt-prop-float 2.6s ease-in-out infinite; }
+.bt-game .bt-prop-rise   { animation: bt-prop-rise 2.4s ease-in-out infinite; }
+.bt-game .bt-prop-pop    { animation: bt-prop-pop 420ms cubic-bezier(0.34,1.56,0.64,1) both; }
+.bt-game .bt-prop-burst  { animation: bt-prop-burst 2.4s cubic-bezier(0.2,0.7,0.3,1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .bt-game .bt-mark-pop,.bt-game .bt-shake,.bt-game .bt-cell-ring,
+  .bt-game .bt-cell-win,.bt-game .bt-bubble-in,.bt-game .bt-prop-float,
+  .bt-game .bt-prop-rise,.bt-game .bt-prop-pop,.bt-game .bt-prop-burst {
+    animation: none !important;
+  }
+  .bt-game .bt-winline { stroke-dashoffset: 0; }
+}
+
+/* Buddy design tokens — single source for every buddy-powered surface (.bt-game).
+   The shared <BuddyCompanion> and the speech bubble read these, so they resolve
+   whether the buddy is mounted inside Tic-Tac-Toe or any other tool. */
+.bt-game {
+  --bt-ink: oklch(0.18 0 0);
+  --bt-paper: oklch(0.953 0.013 80);
+  --bt-chai: oklch(0.39 0.09 40);
+  --bt-gold: oklch(0.74 0.13 85);
+  --bt-board-light: oklch(0.93 0.02 80);
+  --bt-board-dark: oklch(0.55 0.09 50);
+}

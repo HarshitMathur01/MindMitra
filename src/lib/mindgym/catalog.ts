@@ -12,6 +12,8 @@ import {
   Smile,
   Grid3x3,
   Crown,
+  Gamepad2,
+  Film,
 } from "lucide-react";
 import type { MindGymTool, BadgeDefinition, MindGymSection } from "./types";
 
@@ -182,6 +184,30 @@ export const MINDGYM_TOOLS: readonly MindGymTool[] = [
     xp: 50,
     icon: Crown,
     gradient: ["#7c2d12", "#ea580c"] as const,
+    section: "fun",
+  },
+  {
+    id: "buddy-tictactoe",
+    title: "Buddy Match",
+    shortDesc: "Tic-tac-toe vs a 3D animated buddy — he reacts to every move",
+    clinicalTag: "Cognitive Break",
+    clinicalBasis: "A short playful break with a reactive companion triggers mild positive affect and keeps attention focused. The companion's emotional expressiveness adds a social dimension that amplifies mood benefit.",
+    minutes: 5,
+    xp: 50,
+    icon: Gamepad2,
+    gradient: ["#0f766e", "#14b8a6"] as const,
+    section: "fun",
+  },
+  {
+    id: "read-my-mood",
+    title: "Read My Mood",
+    shortDesc: "Your 3D buddy acts out a feeling — can you name it?",
+    clinicalTag: "Emotional Awareness",
+    clinicalBasis: "Reading emotion from a face is affect recognition — the front half of affect labeling (Lieberman et al.). Naming what another is feeling strengthens the same emotional-granularity skill that supports self-regulation, wrapped in a light, playful round.",
+    minutes: 4,
+    xp: 30,
+    icon: Film,
+    gradient: ["#9333ea", "#c084fc"] as const,
     section: "fun",
   },
 ] as const;

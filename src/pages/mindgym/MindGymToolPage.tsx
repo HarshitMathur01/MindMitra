@@ -17,6 +17,8 @@ const TOOL_COMPONENTS: Record<ToolId, ReturnType<typeof lazy>> = {
   "memory-challenge": lazy(() => import("./tools/MemoryChallenge")),
   "campus-chess": lazy(() => import("./tools/CampusChess")),
   "campus-ludo": lazy(() => import("./tools/campus-ludo/CampusLudoApp")),
+  "buddy-tictactoe": lazy(() => import("./tools/BuddyTicTacToe")),
+  "read-my-mood": lazy(() => import("./tools/ReadMyMood")),
 };
 
 function Loader() {

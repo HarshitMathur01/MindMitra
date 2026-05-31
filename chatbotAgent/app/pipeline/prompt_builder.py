@@ -73,7 +73,11 @@ def build_partial_prompt(
     trace_id: str | None = None,
 ) -> Dict[str, str]:
     block1 = load_block("system_identity")
-    block2 = _render_tone_block(tone, urgency_floor=urgency_score >= 1)
+    block2 = _render_tone_block(
+        tone,
+        urgency_floor=urgency_score >= 1,
+        response_language=orchestrator.response_language,
+    )
     block4 = _render_cultural_frame(orchestrator.cultural_frame_id, orchestrator.frame_uncertainty)
     block5 = _render_mode_block(orchestrator.selected_mode, orchestrator.dependency_flag)
     block6 = load_block("anti_sycophancy")
@@ -172,17 +176,49 @@ def build_full_prompt(
     return bundle
 
 
+_LANG_DIRECTIVES: Dict[str, str] = {
+    "english":  " • Respond ONLY in English. Do not use any Hindi or code-mixing.",
+    "hindi":    " • Respond ONLY in Hindi (Devanagari script). No English code-mix.",
+    "japanese": " • Respond ONLY in Japanese (natural register).",
+    "telugu":   " • Respond ONLY in Telugu (Telugu script).",
+    "kannada":  " • Respond ONLY in Kannada (Kannada script).",
+    "tamil":    " • Respond ONLY in Tamil (Tamil script).",
+}
+_LANG_OVERRIDE_NOTE = (
+    " • This language directive overrides any earlier instruction "
+    "to match the user's language or register."
+)
+
+
 # ── Block renderers ─────────────────────────────────────────────────────
-def _render_tone_block(tone: ToneParams, *, urgency_floor: bool) -> str:
+def _render_tone_block(
+    tone: ToneParams,
+    *,
+    urgency_floor: bool,
+    response_language: Optional[str] = None,
+) -> str:
     code_mix_pct = int(round(tone.code_mix * 100))
     length_label = "short" if tone.sentence_length < 0.4 else "medium" if tone.sentence_length < 0.7 else "long"
     warmth_label = "low" if tone.warmth < 0.5 else "medium" if tone.warmth < 0.75 else "high"
-    lines = [
-        "STYLE GUIDE:",
-        f" • Hindi-English code-mix: ~{code_mix_pct}% Hindi tokens.",
-        f" • Sentence length: {length_label}.",
-        f" • Warmth: {warmth_label}.",
-    ]
+    # Non-Hinglish path: strong directive replaces the code-mix line and adds
+    # an override note that beats the conflicting "match the user's language"
+    # guidance in system_identity (block 1).
+    if response_language and response_language in _LANG_DIRECTIVES:
+        lines = [
+            "STYLE GUIDE:",
+            _LANG_DIRECTIVES[response_language],
+            _LANG_OVERRIDE_NOTE,
+            f" • Sentence length: {length_label}.",
+            f" • Warmth: {warmth_label}.",
+        ]
+    else:
+        # Hinglish / None / unknown → existing path (byte-identical to baseline).
+        lines = [
+            "STYLE GUIDE:",
+            f" • Hindi-English code-mix: ~{code_mix_pct}% Hindi tokens.",
+            f" • Sentence length: {length_label}.",
+            f" • Warmth: {warmth_label}.",
+        ]
     if urgency_floor:
         lines.append(" • Never offer solutions unless explicitly asked.")
     if tone.humour_tolerance >= 0.5:

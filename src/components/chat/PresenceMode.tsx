@@ -32,6 +32,7 @@ import TalkingHeadAvatar from "./TalkingHeadAvatar";
 import MicFAB, { type MicState } from "./MicFAB";
 import TypewriterText from "./TypewriterText";
 import PresenceSafetyOverlay from "./PresenceSafetyOverlay";
+import { useLocalizedT } from "@/hooks/useLocalizedT";
 
 interface PresenceModeProps {
     /** GLB avatar URL to render. */
@@ -62,6 +63,7 @@ const PresenceMode = ({
         message: avatarCurrentMessage,
     } = useChat();
     const reduceMotion = useReducedMotion();
+    const { t } = useLocalizedT();
     const isSpeaking = micState === "speaking" && Boolean(avatarCurrentMessage?.text);
     const avatarCameraView = "upper";
     // Namaste greeting on Presence-Mode entry — Olaf only. Maps to the
@@ -102,7 +104,7 @@ const PresenceMode = ({
                     className="fixed inset-0 z-50 overflow-hidden"
                     role="dialog"
                     aria-modal="true"
-                    aria-label="Presence Mode — voice conversation with Mitra"
+                    aria-label={t("chat.presence.rootAria", "Presence Mode — voice conversation with Mitra")}
                 >
                     {/* Calming sage gradient backdrop. Avoids stark black, which
                         clinical UX research (JMIR ECA review) flags as
@@ -131,7 +133,7 @@ const PresenceMode = ({
                             type="button"
                             onClick={exitPresenceMode}
                             className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur px-3 py-1.5 text-[13px] font-medium text-white hover:bg-white/15 active:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
-                            aria-label="Exit Presence Mode"
+                            aria-label={t("chat.presence.exitAria", "Exit Presence Mode")}
                         >
                             <X className="h-4 w-4" />
                             <span className="hidden sm:inline">Exit</span>
@@ -218,7 +220,7 @@ const PresenceMode = ({
                             type="button"
                             onClick={exitPresenceMode}
                             className="inline-flex items-center gap-1.5 rounded-full text-[12.5px] font-medium text-white/60 hover:text-white/90 transition-colors px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                            aria-label="Type instead — return to text chat"
+                            aria-label={t("chat.presence.typeInsteadAria", "Type instead — return to text chat")}
                         >
                             <Keyboard className="h-3.5 w-3.5" />
                             Type instead

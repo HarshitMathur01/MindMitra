@@ -3,6 +3,8 @@ import { BOARD, type PlayerState, type ArchetypeId, ARCHETYPES } from "../lib/ga
 interface Props {
   players: PlayerState[];
   activeId: ArchetypeId;
+  /** A token mid-hop: render it at `pos` instead of its committed position. */
+  moving?: { id: ArchetypeId; pos: number } | null;
 }
 
 // Lay 32 tiles around a square ring: 9 per side, sharing corners.
@@ -28,7 +30,8 @@ const KIND_COLOR: Record<string, string> = {
   hostel: "bg-primary text-primary-foreground",
 };
 
-export function Board({ players, activeId }: Props) {
+export function Board({ players, activeId, moving }: Props) {
+  const posOf = (p: PlayerState) => (moving && moving.id === p.id ? moving.pos : p.position);
   return (
     <div className="paper-card p-4 sm:p-6">
       <div
@@ -43,7 +46,7 @@ export function Board({ players, activeId }: Props) {
       >
         {BOARD.map((tile, i) => {
           const { col, row } = gridPos(i);
-          const occupants = players.filter((p) => p.position === i);
+          const occupants = players.filter((p) => posOf(p) === i);
           return (
             <div
               key={i}

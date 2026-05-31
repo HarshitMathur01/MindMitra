@@ -11,10 +11,9 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Heart, Volume2, VolumeX, Eye, Target, Sparkles, Zap } from "lucide-react";
 import TherapeuticGameShell from "@/components/mindgym/TherapeuticGameShell";
 import { useTone } from "@/components/mindgym/shared/useAmbientAudio";
-import Buddy, { type BuddyCue } from "@/components/mindgym/shared/Buddy";
+import { BuddyCompanion, type BuddyCompanionHandle } from "@/components/companion/BuddyCompanion";
 import { useGameDataSaver } from "@/lib/gameDataSaver";
 import { MEMORY_TILE_HUES as TILE_HUES } from "@/lib/mindgym/theme";
-import memoryBuddyImg from "@/assets/memory-buddy.png";
 
 type Mode = "classic" | "snapshot";
 type Phase = "ready" | "countdown" | "showing" | "playing" | "feedback" | "finished";
@@ -193,105 +192,6 @@ interface MemoryBuddyProps {
   reduceMotion: boolean;
 }
 
-interface MemoryAvatarStageProps {
-  mood: BuddyMood;
-  reduceMotion: boolean;
-}
-
-type BuddyAvatarEmotion =
-  | "calm"
-  | "listening"
-  | "acknowledgment"
-  | "encouragement"
-  | "concern"
-  | "surprised";
-type BuddyAvatarGesture = "slow_nod" | "lean_forward" | "thinking_tilt" | "agreement_nod";
-
-interface MemoryAvatarCue extends BuddyCue {
-  emotion: BuddyAvatarEmotion;
-  intensity: number;
-  gesture: BuddyAvatarGesture | null;
-  flashEmotion?: BuddyAvatarEmotion;
-  flashIntensity?: number;
-}
-
-function avatarCueForBuddyMood(mood: BuddyMood): MemoryAvatarCue {
-  switch (mood) {
-    case "celebrate":
-      return { emotion: "encouragement", intensity: 1.45, gesture: "agreement_nod" };
-    case "happy":
-      return { emotion: "encouragement", intensity: 1.3, gesture: "agreement_nod" };
-    case "oops":
-      return {
-        emotion: "concern",
-        intensity: 1.35,
-        gesture: "lean_forward",
-        flashEmotion: "surprised",
-        flashIntensity: 1.28,
-      };
-    case "thinking":
-      return { emotion: "acknowledgment", intensity: 1.18, gesture: "slow_nod" };
-    case "hint":
-      return { emotion: "listening", intensity: 1.08, gesture: "thinking_tilt" };
-    case "idle":
-    default:
-      return { emotion: "calm", intensity: 1, gesture: null };
-  }
-}
-
-function MemoryAvatarStage({ mood, reduceMotion }: MemoryAvatarStageProps) {
-  const cue = useMemo(() => avatarCueForBuddyMood(mood), [mood]);
-
-  const fallback = (
-    <img
-      src={memoryBuddyImg}
-      alt="Memory buddy"
-      className="absolute inset-0 h-full w-full object-contain p-2 drop-shadow-[0_14px_22px_rgba(20,184,166,0.18)]"
-    />
-  );
-
-  return (
-    <div
-      className="relative h-28 w-44 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/35 shadow-[0_18px_38px_rgba(20,184,166,0.18),inset_0_0_24px_rgba(255,255,255,0.04)] sm:w-48"
-      style={{
-        background:
-          "linear-gradient(145deg, rgba(15,23,42,0.72), rgba(8,47,73,0.26) 52%, rgba(6,78,59,0.3))",
-      }}
-    >
-      {!reduceMotion && (
-        <motion.span
-          aria-hidden
-          className="pointer-events-none absolute -inset-y-10 -left-20 z-[2] w-24 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-          animate={{ x: [0, 230] }}
-          transition={{ duration: 5.8, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
-        />
-      )}
-
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-4 bg-black/45" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] h-4 bg-black/50" />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[4]"
-        style={{
-          boxShadow:
-            "inset 0 0 34px rgba(0,0,0,0.66), inset 0 18px 32px rgba(255,255,255,0.045), inset 0 -14px 24px rgba(0,0,0,0.42)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-6 top-4 z-[1] h-px bg-gradient-to-r from-transparent via-teal-200/50 to-transparent"
-      />
-
-      <Buddy
-        cue={cue}
-        reduceMotion={reduceMotion}
-        className="absolute inset-x-0 -bottom-2 h-[116%] w-full"
-        fallback={fallback}
-      />
-    </div>
-  );
-}
-
 const CINEMATIC_EXIT_LINES = [
   "Rolling credits on this cameo.",
   "Dramatic exit approved.",
@@ -313,7 +213,36 @@ function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps
   const dismissTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const pointerStartRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const primedRef = useRef(false);
+  const buddyRef = useRef<BuddyCompanionHandle>(null);
   const safeProgress = Math.min(1, Math.max(0, progress));
+
+  // Drive the 3D buddy's face from the game's mood. Silent (pose) so his voice
+  // never competes with the card's typewriter line or the game's tones.
+  useEffect(() => {
+    const b = buddyRef.current;
+    if (!b) return;
+    switch (mood) {
+      case "thinking":
+        b.pose("focused");
+        break;
+      case "hint":
+        b.pose("curious");
+        break;
+      case "happy":
+        b.pose("happy");
+        break;
+      case "celebrate":
+        b.pose("elated");
+        b.flash(1.1);
+        break;
+      case "oops":
+        b.pose("sad");
+        break;
+      case "idle":
+      default:
+        break; // idle director keeps him alive between beats
+    }
+  }, [mood]);
 
   const clearHold = useCallback(() => {
     if (holdTimerRef.current) {
@@ -622,9 +551,22 @@ function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps
               : { duration: 4.6, ease: "easeInOut", repeat: Infinity }
           }
         >
-          <MemoryAvatarStage mood={mood} reduceMotion={reduceMotion} />
+          <BuddyCompanion
+            ref={buddyRef}
+            variant="compact"
+            greetOnReady={false}
+            showBubble={false}
+            showMute={false}
+            showProps={false}
+            collapsibleOnMobile={false}
+            className="h-28 w-44 shrink-0 border border-white/10 sm:w-48"
+            stageStyle={{
+              background:
+                "linear-gradient(145deg, rgba(15,23,42,0.92), rgba(8,47,73,0.5) 52%, rgba(6,78,59,0.55))",
+            }}
+          />
           <span
-            className={`absolute bottom-1 right-1 h-3 w-3 rounded-full ${statusClass} ring-2 ring-[#0b1120]/80 ${
+            className={`absolute bottom-1 right-1 z-10 h-3 w-3 rounded-full ${statusClass} ring-2 ring-[#0b1120]/80 ${
               reduceMotion ? "" : "animate-pulse"
             }`}
           />

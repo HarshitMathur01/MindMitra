@@ -244,7 +244,40 @@
       "writing": "शब्द ढूँढ रही हूँ"
     },
     "header": {
-      "statusIdle": "यहीं हूँ जब तुम चाहो"
+      "statusIdle": "यहीं हूँ जब तुम चाहो",
+      "presence": "मित्र के साथ रहो",
+      "presenceAria": "प्रेज़ेंस मोड खोलो — पूरी स्क्रीन वॉइस बातचीत",
+      "openConversationsAria": "बातचीत खोलो",
+      "closeConversationsAria": "बातचीत बंद करो",
+      "homeAria": "होम पर जाओ",
+      "showAvatarAria": "अवतार पैनल दिखाओ",
+      "hideAvatarAria": "अवतार पैनल छुपाओ",
+      "moreOptionsAria": "और विकल्प",
+      "language": "भाषा",
+      "exportTitle": "यह बातचीत एक्सपोर्ट करो",
+      "exportAsPdf": "PDF के रूप में एक्सपोर्ट करो",
+      "exportAsJson": "JSON के रूप में एक्सपोर्ट करो",
+      "exportAsCsv": "CSV के रूप में एक्सपोर्ट करो"
+    },
+    "composer": {
+      "placeholder": "आराम से… जब तैयार हो",
+      "sendAria": "भेजो",
+      "speakAria": "बोलकर कहो",
+      "stopRecordingAria": "रिकॉर्डिंग रोको"
+    },
+    "sidebar": {
+      "newAria": "नई बातचीत शुरू करो",
+      "pastConversationsAria": "पुरानी बातचीत",
+      "memoryMoodAria": "याद और मूड",
+      "homeAria": "होम",
+      "openProfileAria": "प्रोफ़ाइल खोलो",
+      "accountMenuAria": "अकाउंट मेन्यू",
+      "searchPlaceholder": "अपनी कही कोई बात ढूँढो"
+    },
+    "presence": {
+      "rootAria": "प्रेज़ेंस मोड — मित्र से वॉइस बातचीत",
+      "exitAria": "प्रेज़ेंस मोड से बाहर निकलो",
+      "typeInsteadAria": "लिखकर कहो — टेक्स्ट चैट पर लौटो"
     },
     "voice": {
       "recording": "🎤 रिकॉर्ड हो रहा है..."

@@ -36,19 +36,52 @@ def select_language_variant(code_mix_ratio: float) -> str:
     return "hi"
 
 
+# Map a user-selected response language to an available crisis-template
+# variant. Crisis templates are clinician-authored and only exist for English,
+# Hindi, and the two Hinglish registers. Languages without their own clinician
+# template fall back to English — the helpline numbers stay India-wide valid.
+_CRISIS_VARIANT_BY_LANGUAGE = {
+    "english": "en",
+    "hindi": "hi",
+    "tamil": "en",
+    "telugu": "en",
+    "kannada": "en",
+    "japanese": "en",
+}
+
+
+def resolve_crisis_variant(
+    code_mix_ratio: float,
+    response_language: Optional[str] = None,
+) -> str:
+    """Pick a crisis-template variant.
+
+    When the user explicitly chose a response language we honour it (falling
+    back to English for languages without a clinician template). For Hinglish,
+    ``None``, or any unknown value we keep the historical code-mix-driven
+    selection so existing behaviour is byte-identical.
+    """
+    if response_language:
+        lang = response_language.strip().lower()
+        if lang in _CRISIS_VARIANT_BY_LANGUAGE:
+            return _CRISIS_VARIANT_BY_LANGUAGE[lang]
+    return select_language_variant(code_mix_ratio)
+
+
 async def crisis_bypass_check(
     *,
     urgency_score: int,
     user_id: str,
     session_id: str,
     code_mix_ratio: float,
+    response_language: Optional[str] = None,
     trace_id: str | None = None,
     audit_logger: Optional[Callable[[dict], Awaitable[None]]] = None,
 ) -> Optional[CrisisResponse]:
     if urgency_score != 3:
         return None
 
-    variant = select_language_variant(code_mix_ratio)
+    variant = resolve_crisis_variant(code_mix_ratio, response_language)
     logger.warning(
         "━━━━━━ CRISIS TIER 3 ━━━━━━",
         extra=log_context(session_id=session_id, user_id=user_id, trace_id=trace_id, urgency=urgency_score, template_variant=variant),

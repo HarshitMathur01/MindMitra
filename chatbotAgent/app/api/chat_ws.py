@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Literal, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Response, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from ..core import fallback as fb_mod
 from ..core.auth import AuthError, authenticate_websocket, decode_supabase_jwt
@@ -98,10 +98,26 @@ def _create_logged_task(
     return task
 
 
+SUPPORTED_RESPONSE_LANGUAGES = frozenset(
+    {"english", "hindi", "hinglish", "japanese", "telugu", "kannada", "tamil"}
+)
+
+
 class ChatRequest(BaseModel):
     content: str
     session_id: Optional[str] = None
     device_locale: Optional[str] = None
+    language: Optional[str] = None
+
+    @field_validator("language")
+    @classmethod
+    def _coerce_language(cls, v: Optional[str]) -> Optional[str]:
+        # Defensive: never 400 on language — silently coerce unknown values
+        # to None so the pipeline falls back to the existing Hinglish path.
+        if not v:
+            return None
+        normalised = v.strip().lower()
+        return normalised if normalised in SUPPORTED_RESPONSE_LANGUAGES else None
 
 
 class ChatResponse(BaseModel):
@@ -185,6 +201,7 @@ async def chat_http(
         user_id,
         requested_session_id=requested_session_id,
         device_locale=payload.device_locale,
+        response_language=payload.language,
     )
     logger.info(
         "HTTP session ready",
@@ -620,6 +637,7 @@ async def _process_turn(
             user_id=user_id,
             session_id=session.session_id,
             code_mix_ratio=session.code_mix_ratio,
+            response_language=session.response_language,
             trace_id=ingested.trace_id,
         )
         if crisis_resp:
@@ -697,6 +715,7 @@ async def _process_turn(
             user_id=user_id,
             session_id=session.session_id,
             code_mix_ratio=signals.code_mix_ratio,
+            response_language=session.response_language,
             trace_id=ingested.trace_id,
         )
         if crisis_resp:
@@ -934,6 +953,7 @@ async def _process_turn(
                 turn_count=session.turn_count,
                 mode=orchestrator.selected_mode,
                 code_mix_ratio=signals.code_mix_ratio,
+                response_language=session.response_language,
             )
 
         try:

@@ -36,8 +36,10 @@ logger = get_logger(__name__)
 
 # ── Groq structured-output prompt ────────────────────────────────────────
 _SCHEMA_INSTRUCTION = (
-    "You are an emotion + risk signal extractor for an Indian Hindi-English "
-    "code-mixed mental-health chat. Read the user's MOST RECENT message in "
+    "You are an emotion + risk signal extractor for an Indian mental-health "
+    "chat. The user may write in English, Hindi, Hinglish (Hindi-English "
+    "code-mix), or a regional / other language such as Tamil, Telugu, "
+    "Kannada, or Japanese. Read the user's MOST RECENT message in "
     "context of the conversation history. Return ONLY a strict JSON object "
     "matching this schema (no markdown, no prose):\n"
     "{\n"
@@ -51,6 +53,7 @@ _SCHEMA_INSTRUCTION = (
     "}\n"
     "Rules:\n"
     " - urgency_score=3 ONLY for explicit suicidality/self-harm intent or imminent danger (current language).\n"
+    " - Detect distress and self-harm / suicidal intent in ANY language or script, not just English/Hindi; never lower urgency merely because the message is in a regional or non-English language.\n"
     " - Treat sarcasm as a flag, do NOT lower urgency in your output (that happens downstream).\n"
     " - Hindi 'khatam ho gaya' / 'sab khatam' / 'jeena nahi chahta' / 'mar jaun' family of phrases → urgency >= 2.\n"
     " - Return valid JSON — no preface, no trailing commas, no comments."

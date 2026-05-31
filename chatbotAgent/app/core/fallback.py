@@ -29,18 +29,37 @@ def template_index(session_id: str, turn_count: int) -> int:
     return int(hashlib.sha256(seed).hexdigest(), 16) % 6
 
 
+# Map a user-selected response language to an available static-fallback
+# variant. Static templates exist only for English and the two Hinglish
+# registers (no pure-Hindi variant), so Hindi maps to the most Hindi-heavy
+# register available and languages without a dedicated template fall back to
+# English. This path only runs after the LLM has already failed.
+_FALLBACK_VARIANT_BY_LANGUAGE = {
+    "english": "en",
+    "hindi": "hinglish_casual",
+    "tamil": "en",
+    "telugu": "en",
+    "kannada": "en",
+    "japanese": "en",
+}
+
+
 async def select_static_fallback(
     *,
     session_id: str,
     turn_count: int,
     mode: str,
     code_mix_ratio: float,
+    response_language: Optional[str] = None,
 ) -> str:
-    variant = "en"
-    if code_mix_ratio >= 0.5:
-        variant = "hinglish_casual"
-    elif code_mix_ratio >= 0.2:
-        variant = "hinglish_formal"
+    variant = _FALLBACK_VARIANT_BY_LANGUAGE.get((response_language or "").strip().lower())
+    if variant is None:
+        # Hinglish / None / unknown → historical code-mix-driven selection.
+        variant = "en"
+        if code_mix_ratio >= 0.5:
+            variant = "hinglish_casual"
+        elif code_mix_ratio >= 0.2:
+            variant = "hinglish_formal"
 
     idx = template_index(session_id, turn_count)
     content = await profile_service.fetch_static_fallback(mode, variant, idx)

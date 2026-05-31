@@ -220,7 +220,19 @@ async def run_safety_gate(
                 flags = flags2
 
     # ── Check 4: tone conformance ───────────────────────────────────────
-    conformance = _tone_conformance(current, orchestrator.tone_params, orchestrator.selected_mode)
+    # Skip the code-mix portion when the user explicitly picked a non-Hinglish
+    # response language — the _HINDI_TOKEN_RE only matches Devanagari and
+    # would otherwise force a regeneration toward Hindi-English code-mix.
+    language_override_active = bool(
+        orchestrator.response_language
+        and orchestrator.response_language != "hinglish"
+    )
+    conformance = _tone_conformance(
+        current,
+        orchestrator.tone_params,
+        orchestrator.selected_mode,
+        skip_code_mix=language_override_active,
+    )
     tone_details = _tone_check_details(current, orchestrator.tone_params, orchestrator.selected_mode)
     logger.debug(
         "check 4 tone complete",
@@ -231,16 +243,29 @@ async def run_safety_gate(
             "retry triggered",
             extra=log_context(trace_id=trace_id, check="tone", corrective_instruction="match_style_guide", conformance_score=conformance),
         )
-        new = await regenerate(
-            "Rewrite the reply to better match the style guide (code-mix, sentence "
-            "length, mode constraints). Keep the meaning, change only the tone.",
-            orchestrator.temperature,
-        )
+        if language_override_active:
+            corrective = (
+                "Rewrite the reply to better match the style guide (sentence "
+                "length, mode constraints). Keep the meaning and keep the "
+                "language fixed to what the style guide requires."
+            )
+        else:
+            corrective = (
+                "Rewrite the reply to better match the style guide (code-mix, "
+                "sentence length, mode constraints). Keep the meaning, change "
+                "only the tone."
+            )
+        new = await regenerate(corrective, orchestrator.temperature)
         retries += 1
         source = "llm_retry"
         if new.strip():
             current = new
-            conformance = _tone_conformance(current, orchestrator.tone_params, orchestrator.selected_mode)
+            conformance = _tone_conformance(
+                current,
+                orchestrator.tone_params,
+                orchestrator.selected_mode,
+                skip_code_mix=language_override_active,
+            )
             tone_details = _tone_check_details(current, orchestrator.tone_params, orchestrator.selected_mode)
 
     # ── Check 5: length ─────────────────────────────────────────────────
@@ -337,15 +362,22 @@ async def _classify_harm_sycophancy(text: str, *, trace_id: str | None = None) -
 
 
 # ── Check 4: tone conformance ────────────────────────────────────────────
-def _tone_conformance(text: str, tone: ToneParams, mode: str) -> float:
+def _tone_conformance(
+    text: str,
+    tone: ToneParams,
+    mode: str,
+    *,
+    skip_code_mix: bool = False,
+) -> float:
     score = 1.0
 
-    hindi_tokens = len(_HINDI_TOKEN_RE.findall(text))
-    latin_tokens = len(_LATIN_TOKEN_RE.findall(text))
-    total = hindi_tokens + latin_tokens
-    actual_code_mix = (hindi_tokens / total) if total else tone.code_mix
-    if abs(actual_code_mix - tone.code_mix) > 0.25:
-        score -= 0.25
+    if not skip_code_mix:
+        hindi_tokens = len(_HINDI_TOKEN_RE.findall(text))
+        latin_tokens = len(_LATIN_TOKEN_RE.findall(text))
+        total = hindi_tokens + latin_tokens
+        actual_code_mix = (hindi_tokens / total) if total else tone.code_mix
+        if abs(actual_code_mix - tone.code_mix) > 0.25:
+            score -= 0.25
 
     # Sentence length
     sentences = [s.strip() for s in re.split(r"[.!?\n]+", text) if s.strip()]

@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import RecentChatItem from "./RecentChatItem";
 import { CHAT_SOFT_SPRING } from "./chatConstants";
 import type { RecentChatPreview } from "./chatTypes";
+import { useLocalizedT } from "@/hooks/useLocalizedT";
 
 /**
  * Sidebar shortcuts to other product surfaces. We intentionally route
@@ -100,6 +101,7 @@ const ChatSidebar = ({
     userEmail,
 }: ChatSidebarProps) => {
     const navigate = useNavigate();
+    const { t } = useLocalizedT();
     const grouped = groupChatsByDate(recentChats);
 
     /**
@@ -134,7 +136,7 @@ const ChatSidebar = ({
                         type="button"
                         onClick={onNewChat}
                         className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                        aria-label="Start new conversation"
+                        aria-label={t("chat.sidebar.newAria", "Start new conversation")}
                     >
                         <Plus className="h-4 w-4" />
                     </button>
@@ -142,8 +144,8 @@ const ChatSidebar = ({
                         type="button"
                         onClick={onExpand}
                         className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                        aria-label="Past conversations"
-                        title="Past conversations"
+                        aria-label={t("chat.sidebar.pastConversationsAria", "Past conversations")}
+                        title={t("chat.sidebar.pastConversationsAria", "Past conversations")}
                     >
                         <MessageSquare className="h-4 w-4" />
                     </button>
@@ -152,8 +154,8 @@ const ChatSidebar = ({
                             type="button"
                             onClick={() => navigate("/me")}
                             className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                            aria-label="Memory & mood"
-                            title="Memory & mood"
+                            aria-label={t("chat.sidebar.memoryMoodAria", "Memory & mood")}
+                            title={t("chat.sidebar.memoryMoodAria", "Memory & mood")}
                         >
                             <Heart className="h-4 w-4" />
                         </button>
@@ -161,8 +163,8 @@ const ChatSidebar = ({
                             type="button"
                             onClick={() => navigate("/")}
                             className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                            aria-label="Home"
-                            title="Home"
+                            aria-label={t("chat.sidebar.homeAria", "Home")}
+                            title={t("chat.sidebar.homeAria", "Home")}
                         >
                             <Home className="h-4 w-4" />
                         </button>
@@ -216,7 +218,7 @@ const ChatSidebar = ({
                             strokeWidth={1.8}
                         />
                         <Input
-                            placeholder="Look back at something you said"
+                            placeholder={t("chat.sidebar.searchPlaceholder", "Look back at something you said")}
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
                             className="h-11 rounded-full pl-10 bg-background border border-input text-foreground placeholder:text-muted-foreground text-[14px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -342,7 +344,7 @@ const ChatSidebar = ({
                                 type="button"
                                 onClick={() => goAndClose("/profile")}
                                 className="flex items-center gap-2 rounded-lg px-1 py-1 -mx-1 transition-colors hover:bg-background"
-                                aria-label="Open profile"
+                                aria-label={t("chat.sidebar.openProfileAria", "Open profile")}
                             >
                                 <div className="w-7 h-7 rounded-full bg-[hsl(var(--accent-100))] flex items-center justify-center">
                                     <User
@@ -360,7 +362,7 @@ const ChatSidebar = ({
                                         variant="ghost"
                                         size="sm"
                                         className="h-8 w-8 p-0 text-ink-5 hover:text-ink-7 hover:bg-background transition-colors"
-                                        aria-label="Account menu"
+                                        aria-label={t("chat.sidebar.accountMenuAria", "Account menu")}
                                     >
                                         <MoreVertical className="h-4 w-4" strokeWidth={1.8} />
                                     </Button>

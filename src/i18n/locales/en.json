@@ -243,7 +243,40 @@
       "writing": "Putting it into words"
     },
     "header": {
-      "statusIdle": "here when you are"
+      "statusIdle": "here when you are",
+      "presence": "Be with Mitra",
+      "presenceAria": "Open Presence Mode — full-screen voice conversation",
+      "openConversationsAria": "Open conversations",
+      "closeConversationsAria": "Close conversations",
+      "homeAria": "Go to home",
+      "showAvatarAria": "Show avatar pane",
+      "hideAvatarAria": "Hide avatar pane",
+      "moreOptionsAria": "More options",
+      "language": "Language",
+      "exportTitle": "Export this conversation",
+      "exportAsPdf": "Export as PDF",
+      "exportAsJson": "Export as JSON",
+      "exportAsCsv": "Export as CSV"
+    },
+    "composer": {
+      "placeholder": "Take your time…",
+      "sendAria": "Send",
+      "speakAria": "Speak instead",
+      "stopRecordingAria": "Stop recording"
+    },
+    "sidebar": {
+      "newAria": "Start new conversation",
+      "pastConversationsAria": "Past conversations",
+      "memoryMoodAria": "Memory & mood",
+      "homeAria": "Home",
+      "openProfileAria": "Open profile",
+      "accountMenuAria": "Account menu",
+      "searchPlaceholder": "Look back at something you said"
+    },
+    "presence": {
+      "rootAria": "Presence Mode — voice conversation with Mitra",
+      "exitAria": "Exit Presence Mode",
+      "typeInsteadAria": "Type instead — return to text chat"
     },
     "voice": {
       "recording": "🎤 Recording..."

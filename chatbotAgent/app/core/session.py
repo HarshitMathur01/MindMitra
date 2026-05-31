@@ -106,6 +106,9 @@ class SessionObject:
     last_suggestion_turn: int = -10
     last_suggestion_id: Optional[str] = None
     suggestion_history: List[Dict[str, Any]] = field(default_factory=list)
+    # User-selected response language (e.g. "english", "hindi", "tamil").
+    # None → preserves the existing Hinglish/code-mix pipeline behaviour.
+    response_language: Optional[str] = None
 
     # ── (de)serialisation ───────────────────────────────────────────────
     def to_json(self) -> str:

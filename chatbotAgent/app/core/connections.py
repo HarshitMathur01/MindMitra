@@ -436,17 +436,26 @@ def get_azure() -> Any:
     if cached is not None:
         return cached
     try:
-        from openai import AsyncAzureOpenAI
+        if "services.ai.azure.com" in e.azure_endpoint:
+            from openai import AsyncOpenAI
+            client = AsyncOpenAI(
+                base_url=e.azure_endpoint,
+                api_key=e.azure_api_key,
+                timeout=SERVICE_TIMEOUTS["azure"],
+                max_retries=0,
+            )
+        else:
+            from openai import AsyncAzureOpenAI
+            client = AsyncAzureOpenAI(
+                azure_endpoint=e.azure_endpoint,
+                api_key=e.azure_api_key,
+                api_version=e.azure_api_version,
+                timeout=SERVICE_TIMEOUTS["azure"],
+                max_retries=0,
+            )
     except Exception as exc:  # noqa: BLE001
         logger.error("[v3 conn] openai sdk import failed: %s", exc)
         return None
-    client = AsyncAzureOpenAI(
-        azure_endpoint=e.azure_endpoint,
-        api_key=e.azure_api_key,
-        api_version=e.azure_api_version,
-        timeout=SERVICE_TIMEOUTS["azure"],
-        max_retries=0,
-    )
     _ASYNC_CLIENTS[cache_key] = client
     return client
 

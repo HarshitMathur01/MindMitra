@@ -279,7 +279,8 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
   // WebSocket does.
   // ═══════════════════════════════════════════════════════════
   const transcribeWithWhisper = useCallback(async (audioData: string): Promise<string> => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim()
+      || (typeof window !== 'undefined' ? window.location.origin.replace(/\/$/, '') : '');
     if (!backendUrl) {
       console.warn('⚠️ [WHISPER] VITE_BACKEND_URL not configured — Whisper fallback unavailable');
       return '';

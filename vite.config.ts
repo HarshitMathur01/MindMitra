@@ -113,6 +113,40 @@ export default defineConfig(({ command }) => ({
     port: 8080,
     strictPort: true,
     allowedHosts: true,
+    proxy: {
+      "/chat": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/onboarding": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/transcribe": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/me": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/speech": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/health": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/admin": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/therapist": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+    },
     watch: {
       ignored: [
         "**/.git/**",

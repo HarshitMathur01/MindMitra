@@ -80,7 +80,6 @@ curl http://127.0.0.1:8000/
 ```bash
 cp .env.production.example .env.local
 # Set:
-#   VITE_BACKEND_URL=http://127.0.0.1:8000
 #   VITE_SUPABASE_URL=...
 #   VITE_SUPABASE_PUBLISHABLE_KEY=...
 
@@ -88,9 +87,11 @@ npm install
 npm run dev          # http://localhost:8080
 ```
 
-`ChatGPTInterface` posts user turns to `${VITE_BACKEND_URL}/chat`.
-The WebSocket client was removed from the local path to keep the current
-development loop simple and reliable.
+The Vite dev server now proxies backend routes like `/chat`, `/onboarding`,
+`/transcribe`, `/me`, and `/speech` to `http://127.0.0.1:8000`, so an ngrok
+front-end tunnel can reach the local backend through the same public origin.
+Leave `VITE_BACKEND_URL` unset for that mode. If you prefer to point the app
+at a separate backend tunnel, set `VITE_BACKEND_URL` to that public URL.
 
 ## 6. End-to-end chat smoke
 

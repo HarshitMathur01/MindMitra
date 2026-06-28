@@ -167,11 +167,14 @@ class V3Env:
     )
     # Total token budget for a single Azure reasoning call.
     # Reasoning tokens + output tokens both count against this.
-    # 1600 → ~128 thinking + ~300 output safely fits within budget.
+    # At reasoning_effort="low", the model consumes ~200-400 reasoning tokens,
+    # leaving ~3600 tokens for visible output — enough for a full response.
+    # 1600 was too tight: reasoning could exhaust the budget, producing <10 words
+    # and triggering the safety-gate length fallback.
     azure_max_completion_tokens: int = field(
         default_factory=lambda: config.get_int(
             "providers.azure_openai.max_completion_tokens",
-            1600,
+            4000,
             env="AZURE_MAX_COMPLETION_TOKENS",
         )
     )

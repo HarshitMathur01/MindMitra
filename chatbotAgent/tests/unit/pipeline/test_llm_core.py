@@ -30,7 +30,7 @@ async def test_azure_failure_falls_back_to_groq_for_routine_urgency(monkeypatch:
     env_mod.reload_env()
 
     async def azure(*_args, **_kwargs):
-        return _error("azure_gpt4o")
+        return _error("gpt-5-nano")
 
     async def groq(*_args, **_kwargs):
         return LLMResult(
@@ -52,7 +52,7 @@ async def test_azure_failure_falls_back_to_groq_for_routine_urgency(monkeypatch:
 
     assert result.raw_response == "I hear you."
     assert result.llm_used == "groq_llama70b"
-    assert result.fallback_chain == ["azure_gpt4o", "groq_llama70b"]
+    assert result.fallback_chain == ["gpt-5-nano", "groq_llama70b"]
 
 
 @pytest.mark.unit
@@ -65,7 +65,7 @@ async def test_all_llm_failures_surface_static_fallback_signal(monkeypatch: pyte
     env_mod.reload_env()
 
     async def azure(*_args, **_kwargs):
-        return _error("azure_gpt4o")
+        return _error("gpt-5-nano")
 
     async def groq(*_args, **_kwargs):
         return _error("groq_llama70b")
@@ -81,7 +81,7 @@ async def test_all_llm_failures_surface_static_fallback_signal(monkeypatch: pyte
 
     assert result.finish_reason == "error"
     assert result.raw_response == ""
-    assert result.fallback_chain == ["azure_gpt4o", "groq_llama70b"]
+    assert result.fallback_chain == ["gpt-5-nano", "groq_llama70b"]
 
 
 @pytest.mark.unit
@@ -188,6 +188,7 @@ async def test_gpt5_azure_call_uses_reasoning_safe_parameters(monkeypatch: pytes
     assert "max_tokens" not in captured_kwargs
     assert "temperature" not in captured_kwargs
     assert "stop" not in captured_kwargs
+    assert captured_kwargs.get("stream_options") == {"include_usage": True}
 
 
 @pytest.mark.unit
@@ -234,3 +235,4 @@ async def test_classic_azure_call_uses_classic_chat_parameters(monkeypatch: pyte
     assert "stop" in captured_kwargs
     assert "max_completion_tokens" not in captured_kwargs
     assert "reasoning_effort" not in captured_kwargs
+    assert captured_kwargs.get("stream_options") == {"include_usage": True}

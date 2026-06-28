@@ -62,6 +62,10 @@ COMBINED_PROMPT = (
 CONFORMANCE_THRESHOLD = 0.65
 LENGTH_OVERSIZE_MULT = 1.2
 MIN_LENGTH_TOKENS = 10
+# active_listener mode instructs the model to use 1-3 sentences; a single
+# short sentence is 3-5 words and is clinically correct for that mode.
+# Other modes are held to the full 10-word floor.
+MIN_LENGTH_BY_MODE: dict[str, int] = {"active_listener": 3}
 
 SOLUTION_KEYWORDS = (
     "try ",
@@ -271,26 +275,48 @@ async def run_safety_gate(
     # ── Check 5: length ─────────────────────────────────────────────────
     current, length_ok = _length_check(current, orchestrator.max_response_tokens)
     approx_tokens = _approx_token_count(current)
+    min_len = MIN_LENGTH_BY_MODE.get(orchestrator.selected_mode, MIN_LENGTH_TOKENS)
     logger.debug(
         "check 5 length complete",
-        extra=log_context(trace_id=trace_id, token_count=approx_tokens, max_tokens=orchestrator.max_response_tokens, length="ok" if length_ok else "too_short", truncated=approx_tokens > orchestrator.max_response_tokens * LENGTH_OVERSIZE_MULT),
+        extra=log_context(trace_id=trace_id, token_count=approx_tokens, min_len=min_len, max_tokens=orchestrator.max_response_tokens, length="ok" if length_ok else "too_short", truncated=approx_tokens > orchestrator.max_response_tokens * LENGTH_OVERSIZE_MULT),
     )
-    if not length_ok and _approx_token_count(current) < MIN_LENGTH_TOKENS:
+    if not length_ok and approx_tokens < min_len:
         logger.warning(
-            "fallback triggered",
-            extra=log_context(trace_id=trace_id, check="length", mode=orchestrator.selected_mode, template_index="deterministic", token_count=approx_tokens),
+            "retry triggered",
+            extra=log_context(trace_id=trace_id, check="length", mode=orchestrator.selected_mode, token_count=approx_tokens, min_len=min_len),
         )
-        fallback = await static_fallback()
-        logger.info("checks complete", extra=log_context(trace_id=trace_id, harm=flags.harm, syco=flags.sycophancy, conformance=conformance, length="too_short", source="static_fallback", retries=retries, outcome="fallback"))
-        return SafetyResult(
-            approved=False,
-            approved_response=fallback,
-            safety_flags=flags,
-            safety_check_result=_result_dict(flags, conformance, False, retries, "static_fallback"),
-            retries_used=retries,
-            response_source="static_fallback",
-            conformance_score=conformance,
+        new = await regenerate(
+            "Your response was too short. Write at least 2-3 complete sentences — "
+            "reflect the user's emotion, acknowledge what they shared, and invite "
+            "them to continue. Keep the same tone and mode.",
+            orchestrator.temperature,
         )
+        retries += 1
+        source = "llm_retry"
+        if new.strip() and _approx_token_count(new) >= min_len:
+            current = new
+            conformance = _tone_conformance(
+                current,
+                orchestrator.tone_params,
+                orchestrator.selected_mode,
+                skip_code_mix=language_override_active,
+            )
+        else:
+            logger.warning(
+                "fallback triggered",
+                extra=log_context(trace_id=trace_id, check="length", mode=orchestrator.selected_mode, template_index="deterministic", token_count=_approx_token_count(new) if new.strip() else 0),
+            )
+            fallback = await static_fallback()
+            logger.info("checks complete", extra=log_context(trace_id=trace_id, harm=flags.harm, syco=flags.sycophancy, conformance=conformance, length="too_short", source="static_fallback", retries=retries, outcome="fallback"))
+            return SafetyResult(
+                approved=False,
+                approved_response=fallback,
+                safety_flags=flags,
+                safety_check_result=_result_dict(flags, conformance, False, retries, "static_fallback"),
+                retries_used=retries,
+                response_source="static_fallback",
+                conformance_score=conformance,
+            )
 
     result = SafetyResult(
         approved=True,

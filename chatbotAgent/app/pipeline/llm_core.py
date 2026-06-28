@@ -74,9 +74,9 @@ async def generate_response(
 
     result: LLMResult = _error_result("no_provider_attempted", "none")
     for provider in providers:
-        if provider == "azure_gpt4o":
+        if provider == "gpt-5-nano":
             logger.debug(
-                "→ Azure GPT-4o",
+                "-> Azure GPT-5-nano",
                 extra=log_context(
                     temp=orchestrator.temperature,
                     max_tokens=orchestrator.max_response_tokens,
@@ -222,19 +222,20 @@ def _provider_chain(primary: str, *, urgency: int, mode: str) -> List[str]:
         logger.warning("invalid LLM_PROVIDER_CHAIN; using primary provider", extra=log_context(configured_chain=configured_chain))
 
     if primary == "groq":
-        return [p for p in ["groq_llama70b", "azure_gpt4o", "glm4flash"] if _provider_allowed(p, urgency=urgency, mode=mode)]
+        return [p for p in ["groq_llama70b", "gpt-5-nano", "glm4flash"] if _provider_allowed(p, urgency=urgency, mode=mode)]
     if primary == "azure":
-        return [p for p in ["azure_gpt4o", "groq_llama70b", "glm4flash"] if _provider_allowed(p, urgency=urgency, mode=mode)]
+        return [p for p in ["gpt-5-nano", "groq_llama70b", "glm4flash"] if _provider_allowed(p, urgency=urgency, mode=mode)]
     if primary == "glm":
-        return [p for p in ["glm4flash", "groq_llama70b", "azure_gpt4o"] if _provider_allowed(p, urgency=urgency, mode=mode)]
+        return [p for p in ["glm4flash", "groq_llama70b", "gpt-5-nano"] if _provider_allowed(p, urgency=urgency, mode=mode)]
     logger.warning("invalid LLM_PRIMARY_PROVIDER; falling back to azure chain", extra=log_context(primary=primary))
-    return [p for p in ["azure_gpt4o", "groq_llama70b", "glm4flash"] if _provider_allowed(p, urgency=urgency, mode=mode)]
+    return [p for p in ["gpt-5-nano", "groq_llama70b", "glm4flash"] if _provider_allowed(p, urgency=urgency, mode=mode)]
 
 
 def _normalise_provider_name(provider: str) -> str:
     mapping = {
-        "azure": "azure_gpt4o",
-        "azure_gpt4o": "azure_gpt4o",
+        "azure": "gpt-5-nano",
+        "gpt-5-nano": "gpt-5-nano",
+        "gpt-5-nano": "gpt-5-nano",
         "groq": "groq_llama70b",
         "groq_llama70b": "groq_llama70b",
         "glm": "glm4flash",
@@ -270,7 +271,7 @@ async def _try_azure(messages, *, max_tokens, temperature, trace_id: str | None 
     client = get_azure()
     if client is None:
         logger.warning("Azure client unavailable", extra=log_context(trace_id=trace_id, consequence="try_next_provider", reason="missing_env_or_init_failed"))
-        return _error_result("azure_unavailable", "azure_gpt4o")
+        return _error_result("azure_unavailable", "gpt-5-nano")
     e = env()
     reasoning = _is_gpt5_reasoning(e)
     logger.debug(
@@ -287,12 +288,14 @@ async def _try_azure(messages, *, max_tokens, temperature, trace_id: str | None 
         if reasoning:
             # GPT-5 / reasoning models: use max_completion_tokens, no temperature/stop.
             # reasoning_effort controls internal thinking budget (low = fastest).
+            # stream_options include_usage ensures token counts are non-zero in streaming.
             create_kwargs: dict = {
                 "model": e.azure_deployment,
                 "messages": messages,
                 "max_completion_tokens": e.azure_max_completion_tokens,
                 "reasoning_effort": e.azure_reasoning_effort,
                 "stream": True,
+                "stream_options": {"include_usage": True},
                 "timeout": e.azure_timeout_s,
             }
         else:
@@ -304,16 +307,17 @@ async def _try_azure(messages, *, max_tokens, temperature, trace_id: str | None 
                 "temperature": temperature,
                 "stop": ["\n\n\n"],
                 "stream": True,
+                "stream_options": {"include_usage": True},
                 "timeout": e.azure_timeout_s,
             }
         stream = await guarded_call("azure", lambda: client.chat.completions.create(**create_kwargs), timeout_s=8.0)
-        return await _consume_stream(stream, on_chunk=on_chunk, llm_used="azure_gpt4o", trace_id=trace_id)
+        return await _consume_stream(stream, on_chunk=on_chunk, llm_used="gpt-5-nano", trace_id=trace_id)
     except Exception as exc:  # noqa: BLE001
         logger.warning(
             "Azure call failed",
             extra=log_context(trace_id=trace_id, exception_type=type(exc).__name__, reason=str(exc), fallback="next_provider"),
         )
-        return _error_result(str(exc), "azure_gpt4o")
+        return _error_result(str(exc), "gpt-5-nano")
 
 
 async def _try_glm(messages, *, max_tokens, temperature, trace_id: str | None = None, on_chunk: OnChunk) -> LLMResult:

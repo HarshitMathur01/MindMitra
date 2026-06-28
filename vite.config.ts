@@ -112,9 +112,7 @@ export default defineConfig(({ command }) => ({
     host: "::",
     port: 8080,
     strictPort: true,
-    allowedHosts: [
-      "nonshrinkable-averie-unprovidently.ngrok-free.dev",
-    ],
+    allowedHosts: true,
     watch: {
       ignored: [
         "**/.git/**",

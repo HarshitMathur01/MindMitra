@@ -79,6 +79,12 @@ SOLUTION_KEYWORDS = (
 
 _HINDI_TOKEN_RE = re.compile(r"[\u0900-\u097F]+")
 _LATIN_TOKEN_RE = re.compile(r"[A-Za-z']+")
+# CJK Unified Ideographs (Chinese/Japanese kanji) + Hiragana + Katakana + CJK Ext-A/B
+_CJK_RE = re.compile(r"[\u3000-\u9FFF\uF900-\uFAFF\U00020000-\U0002A6DF]")
+# Indic scripts: Devanagari, Bengali, Gujarati, Gurmukhi, Oriya, Tamil, Telugu, Kannada, Malayalam
+_INDIC_SCRIPT_RE = re.compile(r"[\u0900-\u0D7F]")
+# Sentence-end punctuation including fullwidth Japanese/CJK variants and Devanagari danda
+_SENTENCE_END_RE = re.compile(r"[.!?\n\u3002\uFF01\uFF1F\u0964\u0965]+")
 
 
 # ── public entry ─────────────────────────────────────────────────────────
@@ -405,10 +411,10 @@ def _tone_conformance(
         if abs(actual_code_mix - tone.code_mix) > 0.25:
             score -= 0.25
 
-    # Sentence length
-    sentences = [s.strip() for s in re.split(r"[.!?\n]+", text) if s.strip()]
+    # Sentence length — use fullwidth punctuation for CJK/Indic scripts
+    sentences = [s.strip() for s in _SENTENCE_END_RE.split(text) if s.strip()]
     if sentences:
-        avg_words = statistics.fmean(len(s.split()) for s in sentences)
+        avg_words = statistics.fmean(_word_estimate(s) for s in sentences)
         target_words = 6 if tone.sentence_length < 0.4 else 12 if tone.sentence_length < 0.7 else 20
         if abs(avg_words - target_words) / max(target_words, 1) > 0.4:
             score -= 0.15
@@ -423,13 +429,21 @@ def _tone_conformance(
     return max(0.0, min(1.0, score))
 
 
+def _word_estimate(s: str) -> int:
+    """Estimate word count for a sentence, handling CJK/Indic scripts."""
+    script_chars = len(_CJK_RE.findall(s)) + len(_INDIC_SCRIPT_RE.findall(s))
+    if script_chars > len(s) * 0.3:
+        return max(1, script_chars // 2)
+    return max(1, len(s.split()))
+
+
 def _tone_check_details(text: str, tone: ToneParams, mode: str) -> Dict[str, object]:
     hindi_tokens = len(_HINDI_TOKEN_RE.findall(text))
     latin_tokens = len(_LATIN_TOKEN_RE.findall(text))
     total = hindi_tokens + latin_tokens
     actual_code_mix = (hindi_tokens / total) if total else tone.code_mix
-    sentences = [s.strip() for s in re.split(r"[.!?\n]+", text) if s.strip()]
-    avg_words = statistics.fmean(len(s.split()) for s in sentences) if sentences else 0.0
+    sentences = [s.strip() for s in _SENTENCE_END_RE.split(text) if s.strip()]
+    avg_words = statistics.fmean(_word_estimate(s) for s in sentences) if sentences else 0.0
     target_words = 6 if tone.sentence_length < 0.4 else 12 if tone.sentence_length < 0.7 else 20
     lower = text.lower()
     return {
@@ -464,7 +478,16 @@ def _truncate_at_sentence(text: str, max_tokens: int) -> str:
 
 
 def _approx_token_count(text: str) -> int:
-    return max(1, len((text or "").strip().split()))
+    text = (text or "").strip()
+    if not text:
+        return 0
+    # CJK and Indic scripts don't use spaces between words, so whitespace
+    # splitting dramatically under-counts tokens.  Use character count ÷ 2
+    # as a rough but reliable estimate (~1–2 chars/token for these scripts).
+    script_chars = len(_CJK_RE.findall(text)) + len(_INDIC_SCRIPT_RE.findall(text))
+    if script_chars > len(text) * 0.3:
+        return max(1, script_chars // 2)
+    return max(1, len(text.split()))
 
 
 def _result_dict(

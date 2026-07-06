@@ -46,25 +46,22 @@ import { postChatTurn, postResponseLog } from "@/lib/chat/chatTransport";
 import ChatAvatarPane from "./ChatAvatarPane";
 import ChatMoodWidget from "./ChatMoodWidget";
 import ChatReturnBanner from "./ChatReturnBanner";
+import { useChatSessions } from "./hooks/useChatSessions";
 
 import {
     CHAT_SOFT_SPRING,
-    CHAT_STORAGE_KEYS,
     moodReplyMap,
 } from "./chatConstants";
 import { useLoadingPhases, useMoodOptions } from "./chatI18n";
 import { useChatPersonalization } from "@/hooks/useChatPersonalization";
 import { parseTurnMeta, type TurnMeta } from "@/lib/chat/turnPersonalization";
-import {
-    mergeRecentChats,
-    messageLengthBand,
-} from "./chatHelpers";
+import { messageLengthBand } from "./chatHelpers";
 import {
     exportChatAsCsv,
     exportChatAsJson,
     exportChatAsPdf,
 } from "./chatExports";
-import type { Message, RecentChatPreview } from "./chatTypes";
+import type { Message } from "./chatTypes";
 
 import { AVATAR_OPTIONS, normalizeAvatarModelId } from "@/lib/avatarOptions";
 import {
@@ -108,11 +105,7 @@ const ChatGPTInterface = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-    const [recentChats, setRecentChats] = useState<RecentChatPreview[]>([]);
     const [transcribingMsgId, setTranscribingMsgId] = useState<string | null>(null);
-    const [loadingChats, setLoadingChats] = useState(false);
-    const [loadingSession, setLoadingSession] = useState(false);
     const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
     const [moodSelected, setMoodSelected] = useState(false);
     const [moodValue, setMoodValue] = useState<number | null>(null);
@@ -188,8 +181,40 @@ const ChatGPTInterface = () => {
     // for the active turn so navigation/session switches do not write stale UI.
     const activeChatRequestRef = useRef<AbortController | null>(null);
     const mountedRef = useRef(true);
-    const consecutiveSaveFailuresRef = useRef(0);
-    const lastSaveFailureToastAtRef = useRef(0);
+
+    // Helper used inside async flows so we can break out cleanly when
+    // the user navigates away mid-request.
+    const abortActiveRequest = () => {
+        activeChatRequestRef.current?.abort();
+        activeChatRequestRef.current = null;
+    };
+
+    // ── Session lifecycle ───────────────────────────────────────────────────
+    const {
+        currentSessionId,
+        adoptSessionId,
+        recentChats,
+        loadingChats,
+        loadingSession,
+        saveMessage,
+        loadRecentChats,
+        selectRecentChat,
+        startNewChat,
+    } = useChatSessions({
+        user,
+        setMessages,
+        hasMessages: () => messages.length > 0,
+        onBeforeSwitch: () => {
+            abortActiveRequest();
+            setIsLoading(false);
+        },
+        onNewChatReset: () => {
+            setSearchQuery("");
+            setMoodSelected(false);
+            setMoodValue(null);
+            setContinueDismissed(false);
+        },
+    });
 
     // ── Derived ─────────────────────────────────────────────────────────────
     const moodOptions = useMoodOptions(currentSessionId);
@@ -292,50 +317,6 @@ const ChatGPTInterface = () => {
         }, 180);
         return () => window.clearInterval(interval);
     }, [isLoading]);
-
-    useEffect(() => {
-        localStorage.setItem(CHAT_STORAGE_KEYS.activeSessionFlag, "true");
-        window.dispatchEvent(
-            new StorageEvent("storage", {
-                key: CHAT_STORAGE_KEYS.activeSessionFlag,
-                newValue: "true",
-            }),
-        );
-        return () => {
-            localStorage.removeItem(CHAT_STORAGE_KEYS.activeSessionFlag);
-            window.dispatchEvent(
-                new StorageEvent("storage", {
-                    key: CHAT_STORAGE_KEYS.activeSessionFlag,
-                    newValue: null,
-                }),
-            );
-        };
-    }, []);
-
-    useEffect(() => {
-        const savedSessionId = localStorage.getItem(CHAT_STORAGE_KEYS.activeSessionId);
-        if (savedSessionId) setCurrentSessionId(savedSessionId);
-    }, []);
-
-    useEffect(() => {
-        if (user) {
-            loadRecentChats();
-            const savedSessionId = localStorage.getItem(CHAT_STORAGE_KEYS.activeSessionId);
-            if (savedSessionId) selectRecentChat(savedSessionId);
-            else startNewChat();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
-
-    useEffect(() => {
-        if (user) {
-            const interval = setInterval(() => {
-                if (!document.hidden) loadRecentChats();
-            }, 10_000);
-            return () => clearInterval(interval);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
 
     useEffect(() => {
         if (isRecording && voiceTempMsgId && currentTranscript) {
@@ -495,192 +476,11 @@ const ChatGPTInterface = () => {
         };
     }, []);
 
-    // Helper used inside async flows so we can break out cleanly when
-    // the user navigates away mid-request.
-    const abortActiveRequest = () => {
-        activeChatRequestRef.current?.abort();
-        activeChatRequestRef.current = null;
-    };
-
     // Reset the dismiss state when the session changes — each restored
     // session decides on its own merits whether to show the ribbon.
     useEffect(() => {
         setContinueDismissed(false);
     }, [currentSessionId]);
-
-    // ── Data layer ─────────────────────────────────────────────────────────
-    // Persistence is the contract that lets MindMitra honor "memory" —
-    // dropping it silently breaks the entire personalisation loop. We
-    // therefore (a) attempt the insert, (b) count consecutive failures, and
-    // (c) surface a *single* calm toast after two back-to-back failures so
-    // the user knows their words may not be remembered, without screaming
-    // on every transient hiccup. Returns `true` on success.
-    const saveMessage = async (message: Message, sessionId: string): Promise<boolean> => {
-        if (!user) return false;
-        try {
-            const { error } = await supabase.from("chat_messages").insert({
-                user_id: user.id,
-                session_id: sessionId,
-                content: message.content,
-                sender: message.sender,
-                role: message.sender === "user" ? "user" : "assistant",
-            });
-            if (error) throw error;
-            consecutiveSaveFailuresRef.current = 0;
-            return true;
-        } catch (error) {
-            consecutiveSaveFailuresRef.current += 1;
-            console.error("❌ Failed to save message:", error);
-            // Debounced user-facing notice: only after two consecutive
-            // failures, and at most once per 30s, so a flaky network
-            // doesn't drown the conversation in red toasts.
-            const now = Date.now();
-            if (
-                mountedRef.current &&
-                consecutiveSaveFailuresRef.current >= 2 &&
-                now - lastSaveFailureToastAtRef.current > 30_000
-            ) {
-                lastSaveFailureToastAtRef.current = now;
-                toast({
-                    title: tSanctuary("chat.toasts.saveFailure.title"),
-                    description: tSanctuary("chat.toasts.saveFailure.description"),
-                });
-            }
-            return false;
-        }
-    };
-
-    const loadRecentChats = async () => {
-        if (!user) return;
-        setLoadingChats(true);
-        try {
-            const { data, error } = await supabase
-                .from("chat_messages")
-                .select("session_id, content, created_at, role")
-                .eq("user_id", user.id)
-                .not("session_id", "is", null)
-                .order("created_at", { ascending: false });
-
-            if (error) {
-                console.error("❌ Error loading chat messages:", error);
-                return;
-            }
-
-            if (!data || data.length === 0) {
-                setRecentChats([]);
-                return;
-            }
-
-            const sessionMap = new Map<
-                string,
-                {
-                    id: string;
-                    messages: typeof data;
-                    firstUserMessage: string | null;
-                    lastActivity: string;
-                    messageCount: number;
-                }
-            >();
-
-            data.forEach((msg) => {
-                if (!msg.session_id) return;
-                if (!sessionMap.has(msg.session_id)) {
-                    sessionMap.set(msg.session_id, {
-                        id: msg.session_id,
-                        messages: [],
-                        firstUserMessage: null,
-                        lastActivity: msg.created_at,
-                        messageCount: 0,
-                    });
-                }
-                const session = sessionMap.get(msg.session_id)!;
-                session.messages.push(msg);
-                session.messageCount++;
-                if (msg.created_at > session.lastActivity) session.lastActivity = msg.created_at;
-                // Descending fetch → overwriting leaves the OLDEST user
-                // message as the stable session title.
-                if (msg.role === "user") session.firstUserMessage = msg.content;
-            });
-
-            const existingTitlesById = new Map(recentChats.map((chat) => [chat.id, chat.title]));
-
-            const chatList = Array.from(sessionMap.values())
-                .filter((s) => s.messageCount > 0)
-                .map((session) => ({
-                    id: session.id,
-                    title:
-                        existingTitlesById.get(session.id) ??
-                        (session.firstUserMessage
-                            ? session.firstUserMessage.substring(0, 50) +
-                            (session.firstUserMessage.length > 50 ? "..." : "")
-                            : "New Chat"),
-                    created_at: session.lastActivity,
-                    messageCount: session.messageCount,
-                }))
-                .sort(
-                    (a, b) =>
-                        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-                )
-                .slice(0, 20);
-
-            setRecentChats((prev) => mergeRecentChats(prev, chatList));
-        } catch (error) {
-            console.error("❌ Failed to load recent chats:", error);
-        } finally {
-            setLoadingChats(false);
-        }
-    };
-
-    const selectRecentChat = async (chatId: string) => {
-        if (currentSessionId === chatId && messages.length > 0) return;
-        if (loadingSession) return;
-
-        // Cancel any in-flight chat request from the previous session so
-        // its response doesn't bleed into the newly-loaded one.
-        abortActiveRequest();
-        setIsLoading(false);
-        setLoadingSession(true);
-        try {
-            setMessages([]);
-            const { data, error } = await supabase
-                .from("chat_messages")
-                .select("id, content, role, created_at")
-                .eq("session_id", chatId)
-                .eq("user_id", user?.id)
-                .order("created_at", { ascending: true });
-
-            if (error) {
-                console.error("❌ Error loading session messages:", error);
-                toast({
-                    title: tSanctuary("chat.toasts.sessionLoadError.title"),
-                    description: tSanctuary("chat.toasts.sessionLoadError.description"),
-                    variant: "destructive",
-                });
-                return;
-            }
-
-            const sessionMessages: Message[] =
-                data?.map((msg) => ({
-                    id: msg.id,
-                    content: msg.content,
-                    sender: (msg.role === "user" ? "user" : "ai") as "user" | "ai",
-                    timestamp: new Date(msg.created_at),
-                })) || [];
-
-            setCurrentSessionId(chatId);
-            localStorage.setItem(CHAT_STORAGE_KEYS.activeSessionId, chatId);
-            setMessages(sessionMessages);
-        } catch (error) {
-            console.error("❌ Failed to load session messages:", error);
-            toast({
-                title: tSanctuary("chat.toasts.sessionSwitchError.title"),
-                description: tSanctuary("chat.toasts.sessionSwitchError.description"),
-                variant: "destructive",
-            });
-        } finally {
-            setLoadingSession(false);
-        }
-    };
 
     const handleSendMessage = async (messageText?: string) => {
         const textToSend = messageText || inputValue;
@@ -740,10 +540,7 @@ const ChatGPTInterface = () => {
 
             if (!mountedRef.current) return;
 
-            if (finalText.session_id && finalText.session_id !== currentSessionId) {
-                setCurrentSessionId(finalText.session_id);
-                localStorage.setItem(CHAT_STORAGE_KEYS.activeSessionId, finalText.session_id);
-            }
+            adoptSessionId(finalText.session_id);
 
             // Surface the deterministic activity suggestion (if any) to the
             // right-rail panel. The hook owns crisis suppression internally.
@@ -986,27 +783,6 @@ const ChatGPTInterface = () => {
             title: tSanctuary(`chat.toasts.${branch}.title`),
             description: tSanctuary(`chat.toasts.${branch}.description`),
         });
-    };
-
-    const startNewChat = async () => {
-        // "New chat" must hard-cancel any pending request so its response
-        // doesn't show up in the freshly minted session.
-        abortActiveRequest();
-        setIsLoading(false);
-        const newSessionId = "new"; // v3 will mint a fresh UUID on first turn
-        setMessages([]);
-        setCurrentSessionId(null);
-        setSearchQuery("");
-        setMoodSelected(false);
-        setMoodValue(null);
-        setContinueDismissed(false);
-        localStorage.removeItem(CHAT_STORAGE_KEYS.activeSessionId);
-        await loadRecentChats();
-        // v3 dropped the standalone greeting endpoint — the empty state
-        // already renders a calm welcome surface, and the LLM responds on
-        // the user's first turn. We intentionally avoid the pre-emptive
-        // greeting fetch to keep cold-start latency under 300ms.
-        void newSessionId;
     };
 
     const handleMoodSelect = (value: number) => {

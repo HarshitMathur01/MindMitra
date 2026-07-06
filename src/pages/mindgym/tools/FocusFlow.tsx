@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { createLocalStore } from "@/lib/mindgym/localStore";
 import { cn } from "@/lib/utils";
 import { recordCompletion } from "@/lib/mindgym/storage";
 
@@ -41,7 +42,10 @@ interface TimerPreset {
   break_: number;
 }
 
-const STORAGE_KEY = "mindmitra_focus_flow_v1";
+const focusFlowStore = createLocalStore<FocusFlowData>("mindmitra_focus_flow_v1", () => ({
+  sessions: [],
+  settings: { work: 25, break_: 5, sound: "silence" },
+}));
 
 const PRESETS: TimerPreset[] = [
   { label: "Classic", work: 25, break_: 5 },
@@ -78,27 +82,6 @@ const SOUNDS: { id: SoundType; label: string; icon: string }[] = [
   { id: "library", label: "Library", icon: "📚" },
   { id: "silence", label: "Silence", icon: "🔇" },
 ];
-
-function loadData(): FocusFlowData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw)
-      return {
-        sessions: [],
-        settings: { work: 25, break_: 5, sound: "silence" },
-      };
-    return JSON.parse(raw) as FocusFlowData;
-  } catch {
-    return {
-      sessions: [],
-      settings: { work: 25, break_: 5, sound: "silence" },
-    };
-  }
-}
-
-function saveData(data: FocusFlowData): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -156,7 +139,7 @@ function createNoiseNode(
 }
 
 export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
-  const [data, setData] = useState<FocusFlowData>(loadData);
+  const [data, setData] = useState<FocusFlowData>(focusFlowStore.read);
   const [phase, setPhase] = useState<Phase>("idle");
   const [workMin, setWorkMin] = useState(data.settings.work);
   const [breakMin, setBreakMin] = useState(data.settings.break_);
@@ -316,7 +299,7 @@ export default function FocusFlow({ onAvatarCue }: FocusFlowProps) {
     };
     if (updated.sessions.length > 200)
       updated.sessions = updated.sessions.slice(-200);
-    saveData(updated);
+    focusFlowStore.write(updated);
     setData(updated);
     setPhase("summary");
     // Completion screen is still useful as a wrap-up, but XP is awarded per pomodoro above.

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Flame, Flower2, Plus, Sparkles, Star, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { createLocalStore } from "@/lib/mindgym/localStore";
 import { cn } from "@/lib/utils";
 import { incrementMindGymCounter } from "@/lib/mindgym/analytics";
 import { GRATITUDE_BLOOM_TONES as BLOOM_TONES } from "@/lib/mindgym/theme";
@@ -25,7 +26,6 @@ interface GardenData {
     entries: GardenEntry[];
 }
 
-const STORAGE_KEY = "mindmitra_gratitude_garden_v1";
 const DAILY_BLOOMS = 3;
 const STREAK_DOTS = 7;
 const GARDEN_TAGS: GardenTag[] = ["people", "moments", "health", "growth", "simple things"];
@@ -79,31 +79,23 @@ function normalizeEntry(raw: Partial<GardenEntry> & { date?: string; tags?: unkn
     };
 }
 
-function loadGarden(): GardenData {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-            return { entries: [] };
-        }
-
-        const parsed = JSON.parse(raw) as { entries?: Array<Partial<GardenEntry> & { date?: string; tags?: unknown[] }> };
-        if (!Array.isArray(parsed.entries)) {
-            return { entries: [] };
-        }
-
-        return {
-            entries: parsed.entries
-                .map(normalizeEntry)
-                .filter((entry) => entry.text.trim().length > 0),
-        };
-    } catch {
-        return { entries: [] };
-    }
-}
-
-function saveGarden(data: GardenData): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
+const gardenStore = createLocalStore<GardenData>(
+    "mindmitra_gratitude_garden_v1",
+    () => ({ entries: [] }),
+    {
+        normalize: (parsed) => {
+            const data = parsed as { entries?: Array<Partial<GardenEntry> & { date?: string; tags?: unknown[] }> };
+            if (!Array.isArray(data.entries)) {
+                return { entries: [] };
+            }
+            return {
+                entries: data.entries
+                    .map(normalizeEntry)
+                    .filter((entry) => entry.text.trim().length > 0),
+            };
+        },
+    },
+);
 
 function countCurrentStreak(entries: GardenEntry[]): number {
     if (entries.length === 0) {
@@ -289,7 +281,7 @@ function GardenScene({
 
 export default function GratitudeGarden({ onAvatarCue }: GratitudeGardenProps) {
     const navigate = useNavigate();
-    const [garden, setGarden] = useState<GardenData>(loadGarden);
+    const [garden, setGarden] = useState<GardenData>(gardenStore.read);
     const [draftText, setDraftText] = useState("");
     const [selectedTags, setSelectedTags] = useState<GardenTag[]>([]);
     const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
@@ -376,7 +368,7 @@ export default function GratitudeGarden({ onAvatarCue }: GratitudeGardenProps) {
             entries: [...garden.entries, entry],
         };
 
-        saveGarden(updatedGarden);
+        gardenStore.write(updatedGarden);
         setGarden(updatedGarden);
         setDraftText("");
         setSelectedEntryId(entry.id);

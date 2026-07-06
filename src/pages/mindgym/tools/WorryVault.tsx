@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
 import { CRISIS_KEYWORDS } from "@/lib/mindgym/types";
+import { createLocalStore } from "@/lib/mindgym/localStore";
 import { trackMindGymEvent } from "@/lib/mindgym/analytics";
 import { cn } from "@/lib/utils";
 
@@ -35,26 +36,13 @@ interface VaultData {
   stats: { total: number; happened: number; didntHappen: number };
 }
 
-const STORAGE_KEY = "mindmitra_worry_vault_v1";
 const MAX_WORRIES = 10;
 
-function loadVault(): VaultData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    /* fallback */
-  }
-  return {
-    worries: [],
-    worryTime: "20:00",
-    stats: { total: 0, happened: 0, didntHappen: 0 },
-  };
-}
-
-function saveVault(data: VaultData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
+const vaultStore = createLocalStore<VaultData>("mindmitra_worry_vault_v1", () => ({
+  worries: [],
+  worryTime: "20:00",
+  stats: { total: 0, happened: 0, didntHappen: 0 },
+}));
 
 function containsCrisis(text: string): boolean {
   const lower = text.toLowerCase();
@@ -85,7 +73,7 @@ function getTimeUntil(worryTime: string): string {
 type View = "main" | "add" | "review" | "stats" | "setTime";
 
 export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
-  const [vault, setVault] = useState<VaultData>(loadVault);
+  const [vault, setVault] = useState<VaultData>(vaultStore.read);
   const [view, setView] = useState<View>("main");
   const [worryText, setWorryText] = useState("");
   const [folding, setFolding] = useState(false);
@@ -115,7 +103,7 @@ export default function WorryVault({ onAvatarCue }: WorryVaultProps) {
   const persist = useCallback(
     (next: VaultData) => {
       setVault(next);
-      saveVault(next);
+      vaultStore.write(next);
     },
     [],
   );

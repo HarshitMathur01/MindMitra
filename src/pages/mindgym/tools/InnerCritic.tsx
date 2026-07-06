@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Gavel, ShieldCheck, Sparkles, BookmarkPlus, Bookmark, AlertTriangle } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
 import { CRISIS_KEYWORDS } from "@/lib/mindgym/types";
+import { createLocalStore } from "@/lib/mindgym/localStore";
 import CrisisOverlay from "@/components/mindgym/CrisisOverlay";
 import { trackMindGymEvent } from "@/lib/mindgym/analytics";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,10 @@ interface CompassionCard {
   date: string;
 }
 
-const STORAGE_KEY = "mindmitra_compassion_cards_v1";
+const cardStore = createLocalStore<CompassionCard[]>(
+  "mindmitra_compassion_cards_v1",
+  () => [],
+);
 
 const PRESETS = [
   "I failed the exam, I'm completely worthless",
@@ -36,20 +40,11 @@ const DEFENSE_PROMPTS = [
   "What would the wisest, kindest version of you say right now?",
 ] as const;
 
-function loadCards(): CompassionCard[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CompassionCard[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 function saveCard(card: CompassionCard): void {
-  const cards = loadCards();
+  const cards = cardStore.read();
   cards.push(card);
   if (cards.length > 100) cards.splice(0, cards.length - 100);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+  cardStore.write(cards);
 }
 
 function containsCrisis(text: string): boolean {
@@ -64,7 +59,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
   const [crisisOpen, setCrisisOpen] = useState(false);
   const [defenseAnswers, setDefenseAnswers] = useState(["", "", ""]);
   const [completed, setCompleted] = useState(false);
-  const [savedCards, setSavedCards] = useState<CompassionCard[]>(loadCards);
+  const [savedCards, setSavedCards] = useState<CompassionCard[]>(cardStore.read);
   const [showCards, setShowCards] = useState(false);
 
   const reframe = defenseAnswers[2] || defenseAnswers[0] || "You are worthy of compassion.";
@@ -106,7 +101,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
       date: new Date().toISOString(),
     };
     saveCard(card);
-    setSavedCards(loadCards());
+    setSavedCards(cardStore.read());
   }, [thought, reframe]);
 
   const handleReset = useCallback(() => {

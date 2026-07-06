@@ -11,6 +11,7 @@ import {
 import ToolShell from "@/components/mindgym/ToolShell";
 import CrisisOverlay from "@/components/mindgym/CrisisOverlay";
 import { CRISIS_KEYWORDS } from "@/lib/mindgym/types";
+import { createLocalStore } from "@/lib/mindgym/localStore";
 import { trackMindGymEvent } from "@/lib/mindgym/analytics";
 import { cn } from "@/lib/utils";
 
@@ -83,27 +84,21 @@ interface JournalEntry {
   date: string;
 }
 
-const STORAGE_KEY = "mindmitra_thought_journal_v1";
+const journalStore = createLocalStore<JournalEntry[]>(
+  "mindmitra_thought_journal_v1",
+  () => [],
+);
 
 const WARM_PANEL =
   "rounded-[2rem] border border-border bg-white/88 shadow-[0_20px_50px_-30px_rgba(62,84,60,0.24)] backdrop-blur-sm";
 const WARM_INPUT =
   "w-full rounded-2xl p-5 bg-white/92 text-foreground placeholder:text-muted-foreground/55 border border-border focus:border-primary/40 focus:outline-none resize-none text-base leading-relaxed transition-all duration-300";
 
-function loadJournal(): JournalEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
 function saveEntry(entry: JournalEntry) {
-  const journal = loadJournal();
+  const journal = journalStore.read();
   journal.push(entry);
   if (journal.length > 200) journal.splice(0, journal.length - 200);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(journal));
+  journalStore.write(journal);
 }
 
 function containsCrisisKeyword(text: string): boolean {

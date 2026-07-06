@@ -10,6 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { createLocalStore } from "@/lib/mindgym/localStore";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -257,15 +258,17 @@ interface EmotionLogEntry {
   date: string;
 }
 
-const LOG_KEY = "mindmitra_emotion_log_v1";
+const emotionLogStore = createLocalStore<EmotionLogEntry[]>(
+  "mindmitra_emotion_log_v1",
+  () => [],
+);
 
 function saveEmotionLog(entry: EmotionLogEntry) {
   try {
-    const raw = localStorage.getItem(LOG_KEY);
-    const log: EmotionLogEntry[] = raw ? JSON.parse(raw) : [];
+    const log = emotionLogStore.read();
     log.push(entry);
     if (log.length > 300) log.splice(0, log.length - 300);
-    localStorage.setItem(LOG_KEY, JSON.stringify(log));
+    emotionLogStore.write(log);
   } catch {
     /* storage full */
   }

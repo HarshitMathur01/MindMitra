@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { createLocalStore } from "@/lib/mindgym/localStore";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -23,21 +24,9 @@ interface WeatherData {
   entries: MoodEntry[];
 }
 
-const STORAGE_KEY = "mindmitra_mood_weather_v1";
-
-function loadData(): WeatherData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    /* fallback */
-  }
-  return { entries: [] };
-}
-
-function saveData(data: WeatherData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
+const weatherStore = createLocalStore<WeatherData>("mindmitra_mood_weather_v1", () => ({
+  entries: [],
+}));
 
 function getQuadrant(x: number, y: number): Quadrant {
   if (x < 0.5 && y < 0.5) return "stormy";
@@ -291,7 +280,7 @@ type MoodView = "checkin" | "calendar";
 
 export default function MoodWeather({ onAvatarCue }: MoodWeatherProps) {
   const navigate = useNavigate();
-  const [data, setData] = useState<WeatherData>(loadData);
+  const [data, setData] = useState<WeatherData>(weatherStore.read);
   const [view, setView] = useState<MoodView>("checkin");
   const [pin, setPin] = useState<{ x: number; y: number } | null>(null);
   const [completed, setCompleted] = useState(false);
@@ -355,7 +344,7 @@ export default function MoodWeather({ onAvatarCue }: MoodWeatherProps) {
     const filtered = data.entries.filter((e) => e.date !== todayStr());
     const next: WeatherData = { entries: [...filtered, entry] };
     setData(next);
-    saveData(next);
+    weatherStore.write(next);
     setConfirmed(true);
     setCompleted(true);
     onAvatarCue?.(

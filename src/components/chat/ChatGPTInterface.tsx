@@ -43,6 +43,7 @@ import {
     readChatHandoff,
     type ChatActivityHandoff,
 } from "@/lib/chat/activitySuggestion";
+import { postChatTurn, postResponseLog } from "@/lib/chat/chatTransport";
 import QuickReplies from "./QuickReplies";
 
 import {
@@ -86,36 +87,6 @@ const formatTimeAgo = (date: Date): string => {
     const days = Math.round(hours / 24);
     if (days < 7) return `${days}d ago`;
     return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-};
-
-type MhaChatHttpResponse = {
-    text: string;
-    session_id: string;
-    is_new_session: boolean;
-    mode: string;
-    urgency: number;
-    source: string;
-    meta?: Record<string, unknown>;
-    timings_ms?: Record<string, number>;
-    trace_id?: string;
-};
-
-const getChatEndpoint = (): string => {
-    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim();
-    if (backendUrl) return `${backendUrl.replace(/\/$/, "")}/chat`;
-    if (import.meta.env.PROD) {
-        throw new Error("Missing VITE_BACKEND_URL for production chat deployment");
-    }
-    return `${window.location.origin.replace(/\/$/, "")}/chat`;
-};
-
-const postResponseLog = (event: string, fields: Record<string, unknown>) => {
-    if (!import.meta.env.DEV) return;
-    const details = Object.entries(fields)
-        .filter(([, value]) => value !== undefined && value !== null && value !== "")
-        .map(([key, value]) => `${key}=${String(value)}`)
-        .join(" ");
-    console.info(`[post-response] ${event}${details ? ` ${details}` : ""}`);
 };
 
 const PRESENCE_START_DELAY_MS = 1400;
@@ -758,25 +729,14 @@ const ChatGPTInterface = () => {
 
             const controller = new AbortController();
             activeChatRequestRef.current = controller;
-            const response = await fetch(getChatEndpoint(), {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({
-                    content: textToSend,
-                    session_id: requestedSessionId,
-                    device_locale: navigator.language,
-                    language: selectedLanguage,
-                }),
+            const finalText = await postChatTurn({
+                accessToken: session.access_token,
+                content: textToSend,
+                sessionId: requestedSessionId,
+                deviceLocale: navigator.language,
+                language: selectedLanguage,
                 signal: controller.signal,
             });
-            if (!response.ok) {
-                const detail = await response.text().catch(() => "");
-                throw new Error(detail || `Chat request failed (${response.status})`);
-            }
-            const finalText = (await response.json()) as MhaChatHttpResponse;
             activeChatRequestRef.current = null;
 
             if (!mountedRef.current) return;

@@ -25,7 +25,6 @@ import { useSettings } from "@/hooks/useSettings";
 import { useLocalizedT } from "@/hooks/useLocalizedT";
 import { useChat } from "../../hooks/useChat";
 
-import TypewriterText from "./TypewriterText";
 import ChatSidebar from "./ChatSidebar";
 import ChatHeaderBar from "./ChatHeaderBar";
 import ChatMessageList from "./ChatMessageList";
@@ -44,10 +43,11 @@ import {
     type ChatActivityHandoff,
 } from "@/lib/chat/activitySuggestion";
 import { postChatTurn, postResponseLog } from "@/lib/chat/chatTransport";
-import QuickReplies from "./QuickReplies";
+import ChatAvatarPane from "./ChatAvatarPane";
+import ChatMoodWidget from "./ChatMoodWidget";
+import ChatReturnBanner from "./ChatReturnBanner";
 
 import {
-    CHAT_MESSAGE_SPRING,
     CHAT_SOFT_SPRING,
     CHAT_STORAGE_KEYS,
     moodReplyMap,
@@ -74,7 +74,6 @@ import {
 } from "@/lib/locale";
 import { trackProductEvent } from "@/lib/productAnalytics";
 
-const TalkingHeadAvatar = lazy(() => import("./TalkingHeadAvatar"));
 const PresenceMode = lazy(() => import("./PresenceMode"));
 
 const formatTimeAgo = (date: Date): string => {
@@ -1117,37 +1116,14 @@ const ChatGPTInterface = () => {
                         Presence Mode is active so we don't mount two
                         TalkingHeadAvatar iframes simultaneously. */}
                     {isAvatarVisible && !isPresenceMode && (
-                        <div className="relative bg-background border-b border-border lg:border-b-0 lg:border-r lg:w-5/12 min-h-0 shrink-0 overflow-hidden max-h-[38vh] lg:max-h-none">
-                            <Suspense fallback={<Skeleton className="h-full min-h-[260px] w-full rounded-none bg-surface/60" />}>
-                                <TalkingHeadAvatar
-                                    key={`${selectedAvatarId}-${settings?.language}`}
-                                    avatarUrl={selectedAvatar.url}
-                                    ttsLang={effectiveTtsLang}
-                                    ttsVoice={effectiveTtsVoice}
-                                    cameraView={selectedAvatarCameraView}
-                                />
-                            </Suspense>
-                            <AnimatePresence>
-                                {avatarCurrentMessage?.text && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 12 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 8 }}
-                                        transition={CHAT_MESSAGE_SPRING}
-                                        className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none z-10"
-                                    >
-                                        <div className="bg-foreground/80 backdrop-blur rounded-xl px-4 py-3 mx-2 max-h-24 overflow-hidden">
-                                            <TypewriterText
-                                                text={avatarCurrentMessage.text}
-                                                speed={350}
-                                                maxVisibleWords={12}
-                                                className="text-background text-sm font-medium leading-relaxed drop-shadow-lg"
-                                            />
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                        <ChatAvatarPane
+                            avatarKey={`${selectedAvatarId}-${settings?.language}`}
+                            avatarUrl={selectedAvatar.url}
+                            ttsLang={effectiveTtsLang}
+                            ttsVoice={effectiveTtsVoice}
+                            cameraView={selectedAvatarCameraView}
+                            captionText={avatarCurrentMessage?.text}
+                        />
                     )}
 
                     <div
@@ -1189,39 +1165,12 @@ const ChatGPTInterface = () => {
                                 produced a clear engagement lift in the previous ship. */}
                             <AnimatePresence>
                                 {filteredMessages.length === 1 && !moodSelected && (
-                                    <motion.div
+                                    <ChatMoodWidget
                                         key="mood-widget"
-                                        initial={{ opacity: 0, y: 12 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -6 }}
-                                        transition={CHAT_MESSAGE_SPRING}
-                                        className="mx-auto max-w-sm rounded-[24px] bg-[hsl(var(--warmth-50))] p-6 text-center space-y-4"
-                                    >
-                                        <p className="text-[15px] text-ink-7">{tSanctuary("chat.moodWidget.prompt")}</p>
-                                        <div className="flex flex-wrap justify-center gap-2">
-                                            {moodOptions.map(({ emoji, label, value }) => (
-                                                <button
-                                                    key={value}
-                                                    onClick={() => handleMoodSelect(value)}
-                                                    className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-muted/40 transition-colors group"
-                                                    title={label}
-                                                >
-                                                    <span className="text-2xl group-hover:scale-125 transition-transform duration-200 select-none">
-                                                        {emoji}
-                                                    </span>
-                                                    <span className="text-[10px] text-muted-foreground">
-                                                        {label}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <button
-                                            onClick={() => setMoodSelected(true)}
-                                            className="text-[12px] text-ink-5 hover:text-ink-7 transition-colors"
-                                        >
-                                            {tSanctuary("chat.moodWidget.maybeLater")}
-                                        </button>
-                                    </motion.div>
+                                        options={moodOptions}
+                                        onSelect={handleMoodSelect}
+                                        onDismiss={() => setMoodSelected(true)}
+                                    />
                                 )}
                             </AnimatePresence>
 
@@ -1289,28 +1238,14 @@ const ChatGPTInterface = () => {
                     completed a tool that was opened from chat. Tapping a chip
                     posts as a normal user message through the LLM. */}
                 {returnHandoff && (
-                    <div className="border-t border-border bg-card/40 px-4 sm:px-6 pt-3 pb-1">
-                        <div className="max-w-4xl mx-auto flex flex-col gap-1">
-                            <p className="text-[12px] text-ink-5">
-                                {tSanctuary("activitySuggestion.returnHeading", "back from {{activity}} — how did it land?", {
-                                    activity: returnHandoff.activity_id.replace(/^\//, "").replace(/-/g, " "),
-                                })}
-                            </p>
-                            <QuickReplies
-                                visible
-                                suggestions={[
-                                    tSanctuary("activitySuggestion.returnChips.better", "better"),
-                                    tSanctuary("activitySuggestion.returnChips.same", "same"),
-                                    tSanctuary("activitySuggestion.returnChips.notForMe", "not for me"),
-                                ]}
-                                onSelect={(text) => {
-                                    setReturnHandoff(null);
-                                    clearChatHandoff();
-                                    void handleSendMessage(text);
-                                }}
-                            />
-                        </div>
-                    </div>
+                    <ChatReturnBanner
+                        handoff={returnHandoff}
+                        onReply={(text) => {
+                            setReturnHandoff(null);
+                            clearChatHandoff();
+                            void handleSendMessage(text);
+                        }}
+                    />
                 )}
 
                 <ChatComposer

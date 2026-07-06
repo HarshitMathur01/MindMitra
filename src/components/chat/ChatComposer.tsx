@@ -103,9 +103,18 @@ const ChatComposer = ({
                             onClick={onSubmit}
                             disabled={!inputValue.trim() || isLoading}
                             className="h-11 w-11 sm:h-9 sm:w-9 p-0 rounded-full transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label={t("chat.composer.sendAria", "Send")}
+                            aria-label={isLoading ? t("chat.composer.sendingAria", "Sending…") : t("chat.composer.sendAria", "Send")}
+                            aria-busy={isLoading}
                         >
-                            <Send className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={1.8} />
+                            {/* While awaiting a reply, mirror the mic's processing
+                                spinner (border-current so it reads on the primary
+                                fill) instead of just dimming — clearer that the
+                                message is in flight. */}
+                            {isLoading ? (
+                                <div className="h-4 w-4 sm:h-3.5 sm:w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                                <Send className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={1.8} />
+                            )}
                         </Button>
                     </div>
                 </div>

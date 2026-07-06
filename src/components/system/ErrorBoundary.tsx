@@ -23,6 +23,15 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface ErrorBoundaryProps {
     children: ReactNode;
+    /**
+     * Optional quiet fallback for non-fatal, contained subtrees (e.g. a
+     * lazy-loaded avatar pane). When provided, a caught error renders this
+     * instead of the full-screen crisis recovery surface — so a broken
+     * non-essential widget can disappear gracefully while the rest of the
+     * app (and text chat) keeps working. Omit it at the app root, where the
+     * crisis fallback is the intended last line of defense.
+     */
+    fallback?: ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -51,6 +60,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
     render() {
         if (!this.state.hasError) return this.props.children;
+
+        // Contained subtrees opt into a quiet fallback rather than the
+        // full-screen crisis surface below.
+        if (this.props.fallback !== undefined) return this.props.fallback;
 
         return (
             <div

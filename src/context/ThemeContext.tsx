@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 
 type Theme = 'light' | 'dark'
 type ThemePreference = Theme | 'system'
@@ -13,6 +13,9 @@ interface ThemeContextType {
 }
 
 const STORAGE_KEY = 'mindmitra-theme'
+// Window for the global theme cross-fade (see globals.css `html.theme-transition`).
+// Slightly longer than the 300ms CSS transition so it doesn't get cut off.
+const THEME_TRANSITION_MS = 400
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
@@ -25,6 +28,25 @@ const resolveTheme = (preference: ThemePreference): Theme =>
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const [themePreference, setThemePreferenceState] = useState<ThemePreference>('system')
     const [theme, setThemeState] = useState<Theme>('light')
+    const transitionTimer = useRef<number | null>(null)
+
+    // Apply the resolved theme to <html>. When `animate` is true (user toggle
+    // or live system change) we briefly enable the global `theme-transition`
+    // class so colours cross-fade; on initial load we apply instantly to avoid
+    // a flash. The class is removed after the transition window so normal
+    // interaction never pays the per-element transition cost.
+    const applyThemeAttribute = (next: Theme, animate: boolean) => {
+        const root = document.documentElement
+        if (animate) {
+            root.classList.add('theme-transition')
+            if (transitionTimer.current !== null) window.clearTimeout(transitionTimer.current)
+            transitionTimer.current = window.setTimeout(() => {
+                root.classList.remove('theme-transition')
+                transitionTimer.current = null
+            }, THEME_TRANSITION_MS)
+        }
+        root.setAttribute('data-theme', next)
+    }
 
     useEffect(() => {
         const saved = localStorage.getItem(STORAGE_KEY) as ThemePreference | null
@@ -35,7 +57,11 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
         setThemePreferenceState(initialPreference)
         setThemeState(initialTheme)
-        document.documentElement.setAttribute('data-theme', initialTheme)
+        applyThemeAttribute(initialTheme, false)
+
+        return () => {
+            if (transitionTimer.current !== null) window.clearTimeout(transitionTimer.current)
+        }
     }, [])
 
     useEffect(() => {
@@ -46,7 +72,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
                     return current
                 }
                 const nextTheme = getSystemTheme()
-                document.documentElement.setAttribute('data-theme', nextTheme)
+                applyThemeAttribute(nextTheme, true)
                 return nextTheme
             })
         }
@@ -59,7 +85,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         setThemePreferenceState(newTheme)
         setThemeState(newTheme)
         localStorage.setItem(STORAGE_KEY, newTheme)
-        document.documentElement.setAttribute('data-theme', newTheme)
+        applyThemeAttribute(newTheme, true)
     }
 
     const setThemePreference = (preference: ThemePreference) => {
@@ -67,7 +93,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         setThemePreferenceState(preference)
         setThemeState(nextTheme)
         localStorage.setItem(STORAGE_KEY, preference)
-        document.documentElement.setAttribute('data-theme', nextTheme)
+        applyThemeAttribute(nextTheme, true)
     }
 
     const toggleTheme = () => {

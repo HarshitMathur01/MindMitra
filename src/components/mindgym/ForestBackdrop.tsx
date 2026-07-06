@@ -24,13 +24,21 @@ export default function ForestBackdrop({ variant = "full", className }: ForestBa
       className={cn("pointer-events-none fixed inset-0 z-0 overflow-hidden", className)}
       style={mask ? { WebkitMaskImage: mask, maskImage: mask } : undefined}
     >
-      {/* Photo background — subtle ken-burns drift for a living scene */}
+      {/* Photo background — subtle ken-burns drift for a living scene.
+          The WebP (a few hundred KB) is served via image-set() with the
+          original JPG as the fallback for browsers without WebP/image-set
+          support. URLs are passed as CSS custom properties so the `.forest-photo`
+          rule (globals.css) can declare background-image twice — once plain,
+          once via image-set — which inline styles can't express. */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url(/mindgym/forest/${imgIndex}.jpg)`,
-          transform: "scale(1.04)",
-        }}
+        className="forest-photo absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={
+          {
+            "--forest-webp": `url(/mindgym/forest/${imgIndex}.webp)`,
+            "--forest-jpg": `url(/mindgym/forest/${imgIndex}.jpg)`,
+            transform: "scale(1.04)",
+          } as React.CSSProperties
+        }
       />
 
       {/* Warm cream wash to soften contrast */}

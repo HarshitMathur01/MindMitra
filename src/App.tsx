@@ -52,7 +52,20 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+// Conservative cache defaults so server-state hooks (useSnapshot, useMoodLog,
+// useProfile, …) don't refetch on every route return or window focus. Chat
+// session restore in ChatGPTInterface does its own explicit polling and is
+// unaffected by these query-level defaults.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000, // 1 min — treat recently-fetched data as fresh
+      gcTime: 10 * 60_000, // 10 min — keep unused data cached for quick returns
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 import { triggerMindGymClinicalSync } from "@/lib/api/syncMindGymClinicalData";
 

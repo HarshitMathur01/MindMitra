@@ -110,7 +110,7 @@ const ChatMessageList = ({
                 const kept = keptIds.has(message.id);
 
                 return (
-                    <div key={message.id}>
+                    <div key={message.id} className="chat-msg-row">
                         {isNewDay && (
                             <div className="flex items-center gap-3 my-2">
                                 <div className="flex-1 h-px bg-border/60" />

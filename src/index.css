@@ -286,6 +286,19 @@
     word-break: break-word;
   }
 
+  /* Off-screen render skipping for the conversation timeline. The browser
+     skips layout/paint for message rows scrolled out of the viewport while
+     still reserving their (estimated) height, so long sessions stay smooth
+     without virtualizing the React tree. `contain-intrinsic-size` is a hint,
+     not a clamp — taller messages still expand correctly once on-screen.
+     Unsupported browsers (older Safari) simply ignore the rule and render
+     every row as before. Consumed by the message-row wrapper in
+     ChatMessageList. */
+  .chat-msg-row {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 96px;
+  }
+
   /* Display font utility */
   .font-display {
     font-family: var(--font-display);

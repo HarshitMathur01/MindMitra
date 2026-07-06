@@ -8,6 +8,38 @@ const debugLog = (...args: any[]) => {
   if (DEBUG_VOICE) console.debug(...args);
 };
 
+// Map raw getUserMedia / recorder failures to calm, actionable copy. We never
+// surface a raw DOMException message to someone who may be in distress — they
+// get a clear next step instead. The technical detail still goes to console for
+// developers. Returns { title, description } for the destructive toast.
+const friendlyMicError = (error: unknown): { title: string; description: string } => {
+  const name = (error as { name?: string } | null)?.name ?? '';
+  switch (name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      return {
+        title: 'Microphone blocked',
+        description: 'Allow microphone access in your browser settings to talk — or keep typing, that works too.',
+      };
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return {
+        title: 'No microphone found',
+        description: "We couldn't find a microphone. Plug one in, or just type instead.",
+      };
+    case 'NotReadableError':
+      return {
+        title: 'Microphone in use',
+        description: 'Your mic seems busy in another app. Close it and try again, or keep typing.',
+      };
+    default:
+      return {
+        title: 'Voice didn’t start',
+        description: "We couldn't start voice just now. You can try again, or keep typing.",
+      };
+  }
+};
+
 // ─── Voice analysis sent to backend (raw, unbiased metrics) ───
 // These are objective measurements — the LLM interprets them in context.
 export interface VoiceAnalysis {
@@ -383,12 +415,14 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
       }
 
       // ── No Azure key configured ──
-      console.warn('⚠️ [VOICE] Azure Speech key not configured — voice recording unavailable');
+      // Dev-facing reason stays in the console; the user just hears that voice
+      // isn't available right now and can keep typing.
+      console.warn('⚠️ [VOICE] Azure Speech key not configured (set VITE_AZURE_TTS_KEY) — voice recording unavailable');
       usingAzureRef.current = false;
       clearTimers();
       toast({
-        title: "❌ Voice Recording Unavailable",
-        description: "Azure Speech key is not configured. Please set VITE_AZURE_TTS_KEY.",
+        title: "Voice isn’t available right now",
+        description: "You can keep typing — your words land just the same.",
         variant: "destructive",
         duration: 6000,
       });
@@ -409,9 +443,10 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
       setIsProcessing(false);
       setHasTranscript(false);
       setLastTranscriptAt(null);
+      const friendly = friendlyMicError(error);
       toast({
-        title: "❌ Recording Failed",
-        description: error.message,
+        title: friendly.title,
+        description: friendly.description,
         variant: "destructive",
         duration: 5000,
       });

@@ -67,19 +67,38 @@
     --shadow: hsla(220, 50%, 2%, 0.55);
 }
 
-*,
-*::before,
-*::after {
+/* Theme cross-fade. Previously this animated color/bg/border/shadow on EVERY
+   element unconditionally, which meant a 300ms transition fired on every hover
+   and state change app-wide (constant paint work, slightly laggy hovers).
+   Components declare their own intended hover transitions, so we now scope the
+   universal rule to the brief window of an actual theme switch: ThemeContext
+   toggles `theme-transition` on <html> for ~400ms around a theme change. The
+   light↔dark cross-fade looks identical; normal interaction pays no tax. */
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
     transition-property: background-color, border-color, color, box-shadow;
     transition-duration: 300ms;
     transition-timing-function: ease;
 }
 
-.no-theme-transition,
-canvas,
-video,
-img {
+html.theme-transition .no-theme-transition,
+html.theme-transition canvas,
+html.theme-transition video,
+html.theme-transition img {
     transition: none !important;
+}
+
+/* Forest backdrop photo. The plain JPG declaration is the fallback; browsers
+   that understand image-set() override it with the smaller WebP and fall back
+   to the JPG within the set if they lack WebP decoding. URLs come from inline
+   custom properties set by ForestBackdrop (random 1–8 per mount). */
+.forest-photo {
+    background-image: var(--forest-jpg);
+    background-image: image-set(
+        var(--forest-webp) type("image/webp"),
+        var(--forest-jpg) type("image/jpeg")
+    );
 }
 
 @keyframes mm-dashboard-rise {

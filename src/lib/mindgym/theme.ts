@@ -70,6 +70,20 @@ export const GAME_PHASE_GRADIENTS: Record<GamePhase, string> = {
   alert: "from-[#2a1315] via-[#1a0e10] to-[#120a0b]",
 };
 
+// Warm-tone class strings that were repeated verbatim across tool pages.
+// Tokens exist only for byte-identical ≥2-file duplicates — per-element
+// variations stay inline where they are.
+export const WARM_CLASSES = {
+  // Card/panel wrapper (BreathSphere, ThoughtTrap).
+  panel:
+    "rounded-[2rem] border border-border bg-white/88 shadow-[0_20px_50px_-30px_rgba(62,84,60,0.24)] backdrop-blur-sm",
+  // Serif display heading (EmotionCompass, InnerCritic).
+  headingLg:
+    "font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight",
+  // Small sage action link (EmotionCompass, MoodWeather).
+  actionLink: "text-xs text-[#3F6B47] hover:text-[#2c5235] transition-colors",
+} as const;
+
 // Tool-specific palettes. Centralised here so tool pages don't carry inline hex.
 
 // Gratitude Garden: stem + bloom + glow trios for each flower variant.

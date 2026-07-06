@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
 import { createLocalStore } from "@/lib/mindgym/localStore";
+import { WARM_CLASSES } from "@/lib/mindgym/theme";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -437,7 +438,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
               className="space-y-6"
             >
               <div className="text-center mb-4">
-                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight">
+                <h2 className={WARM_CLASSES.headingLg}>
                   What are you feeling?
                 </h2>
                 <p className="text-sm text-[#5b4a3e]">
@@ -789,7 +790,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
               className="space-y-6"
             >
               <div className="text-center mb-4">
-                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight">
+                <h2 className={WARM_CLASSES.headingLg}>
                   What triggered this?
                 </h2>
                 <p className="text-sm text-[#5b4a3e]">
@@ -876,7 +877,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                 >
                   <Zap className="w-7 h-7" style={{ color: currentEmotion.color }} />
                 </motion.div>
-                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight">
+                <h2 className={WARM_CLASSES.headingLg}>
                   Micro-actions for you
                 </h2>
                 <p className="text-sm text-[#5b4a3e]">
@@ -932,7 +933,7 @@ export default function EmotionCompass({ onAvatarCue }: EmotionCompassProps) {
                                     else if (action.label.includes("Thought Trap"))
                                       navigate("/mindgym/thought-trap");
                                   }}
-                                  className="text-xs text-[#3F6B47] hover:text-[#2c5235] transition-colors"
+                                  className={WARM_CLASSES.actionLink}
                                 >
                                   Open this practice →
                                 </button>

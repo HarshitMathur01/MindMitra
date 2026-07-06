@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
 import { createLocalStore } from "@/lib/mindgym/localStore";
+import { WARM_CLASSES } from "@/lib/mindgym/theme";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -642,7 +643,7 @@ export default function MoodWeather({ onAvatarCue }: MoodWeatherProps) {
                       {currentQuadrant === "stormy" && (
                         <button
                           onClick={() => navigate("/mindgym/five-senses")}
-                          className="text-xs text-[#3F6B47] hover:text-[#2c5235] transition-colors"
+                          className={WARM_CLASSES.actionLink}
                         >
                           Open 5-4-3-2-1 Anchor →
                         </button>
@@ -650,7 +651,7 @@ export default function MoodWeather({ onAvatarCue }: MoodWeatherProps) {
                       {currentQuadrant === "electric" && (
                         <button
                           onClick={() => navigate("/mindgym/breath-sphere")}
-                          className="text-xs text-[#3F6B47] hover:text-[#2c5235] transition-colors"
+                          className={WARM_CLASSES.actionLink}
                         >
                           Open Breath Sphere →
                         </button>
@@ -658,7 +659,7 @@ export default function MoodWeather({ onAvatarCue }: MoodWeatherProps) {
                       {currentQuadrant === "foggy" && (
                         <button
                           onClick={() => navigate("/journal")}
-                          className="text-xs text-[#3F6B47] hover:text-[#2c5235] transition-colors"
+                          className={WARM_CLASSES.actionLink}
                         >
                           Open Journal →
                         </button>
@@ -666,7 +667,7 @@ export default function MoodWeather({ onAvatarCue }: MoodWeatherProps) {
                       {currentQuadrant === "sunny" && (
                         <button
                           onClick={() => navigate("/mindgym/focus-flow")}
-                          className="text-xs text-[#3F6B47] hover:text-[#2c5235] transition-colors"
+                          className={WARM_CLASSES.actionLink}
                         >
                           Open Focus Flow →
                         </button>

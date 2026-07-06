@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wind, Timer, Volume2, VolumeX, Play, RotateCcw, Check, Megaphone } from "lucide-react";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { WARM_CLASSES } from "@/lib/mindgym/theme";
 import { useAzureNarration } from "@/hooks/useAzureNarration";
 import { cn } from "@/lib/utils";
 
@@ -242,7 +243,7 @@ export default function BreathSphere({ onAvatarCue }: BreathSphereProps) {
   const sphereHue = sphereColorPhase === "inhale" ? "146" : "100";
   const sphereDepthHue = sphereColorPhase === "inhale" ? "138" : "92";
   const sphereHighlightHue = sphereColorPhase === "inhale" ? "42" : "48";
-  const warmSurfaceCard = "rounded-[2rem] border border-border bg-white/88 shadow-[0_20px_50px_-30px_rgba(62,84,60,0.24)] backdrop-blur-sm";
+  const warmSurfaceCard = WARM_CLASSES.panel;
   const warmControlCard = "rounded-2xl border border-border bg-white/84 shadow-[0_16px_36px_-28px_rgba(62,84,60,0.18)] backdrop-blur-sm";
 
   const spawnParticles = useCallback(() => {

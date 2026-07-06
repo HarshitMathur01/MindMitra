@@ -4,6 +4,7 @@ import { Gavel, ShieldCheck, Sparkles, BookmarkPlus, Bookmark, AlertTriangle } f
 import ToolShell from "@/components/mindgym/ToolShell";
 import { CRISIS_KEYWORDS } from "@/lib/mindgym/types";
 import { createLocalStore } from "@/lib/mindgym/localStore";
+import { WARM_CLASSES } from "@/lib/mindgym/theme";
 import CrisisOverlay from "@/components/mindgym/CrisisOverlay";
 import { trackMindGymEvent } from "@/lib/mindgym/analytics";
 import { cn } from "@/lib/utils";
@@ -154,7 +155,7 @@ export default function InnerCritic({ onAvatarCue }: InnerCriticProps) {
                 >
                   <Gavel className="w-8 h-8 text-[#5b4a82]" />
                 </motion.div>
-                <h2 className="font-serif-display italic text-[1.85rem] font-light text-[#2a1c14] mb-2 leading-tight">
+                <h2 className={WARM_CLASSES.headingLg}>
                   What is your inner critic saying?
                 </h2>
                 <p className="text-[#5b4a3e] text-sm max-w-md mx-auto leading-relaxed">

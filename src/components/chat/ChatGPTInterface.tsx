@@ -47,6 +47,7 @@ import ChatAvatarPane from "./ChatAvatarPane";
 import ChatMoodWidget from "./ChatMoodWidget";
 import ChatReturnBanner from "./ChatReturnBanner";
 import { useChatSessions } from "./hooks/useChatSessions";
+import { useVoiceTurn } from "./hooks/useVoiceTurn";
 
 import {
     CHAT_SOFT_SPRING,
@@ -85,18 +86,6 @@ const formatTimeAgo = (date: Date): string => {
     return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 };
 
-const PRESENCE_START_DELAY_MS = 1400;
-const NO_INPUT_TIMEOUT_MS = 10_000;
-const END_OF_TURN_SILENCE_MS = 2200;
-const SHORT_UTTERANCE_EXTRA_MS = 800;
-const MAX_RECORDING_MS = 60_000;
-
-const looksLikeIncompleteVoiceTurn = (text: string): boolean => {
-    const trimmed = text.trim();
-    if (trimmed.length < 18) return true;
-    return /\b(and|but|because|so|then|like|matlab|ki|to|aur)$/i.test(trimmed);
-};
-
 const ChatGPTInterface = () => {
     // ── State ───────────────────────────────────────────────────────────────
     const [messages, setMessages] = useState<Message[]>([]);
@@ -106,7 +95,6 @@ const ChatGPTInterface = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
     const [transcribingMsgId, setTranscribingMsgId] = useState<string | null>(null);
-    const [voiceTempMsgId, setVoiceTempMsgId] = useState<string | null>(null);
     const [moodSelected, setMoodSelected] = useState(false);
     const [moodValue, setMoodValue] = useState<number | null>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -167,15 +155,6 @@ const ChatGPTInterface = () => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const pendingVoiceAnalysisRef = useRef<VoiceAnalysis | null>(null);
     const pendingAudioDataRef = useRef<string | null>(null);
-    const voiceSilenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const voiceNoInputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const voiceMaxDurationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const presenceStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const lastTranscriptRef = useRef("");
-    const hasTranscriptRef = useRef(false);
-    const presenceAutoListenPausedRef = useRef(false);
-    const wasPresenceModeRef = useRef(false);
-    const isAutoStoppingRef = useRef(false);
     // ── Request lifecycle guards ────────────────────────────────────────────
     // The chat request can outlive the React component. Keep one AbortController
     // for the active turn so navigation/session switches do not write stale UI.
@@ -214,6 +193,31 @@ const ChatGPTInterface = () => {
             setMoodValue(null);
             setContinueDismissed(false);
         },
+    });
+
+    // ── Voice endpointing + presence auto-listen ────────────────────────────
+    const { handleVoiceInput, handlePresenceMicTap, micState } = useVoiceTurn({
+        recording: {
+            isRecording,
+            isProcessing,
+            toggleRecording,
+            cancelRecording,
+            currentTranscript,
+            hasTranscript,
+            lastTranscriptAt,
+        },
+        voiceSupported,
+        isPresenceMode,
+        isAvatarVisible,
+        isLoading,
+        avatarCurrentMessage,
+        currentSessionId,
+        setMessages,
+        onVoiceResult: (analysis, audioData) => {
+            pendingVoiceAnalysisRef.current = analysis;
+            pendingAudioDataRef.current = audioData;
+        },
+        sendMessage: (text) => handleSendMessage(text),
     });
 
     // ── Derived ─────────────────────────────────────────────────────────────
@@ -317,154 +321,6 @@ const ChatGPTInterface = () => {
         }, 180);
         return () => window.clearInterval(interval);
     }, [isLoading]);
-
-    useEffect(() => {
-        if (isRecording && voiceTempMsgId && currentTranscript) {
-            setMessages((msgs) =>
-                msgs.map((m) =>
-                    m.id === voiceTempMsgId
-                        ? { ...m, content: currentTranscript || tSanctuary("chat.voice.recording") }
-                        : m,
-                ),
-            );
-        }
-    }, [isRecording, currentTranscript, voiceTempMsgId, tSanctuary]);
-
-    useEffect(() => {
-        hasTranscriptRef.current = hasTranscript;
-    }, [hasTranscript]);
-
-    useEffect(() => {
-        if (isPresenceMode && !wasPresenceModeRef.current) {
-            presenceAutoListenPausedRef.current = false;
-        }
-        if (!isPresenceMode) {
-            presenceAutoListenPausedRef.current = false;
-        }
-        wasPresenceModeRef.current = isPresenceMode;
-    }, [isPresenceMode]);
-
-    const clearVoiceSilenceTimer = () => {
-        if (voiceSilenceTimeoutRef.current) {
-            clearTimeout(voiceSilenceTimeoutRef.current);
-            voiceSilenceTimeoutRef.current = null;
-        }
-        if (voiceNoInputTimeoutRef.current) {
-            clearTimeout(voiceNoInputTimeoutRef.current);
-            voiceNoInputTimeoutRef.current = null;
-        }
-        if (voiceMaxDurationTimeoutRef.current) {
-            clearTimeout(voiceMaxDurationTimeoutRef.current);
-            voiceMaxDurationTimeoutRef.current = null;
-        }
-        if (presenceStartTimeoutRef.current) {
-            clearTimeout(presenceStartTimeoutRef.current);
-            presenceStartTimeoutRef.current = null;
-        }
-    };
-
-    const clearVoiceTempMessage = () => {
-        if (voiceTempMsgId) {
-            setMessages((msgs) => msgs.filter((m) => m.id !== voiceTempMsgId));
-            setVoiceTempMsgId(null);
-        }
-    };
-
-    const stopVoiceRecordingAndSend = async () => {
-        if (!isRecording || isAutoStoppingRef.current) return;
-        isAutoStoppingRef.current = true;
-        try {
-            const result = await toggleRecording(
-                currentSessionId || undefined,
-                voiceTempMsgId || undefined,
-            );
-            clearVoiceTempMessage();
-            if (result?.transcript) {
-                pendingVoiceAnalysisRef.current = result.voiceAnalysis || null;
-                pendingAudioDataRef.current = result.audioData || null;
-                await handleSendMessage(result.transcript);
-                pendingVoiceAnalysisRef.current = null;
-                pendingAudioDataRef.current = null;
-            }
-        } finally {
-            isAutoStoppingRef.current = false;
-            clearVoiceSilenceTimer();
-            lastTranscriptRef.current = "";
-        }
-    };
-
-    // Voice endpointing: wait longer for short/incomplete utterances, but do
-    // not leave the mic open indefinitely if the user says nothing.
-    useEffect(() => {
-        if (!isRecording) {
-            clearVoiceSilenceTimer();
-            lastTranscriptRef.current = "";
-            return;
-        }
-
-        voiceMaxDurationTimeoutRef.current = setTimeout(() => {
-            stopVoiceRecordingAndSend();
-        }, MAX_RECORDING_MS);
-
-        voiceNoInputTimeoutRef.current = setTimeout(() => {
-            if (!hasTranscriptRef.current) {
-                presenceAutoListenPausedRef.current = isPresenceMode;
-                stopVoiceRecordingAndSend();
-            }
-        }, NO_INPUT_TIMEOUT_MS);
-
-        return () => {
-            clearVoiceSilenceTimer();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isRecording]);
-
-    useEffect(() => {
-        if (hasTranscript && voiceNoInputTimeoutRef.current) {
-            clearTimeout(voiceNoInputTimeoutRef.current);
-            voiceNoInputTimeoutRef.current = null;
-        }
-    }, [hasTranscript]);
-
-    useEffect(() => {
-        const voiceLoopActive = isRecording && (isAvatarVisible || isPresenceMode);
-        if (!voiceLoopActive) {
-            if (voiceSilenceTimeoutRef.current) {
-                clearTimeout(voiceSilenceTimeoutRef.current);
-                voiceSilenceTimeoutRef.current = null;
-            }
-            return;
-        }
-        const transcript = currentTranscript.trim();
-        if (!transcript || transcript === lastTranscriptRef.current) return;
-
-        lastTranscriptRef.current = transcript;
-        if (voiceSilenceTimeoutRef.current) {
-            clearTimeout(voiceSilenceTimeoutRef.current);
-            voiceSilenceTimeoutRef.current = null;
-        }
-
-        const delay =
-            END_OF_TURN_SILENCE_MS +
-            (looksLikeIncompleteVoiceTurn(transcript) ? SHORT_UTTERANCE_EXTRA_MS : 0);
-        voiceSilenceTimeoutRef.current = setTimeout(() => {
-            stopVoiceRecordingAndSend();
-        }, delay);
-
-        return () => {
-            if (voiceSilenceTimeoutRef.current) {
-                clearTimeout(voiceSilenceTimeoutRef.current);
-                voiceSilenceTimeoutRef.current = null;
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isRecording, isAvatarVisible, isPresenceMode, currentTranscript, lastTranscriptAt, currentSessionId, voiceTempMsgId]);
-
-    useEffect(() => {
-        return () => {
-            clearVoiceSilenceTimer();
-        };
-    }, []);
 
     // Mount/unmount sentinel + HTTP request cleanup.
     useEffect(() => {
@@ -592,6 +448,10 @@ const ChatGPTInterface = () => {
                 throw new Error("Chat response did not include a session_id");
             }
 
+            // Avatar playback is intentionally queued BEFORE these saves
+            // resolve: waiting on a network write would delay the spoken
+            // response, and save failures already surface via the debounced
+            // toast in saveMessage. Do not reorder.
             saveMessage(userMessage, persistedSessionId).catch((err) =>
                 console.error("❌ Background save failed:", err),
             );
@@ -631,141 +491,6 @@ const ChatGPTInterface = () => {
             // Help the type checker — `resolvedAiResponse` is kept around
             // only so future hooks can read the final committed message.
             void resolvedAiResponse;
-        }
-    };
-
-    /**
-     * Voice handler dedicated to Presence Mode.
-     *
-     * Differs from `handleVoiceInput` in two ways:
-     *   1. It does NOT add a "🎤 Recording…" temporary chat bubble — the
-     *      MicFAB + interim transcript caption inside the overlay are the
-     *      visual feedback channel for Presence Mode.
-     *   2. On stop, it sends through `handleSendMessage` directly and
-     *      relies on the existing avatar pipeline to play the response.
-     */
-    const handlePresenceMicTap = async () => {
-        if (!voiceSupported) return;
-        try {
-            if (isRecording) {
-                await stopVoiceRecordingAndSend();
-            } else if (isProcessing || isLoading || avatarCurrentMessage) {
-                // No automatic barge-in yet: don't start STT while Mitra is
-                // thinking or speaking, because TTS cancellation is separate.
-                return;
-            } else {
-                clearVoiceSilenceTimer();
-                lastTranscriptRef.current = "";
-                presenceAutoListenPausedRef.current = false;
-                await toggleRecording(currentSessionId || undefined, undefined);
-            }
-        } catch (err) {
-            console.error("❌ [Presence] Mic tap error:", err);
-        }
-    };
-
-    /**
-     * Derive a single MicState for the FAB. Order matters — `processing`
-     * must trump `speaking` so the loader doesn't disappear while the
-     * round-trip is still mid-flight.
-     */
-    const micState = (() => {
-        if (!voiceSupported) return "disabled" as const;
-        if (isProcessing || (isLoading && !avatarCurrentMessage)) return "processing" as const;
-        if (isRecording) return "listening" as const;
-        if (avatarCurrentMessage) return "speaking" as const;
-        return "idle" as const;
-    })();
-
-    /**
-     * Presence Mode auto-listen. Starts on entry and after each avatar turn,
-     * but only when the UI is genuinely idle and the prior no-input turn did
-     * not pause auto-listening.
-     */
-    useEffect(() => {
-        if (
-            !isPresenceMode ||
-            !voiceSupported ||
-            isRecording ||
-            isProcessing ||
-            isLoading ||
-            avatarCurrentMessage ||
-            presenceAutoListenPausedRef.current
-        ) {
-            if (presenceStartTimeoutRef.current) {
-                clearTimeout(presenceStartTimeoutRef.current);
-                presenceStartTimeoutRef.current = null;
-            }
-            return;
-        }
-
-        presenceStartTimeoutRef.current = setTimeout(() => {
-            presenceStartTimeoutRef.current = null;
-            if (
-                isPresenceMode &&
-                voiceSupported &&
-                !isRecording &&
-                !isProcessing &&
-                !isLoading &&
-                !avatarCurrentMessage &&
-                !presenceAutoListenPausedRef.current
-            ) {
-                clearVoiceSilenceTimer();
-                lastTranscriptRef.current = "";
-                toggleRecording(currentSessionId || undefined, undefined).catch((err) => {
-                    console.error("❌ [Presence] Auto-start failed:", err);
-                });
-            }
-        }, PRESENCE_START_DELAY_MS);
-
-        return () => {
-            if (presenceStartTimeoutRef.current) {
-                clearTimeout(presenceStartTimeoutRef.current);
-                presenceStartTimeoutRef.current = null;
-            }
-        };
-    }, [isPresenceMode, voiceSupported, isRecording, isProcessing, isLoading, avatarCurrentMessage, currentSessionId, toggleRecording]);
-
-    useEffect(() => {
-        if (isPresenceMode) return;
-        // If user is exiting and we're still recording, cancel cleanly — don't
-        // auto-send half a sentence the user didn't intend to be heard.
-        clearVoiceSilenceTimer();
-        isAutoStoppingRef.current = false;
-        if (isRecording) {
-            try {
-                cancelRecording();
-            } catch (err) {
-                console.warn("⚠️ [Presence] cancelRecording on exit failed:", err);
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isPresenceMode]);
-
-    const handleVoiceInput = async () => {
-        try {
-            if (isRecording) {
-                await stopVoiceRecordingAndSend();
-            } else if (isProcessing || isLoading || avatarCurrentMessage) {
-                return;
-            } else {
-                clearVoiceSilenceTimer();
-                lastTranscriptRef.current = "";
-                const tempId = `voice-${Date.now()}`;
-                setVoiceTempMsgId(tempId);
-                setMessages((msgs) => [
-                    ...msgs,
-                    {
-                        id: tempId,
-                        content: tSanctuary("chat.voice.recording"),
-                        sender: "user",
-                        timestamp: new Date(),
-                    },
-                ]);
-                await toggleRecording(currentSessionId, tempId);
-            }
-        } catch (error) {
-            console.error("❌ [UI] Voice input error:", error);
         }
     };
 

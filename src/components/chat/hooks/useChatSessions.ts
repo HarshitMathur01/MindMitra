@@ -51,6 +51,11 @@ export function useChatSessions({
     const mountedRef = useRef(true);
     const consecutiveSaveFailuresRef = useRef(0);
     const lastSaveFailureToastAtRef = useRef(0);
+    // Bumped on every session-context change (switch, new chat, adoption).
+    // The send pipeline captures it before awaiting the network and drops
+    // responses whose epoch no longer matches — the abort in onBeforeSwitch
+    // cannot cover a request that resolved but has not yet committed.
+    const sessionEpochRef = useRef(0);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -109,6 +114,7 @@ export function useChatSessions({
     // No-op when unchanged so localStorage isn't rewritten on every response.
     const adoptSessionId = (id: string) => {
         if (!id || id === currentSessionId) return;
+        sessionEpochRef.current += 1;
         setCurrentSessionId(id);
         localStorage.setItem(CHAT_STORAGE_KEYS.activeSessionId, id);
     };
@@ -239,6 +245,7 @@ export function useChatSessions({
         if (currentSessionId === chatId && hasMessages()) return;
         if (loadingSession) return;
 
+        sessionEpochRef.current += 1;
         // Cancel any in-flight chat request from the previous session so
         // its response doesn't bleed into the newly-loaded one.
         onBeforeSwitch();
@@ -286,6 +293,7 @@ export function useChatSessions({
     };
 
     const startNewChat = async () => {
+        sessionEpochRef.current += 1;
         // "New chat" must hard-cancel any pending request so its response
         // doesn't show up in the freshly minted session.
         onBeforeSwitch();
@@ -305,6 +313,7 @@ export function useChatSessions({
     return {
         currentSessionId,
         adoptSessionId,
+        getSessionEpoch: () => sessionEpochRef.current,
         recentChats,
         loadingChats,
         loadingSession,

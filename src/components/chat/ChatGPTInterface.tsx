@@ -172,6 +172,7 @@ const ChatGPTInterface = () => {
     const {
         currentSessionId,
         adoptSessionId,
+        getSessionEpoch,
         recentChats,
         loadingChats,
         loadingSession,
@@ -384,6 +385,7 @@ const ChatGPTInterface = () => {
 
             const controller = new AbortController();
             activeChatRequestRef.current = controller;
+            const sendEpoch = getSessionEpoch();
             const finalText = await postChatTurn({
                 accessToken: session.access_token,
                 content: textToSend,
@@ -395,6 +397,12 @@ const ChatGPTInterface = () => {
             activeChatRequestRef.current = null;
 
             if (!mountedRef.current) return;
+            // The abort in onBeforeSwitch cannot cover a request that has
+            // already resolved but not yet committed. If the session context
+            // changed while we were awaiting, drop this response outright —
+            // adopting its session id or queueing its avatar turn would
+            // clobber the newly selected chat.
+            if (getSessionEpoch() !== sendEpoch) return;
 
             adoptSessionId(finalText.session_id);
 

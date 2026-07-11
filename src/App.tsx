@@ -79,13 +79,35 @@ import { triggerMindGymClinicalSync } from "@/lib/api/syncMindGymClinicalData";
 function AppContent() {
   const location = useLocation();
 
-  // Silent fallback sync: Ensure any stranded offline MindGym data 
+  // Silent fallback sync: Ensure any stranded offline MindGym data
   // trapped in localStorage pushes to Supabase when the user boots.
   useEffect(() => {
     // Fire-and-forget; no await required on boot. Non-blocking.
     triggerMindGymClinicalSync().catch((err) => {
       console.warn("Silent Boot Sync for MindGym deferred:", err);
     });
+  }, []);
+
+  // Warm the /chat chunk once the browser is idle — it's the primary CTA
+  // from both the marketing landing and the sanctuary, so the transition
+  // shouldn't pay a chunk fetch. Same import specifier as the lazy route,
+  // so this resolves to the same chunk and React reuses it. Skipped on
+  // Save-Data / 2G connections.
+  useEffect(() => {
+    const conn = (
+      navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
+      }
+    ).connection;
+    if (conn?.saveData || /2g/.test(conn?.effectiveType ?? "")) return;
+
+    const warm = () => void import("./pages/Chat");
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(warm, { timeout: 5000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const t = window.setTimeout(warm, 3000);
+    return () => window.clearTimeout(t);
   }, []);
 
   // Pure cross-fade (no y bump) for transitions inside the MindGym surface,

@@ -6,7 +6,6 @@ import {
 } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import Buddy from "@/components/mindgym/shared/Buddy";
 import { useAmbience } from "./AmbienceProvider";
 import { usePersonality } from "@/hooks/usePersonality";
 import { useSettings } from "@/hooks/useSettings";
@@ -80,22 +79,18 @@ export function MitraOrb() {
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
           className="absolute inset-3 overflow-hidden rounded-full"
         >
-          <Buddy
-            avatar="/talkinghead/avatars/Little_kid_4.glb"
-            cameraView="full"
-            className="pointer-events-none h-full w-full"
-            fallback={
-              <span
-                aria-hidden
-                className="block h-full w-full rounded-full"
-                style={{
-                  background:
-                    "radial-gradient(circle at 30% 25%, var(--paper), color-mix(in oklab, var(--accent-sky) 30%, var(--paper-soft)))",
-                  boxShadow:
-                    "0 10px 30px -10px color-mix(in oklab, var(--ink) 40%, transparent), inset 0 0 18px color-mix(in oklab, var(--accent-sage) 30%, transparent)",
-                }}
-              />
-            }
+          {/* Static orb art (was a TalkingHead iframe: ~1.2 MB of CDN
+              three.js plus a 60 MB GLB for a 64 px decoration). This is the
+              same gradient that shipped as the iframe's designed fallback. */}
+          <span
+            aria-hidden
+            className="block h-full w-full rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle at 30% 25%, var(--paper), color-mix(in oklab, var(--accent-sky) 30%, var(--paper-soft)))",
+              boxShadow:
+                "0 10px 30px -10px color-mix(in oklab, var(--ink) 40%, transparent), inset 0 0 18px color-mix(in oklab, var(--accent-sage) 30%, transparent)",
+            }}
           />
         </motion.div>
       </motion.button>

@@ -13,6 +13,7 @@
     "build:dev": "node scripts/with-supported-node.mjs vite build --mode development",
     "lint": "node scripts/with-supported-node.mjs eslint .",
     "lint:copy": "node scripts/with-supported-node.mjs node scripts/check-banned-words.mjs",
+    "optimize:avatar-models": "node scripts/with-supported-node.mjs node scripts/optimize-avatar-models.mjs",
     "optimize:avatar-videos": "node scripts/with-supported-node.mjs node scripts/optimize-avatar-videos.mjs",
     "optimize:forest-images": "node scripts/with-supported-node.mjs node scripts/optimize-forest-images.mjs",
     "preview": "node scripts/with-supported-node.mjs vite preview"

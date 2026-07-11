@@ -236,7 +236,29 @@ export default defineConfig(({ command }) => ({
           }
           if (id.includes("framer-motion")) return "vendor-motion";
           if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
-          if (id.includes("@radix-ui")) return "vendor-radix";
+          if (id.includes("@radix-ui")) {
+            // The app entry statically mounts only <Toaster/> (react-toast)
+            // and <TooltipProvider/> (react-tooltip). Because every @radix-ui
+            // package used to collapse into one `vendor-radix` chunk, that
+            // whole family rode onto the landing/chat first-paint graph via
+            // those two imports — measured 81% unused (~30 kB gzip) on the
+            // landing route. The heavier *interactive* primitives below are
+            // reached only from lazy routes (dialogs, selects, menus, …), so
+            // isolate them into their own chunk. It is never a static import
+            // of the entry, so Vite won't modulepreload it on first paint;
+            // lazy routes fetch it on demand and share it thereafter. Shared
+            // radix internals (primitive, popper, portal, presence, …) stay
+            // in the core chunk so toast/tooltip keep their deps and the
+            // interactive chunk can never become a static dep of the entry.
+            if (
+              /react-(dialog|alert-dialog|dropdown-menu|context-menu|menubar|navigation-menu|menu|select|popover|hover-card|tabs|accordion|collapsible|scroll-area|slider|switch|checkbox|radio-group|progress|toggle|toggle-group|separator|aspect-ratio|avatar)\b/.test(
+                id,
+              )
+            ) {
+              return "vendor-radix-interactive";
+            }
+            return "vendor-radix";
+          }
           if (id.includes("@supabase")) return "vendor-supabase";
           if (id.includes("@tanstack")) return "vendor-query";
           if (

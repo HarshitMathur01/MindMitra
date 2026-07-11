@@ -223,6 +223,17 @@ export default defineConfig(({ command }) => ({
         // chunks) tends to *hurt* HTTP/2 perf. Keep this list small.
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
+          // Pin the cn() stack (clsx / cva / tailwind-merge) to its own tiny
+          // chunk. Without an explicit assignment Rollup hoisted clsx into
+          // vendor-charts, which made the entry statically import the whole
+          // recharts bundle on every first paint.
+          if (
+            id.includes("/clsx/") ||
+            id.includes("class-variance-authority") ||
+            id.includes("tailwind-merge")
+          ) {
+            return "vendor-ui-utils";
+          }
           if (id.includes("framer-motion")) return "vendor-motion";
           if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
           if (id.includes("@radix-ui")) return "vendor-radix";

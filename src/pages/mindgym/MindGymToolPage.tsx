@@ -1,6 +1,7 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { TOOL_IDS, type ToolId } from "@/lib/mindgym/types";
+import { ensureGoogleFonts, CAMPUS_CHESS_FONTS } from "@/lib/fonts";
 
 const TOOL_COMPONENTS: Record<ToolId, ReturnType<typeof lazy>> = {
   "breath-sphere": lazy(() => import("./tools/BreathSphere")),
@@ -36,6 +37,12 @@ function Loader() {
 
 export default function MindGymToolPage() {
   const { toolId } = useParams<{ toolId: string }>();
+
+  // Campus Chess's display faces load with the tool rather than blocking
+  // first paint of every page from index.html.
+  useEffect(() => {
+    if (toolId === "campus-chess") ensureGoogleFonts(CAMPUS_CHESS_FONTS);
+  }, [toolId]);
 
   if (!toolId || !TOOL_IDS.includes(toolId as ToolId)) {
     return <Navigate to="/mindgym" replace />;

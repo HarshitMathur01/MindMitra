@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -122,55 +124,59 @@ const toDbSettings = (settings: UserSettings): FlatSettingsRow => ({
     updated_at: settings.updated_at ?? new Date().toISOString(),
 });
 
+const readStoredSettings = (userId: string): UserSettings | null => {
+    try {
+        const stored = localStorage.getItem(`${STORAGE_KEY}-${userId}`);
+        return stored ? (JSON.parse(stored) as UserSettings) : null;
+    } catch {
+        return null;
+    }
+};
+
+// Never throws: every failure path resolves to localStorage or defaults, so
+// the query never enters an error/retry loop and consumers always get a
+// usable settings object once loading completes.
+const fetchSettingsForUser = async (user: User): Promise<UserSettings> => {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any)
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', user.id)
+            .single() as { data: FlatSettingsRow | null; error: { code?: string; message?: string } | null };
+
+        if (error && error.code !== 'PGRST116') {
+            if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                return readStoredSettings(user.id) ?? { ...DEFAULT_SETTINGS, user_id: user.id };
+            }
+            throw error;
+        }
+        if (data) {
+            return toSettingsModel(data, user.id);
+        }
+        return { ...DEFAULT_SETTINGS, user_id: user.id };
+    } catch {
+        return readStoredSettings(user.id) ?? { ...DEFAULT_SETTINGS, user_id: user.id };
+    }
+};
+
 export function useSettings() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [settings, setSettings] = useState<UserSettings | null>(null);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [saving, setSaving] = useState(false);
 
-    const fetchSettings = useCallback(async () => {
-        if (!user) {
-            setLoading(false);
-            return;
-        }
+    const queryKey = ['user-settings', user?.id];
 
-        setLoading(true);
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { data, error } = await (supabase as any)
-                .from('user_settings')
-                .select('*')
-                .eq('user_id', user.id)
-                .single() as { data: FlatSettingsRow | null; error: { code?: string; message?: string } | null };
+    // Shared across every mounted consumer (Settings page, chat, sanctuary):
+    // one Supabase round trip per staleTime window instead of one per mount.
+    const query = useQuery({
+        queryKey,
+        queryFn: () => fetchSettingsForUser(user as User),
+        enabled: !!user,
+    });
 
-            if (error && error.code !== 'PGRST116') {
-                if (error.code === '42P01' || error.message?.includes('does not exist')) {
-                    const stored = localStorage.getItem(`${STORAGE_KEY}-${user.id}`);
-                    if (stored) {
-                        setSettings(JSON.parse(stored));
-                    } else {
-                        setSettings({ ...DEFAULT_SETTINGS, user_id: user.id });
-                    }
-                } else {
-                    throw error;
-                }
-            } else if (data) {
-                setSettings(toSettingsModel(data, user.id));
-            } else {
-                setSettings({ ...DEFAULT_SETTINGS, user_id: user.id });
-            }
-        } catch {
-            const stored = localStorage.getItem(`${STORAGE_KEY}-${user.id}`);
-            if (stored) {
-                setSettings(JSON.parse(stored));
-            } else {
-                setSettings({ ...DEFAULT_SETTINGS, user_id: user.id });
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, [user]);
+    const settings = (user ? query.data : null) ?? null;
 
     const saveSettings = useCallback(async (updates: Partial<UserSettings>) => {
         if (!user || !settings) return;
@@ -188,14 +194,14 @@ export function useSettings() {
                 localStorage.setItem(`${STORAGE_KEY}-${user.id}`, JSON.stringify(updatedSettings));
             }
 
-            setSettings(updatedSettings);
+            queryClient.setQueryData(queryKey, updatedSettings);
             toast({
                 title: 'Settings saved ✨',
                 description: 'Your preferences have been updated.',
             });
         } catch {
             localStorage.setItem(`${STORAGE_KEY}-${user.id}`, JSON.stringify(updatedSettings));
-            setSettings(updatedSettings);
+            queryClient.setQueryData(queryKey, updatedSettings);
             toast({
                 title: 'Saved locally',
                 description: 'Your settings are saved on this device.',
@@ -203,20 +209,18 @@ export function useSettings() {
         } finally {
             setSaving(false);
         }
-    }, [user, settings, toast]);
-
-    useEffect(() => {
-        fetchSettings();
-    }, [fetchSettings]);
+        // queryKey is derived from user.id, already a dependency via `user`.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, settings, toast, queryClient]);
 
     return {
         settings,
-        loading,
+        loading: !!user && query.isLoading,
         saving,
         saveSettings,
         updateLocal: (updates: Partial<UserSettings>) => {
-            if (settings) setSettings({ ...settings, ...updates });
+            if (settings) queryClient.setQueryData(queryKey, { ...settings, ...updates });
         },
-        refetch: fetchSettings,
+        refetch: query.refetch,
     };
 }

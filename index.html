@@ -60,6 +60,10 @@
     ═══════════════════════════════════════ -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- The TalkingHead iframe (same-site, so it shares this connection pool)
+       pulls three.js from jsdelivr; warming the connection shaves a
+       DNS+TLS round trip off avatar start. -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <!-- One consolidated stylesheet (site faces + Devanagari for Hindi copy)
        = one render-blocking request instead of four.
        Dropped: Dancing Script (its --font-fancy token is never consumed).

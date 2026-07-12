@@ -11,10 +11,16 @@
   <link rel="icon" type="image/png" href="/favicon.png" />
 
   <!-- Marketing-hero poster starts downloading in parallel with the JS
-       boot instead of waiting for React to render the <img>. Authenticated
-       visitors pay one cached 224 KB fetch they don't display; first-time
-       (unauthenticated) visitors are the traffic this page optimises for. -->
-  <link rel="preload" as="image" href="/video/hero-poster.jpg" fetchpriority="high" />
+       boot instead of waiting for React to render the <img>. Responsive AVIF:
+       a phone preloads the 1024 variant (~50 KB) instead of the 219 KB JPEG,
+       and it dedupes with HeroVideo's <picture> avif <source> (same srcset +
+       sizes). Browsers without AVIF skip this preload and fetch WebP/JPG from
+       the <picture> normally. Authenticated visitors pay one cached fetch they
+       don't display; first-time (unauthenticated) visitors are the traffic
+       this page optimises for. -->
+  <link rel="preload" as="image" type="image/avif"
+    imagesrcset="/video/hero-poster-1024.avif 1024w, /video/hero-poster-1920.avif 1920w"
+    imagesizes="100vw" fetchpriority="high" />
 
 
   <!-- ══════════════════════════════════════

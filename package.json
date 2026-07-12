@@ -16,6 +16,7 @@
     "optimize:avatar-models": "node scripts/with-supported-node.mjs node scripts/optimize-avatar-models.mjs",
     "optimize:avatar-videos": "node scripts/with-supported-node.mjs node scripts/optimize-avatar-videos.mjs",
     "optimize:forest-images": "node scripts/with-supported-node.mjs node scripts/optimize-forest-images.mjs",
+    "optimize:hero-poster": "node scripts/with-supported-node.mjs node scripts/optimize-hero-poster.mjs",
     "preview": "node scripts/with-supported-node.mjs vite preview"
   },
   "dependencies": {

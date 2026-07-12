@@ -130,19 +130,32 @@ export function HeroVideo({
   const headlineWords = headline.split(" ");
   const childEase = reduce ? ([0, 0, 1, 1] as const) : ([0.22, 1, 0.36, 1] as const);
 
+  // Serve the hero (the landing LCP element) as responsive AVIF/WebP derived
+  // from the poster path, so first paint on a phone pulls ~50 kB (AVIF 1024)
+  // instead of the 219 kB JPEG. The JPG stays as the <img> fallback for the
+  // rare browser without WebP/AVIF. Variants are emitted by
+  // `npm run optimize:hero-poster`.
+  const posterStem = posterSrc.replace(/\.[a-z]+$/i, "");
+  const avifSrcSet = `${posterStem}-1024.avif 1024w, ${posterStem}-1920.avif 1920w`;
+  const webpSrcSet = `${posterStem}-1024.webp 1024w, ${posterStem}-1920.webp 1920w`;
+
   return (
     <section
       ref={sectionRef}
       className="relative isolate flex min-h-[85vh] flex-col items-center justify-center overflow-hidden pt-[var(--header-height)] sm:min-h-[90vh] md:min-h-screen"
     >
-      <img
-        src={posterSrc}
-        alt=""
-        aria-hidden
-        decoding="async"
-        fetchpriority="high"
-        className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-center scale-[1.02]"
-      />
+      <picture className="contents">
+        <source type="image/avif" srcSet={avifSrcSet} sizes="100vw" />
+        <source type="image/webp" srcSet={webpSrcSet} sizes="100vw" />
+        <img
+          src={posterSrc}
+          alt=""
+          aria-hidden
+          decoding="async"
+          fetchpriority="high"
+          className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-center scale-[1.02]"
+        />
+      </picture>
 
       {shouldRenderVideo && (
         <video

@@ -88,11 +88,15 @@ function AppContent() {
     });
   }, []);
 
-  // Warm the /chat chunk once the browser is idle — it's the primary CTA
-  // from both the marketing landing and the sanctuary, so the transition
-  // shouldn't pay a chunk fetch. Same import specifier as the lazy route,
-  // so this resolves to the same chunk and React reuses it. Skipped on
-  // Save-Data / 2G connections.
+  // Warm the /chat chunk — it's the primary CTA from both the marketing
+  // landing and the sanctuary, so the transition shouldn't pay a chunk fetch.
+  // Same import specifier as the lazy route, so this resolves to the same
+  // chunk and React reuses it. Skipped on Save-Data / 2G connections.
+  //
+  // Gate the warm behind the window `load` event *then* browser idle, so the
+  // 30 kB Chat chunk never competes with first paint / the hero image for
+  // bandwidth on the landing (Lighthouse caught it landing inside the initial
+  // load window before).
   useEffect(() => {
     const conn = (
       navigator as Navigator & {
@@ -101,13 +105,28 @@ function AppContent() {
     ).connection;
     if (conn?.saveData || /2g/.test(conn?.effectiveType ?? "")) return;
 
+    let idleId: number | undefined;
+    let timeoutId: number | undefined;
     const warm = () => void import("./pages/Chat");
-    if ("requestIdleCallback" in window) {
-      const id = window.requestIdleCallback(warm, { timeout: 5000 });
-      return () => window.cancelIdleCallback(id);
+    const schedule = () => {
+      if ("requestIdleCallback" in window) {
+        idleId = window.requestIdleCallback(warm, { timeout: 2000 });
+      } else {
+        timeoutId = window.setTimeout(warm, 1000);
+      }
+    };
+
+    if (document.readyState === "complete") {
+      schedule();
+    } else {
+      window.addEventListener("load", schedule, { once: true });
     }
-    const t = window.setTimeout(warm, 3000);
-    return () => window.clearTimeout(t);
+
+    return () => {
+      window.removeEventListener("load", schedule);
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
   }, []);
 
   // Pure cross-fade (no y bump) for transitions inside the MindGym surface,

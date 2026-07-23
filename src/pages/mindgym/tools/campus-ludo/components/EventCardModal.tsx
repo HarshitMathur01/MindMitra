@@ -12,7 +12,8 @@ export function EventCardModal({ open, card, onPick }: Props) {
   if (!card) return null;
   return (
     <Dialog open={open}>
-      <DialogContent className="cl-scope paper-card ornate-border max-w-md">
+      {/* A choice is mandatory — there is no sensible "close" outcome. */}
+      <DialogContent hideCloseButton className="cl-scope paper-card ornate-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-primary flex items-center gap-2">
             <span>{card.emoji}</span> {card.title}

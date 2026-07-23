@@ -51,12 +51,12 @@ export function ProxyGame({ open, onResolve }: Props) {
   const letters = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) finish(false); }}>
       <DialogContent className="cl-scope paper-card ornate-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-primary">Proxy Attendance!</DialogTitle>
           <DialogDescription>
-            Tap your name letter before the register closes. Miss → professor catches you.
+            Tap your name letter before the register closes. Miss → professor catches you. Closing counts as a miss.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center justify-between">

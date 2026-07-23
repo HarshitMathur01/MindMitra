@@ -11,6 +11,7 @@ import {
 } from "@/lib/tictactoe";
 import * as audio from "@/lib/companion/audio";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { prefersReducedMotion } from "@/lib/mindgym/motion";
 import { BuddyCompanion, type BuddyCompanionHandle } from "@/components/companion/BuddyCompanion";
 
 // ---------------------------------------------------------------------------
@@ -241,7 +242,7 @@ export default function BuddyTicTacToe() {
           <div className={["bt-paper-card p-5 order-2 lg:order-1", shake ? "bt-shake" : ""].join(" ")}>
             <div className="mb-3 flex items-center justify-between">
               <span className="bt-label">board</span>
-              <span className="bt-label" style={{ color: "var(--bt-ink)", opacity: 0.75 }}>
+              <span role="status" aria-live="polite" className="bt-label" style={{ color: "var(--bt-ink)", opacity: 0.75 }}>
                 {statusText}
               </span>
             </div>
@@ -365,7 +366,7 @@ function DifficultyToggle({ value, onChange }: { value: Difficulty; onChange: (d
 }
 
 function burstConfetti() {
-  if (typeof document === "undefined") return;
+  if (typeof document === "undefined" || prefersReducedMotion()) return;
   const root = document.createElement("div");
   root.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden";
   document.body.appendChild(root);

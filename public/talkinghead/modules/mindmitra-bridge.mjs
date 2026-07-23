@@ -285,6 +285,15 @@ const THERAPEUTIC_INTENSITIES = {
     listening: 1.0,  // always subtle
 };
 
+// Soft-knee compressor for intensity-scaled morph values. A hard
+// Math.min(x, 1) clamp flattens every over-driven morph to the same 1.0,
+// destroying the ratios between morphs that give a mood its shape
+// (worst on Olaf, whose 1.5× styleMultiplier pushes several baselines
+// past 1.0). Values ≤ knee pass through untouched; above the knee they
+// compress asymptotically toward 1.0 without ever reaching it.
+const softClip = (x, knee = 0.7) =>
+    x <= knee ? x : knee + (1 - knee) * (1 - Math.exp(-(x - knee) / (1 - knee)));
+
 // Lower-face morphs are owned by the viseme lipsync engine while the
 // avatar is speaking. Stripping them out of mood baselines lets us keep
 // upper-face emotion (brows, eyes, cheeks) on during speech without the
@@ -368,52 +377,66 @@ function getActiveEmotion(timeline, currentTime) {
  */
 const THERAPEUTIC_GESTURES = {
 
-    // Empathetic nod: down-up-down-settle (1.5s)
+    // Keyframes follow basic animation principles: a tiny counter-movement
+    // (anticipation) before the main action and a small overshoot before
+    // settling, so gestures read as weighted instead of mechanical.
+    // Anticipation/overshoot amplitudes stay ≤0.015 rad — calm, not bouncy.
+
+    // Empathetic nod: lift-down-up-down-settle (1.5s)
     slow_nod: {
         duration: 1500,
         keyframes: [
             { t: 0, headRotateX: 0.00 },
-            { t: 500, headRotateX: 0.10 },   // nod down
+            { t: 120, headRotateX: -0.015 },  // anticipation: tiny lift
+            { t: 560, headRotateX: 0.10 },    // nod down
             { t: 1000, headRotateX: 0.00 },   // return
             { t: 1200, headRotateX: 0.05 },   // second gentle nod
-            { t: 1500, headRotateX: 0.00 },   // settle
+            { t: 1380, headRotateX: -0.008 }, // settle overshoot
+            { t: 1500, headRotateX: 0.00 },   // rest
         ],
         triggeredBy: ['empathy', 'acknowledgment', 'listening'],
     },
 
-    // Concern lean: slow forward tilt, hold, return (3.3s)
+    // Concern lean: slow forward tilt, hold, return (3.5s).
+    // No anticipation — a lean-in should feel deliberate, not springy.
     lean_forward: {
-        duration: 3300,
+        duration: 3500,
         keyframes: [
             { t: 0, bodyRotateX: 0.00 },
-            { t: 800, bodyRotateX: 0.07 },     // lean in
+            { t: 800, bodyRotateX: 0.07 },      // lean in
             { t: 2500, bodyRotateX: 0.07 },     // hold
-            { t: 3300, bodyRotateX: 0.00 },     // return
+            { t: 3250, bodyRotateX: -0.006 },   // settle overshoot on return
+            { t: 3500, bodyRotateX: 0.00 },     // rest
         ],
         triggeredBy: ['empathy', 'concern'],
     },
 
-    // Thoughtful head tilt (2.3s)
+    // Thoughtful head tilt (2.5s)
     thinking_tilt: {
-        duration: 2300,
+        duration: 2500,
         keyframes: [
             { t: 0, bodyRotateZ: 0.00 },
-            { t: 600, bodyRotateZ: -0.08 },    // tilt
-            { t: 1800, bodyRotateZ: -0.08 },    // hold
-            { t: 2300, bodyRotateZ: 0.00 },    // return
+            { t: 150, bodyRotateZ: 0.015 },    // anticipation: counter-tilt
+            { t: 700, bodyRotateZ: -0.08 },    // tilt
+            { t: 1800, bodyRotateZ: -0.08 },   // hold
+            { t: 2300, bodyRotateZ: 0.01 },    // settle overshoot
+            { t: 2500, bodyRotateZ: 0.00 },    // rest
         ],
         triggeredBy: ['neutral'],
     },
 
-    // Gentle double-nod for agreement (1.8s)
+    // Gentle double-nod for agreement (1.8s) — second nod decays so the
+    // repeat doesn't read as a loop.
     agreement_nod: {
         duration: 1800,
         keyframes: [
             { t: 0, headRotateX: 0.00 },
-            { t: 300, headRotateX: 0.08 },
-            { t: 600, headRotateX: 0.00 },
-            { t: 900, headRotateX: 0.08 },
+            { t: 100, headRotateX: -0.012 },  // anticipation: tiny lift
+            { t: 340, headRotateX: 0.08 },
+            { t: 620, headRotateX: 0.00 },
+            { t: 900, headRotateX: 0.06 },    // second, smaller nod
             { t: 1200, headRotateX: 0.00 },
+            { t: 1350, headRotateX: -0.006 }, // settle overshoot
             { t: 1800, headRotateX: 0.00 },
         ],
         triggeredBy: ['acknowledgment', 'encouragement'],
@@ -444,11 +467,21 @@ const EMOTION_TO_HAND_GESTURE = {
 };
 
 const GESTURE_COOLDOWN_MS = 4000;
+// Cooldown is jittered ±(0.85×–1.35×) per gesture so consecutive gestures
+// don't recur on a fixed clock.
+const rollGestureCooldown = () => GESTURE_COOLDOWN_MS * (0.85 + Math.random() * 0.5);
 
 // Interval between periodic "accent beat" gestures during long speech.
-// 5.5s keeps the rig visibly alive across multi-sentence replies without
+// Randomized per beat: a fixed 5.5s metronome read as mechanical across
+// multi-sentence replies. The range keeps the rig visibly alive without
 // becoming twitchy — paired with the bumped expression baselines above.
-const BEAT_INTERVAL_MS = 5500;
+const BEAT_INTERVAL_RANGE_MS = [4500, 8000];
+const rollBeatDelay = () =>
+    BEAT_INTERVAL_RANGE_MS[0] +
+    Math.random() * (BEAT_INTERVAL_RANGE_MS[1] - BEAT_INTERVAL_RANGE_MS[0]);
+// Occasionally play the softer beat variant so long replies don't repeat
+// one identical arm movement.
+const BEAT_SOFT_PROBABILITY = 0.25;
 const BEAT_DURATION_S = 1.5;
 
 
@@ -475,10 +508,14 @@ class MindMitraBridge {
      * @param {number} [opts.styleMultiplier=1.0]  Per-avatar amplitude scale
      *   for expression intensities. Stylised/cartoon rigs (e.g. Olaf) need
      *   ~1.5× to read as warmly as human avatars at the same baselines.
+     * @param {boolean} [opts.reducedMotion=false]  Honour the user's
+     *   prefers-reduced-motion: suppress beat/hand/head/body gestures.
+     *   Mood expressions and breathing stay on.
      */
     constructor(head, opts = {}) {
         this.head = head;
         this.styleMultiplier = opts.styleMultiplier ?? 1.0;
+        this.reducedMotion = opts.reducedMotion ?? false;
         this.amplitudeAnalyzer = new AmplitudeAnalyzer();
 
         // State
@@ -500,10 +537,12 @@ class MindMitraBridge {
         this._gestureStart = 0;
         this._gesture = null;
         this._lastGestureEnd = 0;
+        this._nextGestureCooldown = rollGestureCooldown();
 
-        // Periodic hand-beat scheduler — fires accent_beat every
-        // BEAT_INTERVAL_MS while the avatar is speaking (except in calm).
+        // Periodic hand-beat scheduler — fires an accent beat at a
+        // randomized interval while the avatar is speaking (except in calm).
         this._lastBeatTime = 0;
+        this._nextBeatDelay = rollBeatDelay();
 
         // Per-frame callback reference (so we can remove it)
         this._originalUpdate = null;
@@ -655,14 +694,15 @@ class MindMitraBridge {
             // head/body gesture above. Skipped for null entries (listening,
             // calm, neutral) to keep grounding/listening still.
             const handGesture = EMOTION_TO_HAND_GESTURE[first.emotion];
-            if (handGesture && typeof this.head.playGesture === 'function') {
+            if (handGesture && !this.reducedMotion && typeof this.head.playGesture === 'function') {
                 try { this.head.playGesture(handGesture, 3.5, false); } catch (e) { /* noop */ }
             }
         }
 
         // Reset beat schedule so each new reply starts fresh — first beat
-        // will fire BEAT_INTERVAL_MS after speech begins.
+        // fires after a freshly rolled delay from speech start.
         this._lastBeatTime = performance.now();
+        this._nextBeatDelay = rollBeatDelay();
     }
 
     /**
@@ -719,7 +759,7 @@ class MindMitraBridge {
             // Temporarily scale baseline so setMood picks up the right values
             const origBaseline = { ...mood.baseline };
             for (const key of Object.keys(origBaseline)) {
-                mood.baseline[key] = Math.min(origBaseline[key] * this.currentIntensity, 1.0);
+                mood.baseline[key] = softClip(origBaseline[key] * this.currentIntensity);
             }
             this.head.setMood(moodName);
             // Restore canonical baseline so repeated calls work correctly
@@ -738,8 +778,9 @@ class MindMitraBridge {
      * Respects cooldown to avoid repetitive motion.
      */
     _triggerGesture(gestureName) {
+        if (this.reducedMotion) return;
         const now = performance.now();
-        if (now - this._lastGestureEnd < GESTURE_COOLDOWN_MS) return;
+        if (now - this._lastGestureEnd < this._nextGestureCooldown) return;
         if (this._gestureActive) return;
 
         const gesture = THERAPEUTIC_GESTURES[gestureName];
@@ -777,6 +818,7 @@ class MindMitraBridge {
             }
             this._gestureActive = false;
             this._lastGestureEnd = now;
+            this._nextGestureCooldown = rollGestureCooldown();
             return;
         }
 
@@ -873,13 +915,16 @@ class MindMitraBridge {
         // body gesture is currently animating.
         if (
             this.state === 'speaking' &&
+            !this.reducedMotion &&
             this.currentEmotion !== 'calm' &&
             !this._gestureActive &&
-            now - this._lastBeatTime > BEAT_INTERVAL_MS &&
+            now - this._lastBeatTime > this._nextBeatDelay &&
             typeof this.head.playGesture === 'function'
         ) {
-            try { this.head.playGesture('accent_beat', BEAT_DURATION_S, false); } catch (e) { /* noop */ }
+            const beat = Math.random() < BEAT_SOFT_PROBABILITY ? 'accent_beat_soft' : 'accent_beat';
+            try { this.head.playGesture(beat, BEAT_DURATION_S, false); } catch (e) { /* noop */ }
             this._lastBeatTime = now;
+            this._nextBeatDelay = rollBeatDelay();
         }
 
         // Chain to original update callback if present
@@ -993,6 +1038,7 @@ export {
     AmplitudeAnalyzer,
     buildEmotionTimeline,
     getActiveEmotion,
+    softClip,
     THERAPEUTIC_MOODS,
     THERAPEUTIC_INTENSITIES,
     THERAPEUTIC_GESTURES,

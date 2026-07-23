@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MindGymBackdrop, { type MindGymScene } from "./MindGymBackdrop";
 import HeaderPill, { WhyDrawer } from "./shared/HeaderPill";
+import ConfirmLeaveDialog from "./shared/ConfirmLeaveDialog";
 import CompletionScreen from "./shared/CompletionScreen";
 import ParticleField from "./shared/ParticleField";
 import SupportButton from "./shared/SupportButton";
@@ -14,6 +15,7 @@ import { recordCompletion } from "@/lib/mindgym/storage";
 import { syncMindGymClinicalDataToSupabase } from "@/lib/api/syncMindGymClinicalData";
 import { MINDGYM_TOOLS, MINDGYM_SECTIONS } from "@/lib/mindgym/catalog";
 import { trackMindGymEvent } from "@/lib/mindgym/analytics";
+import { trackProductEvent } from "@/lib/productAnalytics";
 import type { ToolId } from "@/lib/mindgym/types";
 import {
   markHandoffCompleted,
@@ -43,6 +45,8 @@ interface ToolShellProps {
   showSupportButton?: boolean;
   contentPlacement?: "center" | "top";
   backdropScene?: MindGymScene;
+  // When active, the back button asks before abandoning an in-progress game.
+  confirmLeave?: { active: boolean; message: string };
 }
 
 export default function ToolShell({
@@ -64,9 +68,11 @@ export default function ToolShell({
   showSupportButton = true,
   contentPlacement = "center",
   backdropScene,
+  confirmLeave,
 }: ToolShellProps) {
   const navigate = useNavigate();
   const [whyOpen, setWhyOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
   const [chatHandoff, setChatHandoff] = useState<ChatActivityHandoff | null>(null);
 
@@ -85,29 +91,41 @@ export default function ToolShell({
     recordCompletion(toolId, xp);
     setHasRecorded(true);
     trackMindGymEvent("tool_completed", { toolId, xp });
-
-    void syncMindGymClinicalDataToSupabase().then((res) => {
-      if (res.success && res.synced.length > 0) {
-        console.log("[TherapistBridge] Synced Clinical payload for:", res.synced);
-      }
+    // Product-funnel copy — the MindGym ring buffer above never reaches
+    // Mixpanel/product_events, and retention analysis needs this event.
+    trackProductEvent("mindgym_tool_completed", {
+      tool_id: toolId,
+      xp,
+      via_suggestion: Boolean(chatHandoff),
     });
+
+    void syncMindGymClinicalDataToSupabase()
+      .then((res) => {
+        if (res.success && res.synced.length > 0) {
+          console.log("[TherapistBridge] Synced Clinical payload for:", res.synced);
+        }
+      })
+      .catch((e) => console.warn("[MindGym] clinical sync failed:", e));
 
     // If this tool was launched from chat, mark the handoff completed and
     // POST a "completed" feedback row so the affinity EMA picks up the win.
     // Best-effort: a failure here MUST NOT block the celebration screen.
     if (chatHandoff) {
       const updated = markHandoffCompleted();
-      void supabase.auth.getSession().then(({ data }) => {
-        const token = data?.session?.access_token;
-        if (!token) return;
-        void postActivityFeedback(token, {
-          activity_id: updated?.activity_id ?? chatHandoff.activity_id,
-          action: "completed",
-          trace_id: chatHandoff.trace_id,
-          session_id: chatHandoff.session_id,
-          reason_code: chatHandoff.reason_code,
-        });
-      });
+      void supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          const token = data?.session?.access_token;
+          if (!token) return;
+          void postActivityFeedback(token, {
+            activity_id: updated?.activity_id ?? chatHandoff.activity_id,
+            action: "completed",
+            trace_id: chatHandoff.trace_id,
+            session_id: chatHandoff.session_id,
+            reason_code: chatHandoff.reason_code,
+          });
+        })
+        .catch((e) => console.warn("[MindGym] handoff feedback failed:", e));
     }
   }, [completed, hasRecorded, toolId, xp, chatHandoff]);
 
@@ -124,6 +142,22 @@ export default function ToolShell({
     contentPlacement === "top"
       ? "flex-1 w-full flex flex-col justify-start items-stretch z-10 relative pt-6 pb-8 min-h-[calc(100vh-100px)]"
       : "flex-1 w-full flex flex-col justify-center items-center z-10 relative pt-24 pb-8 min-h-[calc(100vh-100px)]";
+
+  // Mirrors HeaderPill's default back button, but routes through the
+  // confirm-leave dialog while a game is in progress.
+  const guardedBack = confirmLeave ? (
+    <button
+      onClick={() => (confirmLeave.active ? setLeaveOpen(true) : navigate("/mindgym"))}
+      aria-label="Back to MindGym"
+      className={
+        isWarmTone
+          ? "flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-muted-foreground hover:text-foreground transition-all shadow-sm"
+          : "flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"
+      }
+    >
+      <ArrowLeft className="w-4 h-4" />
+    </button>
+  ) : undefined;
 
   const whyToggle = (
     <button
@@ -165,6 +199,7 @@ export default function ToolShell({
             currentStep={currentStep}
             totalSteps={totalSteps}
             right={whyToggle}
+            back={guardedBack}
             breadcrumb={<Breadcrumb trail={breadcrumbTrail} tone={surfaceTone} />}
           />
           <WhyDrawer
@@ -213,6 +248,16 @@ export default function ToolShell({
       </AnimatePresence>
 
       {showSupportButton && <SupportButton tone={surfaceTone} />}
+
+      {confirmLeave && (
+        <ConfirmLeaveDialog
+          open={leaveOpen}
+          onOpenChange={setLeaveOpen}
+          message={confirmLeave.message}
+          onLeave={() => navigate("/mindgym")}
+          tone={surfaceTone}
+        />
+      )}
     </div>
   );
 }

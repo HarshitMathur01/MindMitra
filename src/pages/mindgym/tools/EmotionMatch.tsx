@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2 } from "lucide-react";
@@ -127,6 +128,7 @@ const EmotionMatch = () => {
         );
       } catch (error) {
         console.error("Failed to save game result:", error);
+        toast.error("Couldn't sync this session — your score still counts on this device.");
       }
     } else {
       setCurrentImageIndex((prev) => prev + 1);
@@ -178,7 +180,14 @@ const EmotionMatch = () => {
               {score} XP
             </span>
           </div>
-          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+          <div
+            role="progressbar"
+            aria-valuenow={currentImageIndex + 1}
+            aria-valuemin={1}
+            aria-valuemax={emotionImages.length}
+            aria-label={`Image ${currentImageIndex + 1} of ${emotionImages.length}`}
+            className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden"
+          >
             <motion.div
               className="bg-teal-400 h-1.5 rounded-full"
               initial={{ width: 0 }}
@@ -228,6 +237,7 @@ const EmotionMatch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleEmotionSelect(emotion)}
+                  aria-pressed={selectedEmotion === emotion}
                   className={`py-3 px-2 rounded-2xl text-xs font-medium transition-all duration-300 ${
                     selectedEmotion === emotion
                       ? "bg-teal-500/20 border-teal-500/50 border text-teal-100 shadow-[0_0_15px_rgba(20,184,166,0.2)]"
@@ -247,9 +257,13 @@ const EmotionMatch = () => {
                 value={customText}
                 onChange={(e) => setCustomText(e.target.value)}
                 placeholder="What details in the image show this emotion?"
+                maxLength={280}
                 className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-teal-500/50 transition-colors rounded-2xl resize-none"
                 rows={4}
               />
+              <p className="mt-2 text-right text-[11px] text-white/40">
+                {customText.length} / 280
+              </p>
             </div>
 
             <Button

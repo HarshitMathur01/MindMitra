@@ -124,7 +124,7 @@ All in [chatbotAgent/app/pipeline/](../chatbotAgent/app/pipeline/):
 | L3 | [orchestrator.py](../chatbotAgent/app/pipeline/orchestrator.py) | Pure-Python: mode select, memory gate, tone, frame, max-tokens, dependency flag |
 | L4 | [memory_retrieval.py](../chatbotAgent/app/pipeline/memory_retrieval.py) | Qdrant dual-channel retrieval |
 | L5 | [prompt_builder.py](../chatbotAgent/app/pipeline/prompt_builder.py) | 7-block prompt, tiktoken trim |
-| L6 | [llm_core.py](../chatbotAgent/app/pipeline/llm_core.py) | Azure GPT-4o primary → Groq → GLM-4 fallback chain |
+| L6 | [llm_core.py](../chatbotAgent/app/pipeline/llm_core.py) | Azure OpenAI (`gpt-5-mini` default deployment) primary → Groq → GLM-4 fallback chain |
 | L7 | [safety_gate.py](../chatbotAgent/app/pipeline/safety_gate.py) | 5 checks → retry/replace/static fallback |
 
 Conversation modes (orchestrator output): `companion`, `active_listener`, `recovery_check`, `referral_bridge`. (Spec also lists `psychoeducation` & `skill_coach` — gated by env flags `psychoeducation_enabled`, `skill_coach_enabled`.)
@@ -214,7 +214,7 @@ Sessions, keyspace expiry → session-end worker. Mode controlled by `REDIS_KEYS
 Dual-channel memory retrieval (episodic + semantic). Init: `scripts/migrations/init_qdrant.py`.
 
 ### 4.4 External AI providers
-- Azure OpenAI (GPT-4o) — primary chat LLM
+- Azure OpenAI (`gpt-5-mini` default deployment; `AZURE_OPENAI_DEPLOYMENT_NAME`) — primary chat LLM
 - Groq — signal extraction, crisis confirmer, Whisper STT, fallback chat
 - Gemini — episodic/semantic writers
 - GLM-4 — secondary fallback

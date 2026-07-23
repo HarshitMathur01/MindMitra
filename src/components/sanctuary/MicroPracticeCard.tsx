@@ -32,10 +32,7 @@ export function MicroPracticeCard() {
   // a "sit with me" variant. No CTA, no phase cycling, no urgency.
   if (ambience.crisisQuiet) {
     return (
-      <section
-        id="practice"
-        className="mx-auto w-full max-w-6xl px-6 pb-16 md:px-12 md:pb-24"
-      >
+      <div className="w-full">
         <div
           className="relative grid grid-cols-1 items-center gap-8 overflow-hidden rounded-3xl border p-7 md:p-10"
           style={{
@@ -62,7 +59,7 @@ export function MicroPracticeCard() {
             </p>
           </div>
         </div>
-      </section>
+      </div>
     );
   }
 
@@ -70,10 +67,7 @@ export function MicroPracticeCard() {
   const scale = { in: 1.25, hold: 1.25, out: 0.85, rest: 0.85 }[phase];
 
   return (
-    <section
-      id="practice"
-      className="mx-auto w-full max-w-6xl px-6 pb-16 md:px-12 md:pb-24"
-    >
+    <div className="w-full">
       <div
         className="relative grid grid-cols-1 items-center gap-8 overflow-hidden rounded-3xl border p-7 md:grid-cols-[1fr_auto] md:p-10"
         style={{
@@ -139,6 +133,6 @@ export function MicroPracticeCard() {
           </span>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

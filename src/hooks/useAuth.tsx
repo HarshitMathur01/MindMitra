@@ -5,8 +5,35 @@ import { useToast } from '@/components/ui/use-toast';
 import {
   identifyProductAnalyticsUser,
   resetProductAnalyticsIdentity,
+  trackProductEvent,
 } from '@/lib/productAnalytics';
 import { clearUserSessionData } from '@/lib/sessionCleanup';
+
+// Swept on sign-out by sessionCleanup (mm_ prefix) — intended: on a shared
+// device the marker must not outlive the account that set it.
+const OAUTH_SIGNUP_TRACKED_KEY = 'mm_analytics_oauth_signup_tracked';
+
+/**
+ * `signup_completed` for OAuth flows. Supabase emits the same SIGNED_IN for
+ * first-ever and returning OAuth logins, so treat "last sign-in within 5 min
+ * of account creation" as account creation. Email signups are tracked
+ * directly in signUp() and excluded here via app_metadata.provider.
+ */
+function maybeTrackOAuthSignupCompleted(user: User): void {
+  try {
+    const provider = user.app_metadata?.provider;
+    if (!provider || provider === 'email') return;
+    if (localStorage.getItem(OAUTH_SIGNUP_TRACKED_KEY) === user.id) return;
+    const created = Date.parse(user.created_at);
+    const lastSignIn = Date.parse(user.last_sign_in_at ?? user.created_at);
+    if (!Number.isFinite(created) || !Number.isFinite(lastSignIn)) return;
+    if (lastSignIn - created > 5 * 60_000) return;
+    localStorage.setItem(OAUTH_SIGNUP_TRACKED_KEY, user.id);
+    trackProductEvent('signup_completed', { method: provider });
+  } catch {
+    // analytics must never affect auth
+  }
+}
 
 interface AuthContextType {
   user: User | null;
@@ -47,6 +74,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Deferred: supabase-js warns against issuing client calls from
+          // inside this callback, and trackProductEvent reads the session.
+          const signedInUser = session.user;
+          setTimeout(() => maybeTrackOAuthSignupCompleted(signedInUser), 0);
+        }
       }
     );
 
@@ -82,6 +115,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description: error.message
       });
     } else {
+      // Account created (confirmation may still be pending). No Supabase
+      // session exists yet, so this lands in Mixpanel keyed to the device
+      // and is stitched to the user by identify() after first sign-in.
+      trackProductEvent('signup_completed', { method: 'email' });
       toast({
         title: "Success!",
         description: "Please check your email to confirm your account."

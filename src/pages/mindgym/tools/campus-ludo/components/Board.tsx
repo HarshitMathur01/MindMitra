@@ -34,7 +34,11 @@ export function Board({ players, activeId, moving }: Props) {
   const posOf = (p: PlayerState) => (moving && moving.id === p.id ? moving.pos : p.position);
   return (
     <div className="paper-card p-4 sm:p-6">
+      {/* Tiles are non-interactive; "The Register" log narrates every event
+          for screen readers, so the board reads as a single labelled image. */}
       <div
+        role="img"
+        aria-label="Campus Ludo board, 32 tiles around the campus"
         className="relative grid gap-1 ornate-border p-3"
         style={{
           gridTemplateColumns: "repeat(9, minmax(0, 1fr))",
@@ -63,6 +67,7 @@ export function Board({ players, activeId, moving }: Props) {
                     return (
                       <span
                         key={o.id}
+                        aria-hidden
                         className={`block h-3 w-3 rounded-full border border-background ${o.id === activeId ? "animate-hop" : ""}`}
                         style={{ background: `var(${arc.tokenVar})` }}
                         title={arc.name}

@@ -74,6 +74,29 @@ import { trackProductEvent } from "@/lib/productAnalytics";
 
 const PresenceMode = lazy(() => import("./PresenceMode"));
 
+const durationBand = (ms: number): string => {
+    const minutes = ms / 60_000;
+    if (minutes < 1) return "<1m";
+    if (minutes < 5) return "1-5m";
+    if (minutes < 15) return "5-15m";
+    return "15m+";
+};
+
+// Lifetime-activation marker for `first_chat_message`. Keyed per user; the
+// mm_ prefix means sessionCleanup sweeps it on sign-out (privacy wins over
+// dedupe — worst case a re-login re-emits one event, and funnels key on the
+// first occurrence anyway).
+const markFirstChatMessage = (userId: string): boolean => {
+    try {
+        const key = `mm_analytics_first_msg_${userId}`;
+        if (localStorage.getItem(key)) return false;
+        localStorage.setItem(key, "1");
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 const formatTimeAgo = (date: Date): string => {
     const diffMs = Date.now() - date.getTime();
     const minutes = Math.round(diffMs / 60_000);
@@ -160,6 +183,11 @@ const ChatGPTInterface = () => {
     // for the active turn so navigation/session switches do not write stale UI.
     const activeChatRequestRef = useRef<AbortController | null>(null);
     const mountedRef = useRef(true);
+
+    // ── Funnel telemetry (coarse; never message content) ────────────────────
+    const visitTurnsRef = useRef(0);
+    const visitStartedAtRef = useRef(Date.now());
+    const visitEndTrackedRef = useRef(false);
 
     // Helper used inside async flows so we can break out cleanly when
     // the user navigates away mid-request.
@@ -333,6 +361,32 @@ const ChatGPTInterface = () => {
         };
     }, []);
 
+    // chat_session_ended — one per /chat visit with at least one turn.
+    // SPA navigation ends via unmount; tab close/background via pagehide
+    // (Mixpanel persists its batch queue to localStorage, so a late event
+    // survives to the next load). pageshow un-latches after a bfcache
+    // restore so a resumed visit can emit its own end.
+    useEffect(() => {
+        const trackVisitEnd = () => {
+            if (visitEndTrackedRef.current || visitTurnsRef.current === 0) return;
+            visitEndTrackedRef.current = true;
+            trackProductEvent("chat_session_ended", {
+                turns: visitTurnsRef.current,
+                duration_band: durationBand(Date.now() - visitStartedAtRef.current),
+            });
+        };
+        const unlatch = () => {
+            visitEndTrackedRef.current = false;
+        };
+        window.addEventListener("pagehide", trackVisitEnd);
+        window.addEventListener("pageshow", unlatch);
+        return () => {
+            window.removeEventListener("pagehide", trackVisitEnd);
+            window.removeEventListener("pageshow", unlatch);
+            trackVisitEnd();
+        };
+    }, []);
+
     // Reset the dismiss state when the session changes — each restored
     // session decides on its own merits whether to show the ribbon.
     useEffect(() => {
@@ -367,6 +421,10 @@ const ChatGPTInterface = () => {
                 voice: Boolean(pendingVoiceAnalysisRef.current),
                 avatar_visible: isAvatarVisible,
             });
+            visitTurnsRef.current += 1;
+            if (user?.id && markFirstChatMessage(user.id)) {
+                trackProductEvent("first_chat_message");
+            }
 
             const requestedSessionId = currentSessionId || "new";
 

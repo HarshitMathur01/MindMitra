@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 export function ResumeCard() {
   const { t } = useTranslation("sanctuary");
   return (
-    <section className="mx-auto w-full max-w-6xl px-6 pb-12 md:px-12">
+    <div className="w-full">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -71,6 +71,6 @@ export function ResumeCard() {
           </span>
         </Link>
       </motion.div>
-    </section>
+    </div>
   );
 }

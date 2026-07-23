@@ -350,6 +350,12 @@ class TalkingHead {
       },
       'accent_beat': {
         'LeftForeArm.rotation': { x: [-0.70, -0.35, 1, 1.2], y: 0.10, z: 0.55 }
+      },
+      // MindMitra: softer accent-beat variant. The bridge's beat scheduler
+      // occasionally swaps this in for 'accent_beat' so long replies don't
+      // repeat one identical arm movement.
+      'accent_beat_soft': {
+        'LeftForeArm.rotation': { x: [-0.45, -0.22, 1, 1.2], y: 0.08, z: 0.50 }
       }
     }
 

@@ -11,7 +11,7 @@ export function SafetyStrip() {
   const quiet = ambience.crisisQuiet;
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-6 py-10 md:px-12 md:py-14">
+    <div className="w-full">
       <motion.div
         className="flex flex-col items-start gap-4 rounded-2xl border p-5 md:flex-row md:items-center md:justify-between md:p-6"
         style={{
@@ -84,6 +84,6 @@ export function SafetyStrip() {
           </Link>
         </div>
       </motion.div>
-    </section>
+    </div>
   );
 }

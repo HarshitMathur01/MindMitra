@@ -65,10 +65,7 @@ export function DoorsGrid() {
   const doors = useMemo(() => order.map((id) => DOOR_CONFIG[id]), [order]);
 
   return (
-    <section
-      id="doors"
-      className="mx-auto w-full max-w-6xl px-6 py-16 md:px-12 md:py-20"
-    >
+    <div className="w-full">
       <div className="mb-10 flex items-end justify-between gap-6">
         <div>
           <p
@@ -167,6 +164,6 @@ export function DoorsGrid() {
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }

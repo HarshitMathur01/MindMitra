@@ -63,6 +63,23 @@ Stable tool IDs include: `breath-sphere`, `thought-trap`, `emotion-compass`, `wo
 
 **Enable:** migration `supabase/migrations/20260417120000_product_events.sql`; frontend `VITE_ENABLE_PRODUCT_ANALYTICS=1` and `VITE_MIXPANEL_TOKEN` (see `.env.production.example`).
 
+**Funnel events (v1):**
+
+| Event | Fired from | Notes |
+|-------|------------|-------|
+| `page_viewed` | `ProductAnalyticsProvider` | pathname only (no query/hash); `/booking/:id` normalized |
+| `signup_completed` | `useAuth` | `method`: `email` \| `google`; email fires pre-confirmation (device-keyed until identify) |
+| `chat_user_message_sent` | `ChatGPTInterface` | coarse props: `length_band`, `voice`, `avatar_visible` |
+| `first_chat_message` | `ChatGPTInterface` | activation marker; once per user per device (guard swept on sign-out) |
+| `chat_session_ended` | `ChatGPTInterface` | `turns`, `duration_band`; only visits with ≥1 turn |
+| `presence_mode_entered` | `ChatGPTInterface` | |
+| `activity_suggested` / `_accepted` / `_dismissed` | `useActivitySuggestion` | |
+| `mindgym_tool_completed` | `ToolShell` | `tool_id`, `xp`, `via_suggestion` (chat handoff) |
+
+Core funnel to watch: `page_viewed(/)` → `signup_completed` → `first_chat_message` → D1/D7 return (`chat_session_ended` or `mindgym_tool_completed` on a later day).
+
+**Signup friction:** the confirm-email interstitial is a Supabase setting, not code — Dashboard → Authentication → Sign In / Providers → Email → "Confirm email". Disabling it lets a fresh email signup reach `/chat` in one step; pair any change with abuse controls (the backend daily message cap already exists).
+
 **Rules:** never send chat text, transcripts, journal content, or PHI in event properties; no autocapture on chat surfaces; Session Replay off unless separately reviewed.
 
 **SQL templates:** [`sql/beta_product_analytics_queries.sql`](sql/beta_product_analytics_queries.sql).

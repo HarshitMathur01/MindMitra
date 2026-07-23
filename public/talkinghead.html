@@ -95,6 +95,11 @@
         // backdrop (Presence Mode), ask the document to be transparent so the
         // backdrop shows through and the seam between iframe + parent disappears.
         const transparent = params.get("transparent") === "1";
+        // Set by the React wrappers from prefers-reduced-motion / the Buddy
+        // reduceMotion prop. Disables secondary motion (dynamic bones) and
+        // the bridge's beat/gesture schedulers. Mood expressions and the
+        // breathing cycle stay on — breathing is grounding, not vestibular.
+        const reducedMotion = params.get("reducedMotion") === "1";
 
         // Table-driven Azure voice map keyed by BCP-47 prefix
         const AZURE_VOICE_TABLE = {
@@ -525,6 +530,7 @@
                     setStatus("Loading " + pct + "%");
                 }
             };
+            const isOlafUrl = (url) => /\/Olaf\.glb(?:$|\?)/i.test(url);
             const avatarConfig = (url) => ({
                 url,
                 body: "F",
@@ -536,6 +542,18 @@
                 // ttsPitch maps to Google pitch in semitones (-20 to +20). +2 = gentle warmth.
                 ttsPitch: 2,
                 lipsyncLang: "en",
+                // Olaf only: spring physics on the three hair-twig strand
+                // roots (under Head_DFM) so head turns get a barely-visible
+                // ~100ms follow-through. High stiffness + damping on purpose
+                // — follow-through, not jiggle. Setup is try/caught upstream,
+                // so a bad bone name degrades to no secondary motion.
+                ...(isOlafUrl(url) && !reducedMotion ? {
+                    modelDynamicBones: [
+                        { bone: "Hair", type: "full", stiffness: 30, damping: 4 },
+                        { bone: "Hair.004", type: "full", stiffness: 30, damping: 4 },
+                        { bone: "Hair.015", type: "full", stiffness: 30, damping: 4 },
+                    ],
+                } : {}),
             });
 
             try {
@@ -570,11 +588,20 @@
                 // human-tuned baselines. The 1.5× styleMultiplier scales every
                 // mood's amplitude so his empathy/encouragement land as warmly
                 // as Aria/Maya at the same THERAPEUTIC_INTENSITIES defaults.
-                const isOlafAvatar = /\/Olaf\.glb(?:$|\?)/i.test(loadedAvatarUrl);
+                const isOlafAvatar = isOlafUrl(loadedAvatarUrl);
                 bridge = new MindMitraBridge(head, {
                     styleMultiplier: isOlafAvatar ? 1.5 : 1.0,
+                    reducedMotion,
                 });
                 bridge.init();
+
+                // Dev-only manual-verification lever: drive gestures/moods
+                // from the iframe's DevTools context, e.g.
+                //   __mmAvatar.bridge.setEmotion('empathy')
+                //   __mmAvatar.bridge.triggerGesture('lean_forward')
+                if (AVATAR_DEBUG) {
+                    window.__mmAvatar = { head, bridge };
+                }
 
                 avatarLog("avatar.ready", {
                     provider: TTS_MODE,

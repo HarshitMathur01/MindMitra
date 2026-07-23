@@ -37,30 +37,43 @@ export function ExamGame({ open, onResolve }: Props) {
     return () => window.clearInterval(interval);
   }, [open]);
 
+  function finish(success: boolean) {
+    if (done) return;
+    setDone(true);
+    setTimeout(() => onResolve({ success }), 400);
+  }
+
   function tap(idx: number) {
     if (showIdx !== -1 || done) return;
     const next = [...input, idx];
     if (next[next.length - 1] !== seq[next.length - 1]) {
-      setDone(true);
-      setTimeout(() => onResolve({ success: false }), 400);
+      finish(false);
       return;
     }
     setInput(next);
     if (next.length === seq.length) {
-      setDone(true);
-      setTimeout(() => onResolve({ success: true }), 400);
+      finish(true);
     }
   }
 
   const showing = showIdx !== -1;
 
+  // The board waits on this dialog — don't let a stalled input phase block
+  // every other player's turn forever.
+  useEffect(() => {
+    if (!open || showing || done) return;
+    const t = window.setTimeout(() => finish(false), 12000);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, showing, done]);
+
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) finish(false); }}>
       <DialogContent className="cl-scope paper-card ornate-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-primary">Exam Cram</DialogTitle>
           <DialogDescription>
-            {showing ? "Memorise the sequence…" : "Tap the subjects in the same order."}
+            {showing ? "Memorise the sequence…" : "Tap the subjects in the same order. Closing counts as a miss."}
           </DialogDescription>
         </DialogHeader>
         <div className="h-16 flex items-center justify-center font-display text-5xl">

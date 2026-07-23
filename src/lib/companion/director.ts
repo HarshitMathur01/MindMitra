@@ -18,16 +18,9 @@ import {
 } from "./buddyBrain";
 import { createRecentTracker } from "./personality";
 import { voice as voiceBlips, sfx, unlockAudio } from "./audio";
+import { prefersReducedMotion } from "@/lib/mindgym/motion";
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
 
 // The single emotion "tap" every performance broadcasts. UI layers (speech
 // bubble tint, comedy props, mood-reactive background) subscribe to this instead

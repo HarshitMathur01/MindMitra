@@ -111,7 +111,12 @@ function resolveAvatarBackdropVideo(avatarUrl: string): AvatarBackdropVideo | un
 }
 
 function usePrefersReducedMotion(): boolean {
-    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+    // Lazy init so the very first iframe URL already carries the user's
+    // preference — otherwise the iframe would load once with motion on and
+    // immediately reload when the effect flips the state.
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+        () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
 
     useEffect(() => {
         const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -199,8 +204,11 @@ const TalkingHeadAvatar = ({
         params.set("avatarUrl", avatarUrl);
         if (cameraView) params.set("cameraView", cameraView);
         if (useTransparentStage) params.set("transparent", "1");
+        // The iframe disables secondary motion (dynamic bones) and the
+        // bridge's beat/gesture schedulers; expressions + breathing stay on.
+        if (prefersReducedMotion) params.set("reducedMotion", "1");
         return `/talkinghead.html?${params.toString()}`;
-    }, [avatarUrl, cameraView, ttsLang, ttsVoice, useTransparentStage]);
+    }, [avatarUrl, cameraView, prefersReducedMotion, ttsLang, ttsVoice, useTransparentStage]);
 
     // ── Post a message to the iframe ────────────────────────────────────────
     // Defense in depth: scope `postMessage` to our own origin instead of

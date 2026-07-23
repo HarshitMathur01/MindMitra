@@ -54,9 +54,23 @@ const _SVETA_MORPHS = {
 };
 
 // MindMitra: Olaf-style Blender rig profile.
-// Names are taken from TalkingHead/olaf_inspect.txt. The uploaded model has
-// a usable "Armature" root, but its control/deform bones and shape keys are
-// not in the Mixamo/ARKit/Oculus names expected by TalkingHead.
+// The GLB has a usable "Armature" root, but its control/deform bones and
+// shape keys are not in the Mixamo/ARKit/Oculus names TalkingHead expects.
+//
+// Verified skeleton facts (read from the Olaf.glb JSON chunk; 413 joints):
+// - Torso: Upper_Body_FK (child of Armature) → Upper_Body_Mid_CTRL →
+//   Body_Stretch.001 → Upper_Body_DFM. Upper_Body_FK also parents
+//   FK_Upper_Arm.L/R, so rotating it carries the arms with the body.
+// - Head_CTRL is a SIBLING of Upper_Body_FK — the head does not inherit
+//   torso motion. Chain: Head_CTRL → Head_CTRLUNparent → Head_Stretch_Lower
+//   → Head_DFM → Hair_Main_Rig → hair strands.
+// - A literal `Hips` bone exists (PR_Root → Root → Hips → Lower_BODY_FK)
+//   but drives only the lower ball + legs.
+// - Hair twigs: strand roots Hair / Hair.004 / Hair.015 under Head_DFM.
+// - Carrot nose: bones named `Noise`, `Noise.001–003` (Blender typo),
+//   parented to the Armature root, not the head.
+// - Coal buttons: FK_Coal / FK_Coal.001 / FK_Coal.002 chains, also parented
+//   to the Armature root — they do NOT follow torso rotation.
 const _OLAF_BONES = {
   'Head_CTRL': 'Head',
   'Eye.L': 'LeftEye',
@@ -308,6 +322,23 @@ const _OLAF_SHRUG_UPPER_DRIVERS = [
   { bone: 'Mouth_DFM_Shape', scale: { z: 0.006 } },
 ];
 const _OLAF_MORPH_DRIVERS = {
+  // ── Torso: breathing + body sway ─────────────────────────────────
+  // TalkingHead's mood anims drive the custom channels chestInhale and
+  // bodyRotateX/Y/Z. On standard rigs those distribute into Spine/Spine1
+  // pose deltas, which Olaf doesn't map — so his torso used to be frozen.
+  // Registering bone drivers keyed on those same channels lets the
+  // built-in breathing cycle, idle/speaking sway, mood postures, and the
+  // bridge's lean/tilt gestures animate the upper snowball for free.
+  // Weights are deliberately a fraction of the head's full-value delta so
+  // the body follows the head, not the other way around.
+  // (Upper_Body_FK parents the arms, so they ride along; Head_CTRL is a
+  // sibling and keeps its own full-value pose delta — no double-counting.)
+  chestInhale: [
+    { bone: 'Upper_Body_Mid_CTRL', scale: { x: 0.02, y: 0.035, z: 0.03 }, position: { y: 0.004 } },
+  ],
+  bodyRotateX: [{ bone: 'Upper_Body_FK', rotation: { x: 0.45 } }],
+  bodyRotateY: [{ bone: 'Upper_Body_FK', rotation: { y: 0.35 } }],
+  bodyRotateZ: [{ bone: 'Upper_Body_FK', rotation: { z: 0.30 } }],
   jawOpen: scaleOlafDrivers(_OLAF_OPEN_DRIVERS, 0.78),
   mouthOpen: scaleOlafDrivers(_OLAF_OPEN_DRIVERS, 0.64),
   mouthClose: _OLAF_LIP_PRESS_DRIVERS,
@@ -440,15 +471,15 @@ function preprocessOlafRig(gltf) {
   gltf.userData.talkingHeadArmRest = { preset: 'down', side: 0.78, down: 0.58, forward: 0.24 };
   gltf.scene.userData.talkingHeadArmRest = { preset: 'down', side: 0.78, down: 0.58, forward: 0.24 };
 
-  // Runtime nose-bone discovery: Olaf's preprocessor doesn't statically
-  // map any nose bones (we don't know the GLB's exact rig). Scan once
-  // for anything matching /nose/i and, if found, synthesise drivers for
+  // Runtime nose-bone discovery: Olaf's carrot-nose bones are literally
+  // named `Noise`/`Noise.001–003` (Blender typo for "Nose"), so the scan
+  // matches both spellings. If found, synthesise drivers for
   // noseSneerLeft/Right. Empathy/concern mood baselines already set
   // these morph weights, so the moods automatically engage them once
   // the drivers exist. Silent no-op if no nose bones present.
   const noseBones = [];
   gltf.scene.traverse(obj => {
-    if (obj.isBone && /nose/i.test(obj.name)) noseBones.push(obj.name);
+    if (obj.isBone && /nose|noise/i.test(obj.name)) noseBones.push(obj.name);
   });
   const morphDrivers = { ..._OLAF_MORPH_DRIVERS };
   if (noseBones.length) {

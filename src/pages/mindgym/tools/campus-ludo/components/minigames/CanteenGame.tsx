@@ -13,6 +13,9 @@ export function CanteenGame({ open, onResolve }: Props) {
   const [done, setDone] = useState(false);
   const raf = useRef<number | null>(null);
   const dir = useRef(1);
+  // Mirrors `done` for the 5s fail timeout — its closure is created once on
+  // open and would otherwise read stale state and double-resolve.
+  const doneRef = useRef(false);
 
   // sweet spot 42..58
   const zone = { start: 42, end: 58 };
@@ -20,6 +23,7 @@ export function CanteenGame({ open, onResolve }: Props) {
   useEffect(() => {
     if (!open) return;
     setDone(false);
+    doneRef.current = false;
     setPos(0);
     dir.current = 1;
     const tick = () => {
@@ -41,7 +45,8 @@ export function CanteenGame({ open, onResolve }: Props) {
   }, [open]);
 
   function finish(success: boolean) {
-    if (done) return;
+    if (doneRef.current) return;
+    doneRef.current = true;
     setDone(true);
     if (raf.current) cancelAnimationFrame(raf.current);
     setTimeout(() => onResolve({ success }), 400);
@@ -52,12 +57,12 @@ export function CanteenGame({ open, onResolve }: Props) {
   }
 
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) finish(false); }}>
       <DialogContent className="cl-scope paper-card ornate-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-primary">Canteen Haggle</DialogTitle>
           <DialogDescription>
-            Stop the needle in the green zone to talk down the bill.
+            Stop the needle in the green zone to talk down the bill. Closing counts as a miss.
           </DialogDescription>
         </DialogHeader>
         <div className="relative h-8 w-full bg-muted rounded-sm overflow-hidden border border-border">

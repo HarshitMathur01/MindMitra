@@ -3,10 +3,15 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Volume2, VolumeX } from "lucide-react";
 import { useAmbience } from "./AmbienceProvider";
+import {
+  currentSoundscape,
+  playSoundscape,
+  stopSoundscape,
+  subscribeSoundscape,
+  type SoundscapeTrack,
+} from "@/lib/sanctuary/soundscape";
 
-type TrackId = "rain" | "cafe" | "tanpura";
-
-const TRACKS: { id: TrackId; glyph: string }[] = [
+const TRACKS: { id: SoundscapeTrack; glyph: string }[] = [
   { id: "rain", glyph: "◌" },
   { id: "cafe", glyph: "◍" },
   { id: "tanpura", glyph: "◎" },
@@ -20,7 +25,7 @@ const STORAGE_KEY = "mindmitra-sanctuary-soundscape";
  * highlights the suggestion but does NOT auto-play until the user clicks
  * — auto-audio breaks consent and Lighthouse / accessibility alike.
  */
-function suggestionFor(valence: number, timeBucket: string): TrackId | null {
+function suggestionFor(valence: number, timeBucket: string): SoundscapeTrack | null {
   if (valence < -0.3) return "rain";
   if (timeBucket === "late-night" || timeBucket === "night") return "tanpura";
   if (timeBucket === "afternoon") return "cafe";
@@ -30,11 +35,20 @@ function suggestionFor(valence: number, timeBucket: string): TrackId | null {
 export function SoundscapeBar() {
   const { t } = useTranslation("sanctuary");
   const ambience = useAmbience();
-  const [active, setActive] = useState<TrackId | null>(null);
-  const [suggestion, setSuggestion] = useState<TrackId | null>(null);
+  const [active, setActive] = useState<SoundscapeTrack | null>(() =>
+    currentSoundscape(),
+  );
+  const [suggestion, setSuggestion] = useState<SoundscapeTrack | null>(null);
+
+  // Mirror the singleton so the pressed state resets if playback fails
+  // (missing file, blocked) or is stopped elsewhere (guided video starting).
+  useEffect(() => subscribeSoundscape(setActive), []);
+
+  // The soundscape belongs to this room — leaving the page fades it out.
+  useEffect(() => () => stopSoundscape(), []);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as TrackId | null;
+    const stored = localStorage.getItem(STORAGE_KEY) as SoundscapeTrack | null;
     if (stored && TRACKS.some((tr) => tr.id === stored)) {
       setSuggestion(stored);
       return;
@@ -42,15 +56,19 @@ export function SoundscapeBar() {
     setSuggestion(suggestionFor(ambience.valence, ambience.timeBucket));
   }, [ambience.valence, ambience.timeBucket]);
 
-  const toggle = (id: TrackId) => {
+  const toggle = (id: SoundscapeTrack) => {
     const next = active === id ? null : id;
-    setActive(next);
-    if (next) localStorage.setItem(STORAGE_KEY, next);
+    if (next) {
+      playSoundscape(next);
+      localStorage.setItem(STORAGE_KEY, next);
+    } else {
+      stopSoundscape();
+    }
   };
 
   return (
     <div
-      className="mx-auto mt-2 flex w-fit items-center gap-1 rounded-full border px-2 py-1.5 backdrop-blur"
+      className="flex w-fit items-center gap-1 rounded-full border px-2 py-1.5 backdrop-blur"
       style={{
         borderColor: "var(--border)",
         backgroundColor:
@@ -108,6 +126,11 @@ export function SoundscapeBar() {
         ) : (
           <VolumeX className="h-3.5 w-3.5" strokeWidth={1.6} />
         )}
+      </span>
+      <span className="sr-only" role="status" aria-live="polite">
+        {active
+          ? t("soundscape.playing", { track: t(`soundscape.${active}`) })
+          : t("soundscape.off")}
       </span>
     </div>
   );

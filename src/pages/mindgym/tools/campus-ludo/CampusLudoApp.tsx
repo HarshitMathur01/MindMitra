@@ -16,6 +16,7 @@ import { EventCardModal } from "./components/EventCardModal";
 import { Button } from "@/components/ui/button";
 import boxArt from "./assets/box-art.jpg";
 import ToolShell from "@/components/mindgym/ToolShell";
+import { prefersReducedMotion } from "@/lib/mindgym/motion";
 import { GameRulesModal } from "../_shared/GameRulesModal";
 import { useFirstRun } from "../_shared/useFirstRun";
 import "./styles.css";
@@ -33,7 +34,13 @@ interface Pending {
   kind: MinigameKind;
 }
 
-function CampusLudo({ onEnded }: { onEnded?: () => void }) {
+function CampusLudo({
+  onEnded,
+  onProgressChange,
+}: {
+  onEnded?: () => void;
+  onProgressChange?: (inProgress: boolean) => void;
+}) {
   const [humans, setHumans] = useState<Set<ArchetypeId> | null>(null);
   const [players, setPlayers] = useState<PlayerState[]>(() => ORDER.map(initPlayer));
   const [turn, setTurn] = useState(0);
@@ -79,6 +86,12 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
   useEffect(() => {
     if (ended) onEnded?.();
   }, [ended, onEnded]);
+
+  // A semester underway is a real time investment — let the shell guard the
+  // back button against accidental exits while one is live.
+  useEffect(() => {
+    onProgressChange?.(humans !== null && !ended);
+  }, [humans, ended, onProgressChange]);
 
   // Reset stance on turn change; CPU stance is auto-picked
   useEffect(() => {
@@ -239,7 +252,9 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
       const name = ARCHETYPES[fromIdx].name;
       addLog(`🏆 ${name} graduated! Game over.`);
       toast.success(`🎓 ${name} graduates!`, { description: "Convocation complete.", duration: 5000 });
-      confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
+      if (!prefersReducedMotion()) {
+        confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
+      }
       setEnded(true);
       return;
     }
@@ -451,7 +466,7 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
             <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground mb-2">
               The Register
             </p>
-            <ul className="space-y-1.5 text-sm">
+            <ul role="log" aria-live="polite" className="space-y-1.5 text-sm">
               {log.map((l, i) => (
                 <li key={i} className={i === 0 ? "text-foreground animate-fade-in" : "text-muted-foreground"}>
                   — {l}
@@ -513,6 +528,7 @@ function CampusLudo({ onEnded }: { onEnded?: () => void }) {
 
 export default function CampusLudoApp() {
   const [completed, setCompleted] = useState(false);
+  const [inProgress, setInProgress] = useState(false);
   return (
     <ToolShell
       toolId="campus-ludo"
@@ -526,9 +542,13 @@ export default function CampusLudoApp() {
       showParticles={false}
       contentPlacement="top"
       showSupportButton={false}
+      confirmLeave={{
+        active: inProgress,
+        message: "Your semester is still underway — leaving now abandons the game.",
+      }}
     >
       <div className="cl-scope">
-        <CampusLudo onEnded={() => setCompleted(true)} />
+        <CampusLudo onEnded={() => setCompleted(true)} onProgressChange={setInProgress} />
       </div>
     </ToolShell>
   );

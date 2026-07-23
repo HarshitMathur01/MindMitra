@@ -80,7 +80,7 @@ export function WhisperWall() {
   const current = filtered[i];
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-6 pb-12 md:px-12">
+    <div className="w-full">
       <div
         className="relative overflow-hidden rounded-3xl border p-7 md:p-9"
         style={{
@@ -151,6 +151,6 @@ export function WhisperWall() {
           </AnimatePresence>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

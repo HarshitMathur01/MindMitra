@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import ToolShell from "@/components/mindgym/ToolShell";
 import { BuddyCompanion, type BuddyCompanionHandle } from "@/components/companion/BuddyCompanion";
 import type { BuddyEmotion } from "@/lib/companion/buddyBrain";
@@ -111,8 +112,10 @@ export default function ReadMyMood() {
       if (isCorrect) {
         setScore((s) => s + 1);
         buddyRef.current?.react({ kind: "correct" });
+        audio.sfx.uiPop();
       } else {
         buddyRef.current?.react({ kind: "wrong" });
+        audio.sfx.draw();
       }
 
       if (revealTimer.current) window.clearTimeout(revealTimer.current);
@@ -162,11 +165,36 @@ export default function ReadMyMood() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1.5 rounded-md text-xs font-mono uppercase tracking-widest bg-primary/10 text-primary">
-              Round {Math.min(round, ROUNDS)} / {ROUNDS}
+            <span
+              aria-label={`Round ${Math.min(round, ROUNDS)} of ${ROUNDS}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono uppercase tracking-widest bg-primary/10 text-primary"
+            >
+              Round
+              {Array.from({ length: ROUNDS }, (_, i) => (
+                <span
+                  key={i}
+                  aria-hidden
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    i < round - 1 || phase === "done"
+                      ? "bg-primary"
+                      : i === round - 1
+                        ? "bg-primary/40 ring-1 ring-primary"
+                        : "bg-primary/15"
+                  }`}
+                />
+              ))}
             </span>
             <span className="px-3 py-1.5 rounded-md text-xs font-mono uppercase tracking-widest bg-primary/10 text-primary">
-              Score {score}
+              Score{" "}
+              <motion.span
+                key={score}
+                initial={{ scale: 1.25, opacity: 0.6 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="inline-block"
+              >
+                {score}
+              </motion.span>
             </span>
           </div>
         </div>
@@ -175,6 +203,10 @@ export default function ReadMyMood() {
           {/* Buddy stage — the puzzle. Props + face-disc are hidden so nothing
               spells out the answer; only his expression is the clue. */}
           <div className="rounded-2xl border border-black/5 bg-white/60 p-3 shadow-sm order-1">
+            <p className="sr-only">
+              Buddy is silently acting out a feeling on the 3D stage. Pick the
+              option that matches his expression.
+            </p>
             <BuddyCompanion
               ref={buddyRef}
               variant="full"
@@ -207,7 +239,7 @@ export default function ReadMyMood() {
 
             {(phase === "guessing" || phase === "reveal") && (
               <div className="space-y-4">
-                <p className="text-center text-sm font-medium uppercase tracking-widest opacity-60">
+                <p role="status" className="text-center text-sm font-medium uppercase tracking-widest opacity-60">
                   {phase === "guessing" ? "What's Buddy feeling?" : picked === target.emotion ? "Spot on!" : `It was ${target.label}`}
                 </p>
                 <div className="grid grid-cols-2 gap-3">

@@ -341,6 +341,12 @@
 
 @layer components {
 
+  /* ── Sanctuary scene backdrop — promoted for the scroll-linked drift.
+     Kept as a class (not inline style) so will-change stays single-token. ── */
+  .scene-bg {
+    will-change: transform;
+  }
+
   /* ── Legacy animation utilities — neutralized ── */
   .breathing-circle,
   .breathing-circle-delayed,

@@ -25,12 +25,52 @@ export interface MoodLogEntry {
 const WEEK_DAYS = 7;
 const MOOD_LOG_QK = (userId: string | undefined) => ["mood-logs", userId] as const;
 
+/**
+ * Calendar-day key in the user's local timezone. `toISOString().slice(0,10)`
+ * keys by UTC date, which shifts a day for UTC+ timezones (IST — the whole
+ * target audience) and made "today's" log invisible to the constellation.
+ */
+export function localDayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
 // Gate the remote round-trip until the mood_logs migration is live in the
 // target Supabase project. Off by default keeps the dev console clean while
 // running against an un-migrated backend. Flip to "true" in env once the
-// migration is applied.
+// migration is applied. With the flag off, logs fall back to per-user
+// localStorage so the MoodPulse tap still lights up, ambience still tints,
+// and the constellation still draws — single-device only, never synced.
 const REMOTE_ENABLED =
   import.meta.env.VITE_SANCTUARY_MOOD_LOGS_REMOTE === "true";
+
+const LOCAL_KEY_PREFIX = "mindmitra-sanctuary-mood-local";
+
+function localKey(userId: string) {
+  return `${LOCAL_KEY_PREFIX}:${userId}`;
+}
+
+function readLocalLogs(userId: string): MoodLogEntry[] {
+  try {
+    const raw = localStorage.getItem(localKey(userId));
+    if (!raw) return [];
+    const since = Date.now() - WEEK_DAYS * 24 * 60 * 60 * 1000;
+    return (JSON.parse(raw) as MoodLogEntry[]).filter(
+      (e) => new Date(e.logged_at).getTime() >= since,
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalLogs(userId: string, logs: MoodLogEntry[]) {
+  try {
+    localStorage.setItem(localKey(userId), JSON.stringify(logs));
+  } catch {
+    /* storage may be unavailable — the tap still lights up for this visit */
+  }
+}
 
 /**
  * Fetch the last 7 days of mood logs (most recent first) for the
@@ -68,16 +108,23 @@ export function useMoodLog() {
   const queryClient = useQueryClient();
   const userId = user?.id;
 
+  // Local and remote share one query key so every useMoodLog() instance
+  // (MoodPulse, ConstellationMap, InnerWeather, AmbienceProvider) sees a
+  // logged mood immediately — invalidation fans the update out through the
+  // React Query cache in both modes.
   const { data: weekLogs = [], isLoading } = useQuery({
     queryKey: MOOD_LOG_QK(userId),
-    queryFn: () => fetchWeekLogs(userId as string),
-    enabled: !!userId && REMOTE_ENABLED,
+    queryFn: () =>
+      REMOTE_ENABLED
+        ? fetchWeekLogs(userId as string)
+        : Promise.resolve(readLocalLogs(userId as string)),
+    enabled: !!userId,
     staleTime: 60_000,
   });
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDayKey(new Date());
   const todayLog =
-    weekLogs.find((e) => e.logged_at.slice(0, 10) === todayKey) ?? null;
+    weekLogs.find((e) => localDayKey(new Date(e.logged_at)) === todayKey) ?? null;
 
   const lastLog = weekLogs[0] ?? null;
 
@@ -116,10 +163,24 @@ export function useMoodLog() {
   const logMood = useCallback(
     (index: number) => {
       if (!userId) return;
-      if (!REMOTE_ENABLED) return;
+      if (!REMOTE_ENABLED) {
+        // Local fallback mirrors the server shape (newest-first insert) so
+        // ConstellationMap / InnerWeather / ambience need no changes.
+        const entry: MoodLogEntry = {
+          id: `local-${Date.now()}`,
+          user_id: userId,
+          logged_at: new Date().toISOString(),
+          mood_index: index,
+          mood_label: MOOD_LABELS[index],
+          source: "mood_pulse_local",
+        };
+        writeLocalLogs(userId, [entry, ...readLocalLogs(userId)]);
+        queryClient.invalidateQueries({ queryKey: MOOD_LOG_QK(userId) });
+        return;
+      }
       logMutation.mutate(index);
     },
-    [logMutation, userId],
+    [logMutation, queryClient, userId],
   );
 
   return {

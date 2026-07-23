@@ -59,7 +59,7 @@ export function InnerWeather() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.6, duration: 0.9 }}
-      className="mx-auto w-full max-w-6xl px-6 md:px-12"
+      className="w-full"
     >
       <div
         className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border px-4 py-2 text-xs"

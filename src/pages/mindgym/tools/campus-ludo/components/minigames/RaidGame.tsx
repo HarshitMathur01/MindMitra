@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +13,10 @@ export function RaidGame({ open, onResolve }: Props) {
   const [done, setDone] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(3);
+  // Refs mirror `done`/`picked` for the countdown closure (created once on
+  // open) so onResolve can never fire twice from a stale read.
+  const doneRef = useRef(false);
+  const pickedRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -20,11 +24,13 @@ export function RaidGame({ open, onResolve }: Props) {
     setDone(false);
     setPicked(null);
     setCountdown(3);
+    doneRef.current = false;
+    pickedRef.current = null;
     const id = window.setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
           window.clearInterval(id);
-          if (!done && picked === null) finish(null);
+          if (!doneRef.current && pickedRef.current === null) finish(null);
         }
         return c - 1;
       });
@@ -34,25 +40,27 @@ export function RaidGame({ open, onResolve }: Props) {
   }, [open]);
 
   function pick(i: number) {
-    if (done) return;
+    if (doneRef.current) return;
     setPicked(i);
+    pickedRef.current = i;
     finish(i);
   }
 
   function finish(i: number | null) {
-    if (done) return;
+    if (doneRef.current) return;
+    doneRef.current = true;
     setDone(true);
     const success = i !== null && i !== warden;
     setTimeout(() => onResolve({ success }), 600);
   }
 
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) finish(null); }}>
       <DialogContent className="cl-scope paper-card ornate-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-primary">Hostel Raid</DialogTitle>
           <DialogDescription>
-            Warden's torch is sweeping. Pick a door to hide behind in {Math.max(0, countdown)}…
+            Warden's torch is sweeping. Pick a door to hide behind in {Math.max(0, countdown)}… Closing counts as caught.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-3 pt-2">

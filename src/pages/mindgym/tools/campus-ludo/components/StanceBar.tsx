@@ -26,6 +26,7 @@ export function StanceBar({ stance, onChange, disabled }: Props) {
               key={o.id}
               onClick={() => onChange(o.id)}
               disabled={disabled}
+              aria-pressed={active}
               className={`p-2 rounded-sm border-2 text-left transition-all disabled:opacity-50 ${
                 active ? "border-primary bg-primary/10" : "border-border bg-muted/30 hover:border-primary/50"
               }`}

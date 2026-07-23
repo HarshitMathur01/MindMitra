@@ -67,9 +67,12 @@ export default function Buddy({
       transparent: transparent ? "1" : "0",
       ttsLang,
       ttsVoice,
+      // The iframe disables secondary motion and its own gesture schedulers;
+      // this complements the cue-level gesture skip below.
+      reducedMotion: reduceMotion ? "1" : "0",
     });
     return `/talkinghead.html?${params.toString()}`;
-  }, [avatar, cameraView, transparent, ttsLang, ttsVoice]);
+  }, [avatar, cameraView, reduceMotion, transparent, ttsLang, ttsVoice]);
 
   const postToAvatar = useCallback((data: object) => {
     iframeRef.current?.contentWindow?.postMessage(data, window.location.origin);

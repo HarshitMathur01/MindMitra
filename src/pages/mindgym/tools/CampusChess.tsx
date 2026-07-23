@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useNavigate as useRouterNavigate } from "react-router-dom";
 import { PieceGlyph } from "./chess/PieceGlyph";
 import {
   applyMove,
@@ -45,12 +46,12 @@ const CHESS_CSS = `
 }
 /* Fix Tailwind semantic tokens that MindMitra wraps in hsl() */
 .cc-chess .text-muted-foreground { color: oklch(0.42 0.04 60) !important; }
-.cc-chess .text-foreground\/80 { color: oklch(0.18 0 0 / 0.80) !important; }
-.cc-chess .text-foreground\/75 { color: oklch(0.18 0 0 / 0.75) !important; }
-.cc-chess .text-foreground\/70 { color: oklch(0.18 0 0 / 0.70) !important; }
-.cc-chess .text-foreground\/60 { color: oklch(0.18 0 0 / 0.60) !important; }
-.cc-chess .text-foreground\/85 { color: oklch(0.18 0 0 / 0.85) !important; }
-.cc-chess .text-foreground\/40 { color: oklch(0.18 0 0 / 0.40) !important; }
+.cc-chess .text-foreground\\/80 { color: oklch(0.18 0 0 / 0.80) !important; }
+.cc-chess .text-foreground\\/75 { color: oklch(0.18 0 0 / 0.75) !important; }
+.cc-chess .text-foreground\\/70 { color: oklch(0.18 0 0 / 0.70) !important; }
+.cc-chess .text-foreground\\/60 { color: oklch(0.18 0 0 / 0.60) !important; }
+.cc-chess .text-foreground\\/85 { color: oklch(0.18 0 0 / 0.85) !important; }
+.cc-chess .text-foreground\\/40 { color: oklch(0.18 0 0 / 0.40) !important; }
 /* Custom utility classes from styles.css */
 .cc-chess .paper-card {
   background: color-mix(in oklab, var(--paper) 92%, white);
@@ -338,7 +339,7 @@ export default function CampusChess() {
         {page === "codex" && <CodexPage />}
         {page === "events" && <EventsPage />}
         {page === "play" && (
-          <div className="mx-auto max-w-7xl px-6 py-12">
+          <div className="mx-auto max-w-7xl px-3 py-8 sm:px-6 sm:py-12">
             <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground mb-3">§03 · The Board</p>
@@ -448,6 +449,12 @@ export default function CampusChess() {
                           <button
                             key={i}
                             onClick={() => onSquare(r, c)}
+                            aria-label={
+                              `${FILES[c]}${8 - r}` +
+                              (piece ? `, ${pieceLookup[piece.type].archetype}, ${piece.color === "w" ? "Block A" : "Block B"}` : ", empty") +
+                              (isLegal ? ", legal move" : "") +
+                              (isTarget ? ", ability target" : "")
+                            }
                             className="relative flex items-center justify-center transition-colors"
                             style={{
                               background: isSel
@@ -509,7 +516,7 @@ export default function CampusChess() {
 
                 {/* Status bar */}
                 <div className="mt-5 flex items-center justify-between gap-4 px-2 min-h-[2rem]">
-                  <div className="font-display text-lg flex items-center gap-3">
+                  <div role="status" aria-live="polite" className="font-display text-lg flex items-center gap-3">
                     {thinking && <span className="inline-block w-2 h-2 rounded-full bg-[color:var(--chai)] animate-pulse" />}
                     <span>{statusText}</span>
                   </div>
@@ -519,7 +526,7 @@ export default function CampusChess() {
                 </div>
 
                 {flash && (
-                  <div className="mt-3 px-2 font-mono text-[11px] uppercase tracking-[0.2em] text-[color:var(--chai)] animate-[fade-in_0.2s_ease-out]">
+                  <div role="status" className="mt-3 px-2 font-mono text-[11px] uppercase tracking-[0.2em] text-[color:var(--chai)] animate-[fade-in_0.2s_ease-out]">
                     · {flash}
                   </div>
                 )}
@@ -628,29 +635,41 @@ const NAV_LINKS: { page: Page; label: string; num: string }[] = [
 ];
 
 function ChessNav({ page, navigate }: { page: Page; navigate: (p: Page) => void }) {
+  const routerNavigate = useRouterNavigate();
   return (
     <header className="sticky top-0 z-40 backdrop-blur-md border-b border-[color-mix(in_oklab,var(--ink)_15%,transparent)]" style={{ background: "color-mix(in oklab, var(--paper) 80%, transparent)" }}>
-      <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between gap-6">
-        <button onClick={() => navigate("home")} className="flex items-center gap-3 group">
-          <div className="w-9 h-9 grid place-items-center font-display font-bold" style={{ background: "var(--ink)", color: "var(--paper)" }}>
-            学
-          </div>
-          <div className="leading-tight">
-            <div className="font-display text-lg font-bold tracking-tight">Campus Kingdoms</div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">an 8-semester chess</div>
-          </div>
-        </button>
-        <nav className="flex items-center gap-1">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 py-4 flex items-center justify-between gap-2 sm:gap-6">
+        <div className="flex items-center gap-1 sm:gap-3 min-w-0">
+          <button
+            onClick={() => routerNavigate("/mindgym")}
+            aria-label="Back to Mind Gym"
+            className="px-2 sm:px-3 py-2 font-mono text-[11px] sm:text-xs uppercase tracking-[0.18em] transition-colors flex items-baseline gap-1.5 text-foreground/70 hover:text-[color:var(--ink)] shrink-0"
+          >
+            <span aria-hidden>←</span>
+            <span className="hidden sm:inline">Mind Gym</span>
+          </button>
+          <button onClick={() => navigate("home")} className="flex items-center gap-3 group min-w-0">
+            <div className="w-9 h-9 grid place-items-center font-display font-bold shrink-0" style={{ background: "var(--ink)", color: "var(--paper)" }}>
+              学
+            </div>
+            <div className="leading-tight min-w-0">
+              <div className="font-display text-lg font-bold tracking-tight truncate">Campus Kingdoms</div>
+              <div className="hidden sm:block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">an 8-semester chess</div>
+            </div>
+          </button>
+        </div>
+        <nav className="flex items-center gap-0 sm:gap-1">
           {NAV_LINKS.map((l) => (
             <button
               key={l.page}
               onClick={() => navigate(l.page)}
+              aria-pressed={page === l.page}
               className={
-                "px-3 py-2 font-mono text-xs uppercase tracking-[0.18em] transition-colors flex items-baseline gap-1.5 " +
+                "px-2 sm:px-3 py-2 font-mono text-[11px] sm:text-xs uppercase tracking-[0.18em] transition-colors flex items-baseline gap-1.5 " +
                 (page === l.page ? "text-[color:var(--ink)] gold-underline" : "text-foreground/70 hover:text-[color:var(--ink)]")
               }
             >
-              <span className="text-[9px] opacity-60">{l.num}</span>
+              <span className="hidden sm:inline text-[9px] opacity-60">{l.num}</span>
               <span>{l.label}</span>
             </button>
           ))}
@@ -957,6 +976,7 @@ function CodexPage() {
             <button
               key={p.key}
               onClick={() => setActive(p)}
+              aria-pressed={isActive}
               className={"group p-5 transition-colors text-left " + (isActive ? "" : "hover:bg-[color:var(--card)]")}
               style={{ background: isActive ? "var(--ink)" : "var(--paper)", color: isActive ? "var(--paper)" : "var(--ink)" }}
             >
@@ -1169,6 +1189,7 @@ function SegToggle<T extends string>({ value, onChange, options }: {
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
+            aria-pressed={active}
             className={"px-3 py-3 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors " + (active ? "" : "hover:bg-[color:var(--ink)]/10")}
             style={active ? { background: "var(--ink)", color: "var(--paper)" } : undefined}
           >

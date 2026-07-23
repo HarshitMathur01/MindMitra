@@ -76,6 +76,29 @@ import { trackProductEvent } from "@/lib/productAnalytics";
 const TalkingHeadAvatar = lazy(() => import("./TalkingHeadAvatar"));
 const PresenceMode = lazy(() => import("./PresenceMode"));
 
+const durationBand = (ms: number): string => {
+    const minutes = ms / 60_000;
+    if (minutes < 1) return "<1m";
+    if (minutes < 5) return "1-5m";
+    if (minutes < 15) return "5-15m";
+    return "15m+";
+};
+
+// Lifetime-activation marker for `first_chat_message`. Keyed per user; the
+// mm_ prefix means sessionCleanup sweeps it on sign-out (privacy wins over
+// dedupe — worst case a re-login re-emits one event, and funnels key on the
+// first occurrence anyway).
+const markFirstChatMessage = (userId: string): boolean => {
+    try {
+        const key = `mm_analytics_first_msg_${userId}`;
+        if (localStorage.getItem(key)) return false;
+        localStorage.setItem(key, "1");
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 const formatTimeAgo = (date: Date): string => {
     const diffMs = Date.now() - date.getTime();
     const minutes = Math.round(diffMs / 60_000);
@@ -220,6 +243,71 @@ const ChatGPTInterface = () => {
     const mountedRef = useRef(true);
     const consecutiveSaveFailuresRef = useRef(0);
     const lastSaveFailureToastAtRef = useRef(0);
+
+    // ── Funnel telemetry (coarse; never message content) ────────────────────
+    const visitTurnsRef = useRef(0);
+    const visitStartedAtRef = useRef(Date.now());
+    const visitEndTrackedRef = useRef(false);
+
+    // Helper used inside async flows so we can break out cleanly when
+    // the user navigates away mid-request.
+    const abortActiveRequest = () => {
+        activeChatRequestRef.current?.abort();
+        activeChatRequestRef.current = null;
+    };
+
+    // ── Session lifecycle ───────────────────────────────────────────────────
+    const {
+        currentSessionId,
+        adoptSessionId,
+        getSessionEpoch,
+        recentChats,
+        loadingChats,
+        loadingSession,
+        saveMessage,
+        loadRecentChats,
+        selectRecentChat,
+        startNewChat,
+    } = useChatSessions({
+        user,
+        setMessages,
+        hasMessages: () => messages.length > 0,
+        onBeforeSwitch: () => {
+            abortActiveRequest();
+            setIsLoading(false);
+        },
+        onNewChatReset: () => {
+            setSearchQuery("");
+            setMoodSelected(false);
+            setMoodValue(null);
+            setContinueDismissed(false);
+        },
+    });
+
+    // ── Voice endpointing + presence auto-listen ────────────────────────────
+    const { handleVoiceInput, handlePresenceMicTap, micState } = useVoiceTurn({
+        recording: {
+            isRecording,
+            isProcessing,
+            toggleRecording,
+            cancelRecording,
+            currentTranscript,
+            hasTranscript,
+            lastTranscriptAt,
+        },
+        voiceSupported,
+        isPresenceMode,
+        isAvatarVisible,
+        isLoading,
+        avatarCurrentMessage,
+        currentSessionId,
+        setMessages,
+        onVoiceResult: (analysis, audioData) => {
+            pendingVoiceAnalysisRef.current = analysis;
+            pendingAudioDataRef.current = audioData;
+        },
+        sendMessage: (text) => handleSendMessage(text),
+    });
 
     // ── Derived ─────────────────────────────────────────────────────────────
     const moodOptions = useMoodOptions(currentSessionId);
@@ -525,12 +613,31 @@ const ChatGPTInterface = () => {
         };
     }, []);
 
-    // Helper used inside async flows so we can break out cleanly when
-    // the user navigates away mid-request.
-    const abortActiveRequest = () => {
-        activeChatRequestRef.current?.abort();
-        activeChatRequestRef.current = null;
-    };
+    // chat_session_ended — one per /chat visit with at least one turn.
+    // SPA navigation ends via unmount; tab close/background via pagehide
+    // (Mixpanel persists its batch queue to localStorage, so a late event
+    // survives to the next load). pageshow un-latches after a bfcache
+    // restore so a resumed visit can emit its own end.
+    useEffect(() => {
+        const trackVisitEnd = () => {
+            if (visitEndTrackedRef.current || visitTurnsRef.current === 0) return;
+            visitEndTrackedRef.current = true;
+            trackProductEvent("chat_session_ended", {
+                turns: visitTurnsRef.current,
+                duration_band: durationBand(Date.now() - visitStartedAtRef.current),
+            });
+        };
+        const unlatch = () => {
+            visitEndTrackedRef.current = false;
+        };
+        window.addEventListener("pagehide", trackVisitEnd);
+        window.addEventListener("pageshow", unlatch);
+        return () => {
+            window.removeEventListener("pagehide", trackVisitEnd);
+            window.removeEventListener("pageshow", unlatch);
+            trackVisitEnd();
+        };
+    }, []);
 
     // Reset the dismiss state when the session changes — each restored
     // session decides on its own merits whether to show the ribbon.
@@ -740,6 +847,10 @@ const ChatGPTInterface = () => {
                 voice: Boolean(pendingVoiceAnalysisRef.current),
                 avatar_visible: isAvatarVisible,
             });
+            visitTurnsRef.current += 1;
+            if (user?.id && markFirstChatMessage(user.id)) {
+                trackProductEvent("first_chat_message");
+            }
 
             const requestedSessionId = currentSessionId || "new";
 

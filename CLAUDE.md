@@ -29,7 +29,7 @@ The core product. A chat interface where users talk to MindMitra's AI. The agent
 Operates in 5 modes: Companion, Active Listener, Psychoeducation, Skill Coach, Referral Bridge
 Selects mode dynamically based on affect signals each turn
 Personalises tone over time using an EMA-based style convergence engine
-Runs on Azure GPT-4o (primary) with GLM-4 fallback
+Runs on Azure OpenAI (default deployment `gpt-5-mini`, see `AZURE_OPENAI_DEPLOYMENT_NAME` in `app/core/env.py`) with a Groq → GLM-4 fallback chain
 
 Avatar Interaction
 Users can interact with a lipsync-enabled AI avatar that speaks the agent's responses aloud. The avatar animates in real-time to match the AI's spoken output — making the interaction feel less like a chatbot and more like talking to someone. This significantly reduces the cold, transactional feel of text-only mental health tools.
@@ -112,7 +112,7 @@ POST /chat → resolve authenticated user               — JWT
    → pipeline.orchestrator.run_orchestrator()         — pure Python (mode, tone, gates)
    → pipeline.memory_retrieval.retrieve_memory()      — Qdrant dual-channel
    → pipeline.prompt_builder.build_full_prompt()      — 7-block, tiktoken trim
-   → pipeline.llm_core.generate_response()            — Azure GPT-4o stream + fallback chain
+   → pipeline.llm_core.generate_response()            — Azure OpenAI (gpt-5-mini) stream + fallback chain
    → pipeline.safety_gate.run_safety_gate()           — 5 checks, retry/replace/static fallback
    → HTTP response: confirmed | replace | crisis text
    → asyncio: audit_log, session persist, session-end worker on idle/timeout
@@ -149,6 +149,13 @@ POST /chat → resolve authenticated user               — JWT
 - **`replace` event with no preceding `chunk`** — Azure stream
   short-circuited (e.g. content filter). The client UI replaces the
   buffer with the static template. Working as intended.
+- **Two migration lineages.** `supabase/migrations/` is the
+  dashboard-linked lineage for frontend-facing tables (profiles,
+  mood_logs, product_events, therapist bridge, …). The backend chat
+  schema lives in `scripts/migrations/v3_schema.sql` and is applied by
+  hand per `LOCAL_DEV.md`. A backend table added only to the dashboard
+  lineage will be missing from v3 environments, and vice versa — pick
+  the lineage that owns the table and say so in the PR.
 
 ## How to extend safely
 

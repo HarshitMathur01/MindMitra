@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 type Variant = "full" | "faded";
@@ -10,8 +9,12 @@ interface ForestBackdropProps {
 
 const IMAGE_COUNT = 8;
 
+// Chosen once per page load, not per mount — navigating hub → section → back
+// keeps the same photo instead of flashing a new one on every remount.
+const SESSION_IMG_INDEX = Math.floor(Math.random() * IMAGE_COUNT) + 1;
+
 export default function ForestBackdrop({ variant = "full", className }: ForestBackdropProps) {
-  const [imgIndex] = useState(() => Math.floor(Math.random() * IMAGE_COUNT) + 1);
+  const imgIndex = SESSION_IMG_INDEX;
 
   const mask =
     variant === "faded"

@@ -4,43 +4,41 @@
     "navDoors": "doors",
     "navPractice": "practice",
     "navReflection": "reflection",
-    "profileAria": "Your profile"
+    "profileAria": "Your profile",
+    "navCheckin": "check-in",
+    "navMemory": "memory",
+    "navSettings": "settings"
   },
   "hero": {
     "lateNight": {
       "eyebrow": "still up",
       "headline": "Still up,",
       "italicTail": "{{companion}} is here.",
-      "subcopy": "the night gets quieter when you say it out loud. no pressure to be okay yet.",
-      "heroAlt": "Watercolor of a lamp-lit window against a deep blue sky"
+      "subcopy": "the night gets quieter when you say it out loud. no pressure to be okay yet."
     },
     "morning": {
       "eyebrow": "good morning",
       "headline": "Good morning,",
       "italicTail": "soft start.",
-      "subcopy": "let's start with one breath. the rest of the day can wait its turn.",
-      "heroAlt": "Watercolor of dawn light brushing the edge of a leafing tree"
+      "subcopy": "let's start with one breath. the rest of the day can wait its turn."
     },
     "afternoon": {
       "eyebrow": "good afternoon",
       "headline": "Soft afternoon,",
       "italicTail": "let's check in.",
-      "subcopy": "what part of the day needs unpacking? pick a door, or just sit with me.",
-      "heroAlt": "Watercolor of a figure resting beneath a leafing tree"
+      "subcopy": "what part of the day needs unpacking? pick a door, or just sit with me."
     },
     "evening": {
       "eyebrow": "good evening",
       "headline": "Good evening,",
       "italicTail": "{{companion}} remembers.",
-      "subcopy": "what's the through-line of today — even if it feels tangled right now?",
-      "heroAlt": "Watercolor of a quiet garden flushed with golden hour"
+      "subcopy": "what's the through-line of today — even if it feels tangled right now?"
     },
     "night": {
       "eyebrow": "soft night",
       "headline": "Soft night,",
       "italicTail": "just sit.",
-      "subcopy": "leave the loud version of the day at the door. we don't have to fix anything.",
-      "heroAlt": "Watercolor of a still pond under a soft night sky"
+      "subcopy": "leave the loud version of the day at the door. we don't have to fix anything."
     },
     "visit": {
       "today": "you've been here today already. take your time.",
@@ -48,7 +46,8 @@
       "returningAfterGap": "welcome back — the chair's still warm."
     },
     "ctaContinue": "Continue your thread",
-    "ctaFresh": "Start fresh"
+    "ctaFresh": "Start fresh",
+    "scrollCue": "no rush — it continues below"
   },
   "moodPulse": {
     "prompt": "how's the weather, inside?",
@@ -79,7 +78,9 @@
     "label": "soundscape",
     "rain": "rain",
     "cafe": "cafe",
-    "tanpura": "tanpura"
+    "tanpura": "tanpura",
+    "playing": "{{track}} is playing, softly",
+    "off": "soundscape off"
   },
   "resume": {
     "label": "you left a thread open",
@@ -138,9 +139,13 @@
     "stop": "pause"
   },
   "guidedVideo": {
-    "eyebrow": "guided · body scan",
+    "eyebrow": "a quiet corner",
     "heading": "The room you're in.",
-    "length": "3:14"
+    "length": "a short loop",
+    "noDialogue": "no talking in this one — just the room.",
+    "tagGrounding": "grounding",
+    "tagStillness": "stillness",
+    "tagNoWords": "no words"
   },
   "whisperWall": {
     "eyebrow": "whisper wall · anonymous · moderated"
@@ -343,6 +348,25 @@
     },
     "errors": {
       "aiFallback": "I'm here — but something went wrong on my end just now. Want to try that again?"
+    }
+  },
+  "scenes": {
+    "arrival": {
+      "aria": "arrival — a soft landing"
+    },
+    "checkin": {
+      "aria": "check-in — the window seat",
+      "eyebrow": "the window seat",
+      "heading": "sit a minute. how is it, really?"
+    },
+    "doors": {
+      "aria": "doors — choose your company"
+    },
+    "practice": {
+      "aria": "practice — slow the room down"
+    },
+    "reflect": {
+      "aria": "reflection and safety"
     }
   }
 }

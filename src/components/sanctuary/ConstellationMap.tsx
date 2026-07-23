@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useMoodLog, type MoodLogEntry } from "@/hooks/useMoodLog";
+import { localDayKey, useMoodLog, type MoodLogEntry } from "@/hooks/useMoodLog";
 import { moodSlope } from "@/lib/sanctuary/ambience";
 import { useAmbience } from "./AmbienceProvider";
 
@@ -36,9 +36,9 @@ function buildWeekGrid(weekLogs: MoodLogEntry[]): DayPoint[] {
   for (let offset = DAYS - 1; offset >= 0; offset--) {
     const d = new Date(today);
     d.setDate(today.getDate() - offset);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDayKey(d);
     const log =
-      weekLogs.find((e) => e.logged_at.slice(0, 10) === key) ?? null;
+      weekLogs.find((e) => localDayKey(new Date(e.logged_at)) === key) ?? null;
     grid.push({
       day: DAY_LABEL(d),
       v: log ? VALENCE_TO_AXIS[log.mood_label] ?? null : null,
@@ -97,7 +97,7 @@ export function ConstellationMap() {
   const headlineTail = t(`constellation.${headlineKey}Tail`);
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-6 pb-4 md:px-12">
+    <div className="w-full">
       <div
         className="relative overflow-hidden rounded-3xl border p-6 md:p-8"
         style={{
@@ -193,6 +193,6 @@ export function ConstellationMap() {
           })}
         </svg>
       </div>
-    </section>
+    </div>
   );
 }

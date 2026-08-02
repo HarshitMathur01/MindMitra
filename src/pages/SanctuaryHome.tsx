@@ -1,51 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocalizedT } from "@/hooks/useLocalizedT";
+import { useMoodLog } from "@/hooks/useMoodLog";
+import { usePersonality } from "@/hooks/usePersonality";
 import { useSnapshot } from "@/hooks/useSnapshot";
 import Footer from "@/components/layout/Footer";
-import heroMorningImg from "@/assets/sanctuary/hero-morning.jpg";
-import sceneWindowImg from "@/assets/sanctuary/scene-window.jpg";
-import sceneHillsImg from "@/assets/sanctuary/scene-hills.jpg";
-import sceneTreeMountainImg from "@/assets/sanctuary/scene-tree-mountain.jpg";
-import sceneFireflyImg from "@/assets/sanctuary/scene-firefly.jpg";
-import { PaperGrain } from "@/components/sanctuary/PaperGrain";
-import { SanctuaryHeader } from "@/components/sanctuary/SanctuaryHeader";
-import { SceneSection } from "@/components/sanctuary/scene/SceneSection";
-import { SceneHeading } from "@/components/sanctuary/scene/SceneHeading";
-import { HeroPanel } from "@/components/sanctuary/HeroPanel";
-import { MoodPulse } from "@/components/sanctuary/MoodPulse";
-import { InnerWeather } from "@/components/sanctuary/InnerWeather";
-import { SoundscapeBar } from "@/components/sanctuary/SoundscapeBar";
-import { ResumeCard } from "@/components/sanctuary/ResumeCard";
-import { ConstellationMap } from "@/components/sanctuary/ConstellationMap";
-import { DoorsGrid } from "@/components/sanctuary/DoorsGrid";
-import { MicroPracticeCard } from "@/components/sanctuary/MicroPracticeCard";
-import { GuidedVideoCard } from "@/components/sanctuary/GuidedVideoCard";
-import { WhisperWall } from "@/components/sanctuary/WhisperWall";
-import { ReflectionBlock } from "@/components/sanctuary/ReflectionBlock";
-import { SafetyStrip } from "@/components/sanctuary/SafetyStrip";
-import { MitraOrb } from "@/components/sanctuary/MitraOrb";
 import { AmbienceProvider } from "@/components/sanctuary/AmbienceProvider";
+import { MitraOrb } from "@/components/sanctuary/MitraOrb";
+
+import { Nav } from "@/components/sanctuary/river/Nav";
+import { Hero } from "@/components/sanctuary/river/Hero";
+import { FirstMinute } from "@/components/sanctuary/river/FirstMinute";
+import { Doors } from "@/components/sanctuary/river/Doors";
+import { Practice } from "@/components/sanctuary/river/Practice";
+import { OpenThread } from "@/components/sanctuary/river/OpenThread";
+import { Constellation } from "@/components/sanctuary/river/Constellation";
+import { CrisisBar } from "@/components/sanctuary/river/CrisisBar";
+import { useScrollProgress } from "@/components/sanctuary/river/useScrollProgress";
+import { useOpenThread } from "@/components/sanctuary/river/useOpenThread";
+import { useTimeScene } from "@/components/sanctuary/river/useTimeScene";
+import { moodAccentFor } from "@/components/sanctuary/river/moods";
+import "@/components/sanctuary/river/river.css";
 
 /**
- * The authenticated landing page as a five-scene scroll:
- * arrival → check-in → doors → practice → reflect/safety.
- * Each SceneSection owns its watercolor backdrop, ambience tint, and
- * parallax; scroll stays native throughout.
+ * The authenticated landing — "Night River".
+ *
+ * A single scroll: arrival → first minute → doors → practice → your thread →
+ * safety. Everything below `.mm-river` recolours from one custom property,
+ * `--nr-mood`, which is set here from the user's own check-in. Tap a mood dot
+ * in the hero and the whole page follows.
+ *
+ * Scoping matters: `.mm-river` is what keeps this surface's palette, grain and
+ * atmosphere off every other route. See river.css.
  */
 export default function SanctuaryHome() {
-  // Mount the localized translator at the page root so the language
-  // preference resolves once and propagates to every child via react-i18next.
+  // Mount the localized translator at the page root so the language preference
+  // resolves once and propagates to every child via react-i18next. The crisis
+  // rail is the main consumer — its copy exists in all seven locales.
   useLocalizedT();
-  const { t } = useTranslation("sanctuary");
-  const { user } = useAuth();
-  const { data: snapshot } = useSnapshot();
-  const [canResume, setCanResume] = useState(false);
+  useScrollProgress();
 
-  useEffect(() => {
-    setCanResume(!!localStorage.getItem("currentChatSession"));
-  }, []);
+  const { user } = useAuth();
+  const { companionName } = usePersonality();
+  const { weekLogs, todayLog, logMood } = useMoodLog();
+  const { data: snapshot } = useSnapshot();
+  const thread = useOpenThread();
+  const { scene, hour } = useTimeScene();
 
   const firstName = useMemo(() => {
     const raw =
@@ -59,9 +59,11 @@ export default function SanctuaryHome() {
       .replace(/^./, (c) => c.toUpperCase());
   }, [user]);
 
-  // Ambience switches to the real affect EMA once /me/snapshot returns; on
-  // first-visit (no chat history) snapshot is undefined and AmbienceProvider
-  // falls back to the Phase 1 MoodPulse + time-of-day path.
+  const initials = useMemo(() => firstName.slice(0, 2).toUpperCase(), [firstName]);
+
+  // Ambience switches to the real affect EMA once /me/snapshot returns; on a
+  // first visit snapshot is undefined and AmbienceProvider falls back to the
+  // mood-log + time-of-day path.
   const ambienceSnapshot = useMemo(
     () =>
       snapshot
@@ -74,88 +76,78 @@ export default function SanctuaryHome() {
     [snapshot],
   );
 
+  const moodIndex = todayLog?.mood_index ?? null;
+
+  // The accent is derived from today's logged mood rather than page-local
+  // state, so it survives a reload and agrees with what the constellation and
+  // the weekly trend are drawing.
+  const moodAccent = moodAccentFor(moodIndex);
+
+  const checkInLine = useMemo(() => {
+    const total = weekLogs.length;
+    if (total === 0) return "No check-ins yet this week";
+    return `${total} ${total === 1 ? "check-in" : "check-ins"} this week`;
+  }, [weekLogs.length]);
+
+  const handleMoodSelect = useCallback((index: number) => logMood(index), [logMood]);
+
   return (
     <AmbienceProvider snapshot={ambienceSnapshot}>
-      <main
-        className="relative min-h-screen w-full overflow-x-hidden"
-        style={{ backgroundColor: "var(--paper-soft)" }}
+      <div
+        className="mm-river nr-grain min-h-screen w-full overflow-x-hidden"
+        // `data-nr-scene` drives the hero's foreground colour: the backdrop is
+        // a photograph that changes with the hour, and no single text colour is
+        // legible on all four. See the measured contrast table in river.css.
+        data-nr-scene={scene}
+        style={{ "--nr-mood": moodAccent } as React.CSSProperties}
       >
-        <PaperGrain />
-        <div className="relative z-10">
-          <SanctuaryHeader name={firstName} />
+        {/* Scroll-driven atmosphere. Light mode only — see river.css. */}
+        <div aria-hidden className="nr-atmosphere" />
 
-          <SceneSection
-            id="arrival"
-            image={heroMorningImg}
-            imageWidth={1920}
-            imageHeight={1080}
-            ariaLabel={t("scenes.arrival.aria")}
-            priority
-          >
-            <HeroPanel name={firstName} />
-            <SoundscapeBar />
-            {canResume && <ResumeCard />}
-          </SceneSection>
+        <Nav firstName={firstName} initials={initials} context={checkInLine} />
 
-          <SceneSection
-            id="checkin"
-            image={sceneWindowImg}
-            imageWidth={1024}
-            imageHeight={1024}
-            ariaLabel={t("scenes.checkin.aria")}
-            parallaxIntensity={0.8}
-          >
-            <SceneHeading
-              eyebrow={t("scenes.checkin.eyebrow")}
-              heading={t("scenes.checkin.heading")}
-              headingId="checkin-heading"
-            />
-            <MoodPulse />
-            <InnerWeather />
-            <ConstellationMap />
-          </SceneSection>
+        <main id="main" className="relative z-10">
+          <Hero
+            firstName={firstName}
+            companionName={companionName}
+            moodIndex={moodIndex}
+            onMoodSelect={handleMoodSelect}
+            checkInLine={checkInLine}
+            scene={scene}
+            hour={hour}
+          />
 
-          <SceneSection
-            id="doors"
-            image={sceneHillsImg}
-            imageWidth={1600}
-            imageHeight={900}
-            ariaLabel={t("scenes.doors.aria")}
-            minH="auto"
-            parallaxIntensity={0.6}
-          >
-            <DoorsGrid />
-          </SceneSection>
+          <div className="space-y-24 py-16 md:space-y-32 lg:py-24">
+            <FirstMinute companionName={companionName} />
+            <Doors companionName={companionName} />
+            <Practice />
 
-          <SceneSection
-            id="practice"
-            image={sceneTreeMountainImg}
-            imageWidth={1024}
-            imageHeight={1024}
-            ariaLabel={t("scenes.practice.aria")}
-            parallaxIntensity={0.8}
-          >
-            <MicroPracticeCard />
-            <GuidedVideoCard />
-          </SceneSection>
+            {/*
+              The thread card is omitted entirely when there is nothing open,
+              rather than rendering an empty prompt — so the constellation goes
+              full-width on a first visit instead of sitting next to a hole.
+            */}
+            <div
+              className={
+                thread
+                  ? "mx-auto grid max-w-6xl gap-5 px-6 lg:grid-cols-[1fr_1.2fr] lg:items-stretch [&>div]:max-w-none [&>div]:px-0"
+                  : undefined
+              }
+            >
+              {thread && <OpenThread firstName={firstName} thread={thread} />}
+              <Constellation firstName={firstName} weekLogs={weekLogs} />
+            </div>
+          </div>
 
-          <SceneSection
-            id="reflect"
-            image={sceneFireflyImg}
-            imageWidth={1024}
-            imageHeight={1024}
-            ariaLabel={t("scenes.reflect.aria")}
-            align="center"
-          >
-            <WhisperWall />
-            <ReflectionBlock />
-            <SafetyStrip />
-          </SceneSection>
+          <div className="py-12">
+            <CrisisBar />
+          </div>
 
           <Footer />
-        </div>
+        </main>
+
         <MitraOrb />
-      </main>
+      </div>
     </AmbienceProvider>
   );
 }

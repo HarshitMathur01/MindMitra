@@ -3,6 +3,13 @@
 # ══════════════════════════════════════════════════════════════
 
 # ─────────────────────────────────────────────────────────────
+# AI agent tooling
+# ─────────────────────────────────────────────────────────────
+# .claude/settings.json (shared project allowlist) IS committed.
+# settings.local.json is per-machine / per-session — keep it out.
+.claude/settings.local.json
+
+# ─────────────────────────────────────────────────────────────
 # Node.js / Frontend (React + Vite)
 # ─────────────────────────────────────────────────────────────
 node_modules/
@@ -28,7 +35,10 @@ lerna-debug.log*
 # ─────────────────────────────────────────────────────────────
 
 # Virtual Environments (uv pip or standard venv)
+# .venv*/ also covers scratch clones like .venv-1/ — those self-ignore via
+# their own inner .gitignore, but listing them keeps grep/glob predictable.
 .venv/
+.venv*/
 venv/
 env/
 ENV/
@@ -131,6 +141,7 @@ supabase/.temp/
 # ─────────────────────────────────────────────────────────────
 *.tmp
 *.temp
+.tmp/
 .cache/
 tmp/
 temp/

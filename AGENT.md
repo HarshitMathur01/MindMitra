@@ -1,5 +1,10 @@
 # AGENT.md — Instructions for AI coding agents (Cursor, Copilot, etc.)
 
+> **`CLAUDE.md` is the single source of truth for repo facts** — file map,
+> gates, invariants, ports, env vars. This file covers *behaviour*: conventions,
+> anti-patterns, and what "done" means. If the two disagree on a fact,
+> `CLAUDE.md` wins and this file should be corrected.
+
 ## Mission
 
 Ship minimal, reviewable diffs for **MindMitra MHA v3** — a mental-health
@@ -9,11 +14,12 @@ conversational agent for Indian young adults (18–30) — without regressing
 
 ## Read order (≤ 15 minutes before coding)
 
-1. `CLAUDE.md` (repo root) — invariants + file map
-2. `html-to-markdown.md` — MHA Implementation Spec v3.0 (the contract)
-3. `.cursor/plans/mha_v3_implementation_plan_01cdca63.plan.md` — phased
-   roadmap with task IDs
-4. The narrowest deep doc for your task (`docs/api_contracts.md`, etc.)
+1. `CLAUDE.md` (repo root) — invariants, file map, gates
+2. `html-to-markdown.md` — MHA Implementation Spec v3.0 (the contract). Tasks
+   0–15 are the phased roadmap; Task 0 holds the decisions every other layer
+   depends on. The TOC is at the top of the file.
+3. The narrowest deep doc for your task (`docs/api_contracts.md`,
+   `docs/platform.md`, `LOCAL_DEV.md`)
 
 ## Hard constraints
 
@@ -25,7 +31,7 @@ conversational agent for Indian young adults (18–30) — without regressing
 | PII (10-digit phone, Aadhaar, email) must be redacted in Layer 1 before any downstream call | Privacy |
 | Service-role Supabase queries must filter `user_id` (and `session_id` where applicable) | Tenant isolation |
 | Every Qdrant query must include a `user_id` payload filter | Tenant isolation |
-| Every signal-extraction / orchestrator output field must have a declared consumer | No orphans — see CLAUDE.md invariant 5 |
+| Every signal-extraction / orchestrator output field must have a declared consumer | No orphans — see "Task 1: Full input-output field audit" in `html-to-markdown.md` |
 | Prompt assembly hard caps at 8000 tokens; never trim Block 1 or Block 6 | Cost + safety floor |
 | API schema changes require `docs/api_contracts.md` update in the same PR | Contract truth |
 | Crisis-template changes require two distinct admin approvals | Clinical governance |
@@ -47,9 +53,12 @@ conversational agent for Indian young adults (18–30) — without regressing
 
 ## What "done" means
 
-- [ ] Code runs: `pytest tests -q -m "not integration"` (legacy) **and**
-      `pytest tests/v3 -q` (v3) for backend changes.
-- [ ] Frontend: no new ESLint errors in touched files.
+- [ ] Backend: `make test-health-fast` green (raw:
+      `cd chatbotAgent && python -m pytest -m "not integration and not live_env" --tb=short -x -q`).
+- [ ] Frontend: `npm run build` green; no new ESLint errors, no new
+      `tsc -p tsconfig.app.json` errors, and no new `lint:copy` hits in touched
+      files. See the gates table in `CLAUDE.md` for the pre-existing baselines —
+      several of these gates are already red on `main`.
 - [ ] Docs updated if behaviour, routes, or memory semantics changed.
 - [ ] No unrelated refactors mixed into the PR.
 - [ ] If a signal field is added/removed: producer + consumer + audit-log

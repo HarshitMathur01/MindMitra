@@ -7,6 +7,11 @@ interface ImportMetaEnv {
     readonly VITE_AZURE_TTS_KEY?: string;
     readonly VITE_AZURE_TTS_REGION?: string;
     readonly VITE_GOOGLE_TTS_KEY?: string;
+    /**
+     * Avatar renderer: `anam` for Anam.ai hosted avatars, anything else (or
+     * unset) for the local TalkingHead iframe. See src/lib/avatarProvider.ts.
+     */
+    readonly VITE_AVATAR_PROVIDER?: string;
     /** Set to `1` to enable Mixpanel + `product_events` (see docs/product.md). */
     readonly VITE_ENABLE_PRODUCT_ANALYTICS?: string;
     readonly VITE_MIXPANEL_TOKEN?: string;

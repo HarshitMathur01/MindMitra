@@ -235,7 +235,8 @@ Dual-channel memory retrieval (episodic + semantic). Init: `scripts/migrations/i
 | SEO | [components/system/SEO.tsx](../src/components/system/SEO.tsx) + `HelmetProvider` |
 | Theme | [context/ThemeContext.tsx](../src/context/ThemeContext.tsx), [ThemeToggle.tsx](../src/components/ThemeToggle.tsx) |
 | Skip-to-main / a11y | [components/system/SkipToMain.tsx](../src/components/system/SkipToMain.tsx), [components/settings/AccessibilitySettings.tsx](../src/components/settings/AccessibilitySettings.tsx) |
-| Code-splitting | All routes `lazy()` in [App.tsx:22-52](../src/App.tsx#L22-L52); shared fallback `DashboardSkeleton` |
+| Code-splitting | Route loaders in [lib/routeChunks.ts](../src/lib/routeChunks.ts), wrapped in `lazy()` by [App.tsx](../src/App.tsx); route-shaped fallback [layout/RouteFallback.tsx](../src/components/layout/RouteFallback.tsx) |
+| Route prefetch | [hooks/useRoutePrefetch.ts](../src/hooks/useRoutePrefetch.ts) — delegated hover/focus/pointerdown warm-up over `<a href>` and `data-prefetch` nav buttons, plus an idle warm of the likely next route |
 | Feature flags | `MHA_V3_ENABLED`, `SKIP_AUTH`, `psychoeducation_enabled`, `skill_coach_enabled`, `counsellor_dashboard_enabled` (see [core/env.py](../chatbotAgent/app/core/env.py)) |
 
 ---

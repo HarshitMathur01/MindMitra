@@ -55,16 +55,30 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Caveat:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Caveat:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
     rel="stylesheet" />
   <!-- Devanagari support for Hindi copy that already appears in modals & disclaimers. -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap"
     rel="stylesheet" />
+  <!-- Public landing (unauthenticated `/`) — see src/components/landing/.
+       Tiro Devanagari Hindi carries the CTA type, Mukta the UI voice, and
+       Libre Baskerville / IBM Plex Sans the editorial "proof" spread.
+       Fraunces is already loaded above and is shared with the app. -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&family=Mukta:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet" />
   <!-- Sanctuary fonts — Dancing Script kept for legacy --font-fancy token. Caveat now loaded above; Cormorant retired in favor of handwritten Caveat for --font-serif. -->
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet" />
-  <!-- Campus Chess fonts — used only by the CampusChess MindGym tool. -->
+  <!-- Campus Chess fonts — used only by the CampusChess MindGym tool.
+       Work Sans is shared with the Night River home (--font-nr-sans); do not
+       drop it from this request without adding it to the one below. -->
   <link
     href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700;800&family=Work+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <!-- Night River (authenticated `/`) — see src/components/sanctuary/river/.
+       Instrument Serif carries every headline, always italic. The italic face
+       is the design's signature, so the roman is not requested. -->
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap"
     rel="stylesheet" />
 
   <!-- ═══════════════════════════════════════
@@ -105,6 +119,18 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    /* This one predates the app's motion gating and so was invisible to
+       usePrefersReducedMotion — it runs before any JS. Gate it here. */
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      #root {
+        animation: none;
       }
     }
   </style>

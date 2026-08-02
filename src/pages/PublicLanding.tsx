@@ -1,80 +1,60 @@
-import Header from "@/components/layout/Header";
-import HeroVideo from "@/components/sections/HeroVideo";
-import HowItWorks from "@/components/sections/HowItWorks";
-import FeaturesPreview from "@/components/sections/FeaturesPreview";
-import TestimonialCarousel from "@/components/sections/TestimonialCarousel";
-import CTABanner from "@/components/sections/CTABanner";
-import { HillsFooter } from "@/components/layout/HillsFooter";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useLowTierDevice } from "@/hooks/useLowTierDevice";
+import { useLenisScroll } from "@/hooks/useLenisScroll";
 import SEO from "@/components/system/SEO";
-import { motion, useReducedMotion } from "framer-motion";
+import { PaperTexture } from "@/components/landing/PaperTexture";
+import { ScrollSpine } from "@/components/landing/ScrollSpine";
+import { LandingHeader } from "@/components/landing/LandingHeader";
+import { Hero } from "@/components/landing/Hero";
+import { ThreeAmSection } from "@/components/landing/ThreeAmSection";
+import { Personas } from "@/components/landing/Personas";
+import { ProofSection } from "@/components/landing/ProofSection";
+import { TrustStrip } from "@/components/landing/TrustStrip";
+import { LandingFooter } from "@/components/landing/LandingFooter";
+import "@/components/landing/landing.css";
 
 /**
- * Public landing — product-forward, minimal copy, poster-first hero.
- * QC canvas + night mode via ThemeContext.
+ * Public landing — the unauthenticated `/` surface.
+ *
+ * A watercolour, scroll-told page: ink-bleed hero → a pinned 3AM dawn →
+ * the five companions → the proof spread → recognitions. Every section
+ * degrades to a static, legible layout under `prefers-reduced-motion` or on
+ * a low-tier device; no copy is ever revealed *by* animation.
+ *
+ * This page is deliberately light-only and owns its palette (`.mm-landing`
+ * plus the `forest` / `cream` / `terracotta` Tailwind tokens) instead of the
+ * app's themed CSS variables — the authenticated app's dark mode must not
+ * repaint the marketing surface.
+ *
+ * Loaded lazily from `pages/Index.tsx` so GSAP, Lenis and the landing CSS
+ * never reach the authenticated bundle.
  */
 const PublicLanding = () => {
-  const reduce = useReducedMotion();
+  const reduced = usePrefersReducedMotion();
+  const lowTier = useLowTierDevice();
+
+  // Lenis smooths the scroll that the pinned 3AM timeline is scrubbed
+  // against. Off for reduced motion and weak devices.
+  useLenisScroll(!reduced && !lowTier);
 
   return (
-    <div className="qc-canvas min-h-screen">
+    <div className="mm-landing relative min-h-screen bg-cream text-ink">
       <SEO
-        title="Think out loud. Pick up tomorrow."
-        description="MindMitra is a private AI companion for students in India — Hindi, English, or Hinglish — that remembers your thread, offers short resets, and connects you to vetted therapists when you want a human."
+        title="Speak your mind, in your own words"
+        description="MindMitra is an AI companion for students in India — Hindi, English, or Hinglish. Non-judgmental, anytime, anywhere. Even at 3 in the morning."
         path="/"
-        ogImage="/video/hero-poster.jpg"
       />
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow"
-      >
-        skip to content
-      </a>
-      <Header />
+      <PaperTexture />
+      <ScrollSpine />
+      <LandingHeader />
       <main id="main-content" tabIndex={-1}>
-        <HeroVideo
-          headline="The layer before therapy — in the language you actually use."
-          subheadline="One thread that remembers. Short tools when your head won’t quiet. A bridge to real people — never a replacement."
-          primaryCta={{ text: "Begin with MindMitra", href: "/auth" }}
-          secondaryCta={{ text: "See the three pieces", href: "#how-it-works" }}
-          showVideo={false}
-        />
-
-        <motion.section
-          aria-label="What MindMitra is"
-          className="border-y border-[color:var(--qc-border-stronger)]/60 bg-[color:var(--qc-surface)]/80"
-          initial={{ opacity: reduce ? 1 : 0, y: reduce ? 0 : 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{
-            duration: reduce ? 0.01 : 0.55,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-        >
-          <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-6 py-10 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-6 sm:px-8 sm:py-12">
-            {[
-              { k: "Language", v: "Hindi · English · Hinglish" },
-              { k: "Memory", v: "Your thread, not a questionnaire" },
-              { k: "Care", v: "Crisis templates + optional therapists" },
-            ].map((row) => (
-              <div key={row.k} className="min-w-0 sm:max-w-[30%] sm:flex-1">
-                <p className="qc-eyebrow text-[11px] tracking-[0.22em]">{row.k}</p>
-                <p className="qc-display mt-1 text-lg leading-snug text-[color:var(--qc-ink)] sm:text-xl">
-                  {row.v}
-                </p>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        <HowItWorks />
-        <FeaturesPreview />
-        <TestimonialCarousel />
-        <CTABanner />
+        <Hero />
+        <ThreeAmSection />
+        <Personas />
+        <ProofSection />
+        <TrustStrip />
       </main>
-      <HillsFooter
-        message="Same thread tomorrow. No performance required."
-        smallPrint="MindMitra · built for students in India · private by default"
-      />
+      <LandingFooter />
     </div>
   );
 };

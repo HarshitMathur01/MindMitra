@@ -23,25 +23,32 @@
  *   4. Reduced-motion respected (no large entry animation if user opted out).
  */
 
-import { useEffect } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, Keyboard } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { CHAT_MESSAGE_SPRING } from "./chatConstants";
 import TalkingHeadAvatar from "./TalkingHeadAvatar";
+import type { AnamTranscriptEntry } from "./AnamAvatar";
 import MicFAB, { type MicState } from "./MicFAB";
 import TypewriterText from "./TypewriterText";
 import PresenceSafetyOverlay from "./PresenceSafetyOverlay";
 import { useLocalizedT } from "@/hooks/useLocalizedT";
+import { isAnamAvatar } from "@/lib/avatarProvider";
+
+// Lazy so the default TalkingHead path never downloads the Anam SDK.
+const AnamAvatar = lazy(() => import("./AnamAvatar"));
 
 interface PresenceModeProps {
-    /** GLB avatar URL to render. */
+    /** GLB avatar URL to render (TalkingHead provider). */
     avatarUrl: string;
+    /** Avatar id from AVATAR_OPTIONS (Anam provider). */
+    avatarId: string;
     /** Azure / Google TTS language tag, e.g. "en-IN", "hi-IN". */
     ttsLang: string;
     /** Voice name passed to TalkingHeadAvatar. */
     ttsVoice: string;
-    /** Live mic state — drives MicFAB visuals. */
+    /** Live mic state — drives MicFAB visuals. Always "disabled" under Anam. */
     micState: MicState;
     /** Tap handler — start/stop voice capture. */
     onMicTap: () => void;
@@ -51,6 +58,7 @@ interface PresenceModeProps {
 
 const PresenceMode = ({
     avatarUrl,
+    avatarId,
     ttsLang,
     ttsVoice,
     micState,
@@ -64,7 +72,20 @@ const PresenceMode = ({
     } = useChat();
     const reduceMotion = useReducedMotion();
     const { t } = useLocalizedT();
-    const isSpeaking = micState === "speaking" && Boolean(avatarCurrentMessage?.text);
+
+    // Under Anam the local playback queue is empty and micState is "disabled",
+    // so speaking state and subtitles come from the Anam session instead.
+    const [anamSpeaking, setAnamSpeaking] = useState(false);
+    const [anamPersonaLine, setAnamPersonaLine] = useState("");
+    const handleAnamTranscript = useCallback((entries: AnamTranscriptEntry[]) => {
+        const lastPersona = [...entries].reverse().find((e) => e.role === "persona");
+        setAnamPersonaLine(lastPersona?.content ?? "");
+    }, []);
+
+    const subtitleText = isAnamAvatar ? anamPersonaLine : avatarCurrentMessage?.text;
+    const isSpeaking = isAnamAvatar
+        ? anamSpeaking && Boolean(anamPersonaLine)
+        : micState === "speaking" && Boolean(avatarCurrentMessage?.text);
     const avatarCameraView = "upper";
     // Namaste greeting on Presence-Mode entry — Olaf only. Maps to the
     // product's "session start" beat and uses the existing TalkingHead
@@ -150,15 +171,28 @@ const PresenceMode = ({
                         visible) — see docs/research/CITATIONS.md JMIR scoping review. */}
                     <div className="absolute inset-0 z-10 flex items-end sm:items-center justify-center pointer-events-none">
                         <div className="relative h-full w-full pointer-events-auto">
-                            <TalkingHeadAvatar
-                                avatarUrl={avatarUrl}
-                                ttsLang={ttsLang}
-                                ttsVoice={ttsVoice}
-                                cameraView={avatarCameraView}
-                                hideChrome
-                                transparentBackground
-                                greetingGesture={greetingGesture}
-                            />
+                            {isAnamAvatar ? (
+                                <Suspense fallback={null}>
+                                    <AnamAvatar
+                                        key={avatarId}
+                                        avatarId={avatarId}
+                                        hideChrome
+                                        transparentBackground
+                                        onTranscript={handleAnamTranscript}
+                                        onSpeakingChange={setAnamSpeaking}
+                                    />
+                                </Suspense>
+                            ) : (
+                                <TalkingHeadAvatar
+                                    avatarUrl={avatarUrl}
+                                    ttsLang={ttsLang}
+                                    ttsVoice={ttsVoice}
+                                    cameraView={avatarCameraView}
+                                    hideChrome
+                                    transparentBackground
+                                    greetingGesture={greetingGesture}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -185,7 +219,7 @@ const PresenceMode = ({
                                     aria-atomic="false"
                                 >
                                     <TypewriterText
-                                        text={avatarCurrentMessage!.text}
+                                        text={subtitleText ?? ""}
                                         speed={120}
                                         maxVisibleWords={18}
                                         className="text-white/95 text-[14.5px] leading-snug font-medium"
@@ -210,7 +244,22 @@ const PresenceMode = ({
                                 </motion.p>
                             ) : null}
                         </AnimatePresence>
-                        <MicFAB state={micState} onTap={onMicTap} />
+
+                        {/* Anam turnkey listens continuously and does its own
+                            endpointing, so a push-to-talk control would be a
+                            lie. Show a passive status line instead. */}
+                        {isAnamAvatar ? (
+                            <p
+                                className="rounded-full bg-white/10 backdrop-blur px-4 py-1.5 text-[12.5px] font-medium text-white/80"
+                                aria-live="polite"
+                            >
+                                {isSpeaking
+                                    ? t("chat.presence.anamSpeaking", "Mitra is speaking…")
+                                    : t("chat.presence.anamListening", "Listening — just talk")}
+                            </p>
+                        ) : (
+                            <MicFAB state={micState} onTap={onMicTap} />
+                        )}
 
                         {/* "Type instead" — exits Presence and returns to
                             the text composer. Distress users sometimes

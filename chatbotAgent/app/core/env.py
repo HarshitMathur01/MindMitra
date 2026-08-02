@@ -242,6 +242,20 @@ class V3Env:
         default_factory=lambda: config.get_int("speech.azure_token_ttl_s", 540, env="AZURE_SPEECH_TOKEN_TTL_S")
     )
 
+    # Anam.ai hosted avatar. Only used by POST /avatar/session-token, which
+    # brokers a short-lived session token so the API key never reaches the
+    # browser. Optional: the frontend defaults to the local TalkingHead
+    # renderer unless VITE_AVATAR_PROVIDER=anam.
+    anam_api_key: str = field(default_factory=lambda: _secret("ANAM_API_KEY"))
+    anam_api_base: str = field(
+        default_factory=lambda: config.get_str("avatar.anam_api_base", "https://api.anam.ai/v1", env="ANAM_API_BASE")
+    )
+    anam_timeout_s: float = field(
+        default_factory=lambda: config.get_float("avatar.anam_timeout_s", 8.0, env="ANAM_TIMEOUT_S")
+    )
+    # Blank = let Anam pick its default model for the persona.
+    anam_llm_id: str = field(default_factory=lambda: config.get_str("avatar.anam_llm_id", "", env="ANAM_LLM_ID"))
+
     gemini_api_key: str = field(default_factory=lambda: _secret("GEMINI_API_KEY", "GOOGLE_API_KEY"))
     gemini_model: str = field(
         default_factory=lambda: config.get_str("providers.gemini.model", "gemini-1.5-flash", env="GEMINI_MODEL")

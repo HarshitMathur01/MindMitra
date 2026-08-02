@@ -39,9 +39,23 @@ const STRING_RE = /(["'`])((?:\\.|(?!\1).)*?)\1/g;
  *  Real copy contains spaces and natural punctuation; class strings
  *  are dense with `-`, `:`, and tokens like `flex`, `rounded`, `bg-`.
  */
+/** CSS property names that collide with the banned list. */
+const CSS_VALUE_TOKEN =
+  "transform|opacity|scale|rotate|color|filter|none|auto|inherit|initial|unset";
+
 function looksLikeCss(literal) {
   // Bare CSS value tokens (e.g. willChange: 'transform')
-  if (/^(?:transform|opacity|scale|rotate|color|none|auto|inherit|initial|unset)$/.test(literal))
+  if (new RegExp(`^(?:${CSS_VALUE_TOKEN})$`).test(literal)) return true;
+  // Multi-token CSS *values*, where the collision is the first token:
+  //   willChange: "transform, opacity"
+  //   transition: "transform 900ms cubic-bezier(.22,1,.36,1)"
+  // Prose never opens with a bare property name followed by a duration,
+  // an easing function, or another comma-separated property.
+  if (
+    new RegExp(
+      `^(?:${CSS_VALUE_TOKEN})(?:\\s*,\\s*[a-z-]+)*(?:\\s+[\\d.]+m?s|\\s+(?:linear|ease|ease-in|ease-out|ease-in-out|steps|cubic-bezier)\\b)?[\\s,\\w.()-]*$`,
+    ).test(literal.trim())
+  )
     return true;
   // Many tailwind-shaped tokens — e.g. "rounded-full bg-[#3F6B47] px-7 py-3"
   const tw = literal.match(/[a-z]+-(?:\[[^\]]+\]|[a-z0-9._/-]+)/g);

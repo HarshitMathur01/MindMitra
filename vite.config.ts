@@ -1,4 +1,4 @@
-import { defineConfig, type ViteDevServer } from "vite";
+import { defineConfig, loadEnv, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createReadStream, createWriteStream, existsSync, readdirSync } from "fs";
@@ -99,7 +99,11 @@ function stripXattrsPlugin() {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const backendTarget = (env.VITE_BACKEND_URL?.trim() || "http://127.0.0.1:8000").replace(/\/$/, "");
+
+  return {
   cacheDir: "node_modules/.vite-mindmitra",
   // Vite's default build-time public copy uses fs.copyFile, which can hang on
   // macOS files carrying provenance xattrs. We strip xattrs before build to avoid this.
@@ -115,35 +119,35 @@ export default defineConfig(({ command }) => ({
     allowedHosts: true,
     proxy: {
       "/chat": {
-        target: "http://127.0.0.1:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/onboarding": {
-        target: "http://127.0.0.1:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/transcribe": {
-        target: "http://127.0.0.1:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/me": {
-        target: "http://127.0.0.1:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/speech": {
-        target: "http://127.0.0.1:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/health": {
-        target: "http://127.0.0.1:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/admin": {
-        target: "http://127.0.0.1:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/therapist": {
-        target: "http://127.0.0.1:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
     },
@@ -221,8 +225,30 @@ export default defineConfig(({ command }) => ({
         //
         // Be conservative: any deeper splitting (e.g. per-route vendor
         // chunks) tends to *hurt* HTTP/2 perf. Keep this list small.
-        manualChunks(id) {
+        manualChunks(rawId) {
+          // Rollup ids are posix on every platform Vite supports, but the
+          // Windows dev machines in this repo have produced back-slashed ids
+          // before; normalise so the substring matches below can't silently
+          // stop matching and quietly re-bloat the critical path.
+          const id = rawId.replace(/\\/g, "/");
           if (!id.includes("node_modules")) return undefined;
+          // ── Tiny shared class-name utils, pinned FIRST ────────────────
+          // clsx / tailwind-merge / cva are ~2 KB total but are imported by
+          // both `cn()` (every surface, including the eager App shell) and
+          // by recharts. Left unassigned, Rollup hoisted them into whichever
+          // manual chunk claimed them first — which was vendor-charts. The
+          // entry then had to statically `import { clsx } from vendor-charts`,
+          // dragging all 367 KB of recharts + d3 into first paint on every
+          // route. Giving them their own chunk keeps them shared and keeps
+          // recharts strictly lazy. Verify with:
+          //   grep 'vendor-charts' dist/index.html   → must not appear
+          if (
+            id.includes("node_modules/clsx") ||
+            id.includes("node_modules/tailwind-merge") ||
+            id.includes("node_modules/class-variance-authority")
+          ) {
+            return "vendor-classnames";
+          }
           if (id.includes("framer-motion")) return "vendor-motion";
           if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
           if (id.includes("@radix-ui")) return "vendor-radix";
@@ -242,4 +268,5 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}));
+  };
+});

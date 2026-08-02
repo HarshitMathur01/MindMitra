@@ -1,0 +1,441 @@
+/* ──────────────────────────────────────────────────────────────
+   Night River — authenticated `/` (SanctuaryHome)
+   ──────────────────────────────────────────────────────────────
+   Everything here is scoped under `.mm-river` so this surface's
+   grain, atmosphere and ambient motion never leak into the rest
+   of the app (chat / Mind Gym / PublicLanding).
+
+   Ported from a Tailwind v4 source, which expressed all of this
+   with `@theme inline`, `@custom-variant` and `@utility`. None of
+   those exist in v3, so:
+     - palette + fonts   → tailwind.config.js, under the `nr-`
+                           namespace (`bg-nr-ink`, `font-nr-display`)
+     - semantic aliases  → the vars below, which flip on dark
+     - `@utility` rules  → plain classes under `.mm-river`
+
+   The literal oklch values below are mirrored in tailwind.config.js
+   (same reason landing/tokens.ts mirrors the landing hexes: the
+   config can't be read from CSS, and `var()` colours can't carry a
+   Tailwind opacity modifier). Change one, change the other.
+
+   Imported by src/pages/SanctuaryHome.tsx, which is lazily loaded,
+   so this ships as its own CSS chunk and costs other routes nothing.
+   ────────────────────────────────────────────────────────────── */
+
+.mm-river {
+  position: relative;
+
+  /* ----- Night River palette ----- */
+  --nr-paper: oklch(0.949 0.005 150);
+  --nr-paper-deep: oklch(0.905 0.007 160);
+  --nr-moon: oklch(0.985 0.003 150);
+  --nr-ink: oklch(0.244 0.019 232);
+  --nr-forest: oklch(0.293 0.022 232);
+  --nr-river: oklch(0.626 0.045 235);
+  --nr-clay: oklch(0.66 0.055 60);
+  --nr-moss: oklch(0.62 0.04 165);
+  --nr-gold: oklch(0.8 0.04 90);
+  --nr-lavender: oklch(0.593 0.045 305);
+
+  /* Mood accent. Re-set inline by SanctuaryHome from the ambience
+     state, so the whole page recolours from one property. */
+  --nr-mood: oklch(0.626 0.045 235);
+
+  /* ----- Semantic aliases (flip on dark) ----- */
+  --nr-bg: var(--nr-paper);
+  --nr-fg: var(--nr-ink);
+  --nr-card: oklch(0.978 0.004 150);
+  --nr-card-fg: var(--nr-ink);
+  --nr-border: oklch(0.865 0.007 200);
+  --nr-muted-fg: oklch(0.52 0.015 225);
+
+  /* The design's one easing curve. Long, no bounce. */
+  --nr-ease-slow: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  background-color: var(--nr-bg);
+  color: var(--nr-fg);
+  font-family: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* The app toggles theme with `data-theme` (see src/context/ThemeContext).
+   `.dark` is matched too because tailwind.config.js accepts both. */
+[data-theme="dark"] .mm-river,
+.dark .mm-river {
+  /* Nocturnal river: dark water, moonlight, lavender haze. */
+  --nr-moon: oklch(0.283 0.022 232);
+  --nr-gold: oklch(0.74 0.04 90);
+  --nr-bg: var(--nr-ink);
+  --nr-fg: oklch(0.949 0.005 150);
+  --nr-card: var(--nr-forest);
+  --nr-card-fg: oklch(0.949 0.005 150);
+  --nr-border: oklch(1 0 0 / 12%);
+  --nr-muted-fg: oklch(0.73 0.018 230);
+}
+
+.mm-river ::selection {
+  background: color-mix(in oklab, var(--nr-mood) 45%, transparent);
+  color: var(--nr-fg);
+}
+
+/* ----- Hero legibility -----
+   The hero copy sits on a photograph that changes with the hour, so it cannot
+   inherit the page foreground: in dark theme the page's light text over the
+   *morning* hillside measured 2.56:1, which is unreadable.
+
+   Rather than one flat ink, each hour gets a foreground pulled toward its own
+   scene — rose-brown at dawn, blue under the afternoon sky, umber at sunset,
+   indigo at night — so the type belongs to the light it is sitting in. The
+   hue moves; the lightness stays pinned where contrast demands.
+
+   Every value below is measured, not guessed. The hero band was composited
+   (image at 85% under its mask, then the page scrim, then the veil) and scored
+   against the chosen colour:
+
+     theme  scene      band L   flat ink   now     picked
+     light  morning     0.712    11.78    10.80    rose-brown ink
+     light  afternoon   0.738    12.17    11.60    blue ink
+     light  evening     0.570     9.57     9.03    umber ink
+     light  night       0.460     7.88     7.63    indigo ink
+     dark   morning     0.388     2.56*    6.20    rose-brown ink + paper veil
+     dark   afternoon   0.409     2.39*    6.76    blue ink       + paper veil
+     dark   evening     0.125     4.26     5.16    warm paper     + ink veil
+     dark   night       0.053     8.70     8.85    cool paper
+
+   (* the two failures this replaced: the page's own light foreground over the
+   bright morning and afternoon hillsides. Worst case is now 5.16:1, and the
+   dark "band L" values above are post-veil.)
+
+   `--nr-hero-veil` is an extra wash between photo and copy, used only where
+   raw contrast was marginal, coloured in whichever direction pushes the band
+   away from the text. Light theme needs none — the scrim already washes even
+   the night hillside toward paper.
+
+   Re-run the measurement if the art, the scrim or these colours change; do not
+   hand-tune. Muted and border derive from the foreground, so a scene only ever
+   declares `--nr-hero-fg` (and a veil if it needs one). */
+.mm-river {
+  /* Default is the afternoon ink — any scene overrides it below. */
+  --nr-hero-fg: oklch(0.26 0.04 240);
+  --nr-hero-title: oklch(0.16 0.045 240);
+  --nr-hero-veil: 0;
+  --nr-hero-veil-color: transparent;
+
+  /* Derived. Lazily substituted, so these follow whatever a scene sets. */
+  --nr-hero-muted: color-mix(in oklab, var(--nr-hero-fg) 68%, transparent);
+  --nr-hero-border: color-mix(in oklab, var(--nr-hero-fg) 28%, transparent);
+  /* Halo sits *opposite* the title, so it always opens a gap. */
+  --nr-hero-halo: color-mix(in oklab, var(--nr-paper) 60%, transparent);
+}
+
+/* ----- Light theme: dark copy, hue-matched to the hour -----
+   `--nr-hero-title` runs deliberately darker than `--nr-hero-fg`. The headline
+   is the one element that has to survive the *local* extremes of the
+   photograph rather than its average — see the halo rule below. */
+.mm-river[data-nr-scene="morning"] {
+  --nr-hero-fg: oklch(0.28 0.055 35);
+  --nr-hero-title: oklch(0.16 0.05 35);
+}
+.mm-river[data-nr-scene="afternoon"] {
+  --nr-hero-fg: oklch(0.26 0.04 240);
+  --nr-hero-title: oklch(0.16 0.045 240);
+}
+.mm-river[data-nr-scene="evening"] {
+  --nr-hero-fg: oklch(0.27 0.06 55);
+  --nr-hero-title: oklch(0.16 0.055 55);
+}
+.mm-river[data-nr-scene="night"] {
+  --nr-hero-fg: oklch(0.26 0.055 285);
+  --nr-hero-title: oklch(0.16 0.05 285);
+}
+
+/* ----- Dark theme -----
+   Bright hillsides keep the dark copy the photo can carry, lifted by a paper
+   veil so they clear AA with room to spare. */
+[data-theme="dark"] .mm-river[data-nr-scene="morning"],
+.dark .mm-river[data-nr-scene="morning"] {
+  --nr-hero-fg: oklch(0.28 0.055 35);
+  --nr-hero-title: oklch(0.16 0.05 35);
+  --nr-hero-veil: 0.15;
+  --nr-hero-veil-color: var(--nr-paper);
+}
+[data-theme="dark"] .mm-river[data-nr-scene="afternoon"],
+.dark .mm-river[data-nr-scene="afternoon"] {
+  --nr-hero-fg: oklch(0.26 0.04 240);
+  --nr-hero-title: oklch(0.16 0.045 240);
+  --nr-hero-veil: 0.15;
+  --nr-hero-veil-color: var(--nr-paper);
+}
+
+/* Evening flips to light copy — it wins on contrast, but only just (4.26:1),
+   so the band is deepened until it reaches 5.16:1. Warm-tinted for the sunset.
+   The halo flips with it: an ink glow under light type. */
+[data-theme="dark"] .mm-river[data-nr-scene="evening"],
+.dark .mm-river[data-nr-scene="evening"] {
+  --nr-hero-fg: oklch(0.95 0.025 70);
+  --nr-hero-title: oklch(0.97 0.03 70);
+  --nr-hero-halo: color-mix(in oklab, var(--nr-ink) 60%, transparent);
+  --nr-hero-veil: 0.25;
+  --nr-hero-veil-color: var(--nr-ink);
+}
+
+/* Night is already dark enough for light copy on its own. Cool-tinted. */
+[data-theme="dark"] .mm-river[data-nr-scene="night"],
+.dark .mm-river[data-nr-scene="night"] {
+  --nr-hero-fg: oklch(0.95 0.02 260);
+  --nr-hero-title: oklch(0.97 0.025 260);
+  --nr-hero-halo: color-mix(in oklab, var(--nr-ink) 60%, transparent);
+  --nr-hero-veil: 0;
+  --nr-hero-veil-color: transparent;
+}
+
+/* ----- The headline -----
+   Averages are not enough for type this large. Across the h1's own box the
+   photograph swings by 0.12-0.33 in luminance, so a colour chosen against the
+   mean can still lose a glyph to one bright cloud or one dark ridge.
+
+   `--nr-hero-title` is pinned near black (L 0.16) or near white (L 0.97),
+   keeping only enough chroma to carry the hour's hue, and the halo is a soft
+   glow in the opposite direction. The halo is what makes this robust to the
+   image rather than to its average: wherever the backdrop closes on the type,
+   the glow reopens the gap.
+
+   It is a glow, not a drop shadow — no offset — so it reads as light behind
+   the letterform rather than as a hard 2000s text-shadow. */
+.mm-river .nr-hero-title {
+  color: var(--nr-hero-title);
+  text-shadow:
+    0 0 0.06em var(--nr-hero-halo),
+    0 0 0.3em var(--nr-hero-halo);
+}
+
+/* ----- The constellation card -----
+   This panel is `bg-nr-ink` in both themes, so its internal contrast is
+   colorimetrically identical either way. It still reads noticeably muddier in
+   light theme, because the eye arrives adapted to the bright page around it
+   and a dark island inside a light surround loses apparent contrast.
+
+   Measured against the ink card, the copy was never the problem — headings sit
+   at 14:1 and the dimmest label at 6.85:1. The *drawing* was: with no check-ins
+   every point renders in its idle state, which put star halos at 1.57:1 and the
+   baseline drop-lines at 2.30:1, i.e. the data visualisation was close to
+   invisible exactly when it had the least to show.
+
+   `--nr-sky-boost` scales the decorative opacities. Light theme runs it at full
+   strength to pay back the adaptation loss; dark theme eases off, where the
+   card blends into the page and the same values would read as garish. */
+.mm-river {
+  --nr-sky-boost: 1;
+  --nr-sky-ring: color-mix(in oklab, var(--nr-paper) 22%, transparent);
+}
+
+[data-theme="dark"] .mm-river,
+.dark .mm-river {
+  --nr-sky-boost: 0.78;
+  --nr-sky-ring: color-mix(in oklab, var(--nr-paper) 10%, transparent);
+}
+
+/* ----- Atmosphere -----
+   The v4 source darkened the page with a global `body::before` bound
+   to a `--scroll` custom property. That bleeds onto every other route,
+   so it is a element inside the page instead — rendered by
+   SanctuaryHome and driven by `--nr-scroll` from useScrollProgress.
+   Light mode only: in dark the page already starts at ink. */
+.mm-river .nr-atmosphere {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: calc(var(--nr-scroll, 0) * 1);
+  transition: opacity 100ms linear;
+  background: linear-gradient(
+    to bottom,
+    var(--nr-paper) 0%,
+    color-mix(in oklab, var(--nr-paper) 85%, var(--nr-forest)) 25%,
+    color-mix(in oklab, var(--nr-paper) 55%, var(--nr-forest)) 55%,
+    color-mix(in oklab, var(--nr-forest) 70%, var(--nr-ink)) 85%,
+    color-mix(in oklab, var(--nr-forest) 40%, var(--nr-ink)) 100%
+  );
+}
+
+[data-theme="dark"] .mm-river .nr-atmosphere,
+.dark .mm-river .nr-atmosphere {
+  display: none;
+}
+
+/* Two soft washes over the whole surface — the "paper grain" of this
+   design. Sits above the atmosphere, below the content. */
+.mm-river .nr-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image: radial-gradient(
+      circle at 20% 30%,
+      color-mix(in oklab, var(--nr-river) 20%, transparent),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 80% 70%,
+      color-mix(in oklab, var(--nr-lavender) 16%, transparent),
+      transparent 50%
+    );
+}
+
+/* ----- Composite surfaces ----- */
+
+.mm-river .nr-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 500;
+  opacity: 0.65;
+}
+
+.mm-river .nr-glass {
+  background: color-mix(in oklab, var(--nr-moon) 72%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in oklab, var(--nr-ink) 10%, transparent);
+  box-shadow: 0 24px 60px -40px color-mix(in oklab, var(--nr-ink) 60%, transparent);
+}
+
+[data-theme="dark"] .mm-river .nr-glass,
+.dark .mm-river .nr-glass {
+  background: color-mix(in oklab, var(--nr-moon) 60%, transparent);
+  border-color: color-mix(in oklab, oklch(0.985 0.003 150) 12%, transparent);
+}
+
+/* ----- Scroll reveal -----
+   Paired with components/sanctuary/river/Reveal.tsx, which adds
+   `nr-reveal-in` once the element intersects. */
+.mm-river .nr-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 1200ms var(--nr-ease-slow, cubic-bezier(0.22, 0.61, 0.36, 1)),
+    transform 1400ms var(--nr-ease-slow, cubic-bezier(0.22, 0.61, 0.36, 1));
+}
+
+.mm-river .nr-reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ----- Parallax -----
+   Bound to `--nr-scroll-px` from useScrollProgress. */
+.mm-river .nr-parallax-slow {
+  transform: translateY(calc(var(--nr-scroll-px, 0px) * -0.12));
+  will-change: transform;
+}
+
+.mm-river .nr-parallax-soft {
+  transform: translateY(calc(var(--nr-scroll-px, 0px) * -0.06));
+  will-change: transform;
+}
+
+.mm-river .nr-parallax-fade {
+  opacity: calc(1 - var(--nr-scroll, 0) * 1.6);
+  transform: translateY(calc(var(--nr-scroll-px, 0px) * 0.08));
+  will-change: transform, opacity;
+}
+
+/* ----- Ambient keyframes -----
+   Defined globally (@keyframes can't nest) but named `nr-*` so they
+   stay clear of the landing's `mm-drift-a/b/c`, `mm-marquee` family. */
+
+@keyframes nr-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 0.85;
+  }
+}
+@keyframes nr-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(14px, -18px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes nr-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes nr-ripple {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+@keyframes nr-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.mm-river .nr-anim-breathe {
+  animation: nr-breathe 9s ease-in-out infinite;
+}
+.mm-river .nr-anim-drift {
+  animation: nr-drift 22s ease-in-out infinite;
+}
+.mm-river .nr-anim-twinkle {
+  animation: nr-twinkle 5s ease-in-out infinite;
+}
+.mm-river .nr-anim-ripple {
+  animation: nr-ripple 6s ease-out infinite;
+}
+.mm-river .nr-anim-caret {
+  animation: nr-caret 1.1s step-end infinite;
+}
+
+/* ----- Reduced motion -----
+   Kills ambient motion, the reveal transition, and both parallax
+   transforms. Scoped so we don't override motion decisions the rest
+   of the app makes for itself. */
+@media (prefers-reduced-motion: reduce) {
+  .mm-river,
+  .mm-river *,
+  .mm-river *::before,
+  .mm-river *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .mm-river .nr-reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .mm-river .nr-parallax-slow,
+  .mm-river .nr-parallax-soft,
+  .mm-river .nr-parallax-fade {
+    transform: none;
+    opacity: 1;
+  }
+}

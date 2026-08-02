@@ -251,6 +251,9 @@ async def _log_startup_report() -> None:
         ("Groq", bool(e.groq_api_key), 0.0, "configured; client initializes lazily"),
         ("Gemini", bool(e.gemini_api_key), 0.0, "configured; writer client initializes lazily"),
         ("Embedding model", bool(e.embedding_model), 0.0, "configured; model loads on first retrieval"),
+        # Optional: only needed when the frontend runs VITE_AVATAR_PROVIDER=anam.
+        # Absence is not fatal — the avatar falls back to the local TalkingHead renderer.
+        ("Anam avatar", bool(e.anam_api_key), 0.0, "configured; POST /avatar/session-token enabled"),
     ]
     logger.info("━━━━━━ MHA AGENT STARTING ━━━━━━", extra=log_context())
     logger.info(
@@ -495,6 +498,7 @@ app.add_middleware(
 from app.api.therapist_bridge import router as therapist_bridge_router  # noqa: E402
 from app.api.admin import router as v3_admin_router  # noqa: E402
 from app.api.audio import router as v3_audio_router  # noqa: E402
+from app.api.avatar import router as v3_avatar_router  # noqa: E402
 from app.api.chat_ws import router as v3_chat_router  # noqa: E402
 from app.api.onboarding import router as v3_onboarding_router  # noqa: E402
 from app.api.snapshot import router as v3_snapshot_router  # noqa: E402
@@ -502,6 +506,7 @@ from app.api.snapshot import router as v3_snapshot_router  # noqa: E402
 app.include_router(v3_chat_router)
 app.include_router(v3_onboarding_router)
 app.include_router(v3_audio_router)
+app.include_router(v3_avatar_router)
 app.include_router(v3_admin_router)
 app.include_router(v3_snapshot_router)
 app.include_router(therapist_bridge_router)

@@ -94,6 +94,33 @@ speech:
   transcribe_max_audio_bytes: 6291456
   transcribe_concurrency_limit: 2
 
+# Anam.ai hosted avatar personas, used only when the frontend runs with
+# VITE_AVATAR_PROVIDER=anam. Keys must match AVATAR_OPTIONS ids in
+# src/lib/avatarOptions.ts and the user_settings.avatar_model CHECK constraint.
+#
+# `avatar_id` / `voice_id` are Anam catalogue ids. They are deliberately blank
+# here: fill them from your own account with
+#   curl -H "Authorization: Bearer $ANAM_API_KEY" https://api.anam.ai/v1/avatars
+#   curl -H "Authorization: Bearer $ANAM_API_KEY" https://api.anam.ai/v1/voices
+# An unfilled persona returns 503 rather than starting a mis-configured session.
+avatar:
+  anam_api_base: "https://api.anam.ai/v1"
+  anam_timeout_s: 8.0
+  anam_llm_id: ""
+  personas:
+    brunette:
+      name: "Aria"
+      avatar_id: "d9ebe82e-2f34-4ff6-9632-16cb73e7de08"
+      voice_id: ""
+    olaf:
+      name: "Olaf"
+      avatar_id: ""
+      voice_id: ""
+    avaturn:
+      name: "Maya"
+      avatar_id: ""
+      voice_id: ""
+
 embedding:
   model: "sentence-transformers/all-MiniLM-L6-v2"
   cache_ttl_s: 3600

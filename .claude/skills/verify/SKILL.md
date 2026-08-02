@@ -5,9 +5,14 @@ How to drive the app for runtime verification.
 ## Launch
 
 - `npm run dev` → Vite on **http://localhost:8080** (strict port, `vite.config.ts`).
-- No test suite exists. Static gates: `npx tsc --noEmit`, `npm run lint`,
-  `npm run lint:copy` (main carries 4 pre-existing banned-word hits in
-  MoodMountain/ThoughtDetective — gate is zero NEW hits), `npm run build`.
+- No frontend test suite exists. Static gates and their `main` baselines are in
+  the gates table in `CLAUDE.md`. The two that bite:
+  - `npx tsc --noEmit` at the root is a **no-op** (solution-style tsconfig,
+    `"files": []`). Use `npx tsc -p tsconfig.app.json --noEmit` — 16 pre-existing
+    errors; gate is zero new errors in touched files.
+  - `npm run lint:copy` already exits 1 with 4 pre-existing banned-word hits in
+    MoodMountain/ThoughtDetective — gate is zero NEW hits.
+- Also: `npm run lint` (0 errors, 81 warnings) and `npm run build`.
 
 ## Reaching the authenticated surface (`/` → SanctuaryHome)
 

@@ -85,6 +85,7 @@ const Header = () => {
             type="button"
             className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
             onClick={() => navigate("/")}
+            data-prefetch="/"
           >
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl">
               <img src="/image.png" alt="MindMitra" className="h-9 w-9 object-contain" />
@@ -108,6 +109,11 @@ const Header = () => {
                   key={item.path}
                   type="button"
                   onClick={() => handleNavClick(item.path)}
+                  // These are buttons, not anchors, so the delegated
+                  // prefetcher (useRoutePrefetch) has no href to read.
+                  // Declare the destination so hover/focus still warms the
+                  // route chunk. Hash links own no chunk.
+                  data-prefetch={item.path.startsWith("#") ? undefined : item.path}
                   className={`${baseClasses} ${stateClasses}`}
                 >
                   {item.label}
@@ -145,6 +151,7 @@ const Header = () => {
                 <button
                   type="button"
                   onClick={() => navigate("/profile")}
+                  data-prefetch="/profile"
                   className="flex items-center gap-2 rounded-full px-2 py-1.5 transition-colors hover:bg-[hsl(var(--ink-2))]"
                 >
                   <Avatar className="h-7 w-7">
@@ -211,6 +218,7 @@ const Header = () => {
                       key={item.path}
                       type="button"
                       onClick={() => handleNavClick(item.path)}
+                      data-prefetch={item.path.startsWith("#") ? undefined : item.path}
                       className={`flex w-full items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors ${stateClasses}`}
                     >
                       {item.label}

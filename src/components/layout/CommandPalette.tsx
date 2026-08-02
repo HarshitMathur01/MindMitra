@@ -53,13 +53,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       <CommandList>
         <CommandEmpty>No matches. Try "chat", "breathe", "help".</CommandEmpty>
 
+        {/*
+          `data-prefetch` is read by the delegated prefetcher in
+          useRoutePrefetch — pointing at an item warms its route chunk before
+          the user commits, same as hovering a link.
+        */}
         <CommandGroup heading="Talk">
-          <CommandItem onSelect={() => go("/chat")}>
+          <CommandItem data-prefetch="/chat" onSelect={() => go("/chat")}>
             <MessageSquare />
             <span>Open chat</span>
             <CommandShortcut>⌘ C</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => go("/me")}>
+          <CommandItem data-prefetch="/me" onSelect={() => go("/me")}>
             <Heart />
             <span>You — memory &amp; mood</span>
           </CommandItem>
@@ -68,15 +73,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandSeparator />
 
         <CommandGroup heading="Practice">
-          <CommandItem onSelect={() => go("/mindgym")}>
+          <CommandItem data-prefetch="/mindgym" onSelect={() => go("/mindgym")}>
             <Dumbbell />
             <span>Mind Gym</span>
           </CommandItem>
-          <CommandItem onSelect={() => go("/mindgym/breath-sphere")}>
+          <CommandItem
+            data-prefetch="/mindgym/breath-sphere"
+            onSelect={() => go("/mindgym/breath-sphere")}
+          >
             <Heart />
             <span>Breathe with me</span>
           </CommandItem>
-          <CommandItem onSelect={() => go("/journal")}>
+          <CommandItem data-prefetch="/journal" onSelect={() => go("/journal")}>
             <GraduationCap />
             <span>Journal</span>
           </CommandItem>
@@ -85,15 +93,21 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandSeparator />
 
         <CommandGroup heading="People">
-          <CommandItem onSelect={() => go(user ? "/therapist-bridge" : "/therapy")}>
+          <CommandItem
+            data-prefetch={user ? "/therapist-bridge" : "/therapy"}
+            onSelect={() => go(user ? "/therapist-bridge" : "/therapy")}
+          >
             <Phone />
             <span>Talk to a therapist</span>
           </CommandItem>
-          <CommandItem onSelect={() => go("/peer-support")}>
+          <CommandItem data-prefetch="/peer-support" onSelect={() => go("/peer-support")}>
             <Users />
             <span>Peer support</span>
           </CommandItem>
-          <CommandItem onSelect={() => go("/psychological-content")}>
+          <CommandItem
+            data-prefetch="/psychological-content"
+            onSelect={() => go("/psychological-content")}
+          >
             <GraduationCap />
             <span>Resources library</span>
           </CommandItem>
@@ -102,11 +116,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandSeparator />
 
         <CommandGroup heading="Account">
-          <CommandItem onSelect={() => go("/profile")}>
+          <CommandItem data-prefetch="/profile" onSelect={() => go("/profile")}>
             <User />
             <span>Profile</span>
           </CommandItem>
-          <CommandItem onSelect={() => go("/settings")}>
+          <CommandItem data-prefetch="/settings" onSelect={() => go("/settings")}>
             <Settings />
             <span>Settings</span>
           </CommandItem>
@@ -124,7 +138,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandSeparator />
 
         <CommandGroup heading="If you need help right now">
-          <CommandItem onSelect={() => go("/safety-plan")}>
+          <CommandItem data-prefetch="/safety-plan" onSelect={() => go("/safety-plan")}>
             <ShieldCheck />
             <span>Open my safety plan</span>
           </CommandItem>
@@ -137,7 +151,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <LifeBuoy />
             <span>KIRAN helpline · 1800-599-0019</span>
           </CommandItem>
-          <CommandItem onSelect={() => go("/")}>
+          <CommandItem data-prefetch="/" onSelect={() => go("/")}>
             <Brain />
             <span>Home</span>
           </CommandItem>

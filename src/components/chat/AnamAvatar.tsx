@@ -1,263 +1,121 @@
-import { memo, useCallback, useEffect, useId, useRef, useState } from "react";
-import {
-    createClient,
-    AnamEvent,
-    MessageRole,
-    type AnamClient,
-    type Message,
-    type MessageStreamEvent,
-} from "@anam-ai/js-sdk";
-import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
-
 /**
- * Anam.ai hosted avatar (turnkey mode).
+ * AnamAvatar — replaces TalkingHeadAvatar.tsx.
  *
- * Prop-compatible with `TalkingHeadAvatar` so the two render sites can switch
- * on `AVATAR_PROVIDER` without touching their surrounding layout.
+ * Renders a photorealistic Anam AI avatar via WebRTC (SDK v4).
  *
- * Turnkey means Anam owns the whole loop — microphone, STT, LLM and TTS. This
- * component therefore does NOT consume the `useChat()` avatar message queue:
- * nothing here speaks text produced by `POST /chat`. It only mounts the
- * session, hands back the transcript, and tears the session down.
+ * Pipeline modes (controlled by VITE_ANAM_PIPELINE_MODE):
  *
- * Because Anam's LLM answers directly, replies on this path never pass through
- * `crisis_bypass.py` or `safety_gate.py`. That is why `AVATAR_PROVIDER`
- * defaults to `talkinghead` — see src/lib/avatarProvider.ts.
+ *  false (default) — MindMitra Backend Pipeline:
+ *    Anam mic muted. Avatar does lipsync only, driven by Azure TTS.
+ *    Messages come from useChat() → speakWithAnam() → AgentAudioInputStream.
+ *
+ *  true — Anam Pipeline Mode:
+ *    Anam mic open. Anam handles STT + LLM + TTS autonomously.
+ *    On each completed Anam turn, `onAnamTurn` prop fires so ChatGPTInterface
+ *    can inject messages into the chat UI and persist to Supabase.
+ *    MindMitra's LLM is NEVER called.
  */
 
-/** Anam's transcript role for its own speech. `MessageRole.USER` is the student. */
-export type AnamTranscriptRole = "user" | "persona";
+import { memo, useEffect, useId, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useChat } from "@/hooks/useChat";
+import { useAnamAvatar, ANAM_PIPELINE_MODE } from "@/hooks/useAnamAvatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export interface AnamTranscriptEntry {
-    id: string;
-    role: AnamTranscriptRole;
-    content: string;
-}
-
-interface Props {
-    /** Avatar id from AVATAR_OPTIONS. The backend maps it to an Anam persona. */
-    avatarId: string;
-    /** Hide the small corner status pill. Presence Mode passes this. */
+interface AnamAvatarProps {
+    /**
+     * Hide the "Speaking" indicator pill.
+     * Used by PresenceModeAnam where the MicFAB already signals state.
+     */
     hideChrome?: boolean;
-    /** Blend the stage with the parent background instead of the dark plate. */
+    /**
+     * Make the video background transparent so the parent gradient shows through.
+     * Used in full-screen Presence Mode.
+     */
     transparentBackground?: boolean;
-    /** Called whenever Anam updates the conversation history. */
-    onTranscript?: (entries: AnamTranscriptEntry[]) => void;
-    /** Called when the persona starts/stops holding the floor. */
-    onSpeakingChange?: (speaking: boolean) => void;
-}
-
-type Status = "connecting" | "live" | "error";
-
-const getSessionTokenEndpoint = (): string => {
-    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim();
-    if (backendUrl) return `${backendUrl.replace(/\/$/, "")}/avatar/session-token`;
-    if (import.meta.env.PROD) {
-        throw new Error("Missing VITE_BACKEND_URL for production avatar deployment");
-    }
-    return `${window.location.origin.replace(/\/$/, "")}/avatar/session-token`;
-};
-
-async function fetchSessionToken(avatarId: string, signal: AbortSignal): Promise<string> {
-    const { data } = await supabase.auth.getSession();
-    const accessToken = data.session?.access_token;
-
-    const response = await fetch(getSessionTokenEndpoint(), {
-        method: "POST",
-        signal,
-        headers: {
-            "Content-Type": "application/json",
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({ avatar_id: avatarId }),
-    });
-
-    if (!response.ok) {
-        // 503 is the common, actionable case: the persona has no Anam
-        // catalogue ids filled in yet, or ANAM_API_KEY is unset.
-        throw new Error(
-            response.status === 503
-                ? "The avatar isn't configured yet."
-                : `Couldn't start the avatar (${response.status}).`,
-        );
-    }
-
-    const payload = (await response.json()) as { session_token?: string };
-    if (!payload.session_token) throw new Error("The avatar session couldn't be created.");
-    return payload.session_token;
+    /**
+     * Anam pipeline mode only: called with (userText, agentText) whenever
+     * a complete conversation turn is detected via MESSAGE_HISTORY_UPDATED.
+     * ChatGPTInterface uses this to inject messages into the UI + Supabase.
+     */
+    onAnamTurn?: (userText: string, agentText: string) => void;
 }
 
 const AnamAvatar = ({
-    avatarId,
-    hideChrome,
-    transparentBackground,
-    onTranscript,
-    onSpeakingChange,
-}: Props) => {
-    // streamToVideoElement() resolves via document.getElementById, so the
-    // element needs a real, unique DOM id — colons from useId() are stripped
-    // to keep it usable as a CSS selector too.
-    const videoElementId = `anam-video-${useId().replace(/:/g, "")}`;
+    hideChrome = false,
+    transparentBackground = false,
+    onAnamTurn,
+}: AnamAvatarProps) => {
+    // Stable video element id — useId() never changes for the same mount.
+    const rawId  = useId();
+    const videoId = `anam-video-${rawId.replace(/:/g, "")}`;
 
-    const [status, setStatus] = useState<Status>("connecting");
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [isSpeaking, setIsSpeaking] = useState(false);
-    const [retryNonce, setRetryNonce] = useState(0);
+    const [supabaseJwt, setSupabaseJwt] = useState<string | null>(null);
+    const { message: avatarCurrentMessage, onMessagePlayed } = useChat();
 
-    const clientRef = useRef<AnamClient | null>(null);
-
-    // Latest-callback refs: the parent re-renders on every transcript update,
-    // so depending on the callbacks directly would tear down the session on
-    // each message.
-    const onTranscriptRef = useRef(onTranscript);
-    const onSpeakingChangeRef = useRef(onSpeakingChange);
+    // Resolve Supabase JWT once on mount for the session-token backend call.
     useEffect(() => {
-        onTranscriptRef.current = onTranscript;
-        onSpeakingChangeRef.current = onSpeakingChange;
-    }, [onTranscript, onSpeakingChange]);
-
-    const markSpeaking = useCallback((speaking: boolean) => {
-        setIsSpeaking(speaking);
-        onSpeakingChangeRef.current?.(speaking);
+        supabase.auth.getSession().then(({ data }) => {
+            setSupabaseJwt(data.session?.access_token ?? null);
+        });
     }, []);
 
+    const { isReady, isSpeaking, error, pipelineMode, speakWithAnam, interruptAnam } =
+        useAnamAvatar({
+            supabaseJwt,
+            videoElementId: videoId,
+            onMessagePlayed,
+            onAnamTurn, // bubbled up to ChatGPTInterface for UI injection
+        });
+
+    // ── React to avatar messages (MindMitra pipeline mode only) ───────────────
+    // In Anam pipeline mode this effect is a no-op because:
+    //   a) MindMitra's LLM never calls addAvatarMessage()
+    //   b) speakWithAnam() returns immediately (no-op) in Anam mode
+    const lastMessageIdRef = useRef<string | null>(null);
+
     useEffect(() => {
-        // StrictMode mounts effects twice in dev. A session is a billed,
-        // concurrency-limited resource, so guard creation on a local flag and
-        // always stop whatever this run started.
-        let cancelled = false;
-        const abortController = new AbortController();
-        let client: AnamClient | null = null;
+        if (!isReady || !avatarCurrentMessage) return;
+        if (ANAM_PIPELINE_MODE) return; // Anam speaks for itself
 
-        // Transcript text comes from the settled history rather than the
-        // stream chunks: MessageStreamEvent carries a `contentIndex`, so its
-        // `content` may be a fragment rather than the full line. Subtitles
-        // therefore land at end-of-turn instead of word-by-word.
-        const handleHistory = (messages: Message[]) => {
-            onTranscriptRef.current?.(
-                messages.map((m) => ({
-                    id: m.id,
-                    role: m.role === MessageRole.USER ? "user" : "persona",
-                    content: m.content,
-                })),
-            );
-        };
-        const handleVideoStarted = () => {
-            if (!cancelled) setStatus("live");
-        };
-        const handleClosed = (_reason: unknown, details?: string) => {
-            if (cancelled) return;
-            markSpeaking(false);
-            setStatus("error");
-            setErrorMessage(details ? `Connection closed: ${details}` : "The avatar disconnected.");
-        };
-        const handleMicDenied = () => {
-            if (cancelled) return;
-            setStatus("error");
-            setErrorMessage("Microphone access is needed to talk with the avatar.");
-        };
-        // Persona speaking state comes from the stream events' `endOfSpeech`
-        // flag. AUDIO_STREAM_STARTED is NOT usable here — it fires once when
-        // the WebRTC audio track opens, not per utterance, so it would latch
-        // the indicator on for the whole session.
-        const handleStreamEvent = (event: MessageStreamEvent) => {
-            if (cancelled || event.role !== MessageRole.PERSONA) return;
-            markSpeaking(!event.endOfSpeech && !event.interrupted);
-        };
-        // Barge-in: the user talking over the persona ends its turn.
-        const handleUserSpeechStarted = () => markSpeaking(false);
+        const msgId = avatarCurrentMessage.utteranceId ?? avatarCurrentMessage.id ?? null;
+        if (msgId && msgId === lastMessageIdRef.current) return;
+        lastMessageIdRef.current = msgId;
 
-        (async () => {
-            try {
-                setStatus("connecting");
-                setErrorMessage(null);
+        const text = (avatarCurrentMessage.text ?? "").trim();
+        if (!text) { onMessagePlayed(); return; }
 
-                const sessionToken = await fetchSessionToken(avatarId, abortController.signal);
-                if (cancelled) return;
+        if (isSpeaking) interruptAnam();
+        void speakWithAnam(text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [avatarCurrentMessage, isReady]);
 
-                client = createClient(sessionToken);
-                clientRef.current = client;
-
-                client.addListener(AnamEvent.MESSAGE_HISTORY_UPDATED, handleHistory);
-                client.addListener(AnamEvent.MESSAGE_STREAM_EVENT_RECEIVED, handleStreamEvent);
-                client.addListener(AnamEvent.VIDEO_PLAY_STARTED, handleVideoStarted);
-                client.addListener(AnamEvent.CONNECTION_CLOSED, handleClosed);
-                client.addListener(AnamEvent.MIC_PERMISSION_DENIED, handleMicDenied);
-                client.addListener(AnamEvent.USER_SPEECH_STARTED, handleUserSpeechStarted);
-
-                await client.streamToVideoElement(videoElementId);
-                if (cancelled) return;
-                setStatus("live");
-            } catch (err) {
-                if (cancelled || abortController.signal.aborted) return;
-                console.error("❌ [Anam] Session start failed:", err);
-                setStatus("error");
-                setErrorMessage(err instanceof Error ? err.message : "Couldn't start the avatar.");
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-            abortController.abort();
-            const active = client;
-            client = null;
-            clientRef.current = null;
-            if (!active) return;
-            active.removeListener(AnamEvent.MESSAGE_HISTORY_UPDATED, handleHistory);
-            active.removeListener(AnamEvent.MESSAGE_STREAM_EVENT_RECEIVED, handleStreamEvent);
-            active.removeListener(AnamEvent.VIDEO_PLAY_STARTED, handleVideoStarted);
-            active.removeListener(AnamEvent.CONNECTION_CLOSED, handleClosed);
-            active.removeListener(AnamEvent.MIC_PERMISSION_DENIED, handleMicDenied);
-            active.removeListener(AnamEvent.USER_SPEECH_STARTED, handleUserSpeechStarted);
-            // Fire-and-forget: React cleanup is sync, but the session must be
-            // released or it keeps billing until Anam's idle timeout.
-            active.stopStreaming().catch((err) => {
-                console.warn("⚠️ [Anam] stopStreaming during cleanup failed:", err);
-            });
-        };
-    }, [avatarId, videoElementId, retryNonce, markSpeaking]);
-
-    // Backgrounding the tab should release the session rather than stream video
-    // and hold a microphone nobody is using. Remounting on return is handled by
-    // the retry path.
-    useEffect(() => {
-        const releaseIfHidden = () => {
-            if (document.visibilityState !== "hidden") return;
-            const active = clientRef.current;
-            if (!active?.isStreaming()) return;
-            active.stopStreaming().catch(() => {
-                /* session already gone */
-            });
-            markSpeaking(false);
-            setStatus("error");
-            setErrorMessage("Paused while the tab was in the background.");
-        };
-        document.addEventListener("visibilitychange", releaseIfHidden);
-        return () => document.removeEventListener("visibilitychange", releaseIfHidden);
-    }, [markSpeaking]);
-
-    const useTransparentStage = Boolean(transparentBackground);
+    const bgClass = transparentBackground ? "bg-transparent" : "bg-[#1a1a2e]";
 
     return (
-        <div
-            className={`relative w-full h-full overflow-hidden ${useTransparentStage ? "bg-transparent" : "bg-[#1a1a2e]"
-                }`}
-        >
+        <div className={`relative w-full h-full overflow-hidden ${bgClass}`}>
+            {/*
+             * IMPORTANT: this <video> must be in the DOM before the hook calls
+             * client.streamToVideoElement(videoId). The id is stable because
+             * useId() never changes for the same component mount.
+             */}
             <video
-                id={videoElementId}
-                className="relative z-[1] h-full w-full object-cover"
+                id={videoId}
                 autoPlay
                 playsInline
-                disablePictureInPicture
+                className="w-full h-full object-cover"
+                style={transparentBackground ? { background: "transparent" } : undefined}
+                aria-label="MindMitra AI avatar"
             />
 
-            {status === "connecting" && (
+            {/* Loading skeleton while Anam WebRTC session initialises */}
+            {!isReady && !error && (
                 <div
-                    className={`absolute inset-0 flex flex-col items-center justify-center z-10 p-6 space-y-6 animate-pulse ${useTransparentStage ? "bg-black/30 backdrop-blur-sm" : "bg-[#1a1a2e]"
-                        }`}
+                    className={`absolute inset-0 flex flex-col items-center justify-center z-10 p-6 space-y-6 animate-pulse ${
+                        transparentBackground ? "bg-black/30 backdrop-blur-sm" : "bg-[#1a1a2e]"
+                    }`}
                 >
-                    <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-primary/10 border-4 border-primary/20 flex flex-col items-center justify-center space-y-4">
+                    <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-primary/10 border-4 border-primary/20 flex items-center justify-center">
                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
                     </div>
                     <div className="space-y-3 flex flex-col items-center w-full">
@@ -267,20 +125,16 @@ const AnamAvatar = ({
                 </div>
             )}
 
-            {status === "error" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a1a2e]/90 z-10 px-4">
-                    <p className="text-red-400 text-sm text-center">⚠️ {errorMessage}</p>
-                    <button
-                        type="button"
-                        onClick={() => setRetryNonce((n) => n + 1)}
-                        className="rounded-full bg-white/10 px-4 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/40"
-                    >
-                        Try again
-                    </button>
+            {/* Error overlay */}
+            {error && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1a1a2e]/90 z-10 px-4 gap-3">
+                    <p className="text-red-400 text-sm text-center">⚠️ Avatar unavailable</p>
+                    <p className="text-white/50 text-xs text-center max-w-xs leading-relaxed">{error}</p>
                 </div>
             )}
 
-            {status === "live" && isSpeaking && !hideChrome && (
+            {/* Speaking indicator — hidden in Presence Mode (hideChrome=true) */}
+            {isReady && isSpeaking && !hideChrome && (
                 <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
                     {[0, 0.15, 0.3].map((delay) => (
                         <span
@@ -290,6 +144,22 @@ const AnamAvatar = ({
                         />
                     ))}
                     <span className="text-white/80 text-xs ml-1">Speaking</span>
+                </div>
+            )}
+
+            {/* Pipeline mode badge — subtle indicator, visible only on avatar surface */}
+            {isReady && !hideChrome && (
+                <div className="absolute bottom-3 left-3 z-10">
+                    <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm ${
+                            pipelineMode === "anam"
+                                ? "bg-violet-500/30 text-violet-200 border border-violet-400/30"
+                                : "bg-emerald-500/20 text-emerald-300 border border-emerald-400/20"
+                        }`}
+                    >
+                        <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />
+                        {pipelineMode === "anam" ? "Anam LLM" : "MindMitra LLM"}
+                    </span>
                 </div>
             )}
         </div>

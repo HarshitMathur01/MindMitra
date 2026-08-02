@@ -502,6 +502,7 @@ from app.api.avatar import router as v3_avatar_router  # noqa: E402
 from app.api.chat_ws import router as v3_chat_router  # noqa: E402
 from app.api.onboarding import router as v3_onboarding_router  # noqa: E402
 from app.api.snapshot import router as v3_snapshot_router  # noqa: E402
+from app.api.anam import router as anam_router  # noqa: E402
 
 app.include_router(v3_chat_router)
 app.include_router(v3_onboarding_router)
@@ -510,6 +511,7 @@ app.include_router(v3_avatar_router)
 app.include_router(v3_admin_router)
 app.include_router(v3_snapshot_router)
 app.include_router(therapist_bridge_router)
+app.include_router(anam_router)
 
 
 # ── Dev entrypoint ─────────────────────────────────────────────────────────

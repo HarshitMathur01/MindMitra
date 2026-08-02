@@ -66,18 +66,16 @@ import {
 import type { Message, RecentChatPreview } from "./chatTypes";
 
 import { AVATAR_OPTIONS, normalizeAvatarModelId } from "@/lib/avatarOptions";
-import { isAnamAvatar } from "@/lib/avatarProvider";
-import type { AnamTranscriptEntry } from "./AnamAvatar";
 import {
     voiceForLocale,
     sttLocale as getSttLocale,
     type SupportedLanguage,
 } from "@/lib/locale";
 import { trackProductEvent } from "@/lib/productAnalytics";
+import { ANAM_PIPELINE_MODE } from "@/hooks/useAnamAvatar";
 
-const TalkingHeadAvatar = lazy(() => import("./TalkingHeadAvatar"));
 const AnamAvatar = lazy(() => import("./AnamAvatar"));
-const PresenceMode = lazy(() => import("./PresenceMode"));
+const PresenceModeAnam = lazy(() => import("./PresenceModeAnam"));
 
 const durationBand = (ms: number): string => {
     const minutes = ms / 60_000;
@@ -275,24 +273,15 @@ const ChatGPTInterface = () => {
     const effectiveTtsVoice = selectedAvatar.ttsVoice ?? localeVoice.ttsVoice;
     const effectiveTtsLang = selectedAvatar.ttsLang ?? localeVoice.ttsLang;
 
+    // Anam turnkey speaks its own replies and manages the mic itself.
+    const anamOwnsMic = ANAM_PIPELINE_MODE && (isAvatarVisible || isPresenceMode);
+
     useEffect(() => {
         // Anam turnkey speaks its own replies, so the local playback queue must
         // stay disabled or the user hears the same turn twice.
-        avatarPlaybackEnabledRef.current = !isAnamAvatar && (isAvatarVisible || isPresenceMode);
+        avatarPlaybackEnabledRef.current = !ANAM_PIPELINE_MODE && (isAvatarVisible || isPresenceMode);
     }, [isAvatarVisible, isPresenceMode]);
 
-    // ── Anam transcript ─────────────────────────────────────────────────────
-    // Turnkey mode holds its own conversation: these turns never reach POST
-    // /chat, so they are display-only and are not persisted to the session
-    // pipeline, episodic memory, or mood signals.
-    const [anamLastPersonaLine, setAnamLastPersonaLine] = useState<string>("");
-    const handleAnamTranscript = useCallback((entries: AnamTranscriptEntry[]) => {
-        const lastPersona = [...entries].reverse().find((e) => e.role === "persona");
-        setAnamLastPersonaLine(lastPersona?.content ?? "");
-    }, []);
-    // Anam owns the microphone in turnkey mode. Running Azure STT alongside it
-    // would put two captures on the same device.
-    const anamOwnsMic = isAnamAvatar && (isAvatarVisible || isPresenceMode);
 
     const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>(
         (settings?.language as SupportedLanguage) ?? "english",
@@ -784,6 +773,77 @@ const ChatGPTInterface = () => {
         }
     };
 
+    // ── Anam Pipeline Mode: inject completed Anam turns into the chat UI ─────
+    // Called by AnamAvatar → useAnamAvatar when MESSAGE_HISTORY_UPDATED fires.
+    // Mirrors the relevant parts of handleSendMessage but skips the /chat call —
+    // we already have both sides of the conversation from Anam's own pipeline.
+    const handleAnamTurn = useCallback(
+        async (userText: string, agentText: string) => {
+            if (!userText.trim() && !agentText.trim()) return;
+
+            const now = Date.now();
+            const userMsg: Message = {
+                id: now.toString(),
+                content: userText,
+                sender: "user",
+                timestamp: new Date(now),
+            };
+            const aiMsg: Message = {
+                id: (now + 1).toString(),
+                content: agentText,
+                sender: "ai",
+                timestamp: new Date(now + 1),
+            };
+
+            // Inject into the visible chat bubble list
+            setMessages((prev) => [...prev, userMsg, aiMsg]);
+
+            // Persist to Supabase chat_messages (conversation history sidebar)
+            const persistSessionId = currentSessionId;
+            if (persistSessionId) {
+                saveMessage(userMsg, persistSessionId).catch((err) =>
+                    console.error("[AnamTurn] Failed to save user message:", err),
+                );
+                saveMessage(aiMsg, persistSessionId).catch((err) =>
+                    console.error("[AnamTurn] Failed to save agent message:", err),
+                );
+            }
+
+            // Also persist to Redis session (lightweight — no LLM, no signals)
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() ?? "";
+                    const res = await fetch(`${backendUrl}/anam/conversation`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${session.access_token}`,
+                        },
+                        body: JSON.stringify({
+                            user_message: userText,
+                            agent_message: agentText,
+                            session_id: currentSessionId,
+                        }),
+                    });
+                    if (res.ok) {
+                        const data = (await res.json()) as { session_id: string };
+                        if (data.session_id && data.session_id !== currentSessionId) {
+                            setCurrentSessionId(data.session_id);
+                            localStorage.setItem(CHAT_STORAGE_KEYS.activeSessionId, data.session_id);
+                        }
+                        // Refresh the sidebar so this session appears in Recent Chats
+                        window.setTimeout(() => { if (mountedRef.current) loadRecentChats(); }, 800);
+                    }
+                }
+            } catch (err) {
+                console.warn("[AnamTurn] Redis session persist failed (non-fatal):", err);
+            }
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [currentSessionId, saveMessage],
+    );
+
     const handleSendMessage = async (messageText?: string) => {
         const textToSend = messageText || inputValue;
         if (!textToSend.trim() || isLoading) return;
@@ -965,8 +1025,6 @@ const ChatGPTInterface = () => {
      *      relies on the existing avatar pipeline to play the response.
      */
     const handlePresenceMicTap = async () => {
-        // Anam turnkey captures audio itself; starting Azure STT here would put
-        // two recorders on the same microphone.
         if (!voiceSupported || anamOwnsMic) return;
         try {
             if (isRecording) {
@@ -1233,34 +1291,18 @@ const ChatGPTInterface = () => {
                 />
 
                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
-                    {/* Half-pane avatar (legacy). Suppressed while
-                        Presence Mode is active so we don't mount two
-                        avatar sessions simultaneously — for Anam that would
-                        also double-bill and can trip the concurrency cap. */}
+                    {/* Anam AI avatar half-pane. Suppressed while
+                        Presence Mode is active so we don't init two
+                        Anam WebRTC sessions simultaneously. */}
                     {isAvatarVisible && !isPresenceMode && (
                         <div className="relative bg-background border-b border-border lg:border-b-0 lg:border-r lg:w-5/12 min-h-0 shrink-0 overflow-hidden max-h-[38vh] lg:max-h-none">
                             <Suspense fallback={<Skeleton className="h-full min-h-[260px] w-full rounded-none bg-surface/60" />}>
-                                {isAnamAvatar ? (
-                                    <AnamAvatar
-                                        key={selectedAvatarId}
-                                        avatarId={selectedAvatarId}
-                                        onTranscript={handleAnamTranscript}
-                                    />
-                                ) : (
-                                    <TalkingHeadAvatar
-                                        key={`${selectedAvatarId}-${settings?.language}`}
-                                        avatarUrl={selectedAvatar.url}
-                                        ttsLang={effectiveTtsLang}
-                                        ttsVoice={effectiveTtsVoice}
-                                        cameraView={selectedAvatarCameraView}
-                                    />
-                                )}
+                                <AnamAvatar
+                                    onAnamTurn={ANAM_PIPELINE_MODE ? handleAnamTurn : undefined}
+                                />
                             </Suspense>
                             <AnimatePresence>
-                                {/* Subtitles. TalkingHead reads the local playback
-                                    queue; Anam has no queue, so it reads the last
-                                    persona line from its own transcript. */}
-                                {(isAnamAvatar ? anamLastPersonaLine : avatarCurrentMessage?.text) && (
+                                {avatarCurrentMessage?.text && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 12 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -1270,7 +1312,7 @@ const ChatGPTInterface = () => {
                                     >
                                         <div className="bg-foreground/80 backdrop-blur rounded-xl px-4 py-3 mx-2 max-h-24 overflow-hidden">
                                             <TypewriterText
-                                                text={isAnamAvatar ? anamLastPersonaLine : avatarCurrentMessage!.text}
+                                                text={avatarCurrentMessage.text}
                                                 speed={350}
                                                 maxVisibleWords={12}
                                                 className="text-background text-sm font-medium leading-relaxed drop-shadow-lg"
@@ -1505,21 +1547,17 @@ const ChatGPTInterface = () => {
                 }
             />
 
-            {/* Phase 1 — Presence Mode full-screen overlay.
-                Mounts a single TalkingHeadAvatar inside a calm sage
-                bust-shot frame. Phase 2 adds VAD + MicFAB; Phase 3
-                adds bust camera + sentence streaming + subtitles;
-                Phase 4 adds polish (PiP, emotion badge, safety overlay). */}
+            {/* Presence Mode — Anam AI full-screen overlay.
+                Uses AnamAvatar (WebRTC lipsync) instead of TalkingHead iframe.
+                Only one AnamAvatar instance is mounted at a time to avoid
+                duplicate WebRTC sessions consuming bandwidth. */}
             {isPresenceMode && (
                 <Suspense fallback={null}>
-                    <PresenceMode
-                        avatarUrl={selectedAvatar.url}
-                        avatarId={selectedAvatarId}
-                        ttsLang={effectiveTtsLang}
-                        ttsVoice={effectiveTtsVoice}
+                    <PresenceModeAnam
                         micState={micState}
                         onMicTap={handlePresenceMicTap}
                         interimTranscript={currentTranscript}
+                        onAnamTurn={ANAM_PIPELINE_MODE ? handleAnamTurn : undefined}
                     />
                 </Suspense>
             )}

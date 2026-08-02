@@ -121,10 +121,18 @@ export default defineConfig(({ command, mode }) => {
       "/chat": {
         target: backendTarget,
         changeOrigin: true,
+        bypass(req) {
+          if (req.headers.accept?.includes("text/html")) {
+            return "/index.html"; // Let Vite serve the SPA instead of proxying to the backend
+          }
+        },
       },
       "/onboarding": {
         target: backendTarget,
         changeOrigin: true,
+        bypass(req) {
+          if (req.headers.accept?.includes("text/html")) return "/index.html";
+        },
       },
       "/transcribe": {
         target: backendTarget,
@@ -145,10 +153,16 @@ export default defineConfig(({ command, mode }) => {
       "/admin": {
         target: backendTarget,
         changeOrigin: true,
+        bypass(req) {
+          if (req.headers.accept?.includes("text/html")) return "/index.html";
+        },
       },
       "/therapist": {
         target: backendTarget,
         changeOrigin: true,
+        bypass(req) {
+          if (req.headers.accept?.includes("text/html")) return "/index.html";
+        },
       },
     },
     watch: {
@@ -165,7 +179,6 @@ export default defineConfig(({ command, mode }) => {
         "**/src/sounds/**",
         "**/src/pages/mindgym/forest/**",
         "**/src/components/handcrafted_image/**",
-        "**/public/talkinghead/**",
         "**/*.md",
       ],
     },

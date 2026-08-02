@@ -103,9 +103,11 @@ def _transcribe_gate() -> asyncio.Semaphore:
 
 def _resolve_user_id(authorization: Optional[str]) -> str:
     e = env()
+    # Bypass all JWT validation in dev (SKIP_AUTH=true), regardless of whether
+    # a token was sent — matches validate_user_token in app/core/auth.py.
+    if e.skip_auth_effective:
+        return e.dev_user_id
     if not authorization:
-        if e.skip_auth_effective:
-            return e.dev_user_id
         raise HTTPException(status_code=401, detail="Authorization header required")
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization format")

@@ -20,13 +20,13 @@ export const AVATAR_OPTIONS = [
     id: 'brunette',
     name: 'Aria',
     description: 'Warm & expressive',
-    url: '/talkinghead/avatars/brunette.glb',
+    url: '',
   },
   {
     id: 'olaf',
     name: 'Olaf',
     description: 'Gentle & playful',
-    url: '/talkinghead/avatars/Olaf.glb',
+    url: '',
     ttsVoice: 'en-US-DavisNeural',
     ttsLang: 'en-US',
   },
@@ -34,7 +34,7 @@ export const AVATAR_OPTIONS = [
     id: 'avaturn',
     name: 'Maya',
     description: 'Photorealistic',
-    url: '/talkinghead/avatars/avaturn.glb',
+    url: '',
   },
 ] as const satisfies readonly AvatarOption[];
 

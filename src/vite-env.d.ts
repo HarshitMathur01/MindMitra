@@ -12,6 +12,15 @@ interface ImportMetaEnv {
      * unset) for the local TalkingHead iframe. See src/lib/avatarProvider.ts.
      */
     readonly VITE_AVATAR_PROVIDER?: string;
+    /**
+     * Anam AI pipeline mode: `"true"` or `"1"` → Anam handles STT/LLM/TTS.
+     * Default (unset/false) → MindMitra backend pipeline; Anam does lipsync only.
+     */
+    readonly VITE_ANAM_PIPELINE_MODE?: string;
+    /** Sanctuary: `"true"` → read mood logs from Supabase; `"false"` → localStorage only. */
+    readonly VITE_SANCTUARY_MOOD_LOGS_REMOTE?: string;
+    /** Sanctuary: `"true"` → fetch /me/snapshot from Railway backend. */
+    readonly VITE_SANCTUARY_SNAPSHOT_REMOTE?: string;
     /** Set to `1` to enable Mixpanel + `product_events` (see docs/product.md). */
     readonly VITE_ENABLE_PRODUCT_ANALYTICS?: string;
     readonly VITE_MIXPANEL_TOKEN?: string;

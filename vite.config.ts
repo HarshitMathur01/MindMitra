@@ -262,6 +262,7 @@ export default defineConfig(({ command, mode }) => {
           ) {
             return "vendor-classnames";
           }
+          if (id.includes("node_modules/three")) return "vendor-three";
           if (id.includes("framer-motion")) return "vendor-motion";
           if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
           if (id.includes("@radix-ui")) return "vendor-radix";

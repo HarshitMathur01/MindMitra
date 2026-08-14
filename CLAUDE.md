@@ -35,7 +35,10 @@ every data access.
 1. **Crisis path stays bypass-resistant.** Lexical + Groq-LLM confirmer in
    `app/pipeline/crisis_bypass.py`; tests in
    `chatbotAgent/tests/unit/pipeline/test_crisis_bypass.py`. Never bypass these
-   checks in prod without equivalent coverage.
+   checks in prod without equivalent coverage. The Anam avatar runs in turnkey
+   mode (Anam's LLM writes the replies), so `crisis_bypass` is not inline there
+   — `POST /anam/crisis-check` re-adds it out-of-band and the frontend must call
+   it on every user utterance. Do not ship the avatar without that interceptor.
 2. **Auth on chat.** HTTP chat resolves the Supabase JWT against
    `SUPABASE_JWT_SECRET`. `SKIP_AUTH` is dev-only — production refuses unsafe
    SKIP_AUTH when `ENV=production` unless `ALLOW_INSECURE_SKIP_AUTH=true`.
@@ -50,6 +53,18 @@ every data access.
    `/me-memory`, the MITRA v2 pipeline, the mem0 layer, and the one-shot
    greeting service have been deleted. Don't reintroduce them without a written
    sign-off.
+7. **Therapist-bridge consent is deny-by-default.** A `profile-preview` or
+   `referral` request with no `consent` block shares nothing. Every key in
+   `ConsentStatePayload` must govern a real section of the payload — a toggle
+   the server ignores is a promise the UI cannot keep. Filtering happens
+   server-side so the "what your therapist sees" preview is the payload, not a
+   drawing of it.
+8. **Three tables have no writer.** `session_summaries`,
+   `user_contexts.screening_assessments` and `crisis_events` are pre-v3 and
+   nothing populates them. `therapist_profile_builder` reads Qdrant
+   `episodic_memories`, `user_longitudinal_trajectory` and `sessions` instead.
+   Don't point new code at the dead three without adding a writer first —
+   there's a test pinning this (`test_builder_does_not_query_pre_v3_tables`).
 
 ## Gates — local only, there is no CI
 
@@ -116,7 +131,9 @@ POST /chat → resolve authenticated user               — JWT
 | Concern | Primary files |
 |---------|----------------|
 | HTTP surface | `app/main.py`, `app/api/health.py`, `app/api/therapist_bridge.py` |
-| v3 routers | `app/api/chat_ws.py` (`POST /chat`, `_process_turn`), `onboarding.py`, `audio.py`, `avatar.py`, `admin.py`, `snapshot.py` |
+| v3 routers | `app/api/chat_ws.py` (`POST /chat`, `_process_turn`), `onboarding.py`, `audio.py`, `anam.py`, `avatar.py`, `admin.py`, `snapshot.py` |
+| Anam avatar | `app/api/anam.py` (session token, heartbeat, crisis-check, turn recorder), `app/api/avatar.py` (persona builder), `app/services/anam_quota.py` (daily video quota), `config.yaml` → `avatar:`, `src/hooks/useAnamAvatar.ts`, `docs/anam-avatar.md` |
+| Therapist Bridge | Backend: `app/api/therapist_bridge.py`, `app/services/therapist_profile_{builder,synthesis}.py` — live and hardened. Frontend: `src/pages/TherapistBridge.tsx`, `src/components/therapist-bridge/*`, `src/lib/therapist-bridge/*` — a verbatim port of `rana-jatin/remix-of-gentle-bridge` running on **fixtures only**. The two halves are not connected; see `docs/api_contracts.md` §10. |
 | Pipeline | `app/pipeline/{ingestion,signal_extraction,crisis_bypass,orchestrator,memory_retrieval,prompt_builder,llm_core,safety_gate,activity_suggestion}.py` |
 | Connections | `app/core/connections.py` (Redis, Qdrant, Azure, Groq, Gemini, GLM, Supabase) |
 | Session lifecycle | `app/services/session_service.py`, `app/core/session.py`, `app/jobs/session_end_worker.py` |

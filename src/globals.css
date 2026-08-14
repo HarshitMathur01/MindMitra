@@ -527,8 +527,72 @@ img {
     background-position: bottom center;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   Anam avatar stage
+   The video box is locked to the stream's own aspect ratio (see
+   AnamAvatar.tsx), so in the tall laptop side pane there is real space
+   left above and below it. This layer makes that space read as a lit
+   stage rather than a flat slab.
+
+   Everything here is token-driven: the old surface was a hardcoded
+   #1a1a2e, which sat as a dark navy block beside a parchment-light
+   chat column in light theme. It also inherits --mm-chat-accent and
+   --mm-chat-warmth from the chat root, so the backdrop drifts with the
+   same affect signal as the message column — and collapses to neutral
+   on crisis turns along with it, since useChatPersonalization already
+   flattens those variables when urgency >= 2.
+   ══════════════════════════════════════════════════════════════════ */
+
+.mm-avatar-stage {
+    background-color: hsl(var(--surface));
+    background-image:
+        /* Accent halo — a soft pool of light sitting behind the frame. */
+        radial-gradient(
+            ellipse 82% 58% at 50% 40%,
+            color-mix(
+                in oklab,
+                var(--mm-chat-accent, hsl(var(--accent-500))) calc(var(--mm-chat-warmth, 0.8) * 20%),
+                transparent
+            ),
+            transparent 72%
+        ),
+        /* Vignette — hsl(var(--shadow)) rather than an ink step, because the
+           ink scale inverts between themes and would light the corners up
+           in dark mode instead of settling them. */
+        radial-gradient(
+            ellipse 116% 88% at 50% 42%,
+            transparent 46%,
+            hsl(var(--shadow)) 100%
+        );
+    background-repeat: no-repeat;
+}
+
+/* The aspect-locked video box itself: lifted off the stage rather than
+   flush with it, so the letterbox space reads as intentional.
+   --e2 rather than --e3: the pane clips at its own edges, and the larger
+   elevation's 64px falloff gets cut off visibly on a narrow side pane. */
+.mm-avatar-frame {
+    border-radius: 18px;
+    box-shadow: var(--e2);
+    transition: box-shadow 480ms ease;
+}
+
+/* While the avatar speaks, the frame picks up a quiet accent rim. This is
+   the only moving part of the treatment and it is opacity/colour only —
+   no transform, nothing that competes with the face for attention. */
+.mm-avatar-frame[data-speaking="true"] {
+    box-shadow:
+        var(--e2),
+        0 0 0 1px color-mix(in oklab, var(--mm-chat-accent, hsl(var(--accent-500))) 45%, transparent),
+        0 0 36px -8px color-mix(in oklab, var(--mm-chat-accent, hsl(var(--accent-500))) 55%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
     [data-mm-mode] .chat-bubble-text {
+        transition: none;
+    }
+
+    .mm-avatar-frame {
         transition: none;
     }
 }

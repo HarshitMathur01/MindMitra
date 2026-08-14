@@ -6,6 +6,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- ═══════════════════════════════════════
+         Theme — resolved before first paint
+    ═══════════════════════════════════════ -->
+  <script>
+    /* Must stay blocking and must stay here, above every stylesheet.
+       ThemeContext used to resolve the theme in an effect, which meant the
+       first frame was always light: a dark-mode user watched a white page for
+       as long as the JS graph took to arrive, then had it swapped underneath
+       them. Reading the same key here costs one synchronous localStorage hit.
+
+       The precedence is ThemeContext's, exactly: an explicit saved choice wins
+       over the OS, 'system' defers to the OS, and anything else — including a
+       first visit — is light. Keep the two in step; ThemeContext seeds its
+       state from the attribute this sets. */
+    (function () {
+      try {
+        var saved = localStorage.getItem('mindmitra-theme');
+        var theme = saved === 'dark' || saved === 'light' ? saved
+          : saved === 'system'
+            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        /* Storage blocked (private mode). Light is the documented default. */
+      }
+    })();
+  </script>
+
+  <!-- ═══════════════════════════════════════
+         Night River hero — preload for the current hour
+
+         Replaced at build time by the `night-river-hero-preload` plugin in
+         vite.config.ts with a script that names the content-hashed AVIF for
+         whichever hillside this hour gets. Empty in dev. Deliberately above
+         the fonts: this is the LCP candidate on the authenticated `/`, and
+         everything below is discoverable by the preload scanner anyway.
+    ═══════════════════════════════════════ -->
+  <!-- nr:hero-preload -->
+
+  <!-- ═══════════════════════════════════════
          Favicon & App Icons
     ═══════════════════════════════════════ -->
   <link rel="icon" type="image/png" href="/favicon.png" />
@@ -54,32 +93,50 @@
     ═══════════════════════════════════════ -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- ONE render-blocking request for every face the app can show above the
+       fold. This was five separate stylesheets; each one was a render-blocking
+       resource in its own right, and the browser will not paint until the last
+       of them lands.
+
+       Families, and who needs them — do not drop one without checking:
+         Kalam ................. body default (index.css --font-sans)
+         Caveat ................ --font-display / --font-script / --font-serif
+         Fraunces .............. .serif-display, shared app + landing
+         DM Serif Display ...... globals.css headings
+         Plus Jakarta Sans ..... globals.css UI
+         Noto Sans Devanagari .. Hindi copy in modals & disclaimers
+         Tiro / Mukta / Libre Baskerville / IBM Plex Sans .. public landing
+         Dancing Script ........ legacy --font-fancy token
+         Work Sans ............. Night River --font-nr-sans (ALSO CampusChess,
+                                 which is why it lives here and not below)
+         Instrument Serif ...... Night River headlines, italic only — the
+                                 roman is not requested, the italic is the
+                                 design's signature -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Caveat:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=DM+Serif+Display&family=Dancing+Script:wght@500;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Kalam:wght@300;400;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Mukta:wght@300;400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Tiro+Devanagari+Hindi&family=Work+Sans:wght@300;400;500;600;700&display=swap"
     rel="stylesheet" />
-  <!-- Devanagari support for Hindi copy that already appears in modals & disclaimers. -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap"
-    rel="stylesheet" />
-  <!-- Public landing (unauthenticated `/`) — see src/components/landing/.
-       Tiro Devanagari Hindi carries the CTA type, Mukta the UI voice, and
-       Libre Baskerville / IBM Plex Sans the editorial "proof" spread.
-       Fraunces is already loaded above and is shared with the app. -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&family=Mukta:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-    rel="stylesheet" />
-  <!-- Sanctuary fonts — Dancing Script kept for legacy --font-fancy token. Caveat now loaded above; Cormorant retired in favor of handwritten Caveat for --font-serif. -->
-  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet" />
-  <!-- Campus Chess fonts — used only by the CampusChess MindGym tool.
-       Work Sans is shared with the Night River home (--font-nr-sans); do not
-       drop it from this request without adding it to the one below. -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700;800&family=Work+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
-    rel="stylesheet" />
-  <!-- Night River (authenticated `/`) — see src/components/sanctuary/river/.
-       Instrument Serif carries every headline, always italic. The italic face
-       is the design's signature, so the roman is not requested. -->
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap"
-    rel="stylesheet" />
+
+  <!-- Shippori Mincho B1 + JetBrains Mono — CampusChess and BuddyTicTacToe
+       only, both lazily-routed MindGym tools.
+
+       Deliberately NOT render-blocking. Shippori Mincho B1 is a Japanese
+       serif: Google splits it into hundreds of unicode-range subsets and the
+       @font-face block alone is 345 KB (~90 KB gzipped). It was sitting in
+       front of first paint on every route in the app — the landing, chat,
+       the home screen — to serve two games most users never open. The actual
+       font files were never downloaded there; the CSS describing them was.
+
+       `media="print"` makes the browser fetch it at low priority without
+       blocking render; the onload flip applies it once it arrives. On the two
+       tool pages that use it the faces are in place long before a lazy route
+       chunk finishes, and `display=swap` covers the case where they aren't. -->
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+    href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700;800&family=JetBrains+Mono:wght@400;600&display=swap" />
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700;800&family=JetBrains+Mono:wght@400;600&display=swap" />
+  </noscript>
 
   <!-- ═══════════════════════════════════════
          Base Styles — smooth scroll + font
@@ -103,6 +160,17 @@
       color: #1a1a1a;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Paired with the theme script at the top of <head>. Without this the
+       pre-React frame is #FAF9F6 for everyone, so a dark-mode user gets a
+       full white screen for the whole of the load and then a hard cut to
+       dark. Values are index.css's --ink-0 / --foreground for the dark
+       theme, resolved to hex — this is the only place they can't be a
+       custom property, because index.css has not loaded yet. */
+    html[data-theme="dark"] body {
+      background-color: #111318;
+      color: #e0dbd2;
     }
 
     /* Page load fade-in */

@@ -8,7 +8,7 @@ Complements [MITRA.md](MITRA.md) (backend narrative) and [platform.md](platform.
 
 - **React/Vite SPA** (`src/`) talks to **FastAPI** (`chatbotAgent/`) over HTTPS.
 - **Auth and relational data:** Supabase (JWT to API).
-- **Avatar / TTS:** browser-side (Azure, Google fallbacks in `public/talkinghead.html`); backend returns **text** and motion hints, not audio bytes.
+- **Avatar / TTS:** Anam.ai hosted avatar over WebRTC. In turnkey mode Anam supplies STT, LLM and TTS and the backend brokers a session token only; crisis screening is re-added out-of-band. See [anam-avatar.md](anam-avatar.md).
 
 ---
 

@@ -70,12 +70,7 @@ export function greetingForHour(hour: number): string {
   return "Quiet night";
 }
 
-export type TimeScene = "morning" | "afternoon" | "evening" | "night";
-
-export function sceneForHour(hour: number): TimeScene {
-  if (hour < 5) return "night";
-  if (hour < 12) return "morning";
-  if (hour < 17) return "afternoon";
-  if (hour < 21) return "evening";
-  return "night";
-}
+// The scene picker moved to ./scene.ts so the build and the eager entry can
+// import it without pulling React in. Re-exported here because this is where
+// the rest of the surface has always looked for it.
+export { sceneForHour, type TimeScene } from "./scene";

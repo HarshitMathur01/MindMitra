@@ -94,32 +94,126 @@ speech:
   transcribe_max_audio_bytes: 6291456
   transcribe_concurrency_limit: 2
 
-# Anam.ai hosted avatar personas, used only when the frontend runs with
-# VITE_AVATAR_PROVIDER=anam. Keys must match AVATAR_OPTIONS ids in
-# src/lib/avatarOptions.ts and the user_settings.avatar_model CHECK constraint.
+# Anam.ai hosted avatar. This is the *turnkey* path: Anam's own LLM generates
+# the replies, so everything the conversation sounds and feels like is decided
+# here rather than by app/pipeline/. See docs/anam-avatar.md for the full field
+# reference and why each default was chosen.
 #
-# `avatar_id` / `voice_id` are Anam catalogue ids. They are deliberately blank
-# here: fill them from your own account with
-#   curl -H "Authorization: Bearer $ANAM_API_KEY" https://api.anam.ai/v1/avatars
-#   curl -H "Authorization: Bearer $ANAM_API_KEY" https://api.anam.ai/v1/voices
-# An unfilled persona returns 503 rather than starting a mis-configured session.
+# Persona keys must match AVATAR_OPTIONS ids in src/lib/avatarOptions.ts and the
+# user_settings.avatar_model CHECK constraint.
+#
+# `avatar_id` / `voice_id` / `anam_llm_id` are Anam catalogue ids, specific to
+# the account that owns ANAM_API_KEY. Re-list them with:
+#   curl -H "Authorization: Bearer $ANAM_API_KEY" "https://api.anam.ai/v1/avatars?perPage=100"
+#   curl -H "Authorization: Bearer $ANAM_API_KEY" "https://api.anam.ai/v1/voices?perPage=100"
+#   curl -H "Authorization: Bearer $ANAM_API_KEY" "https://api.anam.ai/v1/llms"
+# A persona with a blank avatar_id returns 503 rather than starting a
+# mis-configured session. Every other key below may be left blank/absent, in
+# which case the field is omitted from the request and Anam's own default wins.
 avatar:
   anam_api_base: "https://api.anam.ai/v1"
   anam_timeout_s: 8.0
-  anam_llm_id: ""
+  # GPT OSS 120B — Anam's recommended default. Strong tool calling, which the
+  # crisis interceptor and the system tools below both depend on.
+  anam_llm_id: "a7cf662c-2ace-4de1-a21e-ef0fbf144bb7"
+  default_persona: "brunette"
+  avatar_model: "cara-4"
+
+  session:
+    # 10 min ceiling per session. Was 20 min before the daily video quota
+    # below existed; now that quota — not this — is the intended limit on
+    # total daily use, so a single session no longer needs its own long
+    # allowance. Anam itself enforces this and closes the connection when it
+    # elapses; app/api/anam.py clamps it further, per-request, to whatever is
+    # left of the caller's daily quota.
+    max_session_length_seconds: 600
+    skip_greeting: false
+    # The student must always be able to talk over the avatar, including the
+    # opening line.
+    uninterruptible_greeting: false
+    initial_message: "Hey, I'm here. No rush — tell me what's been going on."
+    # What we expect to HEAR. The persona can move this mid-call via the
+    # change_language system tool; the spoken language follows voice_id.
+    language_code: "en"
+    video_quality: "auto"
+    # DPDP: Anam defaults session replay to ON. Mental-health conversations do
+    # not get recorded on a vendor's disk by default.
+    enable_session_replay: false
+
+    # ── Daily avatar video quota (app/services/anam_quota.py) ────────────────
+    # 10 min per account per rolling IST day (resets at 00:00 Asia/Kolkata).
+    # Enforced two ways: a hard per-request clamp on maxSessionLengthSeconds
+    # above (Anam-side backstop) and a running Redis+Supabase counter debited
+    # by the frontend's heartbeat while the video plays. Override with
+    # ANAM_DAILY_LIMIT_SECONDS if the plan cap changes.
+    daily_limit_seconds: 600
+    # Below this many seconds remaining, refuse to mint a token at all rather
+    # than hand out a session too short to be worth opening.
+    min_session_seconds: 30
+    # Must match the frontend's heartbeat interval (useAnamAvatar.ts). Used
+    # only to clamp a single heartbeat's debit — not the interval itself.
+    heartbeat_interval_seconds: 15
+
+  # Turn-taking. Anam's defaults are tuned for sales/support agents that jump in
+  # fast; every value here deliberately makes the avatar more patient.
+  voice_detection:
+    # 0-1, Anam default 0.5. Lower = waits for more confidence the user is done.
+    end_of_speech_sensitivity: 0.35
+    # 0.5-10s, Anam default 5. Pause tolerated mid-thought before the turn ends.
+    silence_before_auto_end_turn_seconds: 4.0
+    # 0-900s, Anam default 15. How long before gently prompting a quiet user.
+    silence_before_skip_turn_seconds: 45
+    # 0 disables. Anam default 60 would hang up on a student who went quiet
+    # because they are crying. Never enable this here.
+    silence_before_session_end_seconds: 0
+    speech_enhancement_level: 0.8
+
+  # Cartesia sonic-3.x params (speed 0.6-1.5, volume 0.5-2.0, emotion one of
+  # neutral|calm|angry|content|sad|scared). Ignored/reset if voice_id moves to
+  # an ElevenLabs voice, which takes stability/similarity_boost/style instead.
+  voice_generation:
+    speed: 0.95
+    volume: 1.0
+    emotion: "calm"
+
+  # How lines are performed, not what is said. Broad direction only.
+  director_notes:
+    preset_style: "supportive"
+    expressivity: 0.45
+
+  # Tools are referenced by id, never defined inline: the live session-token
+  # endpoint rejects `tools[].type: "system"` even though the published OpenAPI
+  # spec lists it. Create them once with
+  #     python scripts/anam_system_tools.py --create
+  # which registers change_language, pause_conversation and end_call via
+  # POST /v1/tools (type: SYSTEM) and prints the ids to paste in here.
+  #
+  # Empty = no tools. That is a real capability loss, not a cosmetic one:
+  #   change_language     — Hindi/Hinglish code-switching mid-conversation
+  #   pause_conversation  — "give me a minute" without ending the session
+  #   end_call            — a distressed student can stop it by voice alone
+  tool_ids: []
+
   personas:
     brunette:
       name: "Aria"
-      avatar_id: "d9ebe82e-2f34-4ff6-9632-16cb73e7de08"
-      voice_id: ""
+      # Antonia — young woman, cardigan, sofa, warm indoor lighting. Chosen over
+      # the office/blazer avatars: this surface should not read as a clinic.
+      avatar_id: "a7eb25e8-8c31-460d-a397-8cd8010c76d1"
+      # Sneha - Empathetic Voice (Cartesia sonic-3.5, Indian female).
+      voice_id: "9010c2b2-4fc0-11f1-84b0-52bacf74fa75"
     olaf:
       name: "Olaf"
-      avatar_id: ""
-      voice_id: ""
+      # Gabriel (table).
+      avatar_id: "6cc28442-cccd-42a8-b6e4-24b7210a09c5"
+      # Dev - Friendly Host (Cartesia sonic-3.5, Indian male).
+      voice_id: "8e8fd980-4fc0-11f1-84b0-52bacf74fa75"
     avaturn:
       name: "Maya"
-      avatar_id: ""
-      voice_id: ""
+      # Zara - home.
+      avatar_id: "482d0d8a-1c27-4bf3-9be9-30189c63432d"
+      # Meera - Bright Companion (Cartesia sonic-3.5, Indian female).
+      voice_id: "8cf7130f-4fc0-11f1-84b0-52bacf74fa75"
 
 embedding:
   model: "sentence-transformers/all-MiniLM-L6-v2"
@@ -162,3 +256,5 @@ debug:
 
 therapist_bridge:
   blocking_timeout_s: 8.0
+  # Lifetime of the clinician magic-link token, in days.
+  token_ttl_days: 14

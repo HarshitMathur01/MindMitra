@@ -69,7 +69,10 @@ export function Nav({ firstName, initials, context }: NavProps) {
             <li key={link.href}>
               <a
                 href={link.href}
-                className="nr-label transition-opacity duration-500 hover:opacity-100"
+                className={cn(
+                  "nr-label nr-label-strong nr-nav-link transition-opacity duration-500",
+                  !scrolled && "nr-hero-ink",
+                )}
               >
                 {link.label}
               </a>
@@ -93,7 +96,16 @@ export function Nav({ firstName, initials, context }: NavProps) {
             </span>
             <span className="text-left leading-tight">
               <span className="block text-sm font-medium">{firstName}</span>
-              <span className="nr-label block">{context}</span>
+              {/*
+                Same conditional as the bar's own colour above, for the same
+                reason: unscrolled this label is floating on the photograph and
+                needs the hero ink and its halo, but once `nr-glass` is behind
+                it that halo would be a glow against a flat backing. `nr-hero-ink`
+                carries no metrics, so nothing resizes as the bar transitions.
+              */}
+              <span className={cn("nr-label nr-label-strong block", !scrolled && "nr-hero-ink")}>
+                {context}
+              </span>
             </span>
           </Link>
         </div>

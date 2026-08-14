@@ -1,0 +1,165 @@
+/* ── Therapist Bridge surface ────────────────────────────────────────────
+   Upstream: rana-jatin/remix-of-gentle-bridge, src/styles.css.
+
+   Upstream is Tailwind v4 and declares its palette with `@theme inline` plus
+   `@utility` blocks. MindMitra is Tailwind v3, which has neither. Rather than
+   rewrite every component's classNames, this file makes upstream's classNames
+   work as written:
+
+     * the semantic colour tokens (`bg-background`, `text-primary`,
+       `text-muted-foreground`, `bg-card`, `border-border`, …) are Tailwind v3
+       `hsl(var(--x))` lookups in tailwind.config.js, so redefining those vars
+       inside `.mm-bridge` repaints the whole subtree in upstream's parchment
+       palette without touching a single component;
+     * the `@utility` blocks become plain classes with upstream's exact
+       declarations.
+
+   Values are upstream's oklch converted to HSL triplets (Tailwind v3 needs the
+   bare triplet so `/<alpha-value>` modifiers like `bg-card/60` still work).
+
+   Scoped to `.mm-bridge` so it cannot leak into the rest of the app — the same
+   containment pattern as `.mm-river` in components/sanctuary/river/river.css.
+
+   LIGHT ONLY, deliberately: upstream ships a `.dark` block, but MindMitra keys
+   dark off `[data-theme="dark"]` and this surface is a faithful port of a
+   light-only design. Do not wire it to the theme without porting the whole
+   dark palette.
+
+   Fonts: Instrument Serif + Work Sans are already requested render-blocking in
+   index.html for the Night River surface. No new font request.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.mm-bridge {
+  --background: 41.0 48.8% 95.4%;
+  --foreground: 26.3 17.5% 13.4%;
+  --surface: 41.0 62.3% 97.7%;
+  --card-foreground: 26.3 17.5% 13.4%;
+  --popover-foreground: 26.3 17.5% 13.4%;
+  --primary: 141.8 28.0% 25.7%;
+  --primary-foreground: 41.0 57.1% 95.7%;
+  --secondary: 43.8 28.4% 89.2%;
+  --secondary-foreground: 26.2 15.8% 17.6%;
+  --muted: 42.4 26.3% 90.3%;
+  --muted-foreground: 31.4 8.8% 37.3%;
+  --accent: 91.9 23.0% 86.0%;
+  --accent-foreground: 26.2 15.8% 17.6%;
+  --border: 39.6 18.7% 82.7%;
+  --input: 39.6 18.7% 82.7%;
+  --ring: 139.6 15.1% 41.7%;
+  --text-primary: 26.3 17.5% 13.4%;
+
+  /* Upstream's named accents. `ink` and `sage` also exist as Tailwind colours
+     in MindMitra's config (the landing palette, literal hex) and resolve to
+     near-identical values, so `text-ink` / `bg-sage/15` render as intended. */
+  --parchment: 39.6 38.8% 92.0%;
+  --tb-sage: 119.8 13.9% 64.6%;
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+.mm-bridge ::selection {
+  background-color: hsl(var(--tb-sage) / 0.45);
+}
+
+.mm-bridge :focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ── @utility display ─────────────────────────────────────────────────── */
+.mm-bridge .display {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+
+/* ── @utility hand ────────────────────────────────────────────────────── */
+.mm-bridge .hand {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-style: italic;
+  letter-spacing: 0.005em;
+}
+
+/* ── @utility panel ───────────────────────────────────────────────────── */
+.mm-bridge .panel {
+  background-color: hsl(var(--surface) / 0.88);
+  border: 1px solid hsl(var(--border) / 0.9);
+  box-shadow:
+    0 1px 1px hsl(var(--foreground) / 0.03),
+    0 10px 30px -22px hsl(var(--foreground) / 0.45);
+  backdrop-filter: blur(6px);
+}
+
+/* ── @utility lift ────────────────────────────────────────────────────── */
+.mm-bridge .lift {
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 260ms ease;
+}
+
+.mm-bridge .lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px -26px hsl(var(--foreground) / 0.6);
+}
+
+.mm-bridge .lift:active {
+  transform: translateY(0);
+}
+
+/* ── @utility paper-grain ─────────────────────────────────────────────── */
+.mm-bridge.paper-grain,
+.mm-bridge .paper-grain {
+  position: relative;
+}
+
+.mm-bridge.paper-grain::after,
+.mm-bridge .paper-grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+}
+
+/* The hero's grain sits inside a rounded figure, so it must clip to it rather
+   than covering the viewport the way the page-level one does. */
+.mm-bridge figure .paper-grain::after {
+  position: absolute;
+}
+
+/* ── @utility breathe ─────────────────────────────────────────────────── */
+@keyframes tb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+.mm-bridge .breathe {
+  animation: tb-breathe 6.5s ease-in-out infinite;
+}
+
+/* Framer Motion is gated in JS via useReducedMotion; this covers the CSS-only
+   animations that never pass through React. Upstream ships the same block. */
+@media (prefers-reduced-motion: reduce) {
+  .mm-bridge *,
+  .mm-bridge *::before,
+  .mm-bridge *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

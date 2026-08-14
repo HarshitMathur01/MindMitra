@@ -22,21 +22,37 @@ const getSystemTheme = (): Theme =>
 const resolveTheme = (preference: ThemePreference): Theme =>
     preference === 'system' ? getSystemTheme() : preference
 
+/**
+ * The saved preference, with the same precedence the blocking script in
+ * index.html applies: an explicit choice wins over the OS, 'system' defers to
+ * it, and anything else — including a first visit — is light.
+ *
+ * Read synchronously rather than in an effect. When this ran as an effect the
+ * first render was unconditionally light, which cost a white flash for
+ * dark-mode users and made every theme-dependent render decision wrong on the
+ * first pass — Doors picked its light art before the effect swapped it. Both
+ * halves must agree; change them together.
+ */
+const readPreference = (): ThemePreference => {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved === 'light' || saved === 'dark' || saved === 'system') return saved
+    } catch {
+        // Storage blocked (private mode) — fall through to the default.
+    }
+    return 'light'
+}
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-    const [themePreference, setThemePreferenceState] = useState<ThemePreference>('system')
-    const [theme, setThemeState] = useState<Theme>('light')
+    const [themePreference, setThemePreferenceState] = useState<ThemePreference>(readPreference)
+    const [theme, setThemeState] = useState<Theme>(() => resolveTheme(readPreference()))
 
+    // Re-stamp rather than derive: the script in <head> has almost certainly
+    // set this already and this is a no-op, but the attribute must not depend
+    // on that script having survived an edit to index.html.
     useEffect(() => {
-        const saved = localStorage.getItem(STORAGE_KEY) as ThemePreference | null
-        const initialPreference: ThemePreference = saved === 'light' || saved === 'dark' || saved === 'system'
-            ? saved
-            : 'light'
-        const initialTheme = resolveTheme(initialPreference)
-
-        setThemePreferenceState(initialPreference)
-        setThemeState(initialTheme)
-        document.documentElement.setAttribute('data-theme', initialTheme)
-    }, [])
+        document.documentElement.setAttribute('data-theme', theme)
+    }, [theme])
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')

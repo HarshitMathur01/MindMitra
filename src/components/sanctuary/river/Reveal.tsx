@@ -63,7 +63,14 @@ export function Reveal({
           }
         }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" },
+      // Fire *before* the element is on screen, not after. The previous
+      // `-8%` bottom margin shrank the root, so a section had to be well
+      // inside the viewport before its fade even started — the animation was
+      // still running under the user's eyes as they scrolled past it.
+      // 200px on both edges so the work starts in the approach, whichever
+      // direction the scroll came from (a restored scroll position lands
+      // mid-page and reveals upward).
+      { threshold: 0, rootMargin: "200px 0px 200px 0px" },
     );
 
     observer.observe(node);

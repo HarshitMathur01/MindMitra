@@ -3,6 +3,11 @@
 //
 // Filenames are content-hashed; Vite serves them immutable, so a changed image
 // only reaches users under a new name.
+//
+// `lqip` is a ~20px WebP inlined as a data URI. RiverImage paints it as a
+// background under the real image, so a loading tile shows the painting's
+// colours instead of an empty box. It is ~200 bytes; do not grow it into a
+// second image budget.
 
 export interface RiverImageEntry {
   /** width (px) → filename */
@@ -11,6 +16,8 @@ export interface RiverImageEntry {
   /** intrinsic size of the largest variant, for aspect-ratio reservation */
   readonly width: number;
   readonly height: number;
+  /** ~20px WebP data URI painted while the real image loads */
+  readonly lqip: string;
 }
 
 export const RIVER_MANIFEST = {
@@ -24,7 +31,8 @@ export const RIVER_MANIFEST = {
       "640": "door-bridge-dark-640.be027580.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRooAAABXRUJQVlA4IH4AAACQBACdASoUABQAPt1kqE+opaOiKAqpEBuJYwCo9BERMVsJb8b1JadGtcJ5KgAA/uzXLTZNGqtLZIadQimQeZ7DL1Rd3LUq67ePsLuqxLVGxc3ez0zItpr64pWujjmaSsdCfRz2RFtk1sO26sX3fmdc0craOKqx3wnDlWAAAAA="
   },
   "door-bridge": {
     "avif": {
@@ -36,7 +44,8 @@ export const RIVER_MANIFEST = {
       "640": "door-bridge-640.8881f847.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRowAAABXRUJQVlA4IIAAAABwBACdASoUABQAPt1ipU8opaMiKA1REBuJZQC+SBEOag66uiQKz+shm8ULgAD+8c102S+ELn2BrMAJw0yOMsXpjDZ72CGTARsALHn3xk/wJTjJ0OSqZ1WInJGB/EMHd2V9eu+7wVoWsk5nY/WsRG8u3+Rh7gBDW+6UpHWRCcAAAA=="
   },
   "door-diya-dark": {
     "avif": {
@@ -48,7 +57,8 @@ export const RIVER_MANIFEST = {
       "640": "door-diya-dark-640.6af16daf.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRogAAABXRUJQVlA4IHwAAABQBACdASoUABQAPt1ipk8opaMiKA1REBuJYwAAIymiOLBP1K5VsNujXfp4AP7r/ySsgu6apxn7MU7r3AqvZdkIuvZt4GZF432PlOO0j9vtszr6+FP14brH5nvBINrJESS7QhmSDhvq6/2NaFbDaY+mybPskDX7jxRiAAAA"
   },
   "door-diya": {
     "avif": {
@@ -60,7 +70,8 @@ export const RIVER_MANIFEST = {
       "640": "door-diya-640.9e6badc8.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRn4AAABXRUJQVlA4IHIAAACwBACdASoUABQAPt1iq08opSQiKAqpEBuJYwAALnWOT/M1lKnrRwVUrp62zKtAAP7tN1W/YYU4mRDJ9NTnwTMnIyLtb0LFfj9vftAlH8UwqwwIqKarwT3H0YA82lEo4lYW3YETNvUKw9pL4sn6gZI4AAA="
   },
   "door-journal-dark": {
     "avif": {
@@ -72,7 +83,8 @@ export const RIVER_MANIFEST = {
       "640": "door-journal-dark-640.e8514fbc.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRpgAAABXRUJQVlA4IIwAAABwBQCdASoUABQAPt1mq1CopSOiqAgBEBuJYwCxHzRA2BLR1jx8Gcr6FBhEQhpuwSYuxXnAAP7u5ITrJjEC3NOnCxP7OL1AVYSRM3e4t0UVd3RmXO8rpJZ7fd4VBumVa6MB2ZH4XMYrR/Lrcas2gCl16pM1bixhP6l6o/J5XMw43EEkPEou3OicDBAAAA=="
   },
   "door-journal": {
     "avif": {
@@ -84,7 +96,8 @@ export const RIVER_MANIFEST = {
       "640": "door-journal-640.ff0c500c.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRpwAAABXRUJQVlA4IJAAAABwBACdASoUABQAPt1gp04opaMiKA1REBuJZQAAFrMIVT1pA1MVw3kXucAMoAD+aDyZt/bueVbLeCTU+B923+Ed4z+mZvXhq2Dvk1WqjQEg1Vc6l24+sPuTreDpPMDMF0dqWEdzrEJBR8sf2U8pp1VROqFXb3zjboeKWkx23BLHNVG0SfojtNyP12SPnerAAAA="
   },
   "door-mindgym-dark": {
     "avif": {
@@ -96,7 +109,8 @@ export const RIVER_MANIFEST = {
       "640": "door-mindgym-dark-640.0d5168e0.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAAAwBQCdASoUABQAPt1iqE+opSOiKAqpEBuJYwCdMtDBtRjbOh38TnDDla/gzFJhB9AwAAD+8Q/EDAk7+OIfOOpXtBD7qz2w/1sMQHLOnURyhQsxD3gxe3U9CyvtP3PDEHrxO7pjU8Y+DlOr9SxnuBX4DtrrxB94AAA="
   },
   "door-mindgym": {
     "avif": {
@@ -108,7 +122,8 @@ export const RIVER_MANIFEST = {
       "640": "door-mindgym-640.bd76eaf6.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRooAAABXRUJQVlA4IH4AAADQBACdASoUABQAPt1kqE+opaOiKAqpEBuJZQCBBAQE5kHaBLV7mHatUzG1OB4KAAD+mVMy04iEKUtbHZod2hHhxNkPLKLlK5z/ByyHrBHRmIo737DLBtceBgBT8owioEdsmgPzuqvatMdog0SXZjN9+r/ym1PihxI56EBSQAA="
   },
   "door-peer-dark": {
     "avif": {
@@ -120,7 +135,8 @@ export const RIVER_MANIFEST = {
       "640": "door-peer-dark-640.845b03a0.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAACQBACdASoUABQAPt1mrFEopSQiqAgBEBuJZQCsABEONAsF3epQ0CSaMvwQgAAA/u7mmCJgNmjmpoQ9W3wRoTBTDxgKtGumsksncpjydDJNf88d5u0WtHNIF/+0547F2JDe32ncysjRFGNSIddREkZHGXUDTOEkAAA="
   },
   "door-peer": {
     "avif": {
@@ -132,7 +148,8 @@ export const RIVER_MANIFEST = {
       "640": "door-peer-640.2ccc53c0.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRoYAAABXRUJQVlA4IHoAAACwBACdASoUABQAPt1UqUyopCQiMBgMARAbiWMAAC5xVw6Dzz6SuNWOgnS9pQoAAP7v7O6MpzMnQAUtmpqKCV6M+Z8occ7EDDfBeczqXb7fPtAkImwEMHRYbtViXp1n9MUZq/AeDdB3vAXwCu/rKBkvPtE2k4VFxFrcAA=="
   },
   "door-practice-breath": {
     "avif": {
@@ -144,7 +161,8 @@ export const RIVER_MANIFEST = {
       "640": "door-practice-breath-640.4d7b3d6e.webp"
     },
     "width": 640,
-    "height": 480
+    "height": 480,
+    "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAADwAwCdASoUAA8APt1apkyopSOiMAgBEBuJZgCdACHgUcNNZS1PuA1gAP7zdQsYixK8G+IyaNR7Eri3kCrzpJfnigcuYX2RtpyrjFivh1ogRpX3MjkVILNn+hJ7pcTdT7iQyhwF6OygoaXpXeiKzkcxTigAAA=="
   },
   "door-practice-drift": {
     "avif": {
@@ -156,7 +174,8 @@ export const RIVER_MANIFEST = {
       "640": "door-practice-drift-640.960f0930.webp"
     },
     "width": 640,
-    "height": 480
+    "height": 480,
+    "lqip": "data:image/webp;base64,UklGRpAAAABXRUJQVlA4IIQAAADwAwCdASoUAA8APt1cpkyopSOiMAgBEBuJagCxB1/AWJlIARapGu3AAP7ZLZfe9Ni+/CzhulG8rnYJZ6BlbwQR5/q01SWZhMGM3vn5nvpCIZRfoBnyCd5/anjrGQoHDqqr2KvfY92oDn/r4Thtd/qjl6wNNoNRk7TQPTRpvQPxKvAy8AA="
   },
   "door-reads-dark": {
     "avif": {
@@ -168,7 +187,8 @@ export const RIVER_MANIFEST = {
       "640": "door-reads-dark-640.0c75ffb4.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRpwAAABXRUJQVlA4IJAAAAAwBQCdASoUABQAPt1mq1CopSOiqAgBEBuJQBWGargwCrjHhOULvmzxN6DXBzDHuPteAAD+6/8T31AxBOrD3eOlDx3py/qnYLRggirw3R2t1ULJoX235WBv4mf/dCpXQiAHA08vCfuW4ri32+FjbrIJUGsGRlEhLyiVRSpArOCbSUZJ7z3XLA//zAPPia1GAAA="
   },
   "door-reads": {
     "avif": {
@@ -180,7 +200,8 @@ export const RIVER_MANIFEST = {
       "640": "door-reads-640.96a417e9.webp"
     },
     "width": 640,
-    "height": 640
+    "height": 640,
+    "lqip": "data:image/webp;base64,UklGRpQAAABXRUJQVlA4IIgAAACwBACdASoUABQAPt1iqE+opSOiKAqpEBuJZQCnFBEadtWlas5BI1JWiWQz9wxAAP7rIzmeYeD8adQWH+2GyktSIGdjjmZLeqNlP2wDdGGI17bK5Eg/z3A+kaQEVg3MiXriMd1W5Rep34xTjFsJ2J0Y4VnDpV8vQCUJC1CeM6pfI+lTAbQRAAAA"
   },
   "hero-landscape-afternoon": {
     "avif": {
@@ -192,7 +213,8 @@ export const RIVER_MANIFEST = {
       "1264": "hero-landscape-afternoon-1264.9325ea3e.webp"
     },
     "width": 1264,
-    "height": 848
+    "height": 848,
+    "lqip": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAADQAwCdASoUAA0APt1apkyopSOiMAgBEBuJYgCdABt9WoQutX951YAA/uHRl9gKHIuAJT5owmi10CzcI9gXOUXm4FBCftp0hpWZwyWBSNy0B5TRDsn5chMmVj8SkPIXXjK4d6wAAAA="
   },
   "hero-landscape-evening": {
     "avif": {
@@ -204,7 +226,8 @@ export const RIVER_MANIFEST = {
       "1264": "hero-landscape-evening-1264.70037779.webp"
     },
     "width": 1264,
-    "height": 843
+    "height": 843,
+    "lqip": "data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAAAwBACdASoUAA0APt1apkyopSOiMAgBEBuJYgCdHX+gdV6q04K+8dX9/YAA/Xc4ojOj6jxoCaD8m+APL9111vpWqshsLLAE/WgpyODeOOlhJCAHy3EuAv1NXzqrPWILmbLy16gvB1pYAA=="
   },
   "hero-landscape-morning": {
     "avif": {
@@ -216,7 +239,8 @@ export const RIVER_MANIFEST = {
       "1264": "hero-landscape-morning-1264.d02fe380.webp"
     },
     "width": 1264,
-    "height": 848
+    "height": 848,
+    "lqip": "data:image/webp;base64,UklGRmwAAABXRUJQVlA4IGAAAADwAwCdASoUAA0APt1cpkyopSOiMAgBEBuJYwCdACIftwt3qCJEDWoAAP7VxSu79UoQsWfQo1K+Cljhzn4s+kwGmF5Qyw1kKAI15pzDInfrvWtD/nKk9w6MODa6U86JAAA="
   },
   "hero-landscape-night": {
     "avif": {
@@ -228,7 +252,8 @@ export const RIVER_MANIFEST = {
       "1264": "hero-landscape-night-1264.67e08ae4.webp"
     },
     "width": 1264,
-    "height": 848
+    "height": 848,
+    "lqip": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAACQAwCdASoUAA0APt1cpkyopSOiMAgBEBuJQBOgArpGW2L3EZsAAP7uob73rlU7OCSkKVAzjOLFoPmFTV5jFXiR/4MqU8uTre9nvypVnlxYSc6NV1og0yxCkYLeCiUbGXJlMagAAAA="
   }
 } as const satisfies Record<string, RiverImageEntry>;
 

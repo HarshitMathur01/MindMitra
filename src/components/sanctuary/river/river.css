@@ -125,6 +125,11 @@
   --nr-hero-border: color-mix(in oklab, var(--nr-hero-fg) 28%, transparent);
   /* Halo sits *opposite* the title, so it always opens a gap. */
   --nr-hero-halo: color-mix(in oklab, var(--nr-paper) 60%, transparent);
+  /* The h1's glow, retuned for small type — tighter, since a 0.3em spread
+     around 11px copy reads as fog rather than as separation. Custom properties
+     resolve at the use site, so this follows whatever a scene sets for the
+     halo, including the two dark scenes that flip it to ink. */
+  --nr-hero-glow: 0 0 0.05em var(--nr-hero-halo), 0 0 0.35em var(--nr-hero-halo);
 }
 
 /* ----- Light theme: dark copy, hue-matched to the hour -----
@@ -293,6 +298,85 @@
   opacity: 0.65;
 }
 
+/* ----- Hero labels -----
+   `.nr-label` above is tuned for the page's own paper, where 0.65 opacity on
+   `--nr-fg` is a deliberate recession. Over the hero photograph it is wrong
+   twice: the inks in the contrast table near the top of this file were measured
+   at *full* strength, so the 0.65 hands back contrast that was already
+   budgeted — and the mood labels multiplied it by a second 0.6, landing at 0.39
+   effective alpha over a moving image.
+
+   So these take the treatment the h1 already uses, scaled down: the pinned
+   `--nr-hero-title` ink (near-black L 0.16 / near-white L 0.97, carrying only
+   the hour's hue) plus the opposing halo, which is what makes small type robust
+   to the *local* extremes of the photo rather than to its average.
+
+   Type changes are legibility work, not decoration. 500 → 600 keeps the stroke
+   from thinning out at 11px once the halo is behind it; 0.28em → 0.2em stops
+   the words dissolving into loose letters, which is the failure mode of wide
+   tracking on a busy backdrop; the size bump buys back the x-height the
+   uppercase-at-0.68rem setting gave away.
+
+   Split in two on purpose. `nr-hero-ink` is contrast only — colour, full
+   opacity, halo — and changes no metrics, so it is safe on type whose size is
+   already settled, and safe to toggle on scroll without the text reflowing.
+   `nr-hero-label` adds the label metrics on top, for the uppercase labels
+   sitting directly on the hero. */
+.mm-river .nr-hero-ink,
+.mm-river .nr-hero-label {
+  color: var(--nr-hero-title);
+  opacity: 1;
+  text-shadow: var(--nr-hero-glow);
+}
+
+.mm-river .nr-hero-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+/* The Nav's own label step — both anchors and the profile chip. Carries size
+   and weight but no colour, so it composes with `nr-hero-ink` over the
+   photograph and drops back to the page foreground once the bar is on glass.
+
+   It exists as a class rather than Tailwind `text-[…] font-bold` utilities
+   because `.mm-river .nr-label` (0,2,0) outranks any single-class utility: both
+   the size and the 500 weight would have been silently kept. Same trap as the
+   opacity note below. 700 is a real face here — Work Sans ships 300–700 in the
+   index.html request, so nothing is synthesised. */
+.mm-river .nr-label-strong {
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+/* The nav anchors carry their hover as an opacity lift. It replaces a
+   `hover:opacity-100` utility, which was a coin toss: that compiles to
+   `.hover\:opacity-100:hover`, which is (0,2,0) — the same specificity as
+   `.mm-river .nr-label` — so which one won was decided by the order the
+   bundler happened to emit the two stylesheets in. As a scoped rule it is
+   (0,3,0) and settled.
+
+   The lift only has room to move once the bar has scrolled onto its glass
+   backing; over the photograph the links are already at full strength under
+   `nr-hero-ink`, where the affordance is the colour shift instead. */
+.mm-river .nr-nav-link:hover {
+  opacity: 1;
+  color: var(--nr-mood);
+}
+
+/* Active state is driven by `data-active`, not a Tailwind opacity utility:
+   `.mm-river .nr-hero-label` (0,2,0) outranks `.opacity-60` (0,1,0), so a
+   utility here would be silently dropped. The unselected step is shallow
+   because the dot above already carries the selection — scale, fill and glow —
+   and the label does not need to go dim to repeat it. */
+.mm-river .nr-hero-label[data-active="false"] {
+  opacity: 0.82;
+}
+
+.mm-river .group:hover .nr-hero-label[data-active="false"] {
+  opacity: 1;
+}
+
 .mm-river .nr-glass {
   background: color-mix(in oklab, var(--nr-moon) 72%, transparent);
   backdrop-filter: blur(14px);
@@ -308,13 +392,18 @@
 
 /* ----- Scroll reveal -----
    Paired with components/sanctuary/river/Reveal.tsx, which adds
-   `nr-reveal-in` once the element intersects. */
+   `nr-reveal-in` once the element intersects.
+
+   Durations are deliberately shorter than they read: the content is downloaded
+   and laid out well before the fade finishes, so a 1200ms/1400ms pair spent
+   most of its time showing the user something they had already been sent. Same
+   easing, same 28px lift — only the time it takes to resolve changed. */
 .mm-river .nr-reveal {
   opacity: 0;
   transform: translateY(28px);
   transition:
-    opacity 1200ms var(--nr-ease-slow, cubic-bezier(0.22, 0.61, 0.36, 1)),
-    transform 1400ms var(--nr-ease-slow, cubic-bezier(0.22, 0.61, 0.36, 1));
+    opacity 500ms var(--nr-ease-slow, cubic-bezier(0.22, 0.61, 0.36, 1)),
+    transform 650ms var(--nr-ease-slow, cubic-bezier(0.22, 0.61, 0.36, 1));
 }
 
 .mm-river .nr-reveal-in {

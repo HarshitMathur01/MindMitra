@@ -8,13 +8,17 @@ interface ImportMetaEnv {
     readonly VITE_AZURE_TTS_REGION?: string;
     readonly VITE_GOOGLE_TTS_KEY?: string;
     /**
-     * Avatar renderer: `anam` for Anam.ai hosted avatars, anything else (or
-     * unset) for the local TalkingHead iframe. See src/lib/avatarProvider.ts.
+     * Historical avatar-renderer switch. TalkingHead has been deleted, so the
+     * chat surface mounts AnamAvatar unconditionally and nothing reads this.
+     * See src/lib/avatarProvider.ts.
      */
     readonly VITE_AVATAR_PROVIDER?: string;
     /**
-     * Anam AI pipeline mode: `"true"` or `"1"` → Anam handles STT/LLM/TTS.
-     * Default (unset/false) → MindMitra backend pipeline; Anam does lipsync only.
+     * `true` / `1` → Anam turnkey mode: Anam's own STT + LLM + TTS drive the
+     * conversation and the crisis interceptor in useAnamAvatar.ts is what keeps
+     * crisis replies on clinician-reviewed templates. Anything else keeps the
+     * MindMitra /chat pipeline in charge with Anam doing lipsync only.
+     * See docs/anam-avatar.md.
      */
     readonly VITE_ANAM_PIPELINE_MODE?: string;
     /** Sanctuary: `"true"` → read mood logs from Supabase; `"false"` → localStorage only. */

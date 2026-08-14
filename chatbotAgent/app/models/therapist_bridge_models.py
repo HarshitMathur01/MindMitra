@@ -8,12 +8,36 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ConsentStatePayload(BaseModel):
+    """What the clinician is allowed to see.
+
+    One key per real section of the snapshot payload — a toggle that governs
+    nothing is worse than no toggle, because the UI implies a promise the
+    backend does not keep. ``share_anonymously`` was exactly that and is gone.
+
+    Defaults mirror the consent sheet: the two least-identifying categories are
+    on, anything resembling the person's own words is off. ``share_crisis_flags``
+    defaults on because a clinician receiving a referral needs to know a crisis
+    pathway fired — but it stays a toggle, because the user is the one deciding.
+    """
+
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    share_full_profile: bool = Field(alias="shareFullProfile", default=False)
     share_assessments: bool = Field(alias="shareAssessments", default=True)
     share_patterns: bool = Field(alias="sharePatterns", default=True)
-    share_anonymously: bool = Field(alias="shareAnonymously", default=True)
+    share_summaries: bool = Field(alias="shareSummaries", default=False)
+    share_words: bool = Field(alias="shareWords", default=False)
+    share_crisis_flags: bool = Field(alias="shareCrisisFlags", default=True)
+
+    @classmethod
+    def deny_all(cls) -> "ConsentStatePayload":
+        """The fallback when a request carries no consent block at all."""
+        return cls(
+            share_assessments=False,
+            share_patterns=False,
+            share_summaries=False,
+            share_words=False,
+            share_crisis_flags=False,
+        )
 
 
 class MoodPoint(BaseModel):
@@ -43,7 +67,10 @@ class TopicItem(BaseModel):
 class AssessmentItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    type: Literal["PHQ-9", "GAD-7", "WEMWBS"]
+    #: PHQ-2 is what the v3 pipeline actually produces — inferred from
+    #: conversation by ``memory/semantic_write._append_phq2``, not administered.
+    #: The others remain in the union for imported or future self-report data.
+    type: Literal["PHQ-2", "PHQ-9", "GAD-7", "WEMWBS"]
     score: int
     severity: str
     date: str
@@ -135,6 +162,9 @@ class ReferralResponse(BaseModel):
     clinician_view_token: Optional[str] = Field(
         default=None, alias="clinicianViewToken"
     )
+    #: When the clinician link stops resolving. Surface it next to the link —
+    #: a magic link with no visible lifetime reads as permanent.
+    expires_at: Optional[str] = Field(default=None, alias="expiresAt")
 
 
 class ClinicianBriefResponse(BaseModel):

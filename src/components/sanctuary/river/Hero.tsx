@@ -5,27 +5,10 @@ import { Link } from "react-router-dom";
 import { Mic, ArrowUpRight, Lock, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RiverImage } from "./RiverImage";
-import { RIVER_MOODS, greetingForHour, type TimeScene } from "./moods";
-import type { RiverImageName } from "@/assets/river/manifest";
-
-const SCENE_IMAGE: Record<TimeScene, { name: RiverImageName; alt: string }> = {
-  morning: {
-    name: "hero-landscape-morning",
-    alt: "Watercolour hillside in soft rose dawn light",
-  },
-  afternoon: {
-    name: "hero-landscape-afternoon",
-    alt: "Watercolour hillside under a pale blue afternoon sky",
-  },
-  evening: {
-    name: "hero-landscape-evening",
-    alt: "Watercolour hillside at amber sunset",
-  },
-  night: {
-    name: "hero-landscape-night",
-    alt: "Watercolour hillside under a starlit night sky",
-  },
-};
+import { RIVER_MOODS, greetingForHour } from "./moods";
+// The scene→image table lives in scene.ts because the `<head>` preload names
+// the same file before this component exists. See scene.ts.
+import { HERO_SCENE_IMAGE, HERO_SIZES, type TimeScene } from "./scene";
 
 interface HeroProps {
   firstName: string;
@@ -80,7 +63,7 @@ export function Hero({
 
   const greeting = greetingForHour(hour);
   const selected = moodIndex == null ? null : RIVER_MOODS[moodIndex];
-  const image = SCENE_IMAGE[scene];
+  const image = HERO_SCENE_IMAGE[scene];
 
   return (
     <section
@@ -113,7 +96,7 @@ export function Hero({
         <RiverImage
           name={image.name}
           alt={image.alt}
-          sizes="100vw"
+          sizes={HERO_SIZES}
           priority
           className="absolute inset-0 size-full object-cover object-center"
         />
@@ -137,7 +120,7 @@ export function Hero({
       />
 
       <div className="relative z-10 mx-auto max-w-4xl text-center text-nr-hero-fg transition-colors duration-[1600ms]">
-        <p className="nr-label">
+        <p className="nr-label nr-hero-label">
           {greeting}
           {today ? ` · ${today}` : ""}
         </p>
@@ -150,13 +133,15 @@ export function Hero({
           {greeting}, {firstName}.
         </h1>
 
-        <p className="mx-auto mt-7 max-w-xl text-lg font-light leading-relaxed text-nr-hero-muted">
+        <p className="nr-hero-ink mx-auto mt-7 max-w-2xl text-xl font-normal leading-relaxed md:text-[1.375rem]">
           The river of your mind is settling. {checkInLine} — none of them scored, ranked or
           shared.
         </p>
 
         <div className="mt-14">
-          <p className="nr-label">{firstName} — how does the water feel today?</p>
+          <p className="nr-label nr-hero-label">
+            {firstName} — how does the water feel today?
+          </p>
           <div className="mt-7 flex flex-wrap items-start justify-center gap-5 md:gap-7">
             {RIVER_MOODS.map((m) => {
               const active = moodIndex === m.index;
@@ -186,10 +171,8 @@ export function Hero({
                     }}
                   />
                   <span
-                    className={cn(
-                      "nr-label transition-opacity duration-500",
-                      active ? "opacity-100" : "opacity-60 group-hover:opacity-90",
-                    )}
+                    data-active={active ? "true" : "false"}
+                    className="nr-label nr-hero-label transition-opacity duration-500"
                   >
                     {m.label}
                   </span>

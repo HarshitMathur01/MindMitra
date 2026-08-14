@@ -69,6 +69,7 @@ import { AVATAR_OPTIONS, normalizeAvatarModelId } from "@/lib/avatarOptions";
 import {
     voiceForLocale,
     sttLocale as getSttLocale,
+    languageToBcp47,
     type SupportedLanguage,
 } from "@/lib/locale";
 import { trackProductEvent } from "@/lib/productAnalytics";
@@ -844,6 +845,32 @@ const ChatGPTInterface = () => {
         [currentSessionId, saveMessage],
     );
 
+    // ── Anam Pipeline Mode: crisis interceptor tripped ──────────────────────
+    // The avatar is already speaking this text (useAnamAvatar interrupted the
+    // persona and called talk()). All we do here is mirror it into the chat UI
+    // and history. `content` is a clinician-reviewed template from
+    // crisis_bypass — render it verbatim, never rewrite or truncate it.
+    const handleAnamCrisis = useCallback(
+        (content: string, _crisisNumbers: string[]) => {
+            if (!content.trim()) return;
+
+            const crisisMsg: Message = {
+                id: `crisis-${Date.now()}`,
+                content,
+                sender: "ai",
+                timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, crisisMsg]);
+
+            if (currentSessionId) {
+                saveMessage(crisisMsg, currentSessionId).catch((err) =>
+                    console.error("[AnamCrisis] Failed to save crisis message:", err),
+                );
+            }
+        },
+        [currentSessionId, saveMessage],
+    );
+
     const handleSendMessage = async (messageText?: string) => {
         const textToSend = messageText || inputValue;
         if (!textToSend.trim() || isLoading) return;
@@ -1293,12 +1320,18 @@ const ChatGPTInterface = () => {
                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
                     {/* Anam AI avatar half-pane. Suppressed while
                         Presence Mode is active so we don't init two
-                        Anam WebRTC sessions simultaneously. */}
+                        Anam WebRTC sessions simultaneously.
+                        h-[38vh] rather than max-h-[38vh]: AnamAvatar's stage is
+                        absolutely positioned, so the pane needs a definite height
+                        to measure against. On lg it stretches to the row instead. */}
                     {isAvatarVisible && !isPresenceMode && (
-                        <div className="relative bg-background border-b border-border lg:border-b-0 lg:border-r lg:w-5/12 min-h-0 shrink-0 overflow-hidden max-h-[38vh] lg:max-h-none">
+                        <div className="relative bg-background border-b border-border lg:border-b-0 lg:border-r lg:w-5/12 min-h-0 shrink-0 overflow-hidden h-[38vh] lg:h-auto">
                             <Suspense fallback={<Skeleton className="h-full min-h-[260px] w-full rounded-none bg-surface/60" />}>
                                 <AnamAvatar
                                     onAnamTurn={ANAM_PIPELINE_MODE ? handleAnamTurn : undefined}
+                                    sessionId={currentSessionId}
+                                    onCrisis={ANAM_PIPELINE_MODE ? handleAnamCrisis : undefined}
+                                    language={languageToBcp47(selectedLanguage)}
                                 />
                             </Suspense>
                             <AnimatePresence>
@@ -1558,6 +1591,9 @@ const ChatGPTInterface = () => {
                         onMicTap={handlePresenceMicTap}
                         interimTranscript={currentTranscript}
                         onAnamTurn={ANAM_PIPELINE_MODE ? handleAnamTurn : undefined}
+                        sessionId={currentSessionId}
+                        onCrisis={ANAM_PIPELINE_MODE ? handleAnamCrisis : undefined}
+                        language={languageToBcp47(selectedLanguage)}
                     />
                 </Suspense>
             )}

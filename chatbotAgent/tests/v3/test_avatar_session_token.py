@@ -26,9 +26,27 @@ import httpx
 import pytest
 
 from app.api import avatar as avatar_mod
+from app.services import anam_quota
 
 
 ENDPOINT = "/avatar/session-token"
+
+
+@pytest.fixture(autouse=True)
+def _abundant_anam_quota(monkeypatch):
+    """This route is now gated by the daily Anam video quota. Without this,
+    every test here would hit the real anam_quota.get_remaining_seconds(),
+    which falls through to a live Supabase call when Redis is unconfigured —
+    slow and non-deterministic for what is meant to be an offline suite. See
+    test_anam_quota.py for the quota arithmetic itself."""
+    async def fake_remaining(_user_id: str) -> int:
+        return 999_999
+
+    async def fake_mark_start(_user_id: str) -> None:
+        return None
+
+    monkeypatch.setattr(anam_quota, "get_remaining_seconds", fake_remaining)
+    monkeypatch.setattr(anam_quota, "mark_session_start", fake_mark_start)
 
 
 def _patch_env(monkeypatch, **overrides):

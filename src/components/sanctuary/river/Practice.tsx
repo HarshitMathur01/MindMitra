@@ -81,10 +81,15 @@ function RoomSync() {
 
   return (
     <div className="nr-glass relative flex h-full min-h-[26rem] flex-col justify-between gap-6 overflow-hidden rounded-3xl p-8 md:p-10">
+      {/* Capped at the 256px rung. This is a wash — 25% opacity under a 2xl
+          blur — so every detail the 640px variant carries is destroyed before
+          it reaches a pixel. `maxWidth` rather than a small `sizes`, because
+          `sizes` is multiplied by DPR and a 2x phone would round back up. */}
       <RiverImage
         name="door-practice-breath"
         alt=""
         sizes="(min-width: 1024px) 640px, 100vw"
+        maxWidth={256}
         className="pointer-events-none absolute inset-0 size-full object-cover opacity-25 blur-2xl dark:opacity-15 dark:brightness-75"
       />
 
@@ -279,10 +284,12 @@ function PassingThought() {
 
   return (
     <div className="nr-glass relative flex h-full min-h-[26rem] flex-col overflow-hidden rounded-3xl p-8 md:p-10">
+      {/* Same wash, same reasoning as RoomSync above. */}
       <RiverImage
         name="door-practice-drift"
         alt=""
         sizes="(min-width: 1024px) 640px, 100vw"
+        maxWidth={256}
         className="nr-anim-drift pointer-events-none absolute -inset-4 size-[calc(100%+2rem)] object-cover opacity-25 blur-2xl dark:opacity-15 dark:brightness-75"
       />
 

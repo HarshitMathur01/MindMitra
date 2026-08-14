@@ -331,7 +331,7 @@ def build_session_options() -> dict:
     return options
 
 
-@router.post("/avatar/session-token", response_model=AvatarSessionTokenResponse)
+@router.post("/anam/session-token", response_model=AvatarSessionTokenResponse)
 async def avatar_session_token(
     request: AvatarSessionTokenRequest,
     authorization: Optional[str] = Header(default=None),

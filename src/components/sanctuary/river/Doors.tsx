@@ -161,7 +161,7 @@ export function Doors({ companionName }: { companionName: string }) {
           const door = DOORS[id];
           const title = door.title.replace("{companion}", companionName);
           return (
-            <Reveal as="li" key={id} delay={(i + 1) * 70}>
+            <Reveal as="li" key={id} delay={(i + 1) * 40}>
               <Link
                 to={door.to}
                 data-prefetch={door.to}

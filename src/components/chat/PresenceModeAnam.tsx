@@ -42,6 +42,12 @@ interface PresenceModeAnamProps {
      * completed turn from MESSAGE_HISTORY_UPDATED. Forwarded to AnamAvatar.
      */
     onAnamTurn?: (userText: string, agentText: string) => void;
+    /** Backend session id, so crisis screening shares the chat's Redis session. */
+    sessionId?: string | null;
+    /** Anam pipeline mode only: crisis interceptor tripped. Forwarded to AnamAvatar. */
+    onCrisis?: (content: string, crisisNumbers: string[]) => void;
+    /** BCP-47 tag for what Anam should expect to hear. Forwarded to AnamAvatar. */
+    language?: string;
 }
 
 const PresenceModeAnam = ({
@@ -49,6 +55,9 @@ const PresenceModeAnam = ({
     onMicTap,
     interimTranscript,
     onAnamTurn,
+    sessionId,
+    onCrisis,
+    language,
 }: PresenceModeAnamProps) => {
     const {
         isPresenceMode,
@@ -123,13 +132,22 @@ const PresenceModeAnam = ({
                     </div>
 
                     {/* Anam avatar stage — fills the overlay, transparent bg so
-                        the gradient shows through behind the avatar video. */}
-                    <div className="absolute inset-0 z-10 flex items-end sm:items-center justify-center pointer-events-none">
-                        <div className="relative h-full w-full pointer-events-auto">
+                        the gradient shows through behind the avatar video.
+                        Placement now lives inside AnamAvatar, which locks the video
+                        box to the stream's own ratio: on a laptop the overlay is
+                        landscape, and centre-cropping a portrait stream into it was
+                        cutting the persona's head off. `bottom-mobile` preserves the
+                        original bottom-anchored framing on phones. */}
+                    <div className="absolute inset-0 z-10">
+                        <div className="relative h-full w-full">
                             <AnamAvatar
                                 hideChrome
                                 transparentBackground
+                                stageAlign="bottom-mobile"
                                 onAnamTurn={onAnamTurn}
+                                sessionId={sessionId}
+                                onCrisis={onCrisis}
+                                language={language}
                             />
                         </div>
                     </div>

@@ -203,18 +203,136 @@ Qdrant connectivity probe. Returns `404` in production unless
 
 ---
 
-## 9) Therapist-bridge endpoints
+## 9) Anam avatar endpoints
+
+Broker + compensating controls for the Anam AI avatar (turnkey mode — Anam's
+own LLM writes the replies). See `app/api/anam.py`, `app/api/avatar.py` and
+`docs/anam-avatar.md` for the full picture; this is the wire contract.
+
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `/anam/session-token` | GET | JWT | Mints a short-lived Anam session token. Gated by the daily video quota. |
+| `/anam/heartbeat` | POST | JWT | Debits real elapsed video time against the daily quota while the avatar plays. |
+| `/anam/crisis-check` | POST | JWT | Runs `crisis_bypass` over one utterance — the compensating control for turnkey mode not running it inline. |
+| `/anam/conversation` | POST | JWT | Lightweight Redis-only turn recorder for turnkey-mode conversations. |
+| `/avatar/session-token` | POST | JWT | Same broker as `/anam/session-token`, older shape. Not called by the frontend; kept gated rather than deleted. |
+
+### Daily video quota
+
+10 minutes of Anam avatar video per account per day, resetting at IST
+(`Asia/Kolkata`) midnight — not UTC. Enforced by `app/services/anam_quota.py`:
+a Redis counter is the hot path, mirrored into the Supabase
+`anam_usage_daily` table so a Redis eviction cannot silently reset a spent
+user's balance back to a full quota.
+
+`GET /anam/session-token`
+
+```json
+// 200
+{
+  "sessionToken": "string",
+  "avatarId": "string",
+  "remainingSeconds": 540,
+  "maxSessionLengthSeconds": 540
+}
+```
+
+`remainingSeconds` is the daily balance as of this mint, before the session
+spends any of it. `maxSessionLengthSeconds` is the smaller of the configured
+per-session cap and the caller's remaining daily balance — Anam enforces this
+itself and closes the WebRTC connection when it elapses, which is the
+backstop if the client's heartbeat loop dies or lies. Returns **429** if less
+than `min_session_seconds` (default 30s) remains for the day.
+
+`POST /anam/heartbeat`
+
+```json
+// Request
+{ "session_id": "string | null" }
+
+// 200
+{ "remaining_seconds": 525, "exhausted": false }
+```
+
+Carries no duration. The server computes elapsed time itself from a
+timestamp anchored at mint (`mark_session_start`), clamped to twice the
+expected heartbeat interval — a client cannot inflate its remaining balance
+by reporting a fabricated duration or by polling off-cadence. The frontend
+calls this on a fixed ~15s interval while the `<video>` is actually playing
+(`useAnamAvatar.ts`).
+
+---
+
+## 10) Therapist-bridge endpoints
 
 The therapist-bridge feature is a separate product surface that shares
-this FastAPI process. Its contracts are unchanged from the legacy
-release. See `app/api/therapist_bridge.py` for the source of truth.
+this FastAPI process. See `app/api/therapist_bridge.py` for the source of truth.
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/therapist-bridge/therapists` | GET | Directory stub |
-| `/therapist-bridge/profile-preview` | POST | Consent-filterable emotional profile (with optional LLM narrative) |
-| `/therapist-bridge/referral` | POST | Creates a snapshot + clinician view token |
-| `/therapist-bridge/clinician-brief/{token}` | GET | Returns the snapshot for the clinician UI |
+> **No frontend calls these.** `/therapist-bridge` in the SPA is a verbatim port
+> of `rana-jatin/remix-of-gentle-bridge` and runs entirely on the fixtures in
+> `src/lib/therapist-bridge/`. The endpoints below are live, tested and hardened
+> — they are simply unused by the UI today. Everything documented here is what a
+> client *would* get; none of it is currently exercised in production.
+
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `/therapist-bridge/therapists` | GET | none | Directory stub. Returns ids, not photos — the frontend maps id → bundled asset. |
+| `/therapist-bridge/profile-preview` | POST | JWT | Consent-filtered emotional profile (with optional LLM narrative) |
+| `/therapist-bridge/referral` | POST | JWT | Snapshot + referral in one transaction; returns a clinician token and its expiry |
+| `/therapist-bridge/clinician-brief/{token}` | GET | **none** | Magic-link read of the snapshot |
+
+### Data sources
+
+The profile is built from what the v3 pipeline actually writes. The pre-v3
+sources (`session_summaries`, `user_contexts.screening_assessments`,
+`crisis_events`) have no writer and are deliberately **not** read — pointing the
+builder back at them returns an empty profile for every user.
+
+| Section | Source |
+|---------|--------|
+| `assessments` | `user_longitudinal_trajectory.phq2_scores` (session-end Task C) |
+| `moodTrends` | `user_activities`, backfilled from `…trajectory.affect_series` |
+| `topics` | Qdrant `episodic_memories` + `user_semantic_profiles.recurring_themes` |
+| `patterns` | MindGym rows in `user_activities`, plus session-derived metrics |
+| `crisisEvents` | `sessions.peak_urgency >= 2` + `…trajectory.recent_crisis_flag` |
+
+**PHQ-2, not PHQ-9.** It is inferred by a language model from conversation, two
+items scored 0–3, banked at most once every three sessions. Every row carries
+that provenance in `note`, and `DISCLAIMER` states it. Do not relabel it as a
+completed questionnaire.
+
+### Consent
+
+`ConsentStatePayload` has one key per real payload section. A request that omits
+`consent` **denies everything** — it is opt-in, not opt-out.
+
+| Key (camelCase alias) | Default | Governs |
+|---|---|---|
+| `shareAssessments` | `true` | `assessments` |
+| `sharePatterns` | `true` | `moodTrends`, `patterns`, `topics` |
+| `shareSummaries` | `false` | Layer C narrative bullets inside `patterns` |
+| `shareWords` | `false` | User-attached verbatim quotes |
+| `shareCrisisFlags` | `true` | `crisisEvents` |
+
+`shareAnonymously` was removed: it was accepted and read by nothing.
+`crisisEvents` used to ride `sharePatterns`, so enabling mood trends silently
+also shared crisis history.
+
+### Clinician token
+
+Opaque `secrets.token_urlsafe(32)`, expiring after
+`THERAPIST_BRIDGE_TOKEN_TTL_DAYS` (default 14). First read stamps `viewed_at`
+and flips `status` to `delivered`. Expired and unknown tokens both return 404 —
+they must be indistinguishable to whoever holds the link.
+
+**Residual risk:** the token is a path segment, so it lands in proxy and access
+logs regardless of the "do not log token" discipline in the handler. Expiry and
+the recorded first view are the real mitigations. Moving it to a header would
+break the magic-link flow and has not been done.
+
+Requires the `20260814120000_therapist_bridge_hardening.sql` migration — it adds
+`expires_at` / `viewed_at` and the `create_therapist_referral` function the
+referral endpoint calls.
 
 ---
 

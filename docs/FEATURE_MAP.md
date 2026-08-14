@@ -30,7 +30,7 @@ here disagrees with reality, update both.
 | Surface | Route | Entry file | Notes |
 |---|---|---|---|
 | Chat (text + voice + avatar) | `/chat` | [src/pages/Chat.tsx](../src/pages/Chat.tsx) → [components/chat/ChatGPTInterface.tsx](../src/components/chat/ChatGPTInterface.tsx) | Streaming chat over HTTP `POST /chat`. |
-| Avatar (lipsync) | inside `/chat` | [TalkingHeadAvatar.tsx](../src/components/chat/TalkingHeadAvatar.tsx) | Iframe bridge; maps backend `expression` → 6 therapeutic moods (empathy, concern, encouragement, acknowledgment, calm, listening). |
+| Avatar | inside `/chat` | [AnamAvatar.tsx](../src/components/chat/AnamAvatar.tsx), [useAnamAvatar.ts](../src/hooks/useAnamAvatar.ts) | Anam.ai over WebRTC. Turnkey mode: Anam's own STT/LLM/TTS drive the conversation, with crisis screening re-added via `POST /anam/crisis-check`. See [anam-avatar.md](anam-avatar.md). TalkingHead was removed in e01fdff. |
 | Voice mic | inside `/chat` | [MicFAB.tsx](../src/components/chat/MicFAB.tsx), [useVoiceRecording.tsx](../src/hooks/useVoiceRecording.tsx), [useAzureSpeech.tsx](../src/hooks/useAzureSpeech.tsx), [useAzureNarration.ts](../src/hooks/useAzureNarration.ts) | Groq Whisper STT fallback via `POST /transcribe`. |
 | Safety overlays | inside `/chat` | [ChatSafetyRail.tsx](../src/components/chat/ChatSafetyRail.tsx), [PresenceSafetyOverlay.tsx](../src/components/chat/PresenceSafetyOverlay.tsx) | Crisis responses use fixed templates, never LLM-generated. |
 | Command palette | global | [components/layout/CommandPalette.tsx](../src/components/layout/CommandPalette.tsx) | Keyboard-driven nav. |
@@ -39,8 +39,8 @@ here disagrees with reality, update both.
 | Surface | Route | Entry file | Notes |
 |---|---|---|---|
 | Therapy landing | `/therapy` | [TherapyLanding.tsx](../src/pages/TherapyLanding.tsx) | Marketing for the bridge. |
-| Therapist bridge | `/therapist-bridge` | [TherapistBridge.tsx](../src/pages/TherapistBridge.tsx) + [components/therapist-bridge/](../src/components/therapist-bridge/) | Profile preview, intake form, consent, directory, clinical actions. |
-| Booking | `/booking/:id` | [Booking.tsx](../src/pages/Booking.tsx), [BookingModal.tsx](../src/components/therapist-bridge/BookingModal.tsx) | |
+| Therapist bridge | `/therapist-bridge` | [TherapistBridge.tsx](../src/pages/TherapistBridge.tsx) + [components/therapist-bridge/](../src/components/therapist-bridge/) | Verbatim port of `rana-jatin/remix-of-gentle-bridge` (see the header comment on the page). One short page; intake, matching, consent and the clinician preview open as sheets over it. **Runs on fixtures only** — [lib/therapist-bridge/](../src/lib/therapist-bridge/); nothing calls the FastAPI endpoints. Palette scoped via `.mm-bridge` in [bridge.css](../src/components/therapist-bridge/bridge.css), applied to `<body>` so portalled sheets inherit it. |
+| Booking | `/booking/:id` | [Booking.tsx](../src/pages/Booking.tsx) | Referral confirmation. Not currently linked from the bridge — `MatchReveal` sends the summary in place and toasts. |
 
 ### 1.5 Mind Gym (14 tools across 5 sections)
 Hub: `/mindgym` → [MindGymHub.tsx](../src/pages/mindgym/MindGymHub.tsx)  ·  Section: `/mindgym/section/:sectionId` → [MindGymSectionPage.tsx](../src/pages/mindgym/MindGymSectionPage.tsx)  ·  Tool: `/mindgym/:toolId` → [MindGymToolPage.tsx](../src/pages/mindgym/MindGymToolPage.tsx)
@@ -200,6 +200,7 @@ Migrations in [supabase/migrations/](../supabase/migrations/). Notable:
 - `20260303125000_create_profile_settings_tables.sql`
 - `20260303130000_personality_system.sql`
 - `20260407120000_therapist_bridge.sql`
+- `20260814120000_therapist_bridge_hardening.sql` — token expiry, `viewed_at`, atomic `create_therapist_referral()`
 - `20260417120000_product_events.sql` — PostHog mirror
 - `20260420120000_mitra_memory_v2.sql`, `20260420130000_mitra_preferences.sql`, `20260420140000_mitra_stage_engine.sql`, `20260420150000_mitra_memory_mirror.sql`
 - `20260601000000_production_cleanup.sql`

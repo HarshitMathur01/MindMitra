@@ -454,6 +454,16 @@ class V3Env:
             env="THERAPIST_BRIDGE_BLOCKING_TIMEOUT_S",
         )
     )
+    #: Lifetime of the unauthenticated clinician magic-link token. The token sits
+    #: in the URL path, so it reaches access logs regardless — a bounded lifetime
+    #: is the mitigation that actually holds.
+    therapist_bridge_token_ttl_days: int = field(
+        default_factory=lambda: config.get_int(
+            "therapist_bridge.token_ttl_days",
+            14,
+            env="THERAPIST_BRIDGE_TOKEN_TTL_DAYS",
+        )
+    )
 
     @property
     def is_non_prod(self) -> bool:

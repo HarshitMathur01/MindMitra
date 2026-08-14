@@ -1,6 +1,21 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+// Same four photographs as before, now bundled instead of hotlinked.
+//
+// These used to be `images.unsplash.com/…?w=1920&q=70` fetched at runtime:
+// 241–793 KB each (793 KB worst case), from a third party, on the LCP path of
+// the landing — and unpreloadable, because the scene is picked at random after
+// the module evaluates. Re-encoded to webp at 1600px/q62, they are 28–95 KB.
+//
+// q62 is lower than you would normally accept for a photograph. It holds up
+// here because the image is never seen bare: a 45% multiply wash, a warm radial
+// and an edge vignette all sit on top of it (see below).
+import backdropOne from "@/assets/therapist-bridge/backdrop-1.webp";
+import backdropTwo from "@/assets/therapist-bridge/backdrop-2.webp";
+import backdropThree from "@/assets/therapist-bridge/backdrop-3.webp";
+import backdropFour from "@/assets/therapist-bridge/backdrop-4.webp";
+
 type Variant = "full" | "faded";
 
 interface TherapyBackdropProps {
@@ -10,13 +25,13 @@ interface TherapyBackdropProps {
 
 const IMAGES = [
   // Two chairs facing each other in a warm consultation room
-  "https://images.unsplash.com/photo-1637245048732-adf1a547835e?auto=format&fit=crop&w=1920&q=70",
+  backdropOne,
   // Warm therapeutic interior, gentle daylight
-  "https://images.unsplash.com/photo-1551847677-dc82d764e1eb?auto=format&fit=crop&w=1920&q=70",
+  backdropTwo,
   // Two pairs of hands resting together — supportive presence
-  "https://images.unsplash.com/photo-1541976844346-f18aeac57b06?auto=format&fit=crop&w=1920&q=70",
+  backdropThree,
   // Soft window light over a quiet sofa
-  "https://images.unsplash.com/photo-1550504630-cc20eca3b23e?auto=format&fit=crop&w=1920&q=70",
+  backdropFour,
 ];
 
 export default function TherapyBackdrop({ variant = "full", className }: TherapyBackdropProps) {

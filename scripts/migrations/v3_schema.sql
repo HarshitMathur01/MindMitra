@@ -170,6 +170,26 @@ CREATE TABLE IF NOT EXISTS public.static_fallback_templates (
     UNIQUE (mode, language_variant, template_index)
 );
 
+-- ── anam_usage_daily ──────────────────────────────────────────────────────
+-- Durable mirror of the Redis-held per-user, per-day Anam avatar video quota
+-- (10 min/24h default; see app/services/anam_quota.py). Redis is the hot
+-- enforcement path; this table exists so a Redis eviction is not a free
+-- quota reset and so usage has an audit trail (DPDP).
+-- user_id here is the Supabase auth UUID (JWT `sub`), matching what
+-- app/api/anam.py::_resolve_user_id() already uses as user_id for this
+-- surface — NOT public.users.id. Intentionally not an FK, same reasoning as
+-- audit_logs: usage history should survive account deletion race conditions
+-- during the same day. This also means user_id is directly comparable to
+-- auth.uid() below, unlike the profile tables which need a users-table join.
+CREATE TABLE IF NOT EXISTS public.anam_usage_daily (
+    user_id       UUID NOT NULL,
+    usage_date    DATE NOT NULL,
+    seconds_spent INT NOT NULL DEFAULT 0,
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, usage_date)
+);
+CREATE INDEX IF NOT EXISTS anam_usage_daily_user_id_idx ON public.anam_usage_daily(user_id);
+
 -- ============================================================================
 -- ROW LEVEL SECURITY
 -- ============================================================================
@@ -183,6 +203,7 @@ ALTER TABLE public.failed_summaries               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.failed_extractions             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crisis_templates               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.static_fallback_templates      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.anam_usage_daily               ENABLE ROW LEVEL SECURITY;
 
 -- users: owner can read + update their own row; insert via service role only.
 DROP POLICY IF EXISTS users_self_select ON public.users;
@@ -243,6 +264,12 @@ CREATE POLICY crisis_templates_read ON public.crisis_templates
 DROP POLICY IF EXISTS static_fallback_read ON public.static_fallback_templates;
 CREATE POLICY static_fallback_read ON public.static_fallback_templates
     FOR SELECT TO authenticated USING (TRUE);
+
+-- anam_usage_daily: owner can SELECT their own quota usage; INSERT/UPDATE via
+-- service role only (anam_quota.py always writes with the service key).
+DROP POLICY IF EXISTS anam_usage_daily_self_select ON public.anam_usage_daily;
+CREATE POLICY anam_usage_daily_self_select ON public.anam_usage_daily
+    FOR SELECT USING (user_id = auth.uid());
 
 -- ============================================================================
 -- helper RPC: increment_session_count (called by session-end pipeline)

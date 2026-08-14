@@ -1,38 +1,6 @@
-import {
-  RIVER_MANIFEST,
-  type RiverImageEntry,
-  type RiverImageName,
-} from "@/assets/river/manifest";
-
-/**
- * Resolves the generated (content-hashed) filenames to real bundled URLs.
- *
- * The manifest only knows filenames — it is written by a Node script that has
- * no idea what Vite will do with them. This glob is what actually pulls the
- * files into the bundle graph and yields their final URLs. Eager because the
- * map has to be readable synchronously during render, and it is only ~72 URL
- * strings, not the image bytes.
- */
-const ASSET_URLS = import.meta.glob<string>("@/assets/river/*.{avif,webp}", {
-  eager: true,
-  query: "?url",
-  import: "default",
-});
-
-/** `.../door-diya-640.0c66eb7e.avif` → `door-diya-640.0c66eb7e.avif` */
-const BY_FILENAME = new Map(
-  Object.entries(ASSET_URLS).map(([path, url]) => [path.split("/").pop() as string, url]),
-);
-
-function srcSet(variants: Readonly<Record<number, string>>): string {
-  return Object.entries(variants)
-    .map(([width, filename]) => {
-      const url = BY_FILENAME.get(filename);
-      return url ? `${url} ${width}w` : null;
-    })
-    .filter(Boolean)
-    .join(", ");
-}
+import type { CSSProperties } from "react";
+import { riverImageSources } from "@/assets/river/urls";
+import type { RiverImageName } from "@/assets/river/manifest";
 
 /**
  * react-dom 18 doesn't know the camelCase `fetchPriority` prop — React 19 added
@@ -55,6 +23,12 @@ interface RiverImageProps {
    * the current time of day.
    */
   priority?: boolean;
+  /**
+   * Drop every srcset rung wider than this. For decorative art that is blurred
+   * or washed out before it reaches the user, where no viewport or DPR
+   * justifies the larger file. Leave unset for anything meant to be looked at.
+   */
+  maxWidth?: number;
 }
 
 /**
@@ -67,14 +41,27 @@ interface RiverImageProps {
  * doesn't reflow as scenes load — this page is one long scroll and a late
  * layout shift is very visible.
  */
-export function RiverImage({ name, alt, sizes, className, priority = false }: RiverImageProps) {
-  const entry: RiverImageEntry = RIVER_MANIFEST[name];
-  // Largest WebP is the <img src> fallback, for anything that understands
-  // neither <source> nor AVIF.
-  const widest = Object.entries(entry.webp).sort(
-    ([a], [b]) => Number(b) - Number(a),
-  )[0]?.[1];
-  const fallback = widest ? BY_FILENAME.get(widest) : undefined;
+export function RiverImage({
+  name,
+  alt,
+  sizes,
+  className,
+  priority = false,
+  maxWidth,
+}: RiverImageProps) {
+  const { avif, webp, fallback, width, height, lqip } = riverImageSources(name, maxWidth);
+
+  // The ~20px placeholder, painted as the image's own background so it needs no
+  // wrapper element and can't disagree with `object-fit: cover` above it. The
+  // real image is opaque, so it covers this the instant it decodes — there is
+  // nothing to fade out and no state to track. The blur is the upscale itself:
+  // 20px stretched over the box is smooth by construction, which also means no
+  // `filter` and so no compositing cost on a page with eighteen of these.
+  const placeholder: CSSProperties = {
+    backgroundImage: `url("${lqip}")`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
 
   return (
     // `display: contents` so the <img> lays out as if it were a direct child of
@@ -82,17 +69,22 @@ export function RiverImage({ name, alt, sizes, className, priority = false }: Ri
     // parent and `size-full` / `absolute inset-0` on the image resolve against
     // a zero-height box.
     <picture style={{ display: "contents" }}>
-      <source type="image/avif" srcSet={srcSet(entry.avif)} sizes={sizes} />
-      <source type="image/webp" srcSet={srcSet(entry.webp)} sizes={sizes} />
+      <source type="image/avif" srcSet={avif} sizes={sizes} />
+      <source type="image/webp" srcSet={webp} sizes={sizes} />
       <img
         src={fallback}
         alt={alt}
-        width={entry.width}
-        height={entry.height}
+        width={width}
+        height={height}
         loading={priority ? "eager" : "lazy"}
-        decoding={priority ? "sync" : "async"}
+        // `async` even when priority: paired with fetchpriority=high the fetch
+        // is already first in line, and `sync` only buys the right to block the
+        // main thread on a 1264px AVIF decode — which delays the very paint it
+        // was meant to bring forward.
+        decoding="async"
         {...(priority ? PRIORITY_HINT : {})}
         className={className}
+        style={placeholder}
       />
     </picture>
   );

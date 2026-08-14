@@ -40,17 +40,26 @@ JSON shape:
 
 
 def _collect_allowed_ids(facts: Dict[str, Any], metrics: Dict[str, Any]) -> List[str]:
+    """Every id a bullet is permitted to cite.
+
+    ``_validate_bullets`` drops any bullet whose refs are not in here, so this
+    list is the hard boundary on what the model can claim to know. Widen it only
+    alongside a real field in the facts/metrics payload — an id with nothing
+    behind it lets a bullet cite evidence that does not exist.
+    """
     ids = [
-        "fact:screening",
+        "fact:phq2",
         "fact:crisis_count",
         "fact:activity_mix",
-        "fact:session_summaries",
+        "fact:episodic_summaries",
+        "fact:session_count",
+        "fact:longitudinal_risk",
     ]
-    for i, ref in enumerate(metrics.get("topic_evidence_refs") or []):
+    for ref in metrics.get("topic_evidence_refs") or []:
         ids.append(str(ref))
     for i in range(len(metrics.get("patterns_seed") or [])):
         ids.append(f"metric:pattern:{i}")
-    ids.extend(["metric:mood_trend", "metric:topics_lexicon"])
+    ids.extend(["metric:mood_trend", "metric:topics_lexicon", "metric:episodic_count"])
     return ids
 
 
@@ -98,8 +107,10 @@ def synthesize_narrative_bundle(
         "facts": {
             "activity_types": facts.get("activity_type_counts"),
             "crisis_events": facts.get("crisis_events_count"),
-            "session_summaries": facts.get("session_summary_count"),
-            "has_screening": bool(facts.get("screening_raw")),
+            "episodic_summaries": facts.get("episodic_summary_count"),
+            "session_count": facts.get("session_count"),
+            "has_phq2": bool(facts.get("phq2_entry_count")),
+            "longitudinal_risk_flag": bool(facts.get("longitudinal_risk_flag")),
         },
         "metrics": {
             "topics": metrics.get("topics_lexicon")[:6],

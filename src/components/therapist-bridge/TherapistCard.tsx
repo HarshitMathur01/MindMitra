@@ -1,86 +1,98 @@
-import { Star, Video, MapPin, Clock } from "lucide-react";
-import type { Therapist } from "@/lib/mock/therapist-bridge";
+import { motion } from "framer-motion";
+import type { Match } from "@/lib/therapist-bridge/matching";
 
 export function TherapistCard({
-  therapist,
-  onBook,
+  match,
+  onWhy,
 }: {
-  therapist: Therapist;
-  onBook: (t: Therapist) => void;
+  match: Match;
+  onWhy: () => void;
 }) {
-  const initials = therapist.name
-    .replace(/Dr\.?\s*/, "")
-    .split(/\s|,/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0])
-    .join("");
-
+  const t = match.therapist;
   return (
-    <div className="flex h-full flex-col rounded-3xl border border-[rgba(0,0,0,0.04)] bg-[#FBF6EC] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
-      <div className="flex items-start gap-3">
-        <img
-          src={therapist.photo}
-          alt={`Portrait of ${therapist.name}`}
-          loading="lazy"
-          className="h-12 w-12 shrink-0 rounded-full object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-        <span className="sr-only">{initials}</span>
-        <div className="min-w-0 flex-1">
-          <h3 className="qc-display truncate text-lg text-[#2D2A24]">{therapist.name}</h3>
-          <p className="truncate text-xs text-[#7A736A]">{therapist.credentials}</p>
+    <article className="lift group h-full w-[19rem] shrink-0 snap-center overflow-hidden rounded-2xl border border-border bg-card sm:w-auto">
+      <div className="flex gap-4 p-4">
+        <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl">
+          <img
+            src={t.photo}
+            alt={`Portrait of ${t.name}`}
+            loading="lazy"
+            width={512}
+            height={640}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
         </div>
-        <div className="flex items-center gap-1 text-xs text-[#4A4640]">
-          <Star className="h-3.5 w-3.5 fill-[#3F6B47] text-[#3F6B47]" />
-          {therapist.rating}
-          <span className="text-[#7A736A]">({therapist.reviews})</span>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {therapist.specialties.map((s) => (
-          <span
-            key={s}
-            className="rounded-full border border-[rgba(0,0,0,0.06)] px-2.5 py-0.5 text-[11px] font-normal text-[#4A4640]"
-          >
-            {s}
-          </span>
-        ))}
-      </div>
-
-      <p className="mt-4 text-[14px] leading-[1.6] text-[#4A4640]">{therapist.bio}</p>
-
-      <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-[#7A736A]">
-        <div className="flex items-center gap-1.5">
-          {therapist.modality.includes("virtual") ? (
-            <Video className="h-3.5 w-3.5" />
-          ) : (
-            <MapPin className="h-3.5 w-3.5" />
-          )}
-          {therapist.modality.join(" · ")}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Clock className="h-3.5 w-3.5" />
-          {therapist.nextAvailable}
+        <div className="min-w-0">
+          <h3 className="display text-2xl leading-tight text-ink">{t.name}</h3>
+          <p className="text-xs text-muted-foreground">{t.credentials}</p>
+          <p className="mt-2 text-sm text-primary">
+            {match.phrase}
+            <span className="ml-2 text-xs text-muted-foreground">{match.score}%</span>
+          </p>
         </div>
       </div>
 
-      <div className="mt-auto flex items-end justify-between pt-6">
-        <div>
-          <p className="text-xs text-[#7A736A]">Per session</p>
-          <p className="qc-display text-2xl text-[#2D2A24]">₹{therapist.pricePerSession}</p>
-        </div>
+      <div className="space-y-3 border-t border-border/70 px-4 py-4">
+        <p className="hand text-sm leading-relaxed text-muted-foreground">{t.note}</p>
+        <ul className="flex flex-wrap gap-1.5">
+          {t.specialties.slice(0, 3).map((s) => (
+            <li
+              key={s}
+              className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground"
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <div>
+            <dt className="text-[10px] uppercase tracking-[0.14em]">Approach</dt>
+            <dd className="text-foreground">{t.approach.join(", ")}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-[0.14em]">Language</dt>
+            <dd className="text-foreground">{t.languages.join(", ")}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-[0.14em]">Session</dt>
+            <dd className="text-foreground">${t.price}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-[0.14em]">Next open</dt>
+            <dd className="text-foreground">{t.nextAvailable}</dd>
+          </div>
+        </dl>
         <button
           type="button"
-          onClick={() => onBook(therapist)}
-          className="inline-flex items-center justify-center rounded-full bg-[#3F6B47] px-6 py-2.5 text-[13.5px] font-medium text-[#F5EDE0] transition-[transform,filter] duration-200 ease-out hover:-translate-y-px hover:brightness-[0.92] motion-reduce:hover:transform-none motion-reduce:transition-none"
+          onClick={onWhy}
+          className="min-h-11 text-sm text-primary underline-offset-4 hover:underline"
         >
-          Book
+          Why this match?
         </button>
       </div>
-    </div>
+    </article>
+  );
+}
+
+export function TherapistCardReveal({
+  match,
+  index,
+  onWhy,
+  reduced,
+}: {
+  match: Match;
+  index: number;
+  onWhy: () => void;
+  reduced: boolean;
+}) {
+  return (
+    <motion.div
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 18, filter: "blur(6px)" }}
+      animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ delay: reduced ? 0 : index * 0.18, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      className="h-full"
+    >
+      <TherapistCard match={match} onWhy={onWhy} />
+    </motion.div>
   );
 }

@@ -1,7 +1,12 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+// `toast` rather than `useToast()`: this hook only ever needed the function.
+// useToast() subscribes the caller to the toast store, so every component
+// using it re-rendered on every toast anywhere in the app — and this one sits
+// high enough in the tree to drag a lot down with it. The function is the same
+// module-level `toast` useToast() hands back.
+import { toast } from '@/components/ui/use-toast';
 import {
   identifyProductAnalyticsUser,
   resetProductAnalyticsIdentity,
@@ -65,7 +70,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -97,7 +101,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     identifyProductAnalyticsUser(user?.id ?? null);
   }, [user?.id]);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -126,9 +130,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     return { error };
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -148,9 +152,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     return { error };
-  };
+  }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signInWithOAuth({
@@ -169,9 +173,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     return { error };
-  };
+  }, []);
 
-  const resetPasswordForEmail = async (email: string) => {
+  const resetPasswordForEmail = useCallback(async (email: string) => {
     const redirectTo = `${window.location.origin}/auth`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
@@ -190,9 +194,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
     }
     return { error };
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       toast({
@@ -213,18 +217,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       title: "Signed out",
       description: "You've been successfully signed out."
     });
-  };
+  }, []);
 
-  const value = {
-    user,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signInWithGoogle,
-    resetPasswordForEmail,
-    signOut
-  };
+  // AuthProvider wraps the entire app, so an unstable context value re-renders
+  // every useAuth() consumer — and punches through any memo below it — each
+  // time this provider renders for any reason. The handlers close over module
+  // scope only, so they never need to be rebuilt.
+  const value = useMemo(
+    () => ({
+      user,
+      session,
+      loading,
+      signUp,
+      signIn,
+      signInWithGoogle,
+      resetPasswordForEmail,
+      signOut,
+    }),
+    [user, session, loading, signUp, signIn, signInWithGoogle, resetPasswordForEmail, signOut],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

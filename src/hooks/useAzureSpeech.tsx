@@ -23,7 +23,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
-import { loadAzureSpeechSDK } from '@/lib/azureSpeechLoader';
+import { loadAzureSpeechSDK, type AzureSpeechSDKGlobal } from '@/lib/azureSpeechLoader';
 
 // ─── Raw voice metrics (unbiased, objective measurements) ───
 export interface VoiceMetrics {
@@ -272,7 +272,7 @@ export const useAzureSpeech = (sttLocale: string = 'en-IN'): UseAzureSpeechRetur
       speechConfig.enableDictation();
 
       // ── Build AudioConfig ─────────────────────────────────────────────────
-      let audioConfig: SpeechSDK.AudioConfig;
+      let audioConfig: AzureSpeechSDKGlobal;
 
       if (sharedStream) {
         // ── PushStream mode: browser-denoised audio → Azure ──────────────

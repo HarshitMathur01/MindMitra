@@ -1,7 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import {
+    invalidateUserSettingsRow,
+    loadUserSettingsRow,
+} from '@/lib/userSettingsRow';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/use-toast';
+// `toast` rather than `useToast()`: this hook only ever needed the function.
+// useToast() subscribes the caller to the toast store, so every component
+// using it re-rendered on every toast anywhere in the app — and this one sits
+// high enough in the tree to drag a lot down with it. The function is the same
+// module-level `toast` useToast() hands back.
+import { toast } from '@/components/ui/use-toast';
 import type { UserSettings } from '@/lib/types/profile';
 import { DEFAULT_SETTINGS } from '@/lib/types/profile';
 import { normalizeAvatarModelId } from '@/lib/avatarOptions';
@@ -124,7 +133,6 @@ const toDbSettings = (settings: UserSettings): FlatSettingsRow => ({
 
 export function useSettings() {
     const { user } = useAuth();
-    const { toast } = useToast();
     const [settings, setSettings] = useState<UserSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -137,25 +145,12 @@ export function useSettings() {
 
         setLoading(true);
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { data, error } = await (supabase as any)
-                .from('user_settings')
-                .select('*')
-                .eq('user_id', user.id)
-                .single() as { data: FlatSettingsRow | null; error: { code?: string; message?: string } | null };
+            // Shared with usePersonality and with sibling components mounting
+            // this hook on the same screen — see lib/userSettingsRow. "No row"
+            // resolves to null there rather than raising PGRST116.
+            const data = (await loadUserSettingsRow(user.id, '*')) as FlatSettingsRow | null;
 
-            if (error && error.code !== 'PGRST116') {
-                if (error.code === '42P01' || error.message?.includes('does not exist')) {
-                    const stored = localStorage.getItem(`${STORAGE_KEY}-${user.id}`);
-                    if (stored) {
-                        setSettings(JSON.parse(stored));
-                    } else {
-                        setSettings({ ...DEFAULT_SETTINGS, user_id: user.id });
-                    }
-                } else {
-                    throw error;
-                }
-            } else if (data) {
+            if (data) {
                 setSettings(toSettingsModel(data, user.id));
             } else {
                 setSettings({ ...DEFAULT_SETTINGS, user_id: user.id });
@@ -188,12 +183,14 @@ export function useSettings() {
                 localStorage.setItem(`${STORAGE_KEY}-${user.id}`, JSON.stringify(updatedSettings));
             }
 
+            invalidateUserSettingsRow(user.id);
             setSettings(updatedSettings);
             toast({
                 title: 'Settings saved ✨',
                 description: 'Your preferences have been updated.',
             });
         } catch {
+            invalidateUserSettingsRow(user.id);
             localStorage.setItem(`${STORAGE_KEY}-${user.id}`, JSON.stringify(updatedSettings));
             setSettings(updatedSettings);
             toast({

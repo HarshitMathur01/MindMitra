@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
+import {
+  invalidateUserSettingsRow,
+  loadUserSettingsRow,
+} from '@/lib/userSettingsRow'
 import { useAuth } from '@/hooks/useAuth'
 import {
   type Personality,
@@ -41,11 +45,12 @@ export function usePersonality(): UsePersonalityReturn {
     let cancelled = false
     const load = async () => {
       try {
-        const { data } = await (supabase as any)
-          .from('user_settings')
-          .select('companion_personality, companion_name')
-          .eq('user_id', user.id)
-          .maybeSingle()
+        // Shared with useSettings and with any other component mounting this
+        // hook on the same screen — see lib/userSettingsRow. Selects '*' rather
+        // than the two columns it reads so it shares useSettings' cache entry
+        // instead of opening a second one; the row is small and every screen
+        // that mounts this hook mounts useSettings too.
+        const data = await loadUserSettingsRow(user.id, '*')
 
         if (!cancelled && data) {
           if (data.companion_personality) {
@@ -93,6 +98,7 @@ export function usePersonality(): UsePersonalityReturn {
           },
           { onConflict: 'user_id' }
         )
+      invalidateUserSettingsRow(user.id)
     } catch (err) {
       console.error('[usePersonality] Failed to save:', err)
       throw err

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { backendUrl } from "@/lib/backendUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -45,12 +46,7 @@ const REMOTE_ENABLED =
   import.meta.env.VITE_SANCTUARY_SNAPSHOT_REMOTE === "true";
 
 function snapshotEndpoint(): string {
-  const backend = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim();
-  if (backend) return `${backend.replace(/\/$/, "")}/me/snapshot`;
-  if (import.meta.env.PROD) {
-    throw new Error("Missing VITE_BACKEND_URL for production snapshot fetch");
-  }
-  return `${window.location.origin.replace(/\/$/, "")}/me/snapshot`;
+  return backendUrl("/me/snapshot", false);
 }
 
 async function fetchSnapshot(): Promise<Snapshot> {

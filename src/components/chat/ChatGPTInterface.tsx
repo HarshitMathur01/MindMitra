@@ -65,7 +65,7 @@ import {
 } from "./chatExports";
 import type { Message, RecentChatPreview } from "./chatTypes";
 
-import { AVATAR_OPTIONS, normalizeAvatarModelId } from "@/lib/avatarOptions";
+import { AVATAR_OPTIONS, normalizeAvatarModelId, type AvatarOption } from "@/lib/avatarOptions";
 import {
     voiceForLocale,
     sttLocale as getSttLocale,
@@ -73,6 +73,7 @@ import {
     type SupportedLanguage,
 } from "@/lib/locale";
 import { trackProductEvent } from "@/lib/productAnalytics";
+import { backendUrl } from "@/lib/backendUrl";
 import { ANAM_PIPELINE_MODE } from "@/hooks/useAnamAvatar";
 
 const AnamAvatar = lazy(() => import("./AnamAvatar"));
@@ -125,14 +126,7 @@ type MhaChatHttpResponse = {
     trace_id?: string;
 };
 
-const getChatEndpoint = (): string => {
-    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim();
-    if (backendUrl) return `${backendUrl.replace(/\/$/, "")}/chat`;
-    if (import.meta.env.PROD) {
-        throw new Error("Missing VITE_BACKEND_URL for production chat deployment");
-    }
-    return `${window.location.origin.replace(/\/$/, "")}/chat`;
-};
+const getChatEndpoint = (): string => backendUrl("/chat", false);
 
 const postResponseLog = (event: string, fields: Record<string, unknown>) => {
     if (!import.meta.env.DEV) return;
@@ -172,6 +166,9 @@ const ChatGPTInterface = () => {
     const [moodSelected, setMoodSelected] = useState(false);
     const [moodValue, setMoodValue] = useState<number | null>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
+    // Mirrors showScrollBtn so the scroll handler can skip the dispatch unless
+    // the button actually needs to appear or disappear. See onScroll below.
+    const showScrollBtnRef = useRef(false);
     const [continueDismissed, setContinueDismissed] = useState(false);
     const [activityPanelOpen, setActivityPanelOpen] = useState(false);
     const [latestUrgency, setLatestUrgency] = useState(0);
@@ -267,7 +264,10 @@ const ChatGPTInterface = () => {
     useEffect(() => {
         if (settings?.avatar_model) setSelectedAvatarId(normalizeAvatarModelId(settings.avatar_model));
     }, [settings?.avatar_model]);
-    const selectedAvatar =
+    // Annotated as AvatarOption on purpose: AVATAR_OPTIONS is `as const`, so
+    // each entry's literal type omits ttsVoice/ttsLang entirely when that
+    // entry does not set them, and the union has no such property to read.
+    const selectedAvatar: AvatarOption =
         AVATAR_OPTIONS.find((a) => a.id === selectedAvatarId) ?? AVATAR_OPTIONS[0];
     const selectedAvatarCameraView = selectedAvatar.id === "olaf" ? "mid" : undefined;
     const localeVoice = voiceForLocale(settings?.language);
@@ -814,8 +814,7 @@ const ChatGPTInterface = () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session) {
-                    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() ?? "";
-                    const res = await fetch(`${backendUrl}/anam/conversation`, {
+                    const res = await fetch(backendUrl("/anam/conversation"), {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -1362,8 +1361,16 @@ const ChatGPTInterface = () => {
                             }`}
                         ref={scrollAreaRef}
                         onScroll={(e) => {
+                            // Gated on the boolean actually flipping. Re-rendering
+                            // this component is not cheap — it owns the whole
+                            // conversation timeline — and React only bails out on
+                            // an unchanged value *after* it has already paid for
+                            // the dispatch, once per scroll event.
                             const el = e.currentTarget;
-                            setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 250);
+                            const next = el.scrollHeight - el.scrollTop - el.clientHeight > 250;
+                            if (next === showScrollBtnRef.current) return;
+                            showScrollBtnRef.current = next;
+                            setShowScrollBtn(next);
                         }}
                     >
                         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">

@@ -156,6 +156,17 @@ export const loadKeptMoments = (): KeptMoment[] => {
 export const isMomentKept = (messageId: string): boolean =>
     loadKeptMoments().some((m) => m.id === messageId);
 
+/**
+ * The ids of every kept moment, as a Set.
+ *
+ * Callers that need to test more than one message must use this rather than
+ * looping `isMomentKept`: that reads localStorage and JSON.parses the whole
+ * kept array once *per message*, and the chat timeline did exactly that on
+ * every change to `messages`.
+ */
+export const loadKeptMomentIds = (): Set<string> =>
+    new Set(loadKeptMoments().map((m) => m.id));
+
 export const toggleKeptMoment = (moment: KeptMoment): boolean => {
     const current = loadKeptMoments();
     const exists = current.some((m) => m.id === moment.id);

@@ -116,7 +116,9 @@ export const BuddyResponseSchema = z.object({
       holdMs: z.number().min(400).max(12000).default(2600),
       gestureTimeScale: z.number().min(0.25).max(3).default(1),
     })
-    .default({}),
+    // zod v4: .default() wants the parsed output (every field present);
+    // .prefault() applies the value on the input side, as .default({}) did in v3.
+    .prefault({}),
 });
 export type BuddyResponse = z.infer<typeof BuddyResponseSchema>;
 

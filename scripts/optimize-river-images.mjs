@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "nod
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { makeLqip, writeManifest } from "./river-manifest.mjs";
+import { makeLqip, readManifest, writeManifest } from "./river-manifest.mjs";
 
 /**
  * Night River image pipeline.
@@ -32,6 +32,7 @@ const outDir = path.join(repoRoot, "src", "assets", "river");
  * Widths per image role, driven by the largest box each one paints into:
  *   hero  — full-bleed backdrop, capped at the 1264px source
  *   door  — 640 for the 2x2 lead card, 256 for the 108px thumbnail rows
+ *   mood  — 768 for the greeting's check-in reveal, 384 for its mobile column
  *
  * The hero's 960 rung exists because the jump from 640 to 1264 made every
  * mid-range phone round up: a 393pt viewport at DPR 2 asks for 786px and got
@@ -40,19 +41,34 @@ const outDir = path.join(repoRoot, "src", "assets", "river");
 const ROLES = {
   hero: { widths: [640, 960, 1264], avif: 48, webp: 70 },
   door: { widths: [256, 640], avif: 50, webp: 72 },
+  mood: { widths: [384, 768], avif: 50, webp: 72 },
 };
 
 function roleFor(basename) {
-  return basename.startsWith("hero-") ? "hero" : "door";
+  if (basename.startsWith("hero-")) return "hero";
+  if (basename.startsWith("mood-")) return "mood";
+  return "door";
 }
 
 function formatKb(bytes) {
   return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
-const sourceDir = process.argv[2];
+/**
+ * Two modes, because the source art is not in this repo.
+ *
+ * Default: the source dir is authoritative — the manifest it writes is exactly
+ * what it just encoded, so art deleted from the source disappears here too.
+ *
+ * `--merge`: keep every entry already in the manifest and add/replace only the
+ * basenames in this run. This is the only way to add one image without a copy
+ * of all seventeen originals; a full regeneration still wants the default.
+ */
+const args = process.argv.slice(2);
+const merge = args.includes("--merge");
+const sourceDir = args.find((a) => !a.startsWith("--"));
 if (!sourceDir) {
-  console.error("Usage: node scripts/optimize-river-images.mjs <source-dir>");
+  console.error("Usage: node scripts/optimize-river-images.mjs <source-dir> [--merge]");
   process.exit(1);
 }
 if (!existsSync(sourceDir)) {
@@ -128,7 +144,7 @@ for (const file of sources) {
 // Emitted as TypeScript rather than JSON on purpose: tsconfig.app.json does not
 // set `resolveJsonModule`, and a generated .ts file gives the components a real
 // union type for the image names instead of `string`.
-writeManifest(manifest, outDir);
+writeManifest(merge ? { ...readManifest(outDir), ...manifest } : manifest, outDir);
 
 console.log(
   `\n${sources.length} images: ${formatKb(totalIn)} → ${formatKb(totalOut)} ` +

@@ -37,6 +37,11 @@
   --nr-gold: oklch(0.8 0.04 90);
   --nr-lavender: oklch(0.593 0.045 305);
 
+  /* The greeting's quiet voice: the handwritten lines, the "suggested for
+     today" marker, and the underline under yesterday's mood. Also the resting
+     value of --nr-mood before the first check-in — see moods.ts. */
+  --nr-sage: oklch(0.667 0.035 138.2);
+
   /* Mood accent. Re-set inline by SanctuaryHome from the ambience
      state, so the whole page recolours from one property. */
   --nr-mood: oklch(0.626 0.045 235);
@@ -64,6 +69,7 @@
   /* Nocturnal river: dark water, moonlight, lavender haze. */
   --nr-moon: oklch(0.283 0.022 232);
   --nr-gold: oklch(0.74 0.04 90);
+  --nr-sage: oklch(0.72 0.045 137);
   --nr-bg: var(--nr-ink);
   --nr-fg: oklch(0.949 0.005 150);
   --nr-card: var(--nr-forest);
@@ -75,142 +81,6 @@
 .mm-river ::selection {
   background: color-mix(in oklab, var(--nr-mood) 45%, transparent);
   color: var(--nr-fg);
-}
-
-/* ----- Hero legibility -----
-   The hero copy sits on a photograph that changes with the hour, so it cannot
-   inherit the page foreground: in dark theme the page's light text over the
-   *morning* hillside measured 2.56:1, which is unreadable.
-
-   Rather than one flat ink, each hour gets a foreground pulled toward its own
-   scene — rose-brown at dawn, blue under the afternoon sky, umber at sunset,
-   indigo at night — so the type belongs to the light it is sitting in. The
-   hue moves; the lightness stays pinned where contrast demands.
-
-   Every value below is measured, not guessed. The hero band was composited
-   (image at 85% under its mask, then the page scrim, then the veil) and scored
-   against the chosen colour:
-
-     theme  scene      band L   flat ink   now     picked
-     light  morning     0.712    11.78    10.80    rose-brown ink
-     light  afternoon   0.738    12.17    11.60    blue ink
-     light  evening     0.570     9.57     9.03    umber ink
-     light  night       0.460     7.88     7.63    indigo ink
-     dark   morning     0.388     2.56*    6.20    rose-brown ink + paper veil
-     dark   afternoon   0.409     2.39*    6.76    blue ink       + paper veil
-     dark   evening     0.125     4.26     5.16    warm paper     + ink veil
-     dark   night       0.053     8.70     8.85    cool paper
-
-   (* the two failures this replaced: the page's own light foreground over the
-   bright morning and afternoon hillsides. Worst case is now 5.16:1, and the
-   dark "band L" values above are post-veil.)
-
-   `--nr-hero-veil` is an extra wash between photo and copy, used only where
-   raw contrast was marginal, coloured in whichever direction pushes the band
-   away from the text. Light theme needs none — the scrim already washes even
-   the night hillside toward paper.
-
-   Re-run the measurement if the art, the scrim or these colours change; do not
-   hand-tune. Muted and border derive from the foreground, so a scene only ever
-   declares `--nr-hero-fg` (and a veil if it needs one). */
-.mm-river {
-  /* Default is the afternoon ink — any scene overrides it below. */
-  --nr-hero-fg: oklch(0.26 0.04 240);
-  --nr-hero-title: oklch(0.16 0.045 240);
-  --nr-hero-veil: 0;
-  --nr-hero-veil-color: transparent;
-
-  /* Derived. Lazily substituted, so these follow whatever a scene sets. */
-  --nr-hero-muted: color-mix(in oklab, var(--nr-hero-fg) 68%, transparent);
-  --nr-hero-border: color-mix(in oklab, var(--nr-hero-fg) 28%, transparent);
-  /* Halo sits *opposite* the title, so it always opens a gap. */
-  --nr-hero-halo: color-mix(in oklab, var(--nr-paper) 60%, transparent);
-  /* The h1's glow, retuned for small type — tighter, since a 0.3em spread
-     around 11px copy reads as fog rather than as separation. Custom properties
-     resolve at the use site, so this follows whatever a scene sets for the
-     halo, including the two dark scenes that flip it to ink. */
-  --nr-hero-glow: 0 0 0.05em var(--nr-hero-halo), 0 0 0.35em var(--nr-hero-halo);
-}
-
-/* ----- Light theme: dark copy, hue-matched to the hour -----
-   `--nr-hero-title` runs deliberately darker than `--nr-hero-fg`. The headline
-   is the one element that has to survive the *local* extremes of the
-   photograph rather than its average — see the halo rule below. */
-.mm-river[data-nr-scene="morning"] {
-  --nr-hero-fg: oklch(0.28 0.055 35);
-  --nr-hero-title: oklch(0.16 0.05 35);
-}
-.mm-river[data-nr-scene="afternoon"] {
-  --nr-hero-fg: oklch(0.26 0.04 240);
-  --nr-hero-title: oklch(0.16 0.045 240);
-}
-.mm-river[data-nr-scene="evening"] {
-  --nr-hero-fg: oklch(0.27 0.06 55);
-  --nr-hero-title: oklch(0.16 0.055 55);
-}
-.mm-river[data-nr-scene="night"] {
-  --nr-hero-fg: oklch(0.26 0.055 285);
-  --nr-hero-title: oklch(0.16 0.05 285);
-}
-
-/* ----- Dark theme -----
-   Bright hillsides keep the dark copy the photo can carry, lifted by a paper
-   veil so they clear AA with room to spare. */
-[data-theme="dark"] .mm-river[data-nr-scene="morning"],
-.dark .mm-river[data-nr-scene="morning"] {
-  --nr-hero-fg: oklch(0.28 0.055 35);
-  --nr-hero-title: oklch(0.16 0.05 35);
-  --nr-hero-veil: 0.15;
-  --nr-hero-veil-color: var(--nr-paper);
-}
-[data-theme="dark"] .mm-river[data-nr-scene="afternoon"],
-.dark .mm-river[data-nr-scene="afternoon"] {
-  --nr-hero-fg: oklch(0.26 0.04 240);
-  --nr-hero-title: oklch(0.16 0.045 240);
-  --nr-hero-veil: 0.15;
-  --nr-hero-veil-color: var(--nr-paper);
-}
-
-/* Evening flips to light copy — it wins on contrast, but only just (4.26:1),
-   so the band is deepened until it reaches 5.16:1. Warm-tinted for the sunset.
-   The halo flips with it: an ink glow under light type. */
-[data-theme="dark"] .mm-river[data-nr-scene="evening"],
-.dark .mm-river[data-nr-scene="evening"] {
-  --nr-hero-fg: oklch(0.95 0.025 70);
-  --nr-hero-title: oklch(0.97 0.03 70);
-  --nr-hero-halo: color-mix(in oklab, var(--nr-ink) 60%, transparent);
-  --nr-hero-veil: 0.25;
-  --nr-hero-veil-color: var(--nr-ink);
-}
-
-/* Night is already dark enough for light copy on its own. Cool-tinted. */
-[data-theme="dark"] .mm-river[data-nr-scene="night"],
-.dark .mm-river[data-nr-scene="night"] {
-  --nr-hero-fg: oklch(0.95 0.02 260);
-  --nr-hero-title: oklch(0.97 0.025 260);
-  --nr-hero-halo: color-mix(in oklab, var(--nr-ink) 60%, transparent);
-  --nr-hero-veil: 0;
-  --nr-hero-veil-color: transparent;
-}
-
-/* ----- The headline -----
-   Averages are not enough for type this large. Across the h1's own box the
-   photograph swings by 0.12-0.33 in luminance, so a colour chosen against the
-   mean can still lose a glyph to one bright cloud or one dark ridge.
-
-   `--nr-hero-title` is pinned near black (L 0.16) or near white (L 0.97),
-   keeping only enough chroma to carry the hour's hue, and the halo is a soft
-   glow in the opposite direction. The halo is what makes this robust to the
-   image rather than to its average: wherever the backdrop closes on the type,
-   the glow reopens the gap.
-
-   It is a glow, not a drop shadow — no offset — so it reads as light behind
-   the letterform rather than as a hard 2000s text-shadow. */
-.mm-river .nr-hero-title {
-  color: var(--nr-hero-title);
-  text-shadow:
-    0 0 0.06em var(--nr-hero-halo),
-    0 0 0.3em var(--nr-hero-halo);
 }
 
 /* ----- The constellation card -----
@@ -290,6 +160,41 @@
 
 /* ----- Composite surfaces ----- */
 
+/* ----- Ink steps -----
+   `nr-fg` is a bare `var()`, so Tailwind v3 cannot substitute an opacity
+   modifier into it — `text-nr-fg/70` compiles to *nothing at all* and the
+   element silently inherits full-strength ink. It fails quietly, which is why
+   the palette note in tailwind.config.js calls it out; these are the greeting's
+   deliberate steps between `nr-fg` and `nr-muted`, as real classes.
+
+   The two hover rules are scoped rather than left to `group-hover:` utilities.
+   `.group:hover .group-hover\:text-nr-sage` is (0,2,0) — the same specificity
+   as `.mm-river .nr-ink-80` — so which one won would have been decided by the
+   order the bundler happened to emit them in. At (0,3,0) these are settled. */
+.mm-river .nr-ink-80 {
+  color: color-mix(in oklab, var(--nr-fg) 80%, transparent);
+}
+
+.mm-river .nr-ink-70 {
+  color: color-mix(in oklab, var(--nr-fg) 70%, transparent);
+}
+
+.mm-river .nr-ink-60 {
+  color: color-mix(in oklab, var(--nr-fg) 60%, transparent);
+}
+
+.mm-river .nr-ink-30 {
+  color: color-mix(in oklab, var(--nr-fg) 30%, transparent);
+}
+
+.mm-river .group:hover .nr-ink-lift {
+  color: var(--nr-fg);
+}
+
+.mm-river .group:hover .nr-ink-sage {
+  color: var(--nr-sage);
+}
+
 .mm-river .nr-label {
   font-size: 0.68rem;
   letter-spacing: 0.28em;
@@ -298,52 +203,15 @@
   opacity: 0.65;
 }
 
-/* ----- Hero labels -----
-   `.nr-label` above is tuned for the page's own paper, where 0.65 opacity on
-   `--nr-fg` is a deliberate recession. Over the hero photograph it is wrong
-   twice: the inks in the contrast table near the top of this file were measured
-   at *full* strength, so the 0.65 hands back contrast that was already
-   budgeted — and the mood labels multiplied it by a second 0.6, landing at 0.39
-   effective alpha over a moving image.
-
-   So these take the treatment the h1 already uses, scaled down: the pinned
-   `--nr-hero-title` ink (near-black L 0.16 / near-white L 0.97, carrying only
-   the hour's hue) plus the opposing halo, which is what makes small type robust
-   to the *local* extremes of the photo rather than to its average.
-
-   Type changes are legibility work, not decoration. 500 → 600 keeps the stroke
-   from thinning out at 11px once the halo is behind it; 0.28em → 0.2em stops
-   the words dissolving into loose letters, which is the failure mode of wide
-   tracking on a busy backdrop; the size bump buys back the x-height the
-   uppercase-at-0.68rem setting gave away.
-
-   Split in two on purpose. `nr-hero-ink` is contrast only — colour, full
-   opacity, halo — and changes no metrics, so it is safe on type whose size is
-   already settled, and safe to toggle on scroll without the text reflowing.
-   `nr-hero-label` adds the label metrics on top, for the uppercase labels
-   sitting directly on the hero. */
-.mm-river .nr-hero-ink,
-.mm-river .nr-hero-label {
-  color: var(--nr-hero-title);
-  opacity: 1;
-  text-shadow: var(--nr-hero-glow);
-}
-
-.mm-river .nr-hero-label {
-  font-size: 0.86rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-}
-
 /* The Nav's own label step — both anchors and the profile chip. Carries size
-   and weight but no colour, so it composes with `nr-hero-ink` over the
-   photograph and drops back to the page foreground once the bar is on glass.
+   and weight but no colour, so it takes the page foreground on either of the
+   bar's two backings.
 
    It exists as a class rather than Tailwind `text-[…] font-bold` utilities
    because `.mm-river .nr-label` (0,2,0) outranks any single-class utility: both
-   the size and the 500 weight would have been silently kept. Same trap as the
-   opacity note below. 700 is a real face here — Work Sans ships 300–700 in the
-   index.html request, so nothing is synthesised. */
+   the size and the 500 weight would have been silently kept. 700 is a real
+   face here — Work Sans ships 300–700 in the index.html request, so nothing is
+   synthesised. */
 .mm-river .nr-label-strong {
   font-size: 0.86rem;
   font-weight: 700;
@@ -356,25 +224,12 @@
    bundler happened to emit the two stylesheets in. As a scoped rule it is
    (0,3,0) and settled.
 
-   The lift only has room to move once the bar has scrolled onto its glass
-   backing; over the photograph the links are already at full strength under
-   `nr-hero-ink`, where the affordance is the colour shift instead. */
+   The colour shift is the other half of the affordance, and the one that
+   survives the bar's two backings — the links sit on the page's own paper
+   until the glass slides under them. */
 .mm-river .nr-nav-link:hover {
   opacity: 1;
   color: var(--nr-mood);
-}
-
-/* Active state is driven by `data-active`, not a Tailwind opacity utility:
-   `.mm-river .nr-hero-label` (0,2,0) outranks `.opacity-60` (0,1,0), so a
-   utility here would be silently dropped. The unselected step is shallow
-   because the dot above already carries the selection — scale, fill and glow —
-   and the label does not need to go dim to repeat it. */
-.mm-river .nr-hero-label[data-active="false"] {
-  opacity: 0.82;
-}
-
-.mm-river .group:hover .nr-hero-label[data-active="false"] {
-  opacity: 1;
 }
 
 .mm-river .nr-glass {
@@ -411,22 +266,25 @@
   transform: translateY(0);
 }
 
-/* ----- Parallax -----
-   Bound to `--nr-scroll-px` from useScrollProgress. */
-.mm-river .nr-parallax-slow {
-  transform: translateY(calc(var(--nr-scroll-px, 0px) * -0.12));
-  will-change: transform;
+/* ----- Arrival fade -----
+   The greeting's own entrance. It cannot use `.nr-reveal`: that waits for an
+   intersection which, above the fold, has already happened by first paint.
+   `both` so an element with a delay stays hidden through it rather than
+   flashing at full opacity and then animating. The blanket reduced-motion rule
+   at the foot of this file collapses it to its end state. */
+@keyframes nr-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.mm-river .nr-parallax-soft {
-  transform: translateY(calc(var(--nr-scroll-px, 0px) * -0.06));
-  will-change: transform;
-}
-
-.mm-river .nr-parallax-fade {
-  opacity: calc(1 - var(--nr-scroll, 0) * 1.6);
-  transform: translateY(calc(var(--nr-scroll-px, 0px) * 0.08));
-  will-change: transform, opacity;
+.mm-river .nr-fade {
+  animation: nr-fade 700ms var(--nr-ease-slow) both;
 }
 
 /* ----- Ambient keyframes -----
@@ -502,9 +360,9 @@
 }
 
 /* ----- Reduced motion -----
-   Kills ambient motion, the reveal transition, and both parallax
-   transforms. Scoped so we don't override motion decisions the rest
-   of the app makes for itself. */
+   Kills ambient motion, the arrival fade and the reveal transition.
+   Scoped so we don't override motion decisions the rest of the app
+   makes for itself. */
 @media (prefers-reduced-motion: reduce) {
   .mm-river,
   .mm-river *,
@@ -519,12 +377,5 @@
   .mm-river .nr-reveal {
     opacity: 1;
     transform: none;
-  }
-
-  .mm-river .nr-parallax-slow,
-  .mm-river .nr-parallax-soft,
-  .mm-river .nr-parallax-fade {
-    transform: none;
-    opacity: 1;
   }
 }

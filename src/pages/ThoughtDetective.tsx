@@ -259,7 +259,7 @@ const ThoughtDetective = () => {
     if (!currentCase || selectedDistortions.length === 0 || !selectedAlternative) {
       toast({
         title: "Almost there...",
-        description: "You're so close! Just identify a distortion and pick an alternative to unlock your points.",
+        description: "Almost — name a distortion and pick an alternative, and the points are yours.",
         variant: "destructive"
       });
       return;
@@ -709,8 +709,8 @@ const ThoughtDetective = () => {
                               <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                               <p className="text-[11px] text-muted-foreground">
                                 {solvedCases < 2
-                                  ? `Solve ${2 - solvedCases} more to unlock Medium difficulty`
-                                  : `Solve ${4 - solvedCases} more to unlock Hard difficulty`
+                                  ? `Solve ${2 - solvedCases} more to open Medium difficulty`
+                                  : `Solve ${4 - solvedCases} more to open Hard difficulty`
                                 }
                               </p>
                               <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />

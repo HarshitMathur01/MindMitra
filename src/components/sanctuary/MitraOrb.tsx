@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useAmbience } from "./AmbienceProvider";
 import { usePersonality } from "@/hooks/usePersonality";
 import { useSettings } from "@/hooks/useSettings";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { pickOrbWhisper } from "@/data/orbWhispers";
 import type { SupportedLanguage } from "@/lib/locale";
 
@@ -17,6 +18,7 @@ export function MitraOrb() {
   const ambience = useAmbience();
   const { personality, companionName } = usePersonality();
   const { settings } = useSettings();
+  const reducedMotion = usePrefersReducedMotion();
   const language = (settings?.language as SupportedLanguage) ?? "english";
 
   const x = useMotionValue(0);
@@ -25,7 +27,15 @@ export function MitraOrb() {
   const sy = useSpring(y, { stiffness: 40, damping: 18, mass: 0.8 });
   const [whisper, setWhisper] = useState<string | null>(null);
 
+  // Every other animated piece on this page (RoomSync, OpenThread,
+  // PassingThought) checks prefers-reduced-motion; this orb pulses forever
+  // and chases the cursor regardless. Left unchecked, that's a fixed,
+  // persistent motion source in the corner of a page built for an anxious,
+  // motion-sensitive audience — exactly what the media query exists to let
+  // people opt out of. Skip the listener entirely rather than just freezing
+  // the spring, so there's no pointer-tracking work happening at all.
   useEffect(() => {
+    if (reducedMotion) return;
     const onMove = (e: MouseEvent) => {
       const cx = window.innerWidth - 80;
       const cy = window.innerHeight - 80;
@@ -34,7 +44,7 @@ export function MitraOrb() {
     };
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
-  }, [x, y]);
+  }, [x, y, reducedMotion]);
 
   useEffect(() => {
     if (!whisper) return;
@@ -65,8 +75,12 @@ export function MitraOrb() {
       >
         <motion.span
           aria-hidden
-          animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.75, 0.5] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          animate={
+            reducedMotion
+              ? { scale: 1, opacity: 0.6 }
+              : { scale: [1, 1.08, 1], opacity: [0.5, 0.75, 0.5] }
+          }
+          transition={reducedMotion ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
           className="absolute inset-0 rounded-full"
           style={{
             background: ambience.orbHalo,
@@ -75,8 +89,8 @@ export function MitraOrb() {
         />
         <motion.div
           aria-hidden
-          animate={{ scale: [1, 1.15, 1] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          animate={reducedMotion ? { scale: 1 } : { scale: [1, 1.15, 1] }}
+          transition={reducedMotion ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
           className="absolute inset-3 overflow-hidden rounded-full"
         >
           <span

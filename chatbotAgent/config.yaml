@@ -73,9 +73,23 @@ providers:
     max_completion_tokens: 1600
 
   groq:
-    signal_model: "llama-3.1-8b-instant"
-    safety_model: "llama-3.1-8b-instant"
-    fallback_model: "llama-3.3-70b-versatile"
+    # 2026-08-30: Groq decommissioned the llama-3.x chat models; the previous
+    # values here (llama-3.1-8b-instant / llama-3.3-70b-versatile) began
+    # returning 404 model_not_found, which silently degraded signal extraction
+    # to urgency 0 and took the crisis path down with it. See the note on
+    # _lexical_crisis_hit in app/pipeline/signal_extraction.py.
+    #
+    # The two classifier models must return valid JSON inside their existing
+    # token budgets (signal 256, safety 200). Reasoning models — the
+    # openai/gpt-oss-* family — spend that budget on reasoning tokens and fail
+    # with json_validate_failed; they need max_tokens>=1024 plus
+    # reasoning_effort="low". qwen3.8-27b needs neither, so it is the safe
+    # drop-in here. Verify any replacement against BOTH budgets before shipping.
+    signal_model: "qwen/qwen3.8-27b"
+    safety_model: "qwen/qwen3.8-27b"
+    # Generation fallback streams to the user; verified to keep reasoning out of
+    # the content channel.
+    fallback_model: "openai/gpt-oss-120b"
     timeout_s: 4.0
     signal_extraction_timeout_s: 6.0
 

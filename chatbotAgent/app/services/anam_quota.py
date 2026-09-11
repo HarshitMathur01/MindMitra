@@ -140,6 +140,36 @@ def _mirror_ledger_seconds(user_id: str, day: date, total_seconds: int) -> None:
     asyncio.create_task(asyncio.to_thread(_upsert_ledger_seconds_sync, user_id, day, total_seconds))
 
 
+# Sentinel returned when no daily cap is configured. Large enough that every
+# caller's "do we have budget?" check passes without special-casing 0.
+_QUOTA_DISABLED_REMAINING = 10 ** 9
+
+
+def _remaining(limit: int, spent: int) -> int:
+    """Seconds left after ``spent``, or the sentinel when the quota is off.
+
+    ``limit <= 0`` means no cap is configured. Every read and debit path
+    repeated that branch inline; it lives here so the disabled-quota contract
+    changes in one place rather than wherever it was last copied.
+    """
+    if limit <= 0:
+        return _QUOTA_DISABLED_REMAINING
+    return max(0, limit - spent)
+
+
+async def _debit_via_ledger(user_id: str, day: date, seconds: int, limit: int) -> int:
+    """Read-modify-write the Supabase ledger; return seconds remaining.
+
+    The degraded path shared by "no Redis client" and "Redis died mid-debit".
+    Supabase is the only thing holding the authoritative total in both cases,
+    so this write is awaited rather than mirrored fire-and-forget the way
+    :func:`_mirror_ledger_seconds` does behind a healthy Redis.
+    """
+    total = await _read_ledger_seconds(user_id, day) + seconds
+    await asyncio.to_thread(_upsert_ledger_seconds_sync, user_id, day, total)
+    return _remaining(limit, total)
+
+
 # ── Redis-backed spend counter ──────────────────────────────────────────────
 
 async def _ensure_hydrated(user_id: str, day: date, key: str, r: object) -> None:
@@ -169,26 +199,26 @@ async def get_remaining_seconds(user_id: str) -> int:
     day = _ist_today()
     limit = _daily_limit_seconds()
     if limit <= 0:
-        return 10 ** 9  # quota disabled
+        return _QUOTA_DISABLED_REMAINING  # quota disabled
 
     r = get_redis()
     if r is None:
         spent = await _read_ledger_seconds(user_id, day)
-        return max(0, limit - spent)
+        return _remaining(limit, spent)
 
     key = _spend_key(user_id, day)
     try:
         await _ensure_hydrated(user_id, day, key, r)
         raw = await guarded_call("redis", lambda: r.get(key), timeout_s=2.0, retries=1)
         spent = int(raw) if raw is not None else 0
-        return max(0, limit - spent)
+        return _remaining(limit, spent)
     except Exception as exc:  # noqa: BLE001
         logger.error(
             "Redis unavailable — reading Anam quota from Supabase ledger",
             extra=log_context(user_id=user_id, exception_type=type(exc).__name__),
         )
         spent = await _read_ledger_seconds(user_id, day)
-        return max(0, limit - spent)
+        return _remaining(limit, spent)
 
 
 async def debit_seconds(user_id: str, seconds: int) -> int:
@@ -209,14 +239,12 @@ async def debit_seconds(user_id: str, seconds: int) -> int:
         # No Redis at all: Supabase is the only source of truth, so this must
         # be a synchronous read-modify-write rather than fire-and-forget —
         # there is nothing else holding the authoritative value between calls.
-        current = await _read_ledger_seconds(user_id, day)
-        total = current + seconds
-        await asyncio.to_thread(_upsert_ledger_seconds_sync, user_id, day, total)
+        remaining = await _debit_via_ledger(user_id, day, seconds, limit)
         logger.error(
             "Redis unavailable — Anam quota debited via Supabase only (degraded)",
             extra=log_context(user_id=user_id, exception_type="NoRedisClient"),
         )
-        return max(0, limit - total) if limit > 0 else 10 ** 9
+        return remaining
 
     key = _spend_key(user_id, day)
     try:
@@ -235,13 +263,10 @@ async def debit_seconds(user_id: str, seconds: int) -> int:
             "Redis unavailable mid-debit — falling back to Supabase for this call",
             extra=log_context(user_id=user_id, exception_type=type(exc).__name__),
         )
-        current = await _read_ledger_seconds(user_id, day)
-        total = current + seconds
-        await asyncio.to_thread(_upsert_ledger_seconds_sync, user_id, day, total)
-        return max(0, limit - total) if limit > 0 else 10 ** 9
+        return await _debit_via_ledger(user_id, day, seconds, limit)
 
     _mirror_ledger_seconds(user_id, day, total)
-    return max(0, limit - total) if limit > 0 else 10 ** 9
+    return _remaining(limit, total)
 
 
 # ── Heartbeat accounting ─────────────────────────────────────────────────────
@@ -291,7 +316,7 @@ async def record_heartbeat(user_id: str) -> tuple[int, bool]:
             current = int(row["seconds_spent"]) if row else 0
             await asyncio.to_thread(_upsert_ledger_seconds_sync, user_id, day, current)
             limit = _daily_limit_seconds()
-            remaining = max(0, limit - current) if limit > 0 else 10 ** 9
+            remaining = _remaining(limit, current)
             return remaining, remaining <= 0
         last_seen = datetime.fromisoformat(row["updated_at"]).timestamp()
         delta = max(0, min(now_ts - last_seen, _heartbeat_max_delta_s()))

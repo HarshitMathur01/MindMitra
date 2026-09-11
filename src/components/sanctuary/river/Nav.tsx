@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,6 +14,8 @@ interface NavProps {
   initials: string;
   /** e.g. "23 check-ins" — the quiet context line under the name. */
   context: string;
+  /** Whether OpenThread is rendered on the page this scroll. See below. */
+  hasThread?: boolean;
 }
 
 /**
@@ -25,12 +27,29 @@ interface NavProps {
  * linked `#why`, `#reflection` and `#waitlist`, none of which exist as
  * sections — `#reflection` was never built and a waitlist makes no sense on a
  * page only signed-in users can reach.
+ *
+ * "Thread" is dropped from that list unless `hasThread` is true: OpenThread
+ * (`#thread`) only renders when there is an open thread to resume, so the
+ * link would otherwise point at nothing on the majority of visits.
  */
-export function Nav({ firstName, initials, context }: NavProps) {
+export function Nav({ firstName, initials, context, hasThread = false }: NavProps) {
+  const links = hasThread ? LINKS : LINKS.filter((link) => link.href !== "#thread");
+
   const [scrolled, setScrolled] = useState(false);
+  // The bar only has two states, so only the two crossings of the threshold are
+  // worth telling React about. Dispatching on every scroll event and letting the
+  // reducer bail on an unchanged value is not free: measured at ~2.2ms per call
+  // under 4x CPU throttle, 202 calls over one screen-height scroll and back —
+  // 447ms, the largest single JS cost left on this page.
+  const scrolledRef = useRef(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => {
+      const next = window.scrollY > 24;
+      if (next === scrolledRef.current) return;
+      scrolledRef.current = next;
+      setScrolled(next);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -44,17 +63,15 @@ export function Nav({ firstName, initials, context }: NavProps) {
       )}
     >
       {/*
-        Until it scrolls, the bar is transparent and floating directly on the
-        hero photograph, so it has to borrow the hero's measured foreground —
-        the page colour is unreadable on half the hillsides. Once `nr-glass`
-        kicks in it has its own backing and reverts to the page colour.
+        Two backings, one foreground. The bar used to float on the hero
+        photograph and had to borrow a per-hour measured ink to stay legible;
+        the greeting is paper now, so `nr-fg` is correct on both the bare page
+        and the glass, and only the backing animates.
       */}
       <nav
         className={cn(
-          "mx-auto flex max-w-6xl items-center justify-between rounded-full px-5 py-3 transition-all duration-700",
-          scrolled
-            ? "nr-glass mx-4 text-nr-fg md:mx-auto"
-            : "border border-transparent text-nr-hero-fg",
+          "mx-auto flex max-w-6xl items-center justify-between rounded-full px-5 py-3 text-nr-fg transition-all duration-700",
+          scrolled ? "nr-glass mx-4 md:mx-auto" : "border border-transparent",
         )}
       >
         <a href="#top" className="flex items-center gap-3">
@@ -65,14 +82,11 @@ export function Nav({ firstName, initials, context }: NavProps) {
         </a>
 
         <ul className="hidden items-center gap-9 lg:flex">
-          {LINKS.map((link) => (
+          {links.map((link) => (
             <li key={link.href}>
               <a
                 href={link.href}
-                className={cn(
-                  "nr-label nr-label-strong nr-nav-link transition-opacity duration-500",
-                  !scrolled && "nr-hero-ink",
-                )}
+                className="nr-label nr-label-strong nr-nav-link transition-opacity duration-500"
               >
                 {link.label}
               </a>
@@ -85,10 +99,7 @@ export function Nav({ firstName, initials, context }: NavProps) {
           <Link
             to="/profile"
             data-prefetch="/profile"
-            className={cn(
-              "hidden items-center gap-3 rounded-full border py-1.5 pr-5 pl-1.5 transition-colors duration-500 hover:border-nr-mood sm:inline-flex",
-              scrolled ? "border-nr-border" : "border-nr-hero-border",
-            )}
+            className="hidden items-center gap-3 rounded-full border border-nr-border py-1.5 pr-5 pl-1.5 transition-colors duration-500 hover:border-nr-mood sm:inline-flex"
             aria-label={`Signed in as ${firstName} — open your profile`}
           >
             <span className="flex size-8 items-center justify-center rounded-full bg-nr-ink font-nr-display text-sm text-nr-paper">
@@ -96,16 +107,7 @@ export function Nav({ firstName, initials, context }: NavProps) {
             </span>
             <span className="text-left leading-tight">
               <span className="block text-sm font-medium">{firstName}</span>
-              {/*
-                Same conditional as the bar's own colour above, for the same
-                reason: unscrolled this label is floating on the photograph and
-                needs the hero ink and its halo, but once `nr-glass` is behind
-                it that halo would be a glow against a flat backing. `nr-hero-ink`
-                carries no metrics, so nothing resizes as the bar transitions.
-              */}
-              <span className={cn("nr-label nr-label-strong block", !scrolled && "nr-hero-ink")}>
-                {context}
-              </span>
+              <span className="nr-label nr-label-strong block">{context}</span>
             </span>
           </Link>
         </div>

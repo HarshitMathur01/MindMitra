@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, type Transition } from "framer-motion";
 import type { SurfaceTone } from "@/lib/mindgym/theme";
 
 interface ParticleFieldProps {
@@ -76,7 +76,7 @@ export default function ParticleField({
                 opacity: [p.opacity, p.opacity * 1.25, p.opacity],
               };
 
-        const transition = reduceMotion
+        const transition: Transition = reduceMotion
           ? { duration: 0 }
           : {
               duration:

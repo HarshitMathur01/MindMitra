@@ -1,7 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface SectionProps extends React.HTMLAttributes<HTMLElement> {
+// `title` is omitted from the DOM attributes because this component
+// renders it as an <h2>, not as the browser tooltip attribute — which is
+// typed `string` and so conflicts with a ReactNode heading.
+interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
   as?: "section" | "div" | "article";
   /** Section heading — rendered as h2 */
   title?: React.ReactNode;
@@ -31,9 +34,12 @@ const Section = React.forwardRef<HTMLElement, SectionProps>(
     { as: Tag = "section", title, description, actions, spacing = "md", className, children, ...props },
     ref
   ) => {
+    // Widen the intrinsic tag so one forwarded HTMLElement ref satisfies
+    // every branch of the `as` union (a <div> ref is typed HTMLDivElement,
+    // a <section> ref HTMLElement, and JSX will not unify them).
+    const Component = Tag as React.ElementType;
     return (
-      // @ts-expect-error — polymorphic ref
-      <Tag
+      <Component
         ref={ref}
         className={cn(spacingMap[spacing], "space-y-4", className)}
         {...props}
@@ -56,7 +62,7 @@ const Section = React.forwardRef<HTMLElement, SectionProps>(
           </div>
         )}
         {children}
-      </Tag>
+      </Component>
     );
   }
 );

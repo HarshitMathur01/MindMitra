@@ -21,10 +21,12 @@ import QuickReplies from "./QuickReplies";
 import {
     formatDateSeparator,
     getQuickReplies,
-    isMomentKept,
+    loadKeptMomentIds,
     toggleKeptMoment,
 } from "./chatHelpers";
 import { CHAT_MESSAGE_SPRING } from "./chatConstants";
+import companionAvatarWebp from "@/assets/chat/companion-avatar-128.webp";
+import companionAvatarPng from "@/assets/chat/companion-avatar-128.png";
 import type { Message } from "./chatTypes";
 
 interface ChatMessageListProps {
@@ -75,13 +77,16 @@ const ChatMessageList = ({
     // a parent state lift. Re-syncs on session change.
     const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
 
+    // Keyed on the session, not on `messages`. The kept set lives in
+    // localStorage and only this component writes it, so re-reading it every
+    // time a message arrives bought nothing — and it was not a cheap no-op:
+    // the old version called isMomentKept per message, which reads localStorage
+    // and JSON.parses the entire kept array once for each one. A 20-message
+    // conversation did 20 parses per keystroke-sized state change, then set
+    // state and rendered a second time.
     useEffect(() => {
-        const ids = new Set<string>();
-        messages.forEach((m) => {
-            if (m.sender === "ai" && isMomentKept(m.id)) ids.add(m.id);
-        });
-        setKeptIds(ids);
-    }, [messages, sessionId]);
+        setKeptIds(loadKeptMomentIds());
+    }, [sessionId]);
 
     const handleKeep = (m: Message) => {
         const nowKept = toggleKeptMoment({
@@ -132,11 +137,26 @@ const ChatMessageList = ({
                                 <div className="flex gap-2 sm:gap-3 items-start">
                                     <div className="flex-shrink-0">
                                         <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10 border border-border flex items-center justify-center">
-                                            <img
-                                                src="/image6.png"
-                                                alt="AI companion"
-                                                className="h-6 w-6 sm:h-7 sm:w-7 rounded-full object-cover"
-                                            />
+                                            {/*
+                                              Was /image6.png — a 1024x1024,
+                                              885 KB PNG painted at 24-28 CSS px
+                                              in every AI bubble. 128px covers
+                                              DPR 3 with room to spare.
+                                            */}
+                                            <picture>
+                                                <source
+                                                    type="image/webp"
+                                                    srcSet={companionAvatarWebp}
+                                                />
+                                                <img
+                                                    src={companionAvatarPng}
+                                                    alt="AI companion"
+                                                    width={128}
+                                                    height={128}
+                                                    decoding="async"
+                                                    className="h-6 w-6 sm:h-7 sm:w-7 rounded-full object-cover"
+                                                />
+                                            </picture>
                                         </div>
                                     </div>
                                     <div className="flex-1 flex flex-col items-start space-y-2 min-w-0">
@@ -150,7 +170,7 @@ const ChatMessageList = ({
                                           re-announcement on re-render.
                                         */}
                                         <div
-                                            className="rounded-[18px] rounded-tl-md bg-ink-1 px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[94%] sm:max-w-[80%] lg:max-w-[70%]"
+                                            className="mm-msg mm-msg--ai rounded-[18px] rounded-tl-md px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[94%] sm:max-w-[80%] lg:max-w-[70%]"
                                             {...(isLastAi && isLoading
                                                 ? {
                                                       "aria-live": "polite" as const,
@@ -233,7 +253,7 @@ const ChatMessageList = ({
                             ) : (
                                 <div className="flex gap-2 sm:gap-3 justify-end items-start">
                                     <div className="flex-1 flex flex-col items-end min-w-0">
-                                        <div className="bg-ink-2 text-ink-8 rounded-[18px] rounded-tr-md px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[94%] sm:max-w-[80%] lg:max-w-[70%]">
+                                        <div className="mm-msg mm-msg--user rounded-[18px] rounded-tr-md px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[88%] sm:max-w-[74%] lg:max-w-[62%]">
                                             <span className="chat-bubble-text text-[15px] leading-[1.55] whitespace-pre-wrap">
                                                 {message.content}
                                             </span>

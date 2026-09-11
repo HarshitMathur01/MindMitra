@@ -1,40 +1,28 @@
 import { useEffect, useState } from "react";
-import { sceneForHour, type TimeScene } from "./moods";
-
-export interface TimeSceneState {
-  scene: TimeScene;
-  hour: number;
-}
 
 /**
- * The hour of arrival, and the hillside that belongs to it.
+ * The hour of arrival.
  *
- * Lifted out of Hero because the scene is no longer only Hero's business: the
- * page root stamps it as `data-nr-scene` so the header and hero can pick a
- * legible text colour for the backdrop they happen to be sitting on. One
- * source keeps the art and the contrast decision from drifting apart.
+ * Lives in a hook rather than a bare `new Date().getHours()` at the top of the
+ * greeting so a page left open across a boundary follows the clock: someone
+ * who opens this at 04:58 should not still be reading "Quiet night" at 06:00.
+ * Re-checked every minute; state only changes on the hour, so the page renders
+ * 24 times a day at most.
  *
- * Re-checked every minute so a page left open across a boundary follows the
- * light instead of stranding, say, dark text over a hillside that has since
- * gone to night.
+ * This used to return a `scene` as well — one of four hillside photographs
+ * that backed the hero. The greeting is paper and ink now, and the hour is the
+ * only thing left that the time of day decides. See moods.ts for what reads it
+ * (`greetingForHour`, `contextForHour`).
  */
-export function useTimeScene(): TimeSceneState {
-  const [state, setState] = useState<TimeSceneState>(() => {
-    const hour = new Date().getHours();
-    return { scene: sceneForHour(hour), hour };
-  });
+export function useTimeScene(): { hour: number } {
+  const [hour, setHour] = useState(() => new Date().getHours());
 
   useEffect(() => {
-    const tick = () => {
-      const hour = new Date().getHours();
-      setState((prev) =>
-        prev.hour === hour ? prev : { scene: sceneForHour(hour), hour },
-      );
-    };
+    const tick = () => setHour(new Date().getHours());
     tick();
     const interval = setInterval(tick, 60_000);
     return () => clearInterval(interval);
   }, []);
 
-  return state;
+  return { hour };
 }

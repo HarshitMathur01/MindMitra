@@ -208,9 +208,9 @@ function MemoryBuddy({ mood, message, progress, reduceMotion }: MemoryBuddyProps
   const [isPrimed, setIsPrimed] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
   const [dismissDirection, setDismissDirection] = useState<"left" | "right" | "up" | "down">("right");
-  const [exitLine, setExitLine] = useState(CINEMATIC_EXIT_LINES[0]);
-  const holdTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const dismissTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const [exitLine, setExitLine] = useState<string>(CINEMATIC_EXIT_LINES[0]);
+  const holdTimerRef = useRef<number | null>(null);
+  const dismissTimerRef = useRef<number | null>(null);
   const pointerStartRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const primedRef = useRef(false);
   const buddyRef = useRef<BuddyCompanionHandle>(null);

@@ -248,7 +248,7 @@ const MoodMountain = () => {
                   setConfettiOn(false);
                   toast({
                     title: "New mountain awaits!",
-                    description: "Ready for another journey?",
+                    description: "Ready for another climb?",
                   });
                 }}
               >

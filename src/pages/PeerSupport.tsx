@@ -733,14 +733,29 @@ const PeerSupport = () => {
         }
     }, [visibleCount, filteredPosts.length]);
 
+    // Infinite scroll. Two things this must not do on every scroll event, and
+    // used to: read `scrollHeight` (a layout read, so the browser has to flush
+    // pending style and layout before it can answer), and hold up the scroll
+    // itself — the listener was not passive, so the compositor had to wait for
+    // this handler before it could move the page.
     useEffect(() => {
-        const onScroll = () => {
+        let raf = 0;
+        const check = () => {
+            raf = 0;
             if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 400) {
                 loadMore();
             }
         };
-        window.addEventListener("scroll", onScroll);
-        return () => window.removeEventListener("scroll", onScroll);
+        const onScroll = () => {
+            if (raf) return;
+            raf = requestAnimationFrame(check);
+        };
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => {
+            if (raf) cancelAnimationFrame(raf);
+            window.removeEventListener("scroll", onScroll);
+        };
     }, [loadMore]);
 
     const handleNewPost = (data: Omit<PeerPost, "id" | "user_id" | "anonymous_name" | "reactions" | "reply_count" | "created_at">) => {

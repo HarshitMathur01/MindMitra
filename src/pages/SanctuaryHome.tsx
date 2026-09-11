@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocalizedT } from "@/hooks/useLocalizedT";
-import { useMoodLog } from "@/hooks/useMoodLog";
+import { localDayKey, useMoodLog } from "@/hooks/useMoodLog";
 import { usePersonality } from "@/hooks/usePersonality";
 import { useSnapshot } from "@/hooks/useSnapshot";
 import Footer from "@/components/layout/Footer";
@@ -14,7 +14,6 @@ import { FirstMinute } from "@/components/sanctuary/river/FirstMinute";
 import { Doors } from "@/components/sanctuary/river/Doors";
 import { Practice } from "@/components/sanctuary/river/Practice";
 import { OpenThread } from "@/components/sanctuary/river/OpenThread";
-import { Constellation } from "@/components/sanctuary/river/Constellation";
 import { CrisisBar } from "@/components/sanctuary/river/CrisisBar";
 import { useScrollProgress } from "@/components/sanctuary/river/useScrollProgress";
 import { useOpenThread } from "@/components/sanctuary/river/useOpenThread";
@@ -28,7 +27,12 @@ import "@/components/sanctuary/river/river.css";
  * A single scroll: arrival → first minute → doors → practice → your thread →
  * safety. Everything below `.mm-river` recolours from one custom property,
  * `--nr-mood`, which is set here from the user's own check-in. Tap a mood dot
- * in the hero and the whole page follows.
+ * in the greeting and the whole page follows.
+ *
+ * The arrival section is paper and ink — a two-column greeting and check-in.
+ * It replaced a full-bleed hillside photograph that changed with the hour, and
+ * the per-scene contrast table, the `<head>` image preload and the parallax
+ * layers that backdrop needed went with it.
  *
  * Scoping matters: `.mm-river` is what keeps this surface's palette, grain and
  * atmosphere off every other route. See river.css.
@@ -38,14 +42,18 @@ export default function SanctuaryHome() {
   // resolves once and propagates to every child via react-i18next. The crisis
   // rail is the main consumer — its copy exists in all seven locales.
   useLocalizedT();
-  useScrollProgress();
+
+  // The scroll-position custom properties are written to the elements that read
+  // them, inside this root — not to <html>. See useScrollProgress.
+  const riverRef = useRef<HTMLDivElement>(null);
+  useScrollProgress(riverRef);
 
   const { user } = useAuth();
   const { companionName } = usePersonality();
   const { weekLogs, todayLog, logMood } = useMoodLog();
   const { data: snapshot } = useSnapshot();
   const thread = useOpenThread();
-  const { scene, hour } = useTimeScene();
+  const { hour } = useTimeScene();
 
   const firstName = useMemo(() => {
     const raw =
@@ -78,6 +86,19 @@ export default function SanctuaryHome() {
 
   const moodIndex = todayLog?.mood_index ?? null;
 
+  // Yesterday's last check-in, for the greeting's recall line. `weekLogs` is
+  // newest-first, so the first match for that day key is the latest one — the
+  // same "last log of the day wins" rule the constellation draws by. Null when
+  // yesterday has no log, and the greeting then omits the line entirely rather
+  // than remarking on the day they skipped.
+  const yesterdayIndex = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    const key = localDayKey(date);
+    const log = weekLogs.find((entry) => localDayKey(new Date(entry.logged_at)) === key);
+    return log?.mood_index ?? null;
+  }, [weekLogs]);
+
   // The accent is derived from today's logged mood rather than page-local
   // state, so it survives a reload and agrees with what the constellation and
   // the weekly trend are drawing.
@@ -94,17 +115,19 @@ export default function SanctuaryHome() {
   return (
     <AmbienceProvider snapshot={ambienceSnapshot}>
       <div
+        ref={riverRef}
         className="mm-river nr-grain min-h-screen w-full overflow-x-hidden"
-        // `data-nr-scene` drives the hero's foreground colour: the backdrop is
-        // a photograph that changes with the hour, and no single text colour is
-        // legible on all four. See the measured contrast table in river.css.
-        data-nr-scene={scene}
         style={{ "--nr-mood": moodAccent } as React.CSSProperties}
       >
         {/* Scroll-driven atmosphere. Light mode only — see river.css. */}
         <div aria-hidden className="nr-atmosphere" />
 
-        <Nav firstName={firstName} initials={initials} context={checkInLine} />
+        <Nav
+          firstName={firstName}
+          initials={initials}
+          context={checkInLine}
+          hasThread={!!thread}
+        />
 
         <main id="main" className="relative z-10">
           <Hero
@@ -112,8 +135,7 @@ export default function SanctuaryHome() {
             companionName={companionName}
             moodIndex={moodIndex}
             onMoodSelect={handleMoodSelect}
-            checkInLine={checkInLine}
-            scene={scene}
+            yesterdayIndex={yesterdayIndex}
             hour={hour}
           />
 
@@ -122,21 +144,7 @@ export default function SanctuaryHome() {
             <Doors companionName={companionName} />
             <Practice />
 
-            {/*
-              The thread card is omitted entirely when there is nothing open,
-              rather than rendering an empty prompt — so the constellation goes
-              full-width on a first visit instead of sitting next to a hole.
-            */}
-            <div
-              className={
-                thread
-                  ? "mx-auto grid max-w-6xl gap-5 px-6 lg:grid-cols-[1fr_1.2fr] lg:items-stretch [&>div]:max-w-none [&>div]:px-0"
-                  : undefined
-              }
-            >
-              {thread && <OpenThread firstName={firstName} thread={thread} />}
-              <Constellation firstName={firstName} weekLogs={weekLogs} />
-            </div>
+            {thread && <OpenThread firstName={firstName} thread={thread} />}
           </div>
 
           <div className="py-12">

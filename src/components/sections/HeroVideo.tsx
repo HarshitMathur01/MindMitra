@@ -140,7 +140,7 @@ export function HeroVideo({
         alt=""
         aria-hidden
         decoding="async"
-        fetchpriority="high"
+        fetchPriority="high"
         className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-center scale-[1.02]"
       />
 

@@ -183,21 +183,21 @@ class V3Env:
     groq_signal_model: str = field(
         default_factory=lambda: config.get_str(
             "providers.groq.signal_model",
-            "llama-3.1-8b-instant",
+            "qwen/qwen3.8-27b",
             env="GROQ_SIGNAL_MODEL",
         )
     )
     groq_safety_model: str = field(
         default_factory=lambda: config.get_str(
             "providers.groq.safety_model",
-            "llama-3.1-8b-instant",
+            "qwen/qwen3.8-27b",
             env="GROQ_SAFETY_MODEL",
         )
     )
     groq_fallback_model: str = field(
         default_factory=lambda: config.get_str(
             "providers.groq.fallback_model",
-            "llama-3.3-70b-versatile",
+            "openai/gpt-oss-120b",
             env="GROQ_FALLBACK_MODEL",
         )
     )

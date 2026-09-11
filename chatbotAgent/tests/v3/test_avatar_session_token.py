@@ -12,10 +12,13 @@ Also pins the persona prompt: turnkey mode has no crisis_bypass in front of
 it, so the persona must not inherit system_identity.txt's claim that crisis
 was already filtered.
 
-Auth note: this route reuses ``audio._resolve_user_id``, which honours
-SKIP_AUTH only when the Authorization header is **absent** — unlike
-``snapshot._resolve_user_id``, which checks SKIP_AUTH first. So these tests
-send no header, and a malformed header is still rejected.
+Auth note: this route reuses ``audio._resolve_user_id``, which checks
+``skip_auth_effective`` **first** and then ignores the header entirely — the
+same order as ``core.auth.validate_user_token``. So under dev SKIP_AUTH every
+request resolves to DEV_USER_ID no matter what the header says, and the
+header-rejection contract only exists on the production path. These tests send
+no header; the malformed-header case turns SKIP_AUTH off to exercise the real
+gate (and must, or it would fall through to a live Anam call).
 """
 from __future__ import annotations
 
@@ -25,6 +28,7 @@ from typing import Any, Dict
 import httpx
 import pytest
 
+from app.api import audio as audio_mod
 from app.api import avatar as avatar_mod
 from app.services import anam_quota
 
@@ -107,14 +111,26 @@ def test_returns_503_when_key_unconfigured(client, monkeypatch):
     assert "not configured" in response.json()["detail"]
 
 
-def test_rejects_malformed_authorization_header(client, anam_env):
-    """A present-but-unusable header must 401 rather than fall through to SKIP_AUTH."""
+def test_rejects_malformed_authorization_header(client, anam_env, monkeypatch):
+    """With SKIP_AUTH off, a present-but-unusable header must 401.
+
+    The 401 has to happen in ``_resolve_user_id``, before the broker reaches
+    for the upstream Anam API — note that no ``_mock_post`` is installed here,
+    so a fall-through would attempt a real network call.
+    """
+    # _resolve_user_id lives in app.api.audio and reads that module's env(),
+    # so patching avatar_mod.env (what anam_env does) does not reach it.
+    no_skip_auth = dataclasses.replace(audio_mod.env(), raw_skip_auth=False)
+    monkeypatch.setattr(audio_mod, "env", lambda: no_skip_auth)
+    assert not no_skip_auth.skip_auth_effective
+
     response = client.post(
         ENDPOINT,
         json={"avatar_id": "brunette"},
         headers={"Authorization": "NotBearer nonsense"},
     )
     assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid authorization format"
 
 
 def test_returns_400_for_unknown_avatar_id(client, anam_env):

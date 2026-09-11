@@ -80,6 +80,78 @@ _HOPELESS_PATTERNS = (
 )
 
 
+# -- Lexical crisis floor -------------------------------------------------
+#
+# Why this exists: urgency is produced *only* by the Groq call above, and
+# ``_fallback_raw`` degrades to the session's last known urgency - 0 on a new
+# session. On 2026-08-30 Groq decommissioned the configured llama models and
+# every crisis silently scored 0: ``crisis_bypass_check`` returns None unless
+# urgency == 3, so the clinician-reviewed template never fired and an explicit
+# suicidal message came back answered with an ordinary greeting.
+#
+# These patterns are a floor, not a classifier. They run ONLY on the degraded
+# path - when the Groq call succeeds we defer to it, because a false crisis
+# erodes trust in the one response that has to be believed. When the model is
+# gone we would rather show helpline numbers to someone who did not need them
+# than miss someone who did.
+#
+# Deliberately narrow: explicit intent or means, not distress in general.
+# English, romanised Hinglish and Devanagari, because all three are in use.
+_CRISIS_LEXICAL_PATTERNS = (
+    # English - intent
+    r"\bkill(?:ing)? my ?self\b",
+    r"\bend(?:ing)? my life\b",
+    r"\btake my own life\b",
+    r"\bsuicid(?:e|al)\b",
+    r"\b(?:want|wanna|going) to die\b",
+    r"\bbetter off dead\b",
+    r"\bdon'?t want to (?:live|be alive)\b",
+    r"\bno reason to live\b",
+    # English - means
+    r"\bhang my ?self\b",
+    r"\boverdos(?:e|ing)\b",
+    r"\bslit my wrists?\b",
+    # Romanised Hindi / Hinglish
+    r"\bkhud ?kushi\b",
+    r"\batma ?hatya\b",
+    r"\bjaan de ?(?:du|dun|dunga|dungi|deni|dena|dene)\b",
+    r"\bmar ?jau?(?:n|nga|ngi)\b",
+    r"\bj(?:ee|i|e)na nahi(?: chahta| chahti)?\b",
+    r"\bzinda nahi rehna\b",
+    # Devanagari
+    "खुदकुशी",
+    "आत्महत्या",
+    "जान दे ?दू",
+    "मर ?जाऊ",
+    "जीना नहीं",
+)
+
+# Cheap guard against the commonest false positive - a student saying the
+# thought is *gone*. Anything subtler is left to the LLM on the healthy path.
+_CRISIS_NEGATION = re.compile(
+    r"\b(?:don'?t|dont|never|no longer|nahi|nhi|not)\b[^.!?]{0,24}$",
+    re.IGNORECASE,
+)
+
+
+def _lexical_crisis_hit(message: str) -> Optional[str]:
+    """Return the matched pattern when a message states explicit crisis intent.
+
+    Used only once signal extraction has already failed. Returns the pattern
+    itself rather than the matched text, so the caller can log *why* it fired
+    without writing the student's own words into the log.
+    """
+    text = (message or "").lower()
+    for pattern in _CRISIS_LEXICAL_PATTERNS:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if not match:
+            continue
+        if _CRISIS_NEGATION.search(text[: match.start()]):
+            continue
+        return pattern
+    return None
+
+
 # ── public entry ─────────────────────────────────────────────────────────
 async def extract_signals(
     ingested: IngestedInput,
@@ -107,8 +179,17 @@ async def extract_signals(
     latency_ms = (time.perf_counter() - started) * 1000.0
 
     fallback_used = raw is None
+    lexical_crisis_pattern: Optional[str] = None
     if raw is None:
         raw = _fallback_raw(session)
+        # Groq is the ONLY source of urgency. Without it ``_fallback_raw``
+        # returns the session's last known value — 0 on a new session — and
+        # ``crisis_bypass_check`` (which fires only at urgency 3) silently
+        # stops working. Floor it lexically so an outage cannot mute the
+        # crisis path. See _CRISIS_LEXICAL_PATTERNS above.
+        lexical_crisis_pattern = _lexical_crisis_hit(ingested.normalised_message)
+        if lexical_crisis_pattern:
+            raw.urgency_score = 3
         logger.warning(
             "signal extraction degraded — using last known state",
             extra=log_context(
@@ -118,8 +199,23 @@ async def extract_signals(
                 fallback="last_known_urgency",
                 degraded=True,
                 latency_ms=latency_ms,
+                lexical_crisis_floor=bool(lexical_crisis_pattern),
             ),
         )
+        if lexical_crisis_pattern:
+            # Loud on purpose: this means the crisis path is running on the
+            # backstop, not the classifier. Someone should be paged.
+            logger.warning(
+                "LEXICAL CRISIS FLOOR — urgency forced to 3 while signal extraction is down",
+                extra=log_context(
+                    session_id=session.session_id,
+                    user_id=session.user_id,
+                    trace_id=trace_id,
+                    pattern=lexical_crisis_pattern,
+                    degraded=True,
+                    urgency=3,
+                ),
+            )
     else:
         logger.info(
             "← Groq complete",

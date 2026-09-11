@@ -78,9 +78,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "max_completion_tokens": 1600,
         },
         "groq": {
-            "signal_model": "llama-3.1-8b-instant",
-            "safety_model": "llama-3.1-8b-instant",
-            "fallback_model": "llama-3.3-70b-versatile",
+            "signal_model": "qwen/qwen3.8-27b",
+            "safety_model": "qwen/qwen3.8-27b",
+            "fallback_model": "openai/gpt-oss-120b",
             "timeout_s": 4.0,
             "signal_extraction_timeout_s": 6.0,
         },

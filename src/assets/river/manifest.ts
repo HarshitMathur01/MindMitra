@@ -254,6 +254,71 @@ export const RIVER_MANIFEST = {
     "width": 1264,
     "height": 848,
     "lqip": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAACQAwCdASoUAA0APt1cpkyopSOiMAgBEBuJQBOgArpGW2L3EZsAAP7uob73rlU7OCSkKVAzjOLFoPmFTV5jFXiR/4MqU8uTre9nvypVnlxYSc6NV1og0yxCkYLeCiUbGXJlMagAAAA="
+  },
+  "mood-bright": {
+    "avif": {
+      "384": "mood-bright-384.3f7182d9.avif",
+      "768": "mood-bright-768.c93ce923.avif"
+    },
+    "webp": {
+      "384": "mood-bright-384.ac81ef7d.webp",
+      "768": "mood-bright-768.bea7561e.webp"
+    },
+    "width": 768,
+    "height": 512,
+    "lqip": "data:image/webp;base64,UklGRmAAAABXRUJQVlA4IFQAAADwAwCdASoUAA0APt1cp00opSOiMAgBEBuJQBOmUABp1fEi2NZigaAAAP7za8cCY8zNypyWmZvFwX2zz5ZGgE4ey7dNiAvK/RPfBmDChEOE9HBjQAA="
+  },
+  "mood-heavy": {
+    "avif": {
+      "384": "mood-heavy-384.a68c3cdc.avif",
+      "768": "mood-heavy-768.28e102c4.avif"
+    },
+    "webp": {
+      "384": "mood-heavy-384.045f1c9e.webp",
+      "768": "mood-heavy-768.4309b183.webp"
+    },
+    "width": 768,
+    "height": 512,
+    "lqip": "data:image/webp;base64,UklGRkgAAABXRUJQVlA4IDwAAABQAwCdASoUAA0APt1cpkyopSOisAgBEBuJZwDCgCHfwctBgAD+82mH3/PzSpevvLiUYqFS+HTYPuagAAA="
+  },
+  "mood-lifting": {
+    "avif": {
+      "384": "mood-lifting-384.66ee4e67.avif",
+      "768": "mood-lifting-768.9d5508c8.avif"
+    },
+    "webp": {
+      "384": "mood-lifting-384.449d0095.webp",
+      "768": "mood-lifting-768.05f0ee2a.webp"
+    },
+    "width": 768,
+    "height": 512,
+    "lqip": "data:image/webp;base64,UklGRjwAAABXRUJQVlA4IDAAAADwAgCdASoUAA0APt1apkyopSOiMAgBEBuJZwCuHC0kAAD+8L5+NgG7xJJ6roDKUAA="
+  },
+  "mood-low": {
+    "avif": {
+      "384": "mood-low-384.34f27ed9.avif",
+      "768": "mood-low-768.893add62.avif"
+    },
+    "webp": {
+      "384": "mood-low-384.f4bbe2b5.webp",
+      "768": "mood-low-768.51075a64.webp"
+    },
+    "width": 768,
+    "height": 512,
+    "lqip": "data:image/webp;base64,UklGRk4AAABXRUJQVlA4IEIAAACQAwCdASoUAA0APt1apkyopSOiMAgBEBuJZwAAW9WuahwGmDwAAP7zcBf4yEOcatH6HRXvPD03Ff8xdodO1tewAAA="
+  },
+  "mood-okay": {
+    "avif": {
+      "384": "mood-okay-384.b93057ea.avif",
+      "768": "mood-okay-768.d321ee20.avif"
+    },
+    "webp": {
+      "384": "mood-okay-384.650e5ae8.webp",
+      "768": "mood-okay-768.32592d8b.webp"
+    },
+    "width": 768,
+    "height": 512,
+    "lqip": "data:image/webp;base64,UklGRkgAAABXRUJQVlA4IDwAAACwAwCdASoUAA0APt1gp00opaOiMAgBEBuJZwAAW+pPNywA/fFPwAD+82vIytxcNqufWvV16M/pGD4AAAA="
   }
 } as const satisfies Record<string, RiverImageEntry>;
 

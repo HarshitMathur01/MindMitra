@@ -1,11 +1,17 @@
 /**
  * QuickReplies — 2-3 suggestion chips below AI messages that ask questions.
- * Pill-shaped, outlined with primary color, horizontal scroll on mobile.
- * Tapping sends text as user's next message. Disappear after any user input.
- * Min tap target: 44x44px.
+ * Pill-shaped, outlined. Tapping sends text as the user's next message.
+ * Disappear after any user input.
+ *
+ * These used to sit in an `overflow-x-auto` row with the scrollbar hidden.
+ * With three chips at mobile widths the third was simply cut off at the edge
+ * of the screen with nothing to indicate it could be reached — it read as a
+ * clipping bug, not an affordance, and a suggestion you cannot see is a
+ * suggestion that does not exist. There are never more than three, so they
+ * wrap instead.
  */
 
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 
 interface QuickRepliesProps {
     suggestions: string[];
@@ -20,15 +26,6 @@ const QuickReplies: React.FC<QuickRepliesProps> = ({
     visible,
     className,
 }) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-
-    // Reset scroll position when suggestions change
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollLeft = 0;
-        }
-    }, [suggestions]);
-
     if (!visible || !suggestions.length) return null;
 
     return (
@@ -37,16 +34,13 @@ const QuickReplies: React.FC<QuickRepliesProps> = ({
             role="group"
             aria-label="Quick reply suggestions"
         >
-            <div
-                ref={scrollRef}
-                className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-            >
+            <div className="flex flex-wrap gap-2">
                 {suggestions.slice(0, 3).map((text, i) => (
                     <button
                         key={`qr-${i}-${text.slice(0, 10)}`}
                         type="button"
                         onClick={() => onSelect(text)}
-                        className="flex-shrink-0 inline-flex items-center rounded-full border border-ink-3 bg-ink-0 px-3 py-1.5 text-[12.5px] text-ink-7 whitespace-nowrap transition-colors duration-quick ease-out-expo hover:border-ink-5 hover:text-ink-9"
+                        className="inline-flex max-w-full items-center rounded-full border border-ink-3 bg-ink-0 px-3 py-1.5 text-left text-[12.5px] text-ink-7 transition-colors duration-quick ease-out-expo hover:border-ink-5 hover:text-ink-9"
                     >
                         {text}
                     </button>

@@ -19,7 +19,7 @@ here disagrees with reality, update both.
 ### 1.2 Authenticated home
 | Surface | Route | Entry file | Notes |
 |---|---|---|---|
-| Sanctuary Home (scenic scroll) | `/` (authenticated) | [src/pages/SanctuaryHome.tsx](../src/pages/SanctuaryHome.tsx) | Post-login landing — scroll-driven scenes (hero, lake, forest, window, firefly). Replaces old Pulse/Continue/Library dashboard. |
+| Sanctuary Home ("Night River") | `/` (authenticated) | [src/pages/SanctuaryHome.tsx](../src/pages/SanctuaryHome.tsx) | Post-login landing — one scroll: paper-and-ink greeting + check-in, first minute, doors, practice, open thread, constellation, crisis rail. Replaces old Pulse/Continue/Library dashboard. |
 | `/me` — Memory & wellbeing | `/me` | [src/pages/Me.tsx](../src/pages/Me.tsx) | Pulse identity widget, kept moments, recent sessions, safety plan & settings entry. |
 | Settings | `/settings` | [src/pages/Settings.tsx](../src/pages/Settings.tsx) + [components/settings/](../src/components/settings/) | Account, accessibility, notifications, privacy, general. |
 | Profile | `/profile` | [src/pages/Profile.tsx](../src/pages/Profile.tsx) + [components/profile/](../src/components/profile/) | Personality, emergency contact, mental health snapshot. |
@@ -166,7 +166,7 @@ Memory is scoped by `user_id` (service-role queries must filter explicitly — s
 | Hook | Purpose |
 |---|---|
 | [useAuth](../src/hooks/useAuth.tsx) | Supabase auth context |
-| [useChat](../src/hooks/useChat.tsx) | HTTP `/chat` driver, streaming reducer |
+| [useChat](../src/hooks/useChat.tsx) | Avatar queue + presence-mode state. **Not** the `/chat` driver — `ChatGPTInterface` owns the request and pushes replies in via `addAvatarMessage`. |
 | [useProfile](../src/hooks/useProfile.tsx) | Profile fetch / mutation |
 | [useSettings](../src/hooks/useSettings.tsx) | Settings state, persistence |
 | [usePersonality](../src/hooks/usePersonality.ts) | Personality preset selection |
@@ -178,6 +178,7 @@ Memory is scoped by `user_id` (service-role queries must filter explicitly — s
 
 ### 3.2 Lib ([src/lib/](../src/lib/))
 - [lib/api/syncMindGymClinicalData.ts](../src/lib/api/syncMindGymClinicalData.ts) — boot-time silent push of stranded local MindGym data to Supabase
+- [lib/chat/](../src/lib/chat/) — `sentiment.ts` (avatar facial-expression rules, table-driven), `avatarMessage.ts` (backend payload → avatar queue shape), `devLog.ts` (DEV-only console, keeps message text out of prod logs), `activitySuggestion.ts`, `turnPersonalization.ts`
 - [lib/mindgym/](../src/lib/mindgym/) — catalog, types, theme, storage, supabaseSync, analytics
 - [lib/sessionManager.ts](../src/lib/sessionManager.ts), [lib/sessionCleanup.ts](../src/lib/sessionCleanup.ts) — chat-session helpers
 - [lib/azureSpeechLoader.ts](../src/lib/azureSpeechLoader.ts), [lib/avatarOptions.ts](../src/lib/avatarOptions.ts) — voice + avatar config

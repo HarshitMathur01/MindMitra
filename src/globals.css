@@ -151,11 +151,58 @@ img {
    Mobile-first · Dark-mode primary · Devanagari-aware
    ═══════════════════════════════════════════════════════════════════ */
 
+/* ── Speaker distinction ──────────────────────────────────────────────
+   The two bubbles used to be --ink-1 (AI) and --ink-2 (user): adjacent
+   steps on one neutral ramp, 2% and 3% of lightness away from the page
+   itself. On the cream theme that is close to no distinction at all, and
+   a conversation you have to re-read to work out who said what is the one
+   thing a chat surface cannot afford.
+
+   Mitra keeps the paper — it is the voice you are reading, and paper is
+   the calmer ground for a long reply. The user's own words get a low
+   saturation wash of --primary. Deliberately a tint and not a solid fill:
+   a saturated "sent" bubble reads as a messaging app, and this is meant
+   to be quieter than that. Both carry a hairline, which is what actually
+   holds the shape on cream, where a fill alone barely registers.
+
+   Named mm-msg, NOT mm-bubble: the .mm-bubble family further down this
+   file belongs to ChatBubble/MessageGroup, and .qc-tone overrides it at
+   a higher specificity than a single class can answer.
+
+   Tokens rather than the ink ramp on purpose. Chat.tsx wraps this surface
+   in .qc-tone, which retunes --card, --primary and --foreground (to cream
+   and forest) but leaves --ink-* alone, so ink values would ignore the
+   surface they are painted on. */
+.mm-msg {
+    border: 1px solid transparent;
+    color: hsl(var(--foreground));
+}
+
+.mm-msg--ai {
+    background: hsl(var(--card));
+    border-color: color-mix(in srgb, hsl(var(--foreground)) 8%, transparent);
+}
+
+.mm-msg--user {
+    background: color-mix(in srgb, hsl(var(--primary)) 11%, hsl(var(--card)));
+    border-color: color-mix(in srgb, hsl(var(--primary)) 26%, transparent);
+}
+
+/* Dark: same relationship, but the tint has to carry more to survive on ink. */
+[data-theme="dark"] .mm-msg--ai {
+    border-color: color-mix(in srgb, hsl(var(--foreground)) 14%, transparent);
+}
+
+[data-theme="dark"] .mm-msg--user {
+    background: color-mix(in srgb, hsl(var(--primary)) 24%, hsl(var(--card)));
+    border-color: color-mix(in srgb, hsl(var(--primary)) 42%, transparent);
+}
+
 /* ── Message Content Base Typography ─────────────────────────────── */
 .mm-message-content {
     font-size: 15px;
     line-height: 1.65;
-    color: var(--text-primary);
+    color: hsl(var(--text-primary));
     word-break: break-word;
     overflow-wrap: anywhere;
 }
@@ -182,7 +229,7 @@ img {
 
 .mm-bold {
     font-weight: 600;
-    color: var(--text-primary);
+    color: hsl(var(--text-primary));
 }
 
 .mm-italic {
@@ -191,7 +238,7 @@ img {
 }
 
 .mm-link {
-    color: var(--primary);
+    color: hsl(var(--primary));
     text-decoration: underline;
     text-underline-offset: 2px;
     text-decoration-thickness: 1px;
@@ -209,13 +256,13 @@ img {
 
 /* ── Blockquotes ─────────────────────────────────────────────────── */
 .mm-blockquote {
-    border-left: 3px solid var(--primary);
+    border-left: 3px solid hsl(var(--primary));
     padding: 8px 12px;
     margin: 8px 0;
     font-style: italic;
     opacity: 0.9;
     border-radius: 0 6px 6px 0;
-    background: color-mix(in srgb, var(--primary) 6%, transparent);
+    background: color-mix(in srgb, hsl(var(--primary)) 6%, transparent);
 }
 
 /* ── Bullet Lists ────────────────────────────────────────────────── */
@@ -244,7 +291,7 @@ img {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--secondary);
+    background: hsl(var(--secondary));
     opacity: 0.7;
 }
 
@@ -268,7 +315,7 @@ img {
     position: absolute;
     left: 0;
     font-weight: 600;
-    color: var(--primary);
+    color: hsl(var(--primary));
     font-size: 13px;
 }
 
@@ -286,8 +333,8 @@ img {
     gap: 10px;
     padding: 10px 12px;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
-    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    background: color-mix(in srgb, hsl(var(--primary)) 6%, hsl(var(--surface)));
+    border: 1px solid color-mix(in srgb, hsl(var(--border)) 60%, transparent);
 }
 
 .mm-action-badge {
@@ -298,8 +345,8 @@ img {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--primary);
-    color: var(--surface);
+    background: hsl(var(--primary));
+    color: hsl(var(--surface));
     font-size: 11px;
     font-weight: 600;
     line-height: 1;
@@ -319,9 +366,9 @@ img {
     font-size: 13px;
     font-style: italic;
     font-weight: 500;
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
-    color: var(--primary);
-    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+    background: color-mix(in srgb, hsl(var(--primary)) 10%, transparent);
+    color: hsl(var(--primary));
+    border: 1px solid color-mix(in srgb, hsl(var(--primary)) 20%, transparent);
     margin: 0 1px;
     white-space: nowrap;
 }
@@ -331,8 +378,8 @@ img {
     padding: 10px 14px;
     margin: 8px 0;
     border-radius: 10px;
-    border-left: 3px solid var(--accent);
-    background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+    border-left: 3px solid hsl(var(--accent));
+    background: color-mix(in srgb, hsl(var(--accent)) 6%, hsl(var(--surface)));
     font-weight: 500;
     line-height: 1.6;
 }
@@ -346,7 +393,7 @@ img {
     padding: 14px 12px;
     margin: 8px 0;
     border-radius: 12px;
-    background: color-mix(in srgb, var(--secondary) 6%, var(--surface));
+    background: color-mix(in srgb, hsl(var(--secondary)) 6%, hsl(var(--surface)));
 }
 
 .mm-breathing-phase {
@@ -447,7 +494,7 @@ img {
 
 .mm-bubble-time {
     font-size: 11px;
-    color: var(--text-secondary);
+    color: hsl(var(--text-secondary));
     margin-top: 4px;
     opacity: 0.7;
 }
@@ -614,7 +661,7 @@ img {
     display: inline-block;
     width: 2px;
     height: 1em;
-    background: var(--primary);
+    background: hsl(var(--primary));
     margin-left: 2px;
     vertical-align: text-bottom;
     animation: mm-blink 1s step-end infinite;
@@ -666,9 +713,9 @@ img {
     min-width: 44px;
     padding: 8px 16px;
     border-radius: 22px;
-    border: 1.5px solid var(--primary);
+    border: 1.5px solid hsl(var(--primary));
     background: transparent;
-    color: var(--primary);
+    color: hsl(var(--primary));
     font-size: 13px;
     font-weight: 500;
     font-family: inherit;
@@ -679,11 +726,11 @@ img {
 }
 
 .mm-quick-reply-chip:hover {
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    background: color-mix(in srgb, hsl(var(--primary)) 10%, transparent);
 }
 
 .mm-quick-reply-chip:active {
-    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    background: color-mix(in srgb, hsl(var(--primary)) 18%, transparent);
     transform: scale(0.97);
 }
 
@@ -737,14 +784,14 @@ img {
 }
 
 .mm-avatar--ai {
-    background: color-mix(in srgb, var(--primary) 12%, var(--surface));
-    color: var(--primary);
-    border: 1px solid var(--border);
+    background: color-mix(in srgb, hsl(var(--primary)) 12%, hsl(var(--surface)));
+    color: hsl(var(--primary));
+    border: 1px solid hsl(var(--border));
 }
 
 .mm-avatar--user {
-    background: color-mix(in srgb, var(--primary) 20%, var(--surface));
-    color: var(--primary);
+    background: color-mix(in srgb, hsl(var(--primary)) 20%, hsl(var(--surface)));
+    color: hsl(var(--primary));
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -783,23 +830,23 @@ img {
 }
 
 [data-theme="dark"] .mm-action-item {
-    background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+    background: color-mix(in srgb, hsl(var(--primary)) 8%, hsl(var(--surface)));
 }
 
 [data-theme="dark"] .mm-affirmation {
-    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    background: color-mix(in srgb, hsl(var(--accent)) 8%, hsl(var(--surface)));
 }
 
 [data-theme="dark"] .mm-breathing {
-    background: color-mix(in srgb, var(--secondary) 8%, var(--surface));
+    background: color-mix(in srgb, hsl(var(--secondary)) 8%, hsl(var(--surface)));
 }
 
 [data-theme="dark"] .mm-emotion-tag {
-    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    background: color-mix(in srgb, hsl(var(--primary)) 14%, transparent);
 }
 
 [data-theme="dark"] .mm-quick-reply-chip:hover {
-    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    background: color-mix(in srgb, hsl(var(--primary)) 14%, transparent);
 }
 
 /* ══════════════════════════════════════════════════════════════════

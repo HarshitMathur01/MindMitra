@@ -1,124 +1,71 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 
-const ChatContext = createContext(null);
+import {
+  avatarSourceText,
+  toAvatarMessageSource,
+  transformToAvatarMessage,
+  type AvatarMessage,
+  type AvatarMessageSource,
+} from "@/lib/chat/avatarMessage";
+import { devLog } from "@/lib/chat/devLog";
 
-// Dev-only logger. We were previously logging full message previews on
-// every assistant turn to the production console — that's a low-grade
-// PII leak on a shared device and clutters Sentry/console signal. Use
-// this helper to keep the diagnostics during local development without
-// shipping them to users.
-const devLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV) console.log(...args);
-};
+/**
+ * useChat — avatar queue and presence-mode state.
+ *
+ * This hook is state only. Sentiment scoring lives in `lib/chat/sentiment.ts`
+ * and the backend-payload adapter in `lib/chat/avatarMessage.ts`; both used to
+ * sit in this file, which meant mounting a provider to test either one.
+ *
+ * Sending a message is NOT here — ChatGPTInterface talks to `POST /chat`
+ * directly and pushes the reply in via `addAvatarMessage`.
+ */
 
-// ✅ EXPORTED - Helper function to detect sentiment from text for facial expressions
-export const detectSentiment = (text: string): string => {
-  if (!text) return "default";
+/** Options accepted by `chat()`. Kept for call-site compatibility. */
+export interface ChatSendOptions {
+  personality?: string;
+  companion_name?: string;
+  language?: string;
+}
 
-  const lowerText = text.toLowerCase();
+/** Everything `useChat()` exposes. */
+export interface ChatContextValue {
+  chat: (message: string, opts?: ChatSendOptions) => Promise<void>;
+  message: AvatarMessage | null;
+  onMessagePlayed: () => void;
+  loading: boolean;
+  cameraZoomed: boolean;
+  setCameraZoomed: Dispatch<SetStateAction<boolean>>;
+  isAvatarVisible: boolean;
+  toggleAvatar: () => void;
+  closeAvatar: () => void;
+  addAvatarMessage: (input: string | AvatarMessageSource) => void;
+  appendAvatarMessage: (input: string | AvatarMessageSource) => void;
+  clearAvatarMessages: () => void;
+  isPresenceMode: boolean;
+  enterPresenceMode: () => void;
+  exitPresenceMode: () => void;
+}
 
-  // Score each emotion category with weighted word matching
-  const categories: { [key: string]: { words: string[]; threshold: number } } = {
-    smile: {
-      words: ['happy', 'great', 'wonderful', 'excellent', 'good', 'love', 'amazing', 'awesome', 'fantastic', 'joy', 'excited', 'proud', 'grateful', 'thank', 'smile', 'better', 'improved', 'success', 'congratulations', 'well done', 'brilliant'],
-      threshold: 2,
-    },
-    gentle: {
-      words: ['it\'s okay', 'take your time', 'no rush', 'gently', 'softly', 'slowly', 'breathe', 'calm', 'relax', 'peace', 'safe', 'comfortable', 'at your own pace'],
-      threshold: 1,
-    },
-    compassionate: {
-      words: ['i understand', 'i hear you', 'that must be', 'i\'m sorry you', 'it makes sense', 'you\'re not alone', 'i\'m here for', 'that sounds really', 'i can see', 'must have been', 'your feelings are valid'],
-      threshold: 1,
-    },
-    concerned: {
-      words: ['worried', 'concerning', 'alarming', 'careful', 'watch out', 'be aware', 'risk', 'dangerous', 'warning', 'serious', 'important to note', 'pay attention'],
-      threshold: 1,
-    },
-    thoughtful: {
-      words: ['think about', 'consider', 'perhaps', 'maybe', 'what if', 'reflect', 'ponder', 'let\'s explore', 'interesting', 'perspective', 'another way', 'on the other hand'],
-      threshold: 1,
-    },
-    hopeful: {
-      words: ['hope', 'believe', 'possible', 'potential', 'looking forward', 'optimistic', 'bright', 'opportunity', 'growth', 'progress', 'promising', 'you can', 'you will'],
-      threshold: 1,
-    },
-    listening: {
-      words: ['tell me more', 'go on', 'i see', 'continue', 'and then', 'what happened', 'how did that', 'can you share'],
-      threshold: 1,
-    },
-    sad: {
-      words: ['sad', 'unfortunately', 'terrible', 'awful', 'loss', 'grief', 'mourn', 'depressed', 'lonely', 'heartbreak', 'miss', 'regret', 'sorry for your'],
-      threshold: 1,
-    },
-    surprised: {
-      words: ['wow', 'really', 'unbelievable', 'surprised', 'shocked', 'incredible', 'unexpected', 'astonishing', 'no way'],
-      threshold: 2,
-    },
-    angry: {
-      words: ['angry', 'furious', 'outraged', 'unacceptable', 'infuriating', 'rage'],
-      threshold: 2,
-    },
-  };
+const ChatContext = createContext<ChatContextValue | null>(null);
 
-  // Score each category
-  const scores: { [key: string]: number } = {};
-  for (const [emotion, config] of Object.entries(categories)) {
-    scores[emotion] = config.words.filter(word => lowerText.includes(word)).length;
-  }
-
-  // Find the highest scoring emotion that meets its threshold
-  let bestEmotion = "default";
-  let bestScore = 0;
-  for (const [emotion, config] of Object.entries(categories)) {
-    if (scores[emotion] >= config.threshold && scores[emotion] > bestScore) {
-      bestScore = scores[emotion];
-      bestEmotion = emotion;
-    }
-  }
-
-  // Fallback: if text has questions, use listening expression
-  if (bestEmotion === "default" && text.includes('?')) {
-    bestEmotion = "listening";
-  }
-
-  return bestEmotion;
-};
-
-// ✅ EXPORTED - Transform backend response to avatar-compatible format
-export const transformToAvatarMessage = (backendResponse: any) => {
-  const text = backendResponse.text || backendResponse.message || backendResponse.content || "I'm here to help.";
-  
-  devLog('🔄 [Transform] Backend response structure:', {
-    hasMessage: 'message' in backendResponse,
-    hasAnimation: 'animation' in backendResponse,
-    hasFacialExpression: 'facial_expression' in backendResponse,
-  });
-  
-  const detectedSentiment = detectSentiment(text);
-  devLog(`🔄 [Transform] Detected sentiment from text: "${detectedSentiment}"`);
-  
-  const avatarMsg = {
-    id: backendResponse.id || backendResponse.utteranceId,
-    utteranceId: backendResponse.utteranceId || backendResponse.id,
-    text: text,
-    animation: backendResponse.animation || (text.length > 0 ? "Talking_0" : "Idle"),
-    facialExpression: backendResponse.facial_expression || detectedSentiment
-  };
-  
-  devLog('🔄 [Transform] Final avatar message:', {
-    textLength: avatarMsg.text.length,
-    animation: avatarMsg.animation,
-    facialExpression: avatarMsg.facialExpression
-  });
-  
-  return avatarMsg;
-};
-
-export const ChatProvider = ({ children }) => {
-  const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
+export const ChatProvider = ({ children }: { children: ReactNode }) => {
+  const [messages, setMessages] = useState<AvatarMessage[]>([]);
+  const [message, setMessage] = useState<AvatarMessage | null>(null);
+  // Nothing sets `loading` — the send path moved to ChatGPTInterface, which
+  // owns its own request state. Still exposed because consumers read it;
+  // retire the field and its consumers together.
+  const [loading] = useState(false);
   const [cameraZoomed, setCameraZoomed] = useState(true);
   const [isAvatarVisible, setIsAvatarVisible] = useState(false);
   // ✅ Presence Mode — full-screen voice + face surface (Phase 1 skeleton).
@@ -152,17 +99,12 @@ export const ChatProvider = ({ children }) => {
   // re-render whenever the queue mutates.
 
   /** Replaces the avatar queue with the latest message (discards backlog). */
-  const addAvatarMessage = useCallback((messageContent: string | any) => {
+  const addAvatarMessage = useCallback((messageContent: string | AvatarMessageSource) => {
     devLog('🎭 [Avatar Queue] ═══════════════════════════════');
     devLog('🎭 [Avatar Queue] Adding message to avatar');
 
-    const inputData = typeof messageContent === 'string'
-      ? { content: messageContent }
-      : messageContent;
-
-    const textPreview = typeof messageContent === 'string'
-      ? messageContent.substring(0, 100)
-      : (messageContent.text || messageContent.message || messageContent.content || '').substring(0, 100);
+    const inputData = toAvatarMessageSource(messageContent);
+    const textPreview = avatarSourceText(messageContent).substring(0, 100);
 
     devLog('🎭 [Avatar Queue] Message preview:', textPreview);
     devLog('🎭 [Avatar Queue] Input type:', typeof messageContent);
@@ -182,16 +124,10 @@ export const ChatProvider = ({ children }) => {
   /** Appends a sentence to the avatar queue without replacing it.
    * Used for sentence-by-sentence streaming so the avatar speaks
    * back-to-back without gaps. */
-  const appendAvatarMessage = useCallback((messageContent: string | any) => {
-    const inputData = typeof messageContent === 'string'
-      ? { content: messageContent }
-      : messageContent;
-    const text = typeof messageContent === 'string'
-      ? messageContent
-      : (messageContent.text || messageContent.message || messageContent.content || '');
-    if (!text.trim()) return;
+  const appendAvatarMessage = useCallback((messageContent: string | AvatarMessageSource) => {
+    if (!avatarSourceText(messageContent).trim()) return;
 
-    const avatarMessage = transformToAvatarMessage(inputData);
+    const avatarMessage = transformToAvatarMessage(toAvatarMessageSource(messageContent));
     setMessages((prev) => {
       const updated = [...prev, avatarMessage];
       devLog('🎭 [Avatar Queue] Appended sentence — queue size:', updated.length);
@@ -205,7 +141,7 @@ export const ChatProvider = ({ children }) => {
     setMessage(null);
   }, []);
 
-  const chat = useCallback(async (_message: string, _opts?: { personality?: string; companion_name?: string; language?: string }) => {
+  const chat = useCallback(async (_message: string, _opts?: ChatSendOptions) => {
     // No-op: chat is handled directly by ChatGPTInterface → FastAPI /chat.
   }, []);
 
@@ -285,7 +221,7 @@ export const ChatProvider = ({ children }) => {
   // Stability of the callbacks above is what makes this useful — without
   // useCallback, the value object would still get a fresh function ref
   // on every render and defeat the memoisation.
-  const value = useMemo(
+  const value = useMemo<ChatContextValue>(
     () => ({
       chat,
       message,
@@ -328,7 +264,7 @@ export const ChatProvider = ({ children }) => {
   );
 };
 
-export const useChat = () => {
+export const useChat = (): ChatContextValue => {
   const context = useContext(ChatContext);
   if (!context) {
     throw new Error("useChat must be used within a ChatProvider");

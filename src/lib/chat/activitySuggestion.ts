@@ -13,6 +13,7 @@
  * two surfaces.
  */
 import { MINDGYM_TOOLS } from "@/lib/mindgym/catalog";
+import { BACKEND_BASE } from "@/lib/backendUrl";
 import type { MindGymTool, ToolId } from "@/lib/mindgym/types";
 
 export type ActivityType = "mindgym_tool" | "route";
@@ -162,12 +163,9 @@ export function clearChatHandoff(): void {
 
 /* ── network: feedback endpoint ───────────────────────────────────────── */
 
-const CHAT_BASE = (() => {
-  const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim();
-  if (backendUrl) return backendUrl.replace(/\/$/, "");
-  if (typeof window !== "undefined") return window.location.origin.replace(/\/$/, "");
-  return "";
-})();
+const CHAT_BASE =
+  BACKEND_BASE ||
+  (typeof window !== "undefined" ? window.location.origin.replace(/\/+$/, "") : "");
 
 export async function postActivityFeedback(
   token: string,

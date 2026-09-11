@@ -22,10 +22,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CHAT_SOFT_SPRING } from "./chatConstants";
 import { LANGUAGE_LABELS, type SupportedLanguage } from "@/lib/locale";
-import { AVATAR_OPTIONS } from "@/lib/avatarOptions";
+import { AVATAR_OPTIONS, type AvatarOption } from "@/lib/avatarOptions";
 import { useLocalizedT } from "@/hooks/useLocalizedT";
 
-type AvatarOption = (typeof AVATAR_OPTIONS)[number];
 
 interface ChatHeaderBarProps {
     sidebarCollapsed: boolean;

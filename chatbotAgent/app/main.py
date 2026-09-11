@@ -424,7 +424,30 @@ async def lifespan(app: FastAPI):
         logger.debug("async client shutdown cleanup failed: %s", exc)
 
 
-app = FastAPI(title="MindMitra Chatbot Agent", version="3.0.0", lifespan=lifespan)
+def _docs_enabled() -> bool:
+    """Expose /docs, /redoc and /openapi.json outside production only.
+
+    In production these enumerate the entire surface — /admin/*,
+    /therapist-bridge/*, every request schema — to anyone who asks, on a
+    service whose users are students in distress. Mirrors the non-production
+    env-name set used by the SKIP_AUTH guard in app/core/env.py.
+    """
+    from app.core.config import config  # noqa: PLC0415
+
+    env_name = config.get_str("app.environment", "dev", env="ENV").lower()
+    return env_name in ("", "dev", "development", "local", "test", "testing")
+
+
+_expose_docs = _docs_enabled()
+
+app = FastAPI(
+    title="MindMitra Chatbot Agent",
+    version="3.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if _expose_docs else None,
+    redoc_url="/redoc" if _expose_docs else None,
+    openapi_url="/openapi.json" if _expose_docs else None,
+)
 
 
 # ── request logging middleware ─────────────────────────────────────────────

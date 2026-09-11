@@ -1,44 +1,91 @@
 import { MOOD_LABELS, type MoodLabel } from "@/hooks/useMoodLog";
+import type { RiverImageName } from "@/assets/river/manifest";
+
+/** Which action row the greeting suggests once a mood is picked. */
+export type MoodDoor = "companion" | "reset";
 
 export interface RiverMood {
   /** Index into MOOD_LABELS — this is what `logMood()` persists. */
   index: number;
   label: MoodLabel;
+  /** Sentence case, for the dot captions and the recall line. */
+  title: string;
   /** oklch accent written to `--nr-mood`; recolours the whole page. */
   accent: string;
   /** Shown once the dot is tapped. Validating, never prescriptive. */
   note: string;
+  /** Watercolour revealed with the note. See scripts/optimize-river-images.mjs. */
+  art: RiverImageName;
+  /** Alt text for that painting. */
+  alt: string;
+  /** The action row marked "suggested for today". */
+  door: MoodDoor;
+  /** Why that door — `{companion}` is replaced by the caller. */
+  why: string;
 }
 
 /**
- * Accent + copy per canonical mood label.
+ * Accent, painting and copy per canonical mood label.
  *
- * The design this was ported from used its own vocabulary (heavy / restless /
- * flat / steady / warm) and persisted nothing. We keep MindMitra's canonical
- * `MOOD_LABELS` instead, because those indices are what writes to `mood_logs`
- * and what ambience, the constellation and the weekly trend all read back.
- * Only the accent and the copy come from the new design.
+ * The greeting this was ported from used its own vocabulary and persisted
+ * nothing. We keep MindMitra's canonical `MOOD_LABELS` instead, because those
+ * indices are what writes to `mood_logs` and what ambience, the constellation
+ * and the weekly trend all read back. Everything else — the five colours, the
+ * paintings, the notes and the door suggestion — comes from the new design.
+ *
+ * The accents are deliberately lower-chroma than the ones they replaced. They
+ * are not only the dots: `--nr-mood` carries the chosen accent down the whole
+ * page, so these five values are also the breathing ring in Practice, the
+ * trail in the constellation and the edge of the open-thread card.
  */
-const MOOD_STYLE: Record<MoodLabel, { accent: string; note: string }> = {
+const MOOD_STYLE: Record<
+  MoodLabel,
+  Omit<RiverMood, "index" | "label">
+> = {
   heavy: {
-    accent: "oklch(0.62 0.045 305)",
-    note: "heavy is allowed here. nothing needs solving tonight.",
+    title: "Heavy",
+    accent: "oklch(0.637 0.026 1.8)",
+    note: "Heavy is allowed. Set it down here for a while.",
+    art: "mood-heavy",
+    alt: "Watercolour of a low grey sky over still, dark water",
+    door: "companion",
+    why: "When things feel heavy, saying them out loud lightens the load.",
   },
   low: {
-    accent: "oklch(0.63 0.048 235)",
-    note: "low is just energy with nowhere to sit yet.",
+    title: "Low",
+    accent: "oklch(0.635 0.025 271.9)",
+    note: "Low days pass like fog. You don't have to push.",
+    art: "mood-low",
+    alt: "Watercolour of pale blue fog settling between distant hills",
+    door: "companion",
+    why: "A low fog lifts faster when someone walks through it with you.",
   },
   okay: {
-    accent: "oklch(0.6 0.02 120)",
-    note: "okay days count too. you still showed up.",
+    title: "Okay",
+    accent: "oklch(0.681 0.018 156.7)",
+    note: "Okay is a fine place to be. Stay as long as you like.",
+    art: "mood-okay",
+    alt: "Watercolour of a quiet green field under an even, open sky",
+    door: "reset",
+    why: "Okay is a good moment for two slow minutes of breathing.",
   },
   lifting: {
-    accent: "oklch(0.6 0.06 135)",
-    note: "lifting. we'll keep it that way, slowly.",
+    title: "Lifting",
+    accent: "oklch(0.667 0.035 138.2)",
+    note: "Something's lifting. Let it rise on its own time.",
+    art: "mood-lifting",
+    alt: "Watercolour of morning light breaking over a soft green rise",
+    door: "reset",
+    why: "Ride the lift — two minutes of breath will carry it further.",
   },
   bright: {
-    accent: "oklch(0.66 0.1 55)",
-    note: "bright. hold onto this one a little longer.",
+    title: "Bright",
+    accent: "oklch(0.674 0.06 36.4)",
+    note: "Bright suits you. Carry a little of it into the day.",
+    art: "mood-bright",
+    alt: "Watercolour of warm clay-coloured light across an open landscape",
+    door: "companion",
+    why: "Bright days are worth telling someone about. {companion} is listening.",
   },
 };
 
@@ -49,18 +96,30 @@ export const RIVER_MOODS: readonly RiverMood[] = MOOD_LABELS.map((label, index) 
   ...MOOD_STYLE[label],
 }));
 
-/** River blue — the resting accent before any mood is known. */
-export const NEUTRAL_MOOD_ACCENT = "oklch(0.626 0.045 235)";
+/**
+ * The resting accent, before any mood is known.
+ *
+ * The design's own quiet-voice colour: it is the sage the handwritten lines
+ * are set in, so an un-checked-in page tints toward the same green the
+ * greeting is already speaking in rather than toward a sixth colour.
+ */
+export const NEUTRAL_MOOD_ACCENT = "oklch(0.667 0.035 138.2)";
 
 export function moodAccentFor(index: number | null | undefined): string {
   if (index == null) return NEUTRAL_MOOD_ACCENT;
   return RIVER_MOODS[index]?.accent ?? NEUTRAL_MOOD_ACCENT;
 }
 
+export function moodFor(index: number | null | undefined): RiverMood | null {
+  if (index == null) return null;
+  return RIVER_MOODS[index] ?? null;
+}
+
 /**
  * Greeting for the hour, in the register of this surface: observational rather
- * than cheerful. Separate from the scene picker because someone arriving at
- * 04:00 should read "Quiet night" while the art stays on the night scene.
+ * than cheerful. Kept at five buckets rather than the design's three, because
+ * a student arriving at 04:00 — the hour this product exists for — should not
+ * be told "Evening".
  */
 export function greetingForHour(hour: number): string {
   if (hour < 5) return "Quiet night";
@@ -70,7 +129,15 @@ export function greetingForHour(hour: number): string {
   return "Quiet night";
 }
 
-// The scene picker moved to ./scene.ts so the build and the eager entry can
-// import it without pulling React in. Re-exported here because this is where
-// the rest of the surface has always looked for it.
-export { sceneForHour, type TimeScene } from "./scene";
+/**
+ * One line of context under the headline. Same four buckets as the greeting,
+ * so the two never disagree about what time it is.
+ */
+export function contextForHour(hour: number): string {
+  if (hour < 5)
+    return "The rest of the world is asleep. This page keeps the same hours you do.";
+  if (hour < 12) return "A quiet hour. Nothing has started yet — just you and the page.";
+  if (hour < 17)
+    return "The middle of the day. A moment to stop, before the evening takes over.";
+  return "The day is done. Set it down for a while — it can wait until tomorrow.";
+}

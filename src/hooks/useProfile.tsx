@@ -3,7 +3,12 @@ import { useState, useEffect, useCallback } from 'react';
 type SupabaseAny = any;
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/use-toast';
+// `toast` rather than `useToast()`: this hook only ever needed the function.
+// useToast() subscribes the caller to the toast store, so every component
+// using it re-rendered on every toast anywhere in the app — and this one sits
+// high enough in the tree to drag a lot down with it. The function is the same
+// module-level `toast` useToast() hands back.
+import { toast } from '@/components/ui/use-toast';
 import type { UserProfile, MentalHealthSnapshot, DEFAULT_PROFILE } from '@/lib/types/profile';
 import { DEFAULT_PROFILE as defaultProfile } from '@/lib/types/profile';
 
@@ -11,7 +16,6 @@ const STORAGE_KEY = 'mindmitra-profile';
 
 export function useProfile() {
     const { user } = useAuth();
-    const { toast } = useToast();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [snapshot, setSnapshot] = useState<MentalHealthSnapshot | null>(null);
     const [loading, setLoading] = useState(true);

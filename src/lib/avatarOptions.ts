@@ -6,7 +6,7 @@
  * Optional `ttsVoice`/`ttsLang` pin a per-avatar voice override that takes
  * precedence over the language-derived locale voice.
  */
-type AvatarOption = {
+export type AvatarOption = {
   readonly id: string;
   readonly name: string;
   readonly description: string;

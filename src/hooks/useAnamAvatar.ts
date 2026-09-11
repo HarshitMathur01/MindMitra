@@ -42,10 +42,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient, AnamEvent, ConnectionClosedCode, type AnamClient } from "@anam-ai/js-sdk";
 import type { AgentAudioInputStream, Message as AnamMessage } from "@anam-ai/js-sdk";
 import { loadAzureSpeechSDK } from "@/lib/azureSpeechLoader";
+import { BACKEND_BASE } from "@/lib/backendUrl";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() ?? "";
+const BACKEND_URL = BACKEND_BASE;
 const AZURE_KEY    = import.meta.env.VITE_AZURE_TTS_KEY as string | undefined;
 const AZURE_REGION = (import.meta.env.VITE_AZURE_TTS_REGION as string | undefined) ?? "eastus";
 

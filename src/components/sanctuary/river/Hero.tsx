@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-// `lucide-react` resolves to src/lib/lucide-react.ts, a hand-curated re-export
-// that keeps the icon bundle small. Icons must be added there before use.
-import { Mic, ArrowUpRight, Lock, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { RiverImage } from "./RiverImage";
-import { RIVER_MOODS, greetingForHour } from "./moods";
-// The scene→image table lives in scene.ts because the `<head>` preload names
-// the same file before this component exists. See scene.ts.
-import { HERO_SCENE_IMAGE, HERO_SIZES, type TimeScene } from "./scene";
+import {
+  RIVER_MOODS,
+  contextForHour,
+  greetingForHour,
+  moodFor,
+  type MoodDoor,
+  type RiverMood,
+} from "./moods";
 
 interface HeroProps {
   firstName: string;
@@ -16,220 +16,265 @@ interface HeroProps {
   /** Index into MOOD_LABELS, or null when today has no log yet. */
   moodIndex: number | null;
   onMoodSelect: (index: number) => void;
-  /** e.g. "23 check-ins" — descriptive, never a streak. */
-  checkInLine: string;
-  /** Owned by the page root, which also stamps it as `data-nr-scene`. */
-  scene: TimeScene;
+  /** Yesterday's last logged mood, or null when there wasn't one. */
+  yesterdayIndex: number | null;
   hour: number;
 }
 
+interface HeroAction {
+  id: MoodDoor;
+  /** `{companion}` is replaced with the user's companion name. */
+  title: string;
+  tag: string;
+  blurb: string;
+  to: string;
+  /** In-page anchors can't be a <Link> — that would push a history entry. */
+  anchor?: boolean;
+}
+
+const ACTIONS: readonly HeroAction[] = [
+  {
+    id: "companion",
+    title: "Talk it out with {companion}",
+    tag: "voice",
+    blurb: "A patient ear, any hour. No advice unless you ask.",
+    to: "/chat",
+  },
+  {
+    id: "reset",
+    title: "2-minute reset",
+    tag: "breathe",
+    blurb: "Four in, four hold, four out. That is the whole thing.",
+    to: "#practice",
+    anchor: true,
+  },
+];
+
 /**
- * Arrival. The same hillside, repainted for the hour the user arrives.
+ * Arrival — paper and ink.
  *
- * Two departures from the design source, both deliberate:
+ * Two columns: the greeting on the left, the check-in on the right. Tapping a
+ * colour writes through to `mood_logs` via `onMoodSelect`, so it is a real
+ * check-in that ambience, the constellation and the weekly trend all read
+ * back — and it recolours the whole page through `--nr-mood`.
  *
- *  1. It renders ONE scene, not all four cross-faded. The original mounted
- *     every landscape and animated opacity between them, which downloads four
- *     images to show one. The hour only changes while the page is open in the
- *     rare case someone sits on it across a boundary; a swap is fine there.
- *  2. The mood dots write through to `mood_logs` via `onMoodSelect`, so the
- *     tap is a real check-in that ambience, the constellation and the weekly
- *     trend all read back — not page-local state.
+ * Three departures from the design source this was ported from:
  *
- * All copy here uses `nr-hero-*`, never the page foreground. The backdrop is a
- * photograph that changes with the hour, and the page's own text colour is not
- * legible on all four — see the measured table in river.css.
+ *  1. The name, the companion, yesterday's mood and the check-in itself are
+ *     real. The source hardcoded "Jatin", "Diya" and a fixed "yesterday you
+ *     felt lifting", and its dots were page-local `useState`.
+ *  2. The reset row's blurb describes 4-4-4-4, because that is what the
+ *     Practice section it scrolls to actually runs. The source said "four
+ *     counts in, six counts out", which is a different exercise.
+ *  3. The greeting keeps five hour buckets rather than three — see
+ *     `greetingForHour`. "Evening" at 04:00 is wrong for this product.
+ *
+ * The hillside photograph that used to back this section is gone with it, and
+ * so is the measured per-scene contrast table it needed. Copy here sits on the
+ * page's own paper, so it inherits `nr-fg` like everything below it.
  */
 export function Hero({
   firstName,
   companionName,
   moodIndex,
   onMoodSelect,
-  checkInLine,
-  scene,
+  yesterdayIndex,
   hour,
 }: HeroProps) {
-  const [today, setToday] = useState("");
+  // "Choose again" only reopens the dots — it never deletes the log. Picking
+  // another colour writes a second check-in, and the day's latest wins, which
+  // is the same rule the constellation already draws by.
+  const [recheck, setRecheck] = useState(false);
 
+  const [stamp, setStamp] = useState("");
   useEffect(() => {
-    setToday(
-      new Date().toLocaleDateString("en-GB", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      }),
-    );
+    const now = new Date();
+    const day = now.toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase();
+    const time = now
+      .toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" })
+      .toLowerCase();
+    setStamp(`${day}, ${time}`);
   }, []);
 
-  const greeting = greetingForHour(hour);
-  const selected = moodIndex == null ? null : RIVER_MOODS[moodIndex];
-  const image = HERO_SCENE_IMAGE[scene];
+  const logged = moodFor(moodIndex);
+  const chosen: RiverMood | null = recheck ? null : logged;
+  const yesterday = moodFor(yesterdayIndex);
+
+  const pick = (index: number) => {
+    onMoodSelect(index);
+    setRecheck(false);
+  };
 
   return (
-    <section
-      id="top"
-      className="relative overflow-hidden px-6 pt-36 pb-20 md:px-10 lg:pt-44 lg:pb-28"
-    >
-      {/* Moon haze over dark water */}
-      <div
-        aria-hidden
-        className="nr-anim-breathe nr-parallax-soft pointer-events-none absolute -top-40 left-1/2 size-[34rem] -translate-x-1/2 rounded-full blur-3xl"
-        style={{ background: "color-mix(in oklab, var(--nr-mood) 26%, transparent)" }}
-      />
-      <div
-        aria-hidden
-        className="nr-anim-drift nr-parallax-slow pointer-events-none absolute -top-24 left-1/2 size-[22rem] -translate-x-1/2 rounded-full opacity-50 blur-2xl"
-        style={{ background: "color-mix(in oklab, var(--nr-lavender) 34%, transparent)" }}
-      />
-
-      {/* Watercolour landscape — sits behind the text and fades into the page */}
-      <div
-        aria-hidden
-        className="nr-parallax-fade pointer-events-none absolute inset-0 z-0 opacity-85"
-        style={{
-          maskImage:
-            "linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,1) 25%, rgba(0,0,0,1) 60%, rgba(0,0,0,0.7) 80%, transparent 100%)",
-          WebkitMaskImage:
-            "linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,1) 25%, rgba(0,0,0,1) 60%, rgba(0,0,0,0.7) 80%, transparent 100%)",
-        }}
-      >
-        <RiverImage
-          name={image.name}
-          alt={image.alt}
-          sizes={HERO_SIZES}
-          priority
-          className="absolute inset-0 size-full object-cover object-center"
-        />
-      </div>
-      <div
-        aria-hidden
-        className="absolute inset-0 z-0 bg-gradient-to-b from-nr-bg/80 via-nr-bg/25 to-nr-bg/90"
-      />
-      {/*
-        Contrast veil. Zero for most (theme x scene) pairs; only the ones whose
-        measured contrast was marginal get a wash, and its colour is whichever
-        direction pushes the band away from the chosen text colour.
-      */}
-      <div
-        aria-hidden
-        className="absolute inset-0 z-0 transition-opacity duration-[1600ms]"
-        style={{
-          background: "var(--nr-hero-veil-color)",
-          opacity: "var(--nr-hero-veil)",
-        }}
-      />
-
-      <div className="relative z-10 mx-auto max-w-4xl text-center text-nr-hero-fg transition-colors duration-[1600ms]">
-        <p className="nr-label nr-hero-label">
-          {greeting}
-          {today ? ` · ${today}` : ""}
-        </p>
-
-        {/* `nr-hero-title` overrides the inherited hero colour with the
-            near-black/near-white variant plus its halo — the headline is the
-            one element large enough to be broken by the photograph's local
-            extremes rather than its average. See river.css. */}
-        <h1 className="nr-hero-title mt-6 text-balance font-nr-display text-5xl italic leading-[1.02] transition-colors duration-[1600ms] md:text-7xl lg:text-8xl">
-          {greeting}, {firstName}.
-        </h1>
-
-        <p className="nr-hero-ink mx-auto mt-7 max-w-2xl text-xl font-normal leading-relaxed md:text-[1.375rem]">
-          The river of your mind is settling. {checkInLine} — none of them scored, ranked or
-          shared.
-        </p>
-
-        <div className="mt-14">
-          <p className="nr-label nr-hero-label">
-            {firstName} — how does the water feel today?
+    <section id="top" className="mx-auto w-full max-w-4xl px-6 pt-32 sm:px-10 lg:pt-40">
+      <div className="nr-fade grid gap-12 border-b border-nr-border pb-12 md:grid-cols-2 md:items-end">
+        {/* ----- Greeting ----- */}
+        <div>
+          <p className="font-display text-[26px] leading-none text-nr-sage">
+            {greetingForHour(hour)}, {firstName}
+            {stamp ? ` — ${stamp}` : ""}
           </p>
-          <div className="mt-7 flex flex-wrap items-start justify-center gap-5 md:gap-7">
-            {RIVER_MOODS.map((m) => {
-              const active = moodIndex === m.index;
-              return (
-                <button
-                  key={m.label}
-                  type="button"
-                  onClick={() => onMoodSelect(m.index)}
-                  aria-pressed={active}
-                  className="group flex flex-col items-center gap-3"
+
+          <h1 className="mt-3 text-balance font-serif-brand text-[2.75rem] font-semibold leading-[1.08] tracking-tight text-nr-fg sm:text-[52px]">
+            How is your
+            <br />
+            <span className="italic">inner world</span> today?
+          </h1>
+
+          <p className="nr-ink-70 mt-5 max-w-[34ch] text-[15px] leading-relaxed">
+            {contextForHour(hour)}
+          </p>
+
+          {/* Only rendered when there is a real log to recall — never invented,
+              and never a nudge about a day they skipped. */}
+          {yesterday && (
+            <p className="mt-4 max-w-[34ch] text-[13px] italic leading-relaxed text-nr-muted">
+              Yesterday you arrived feeling{" "}
+              <span
+                className="not-italic underline decoration-2 underline-offset-2"
+                style={{
+                  textDecorationColor: "color-mix(in oklab, var(--nr-sage) 60%, transparent)",
+                }}
+              >
+                {yesterday.label}
+              </span>
+              . However today finds you, that's fine.
+            </p>
+          )}
+        </div>
+
+        {/* ----- Check-in ----- */}
+        <div className="flex min-h-[17rem] flex-col justify-end gap-4">
+          {!chosen ? (
+            <>
+              <p className="nr-label text-nr-fg">How are you arriving?</p>
+              <div className="flex flex-wrap gap-3">
+                {RIVER_MOODS.map((m) => (
+                  <button
+                    key={m.label}
+                    type="button"
+                    onClick={() => pick(m.index)}
+                    aria-pressed={moodIndex === m.index}
+                    className="group flex flex-col items-center gap-2"
+                  >
+                    <span
+                      aria-hidden
+                      className="size-10 rounded-full transition-transform duration-300 group-hover:scale-110"
+                      style={{ background: m.accent }}
+                    />
+                    <span className="text-[11px] tracking-wide text-nr-muted transition-colors group-hover:text-nr-fg">
+                      {m.title}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="nr-ink-60 mt-2 font-display text-[21px] leading-snug">
+                Take your time. Nothing is waiting.
+              </p>
+            </>
+          ) : (
+            // Keyed on the mood so the fade replays on each change — the
+            // painting arriving is the reward for the check-in.
+            <div key={chosen.label} className="nr-fade" aria-live="polite">
+              <RiverImage
+                name={chosen.art}
+                alt={chosen.alt}
+                sizes="(min-width: 768px) 400px, 100vw"
+                className="w-full rounded-sm object-cover"
+              />
+              <p className="nr-ink-70 mt-4 font-display text-[24px] leading-snug">
+                {chosen.note}
+              </p>
+              <button
+                type="button"
+                onClick={() => setRecheck(true)}
+                className="nr-label mt-3 text-nr-muted transition-colors hover:text-nr-fg"
+              >
+                Choose again
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ----- The two doors this greeting can open ----- */}
+      <div className="nr-fade mt-12" style={{ animationDelay: "150ms" }}>
+        {chosen && (
+          <p
+            key={`why-${chosen.label}`}
+            className="nr-fade mb-4 font-display text-[22px] leading-snug text-nr-sage"
+          >
+            For a {chosen.label} day, we would start here —{" "}
+            <span className="nr-ink-60">
+              {chosen.why.replace("{companion}", companionName)}
+            </span>
+          </p>
+        )}
+
+        {ACTIONS.map((action) => {
+          const suggested = chosen?.door === action.id;
+          const inner = (
+            <>
+              <span>
+                <span
+                  className={`block font-serif-brand text-[24px] font-medium tracking-tight transition-colors ${
+                    suggested ? "text-nr-fg" : "nr-ink-80 nr-ink-sage"
+                  }`}
                 >
+                  {action.title.replace("{companion}", companionName)}
+                </span>
+                <span className="mt-1 block text-[13px] italic text-nr-muted">
+                  {action.blurb}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-3 pl-6">
+                {suggested && (
+                  <span className="hidden font-display text-[18px] text-nr-sage sm:inline">
+                    suggested for today
+                  </span>
+                )}
+                <span className="flex items-center gap-2 text-[12px] tracking-wide text-nr-muted transition-colors group-hover:text-nr-fg">
                   <span
                     aria-hidden
-                    className={cn(
-                      "size-12 rounded-full border transition-all duration-700",
-                      active
-                        ? "scale-110 border-transparent"
-                        : "border-nr-hero-border group-hover:scale-105",
-                    )}
-                    style={{
-                      background: active
-                        ? m.accent
-                        : `color-mix(in oklab, ${m.accent} 55%, transparent)`,
-                      boxShadow: active
-                        ? `0 0 28px color-mix(in oklab, ${m.accent} 45%, transparent)`
-                        : `0 0 18px color-mix(in oklab, ${m.accent} 22%, transparent)`,
-                    }}
+                    className="inline-block size-1.5 rounded-full"
+                    style={{ background: suggested ? "var(--nr-sage)" : "var(--nr-border)" }}
                   />
-                  <span
-                    data-active={active ? "true" : "false"}
-                    className="nr-label nr-hero-label transition-opacity duration-500"
-                  >
-                    {m.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  {action.tag}
+                </span>
+                <span
+                  aria-hidden
+                  className="nr-ink-30 nr-ink-lift text-[16px] transition-all duration-300 group-hover:translate-x-1"
+                >
+                  &rarr;
+                </span>
+              </span>
+            </>
+          );
 
-          <div
-            // Keyed on the mood so the reveal transition replays on each tap —
-            // the copy change is the reward for the check-in.
-            key={selected?.label ?? "empty"}
-            className="nr-reveal nr-reveal-in mx-auto mt-10 max-w-xl border-y border-nr-hero-border py-7"
-            aria-live="polite"
-          >
-            <p className="font-nr-display text-2xl italic leading-snug md:text-3xl">
-              {selected
-                ? selected.note
-                : `no wrong answer, ${firstName} — pick the closest one and we'll take it from there.`}
-            </p>
-            <p className="mt-3 text-sm text-nr-hero-muted">
-              {selected
-                ? `${companionName} has lined up a two-minute door for that.`
-                : "only you ever see this."}
-            </p>
-          </div>
-        </div>
+          const className =
+            "group flex w-full items-center justify-between border-b py-6 text-left transition-colors";
+          const style = {
+            borderColor: suggested
+              ? "color-mix(in oklab, var(--nr-sage) 60%, transparent)"
+              : "var(--nr-border)",
+          };
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            to="/chat"
-            data-prefetch="/chat"
-            className="group inline-flex items-center gap-3 rounded-full bg-nr-ink py-3.5 pl-3.5 pr-6 text-nr-paper transition-all duration-700 hover:gap-4"
-          >
-            <span className="flex size-8 items-center justify-center rounded-full bg-nr-paper/15">
-              <Mic className="size-3.5" />
-            </span>
-            <span className="text-sm font-medium tracking-wide">Talk it out with {companionName}</span>
-          </Link>
-          <a
-            href="#practice"
-            className="inline-flex items-center gap-2 rounded-full border border-nr-hero-border px-6 py-3.5 text-sm font-medium tracking-wide text-nr-hero-fg transition-colors duration-700 hover:border-nr-mood"
-          >
-            Try the 2-minute reset
-            <ArrowUpRight className="size-4" />
-          </a>
-        </div>
-
-        <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs text-nr-hero-muted">
-          <li className="flex items-center gap-2">
-            <Lock className="size-3.5" aria-hidden /> Private to {firstName}
-          </li>
-          <li className="flex items-center gap-2">
-            <Clock className="size-3.5" aria-hidden /> First relief in under 2 minutes
-          </li>
-          <li>Student plan · free</li>
-        </ul>
+          return action.anchor ? (
+            <a key={action.id} href={action.to} className={className} style={style}>
+              {inner}
+            </a>
+          ) : (
+            <Link
+              key={action.id}
+              to={action.to}
+              data-prefetch={action.to}
+              className={className}
+              style={style}
+            >
+              {inner}
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

@@ -1,7 +1,9 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+// `title` is omitted from the DOM attributes because this component renders
+// it as an <h1>, not as the browser tooltip attribute (typed `string`).
+interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   /** Small label above the title (matches dashboard section kickers) */
   kicker?: string;
   /** Primary page title — rendered as h1 */

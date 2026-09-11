@@ -162,8 +162,25 @@ export async function createViewer(canvas, onStatus = () => {}) {
   const clock = new THREE.Clock();
   let rafId = 0;
   let running = true;
+  // Gated separately from `running` (which is teardown) so the loop can be
+  // parked and resumed. The renderer draws through an EffectComposer with an
+  // UnrealBloomPass — a multi-pass post chain that is the most expensive thing
+  // on the page — and it was running at full rate whenever the component was
+  // mounted, including with the canvas scrolled out of view. The tools that
+  // host this (BuddyTicTacToe, MemoryChallenge, ReadMyMood) all scroll.
+  //
+  // rAF is already throttled by the browser on a hidden tab, but not for a
+  // canvas that is merely off-screen, which is the case that actually costs
+  // these pages frames.
+  let onScreen = true;
+  let pageVisible = !document.hidden;
+  const shouldRender = () => running && onScreen && pageVisible;
+
   function tick() {
-    if (!running) return;
+    if (!shouldRender()) {
+      rafId = 0;
+      return;
+    }
     const dt = clock.getDelta();
     if (idleUpdate) idleUpdate(dt);
     if (viewer.mixer) viewer.mixer.update(dt);
@@ -205,12 +222,48 @@ export async function createViewer(canvas, onStatus = () => {}) {
     renderer.toneMappingExposure = baseExposure + flash * 0.25;
   }
   const _tmpC = new THREE.Color();
+
+  function start() {
+    if (rafId || !shouldRender()) return;
+    // getDelta() has been accumulating while parked; drop that interval so the
+    // idle rig and mixer resume where they left off instead of jumping forward
+    // by however long the canvas was off-screen.
+    clock.getDelta();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  const onVisibility = () => {
+    pageVisible = !document.hidden;
+    start();
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+
+  // A little margin so the rig is already running by the time it scrolls in.
+  const intersectionObserver =
+    typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) onScreen = entry.isIntersecting;
+            start();
+          },
+          { rootMargin: "200px" },
+        );
+  intersectionObserver?.observe(canvas);
+
   rafId = requestAnimationFrame(tick);
 
   // Stop the loop, release the WebGL context and observers (React unmount).
   function dispose() {
     running = false;
     cancelAnimationFrame(rafId);
+    rafId = 0;
+    document.removeEventListener("visibilitychange", onVisibility);
+    try {
+      intersectionObserver?.disconnect();
+    } catch (e) {
+      /* noop */
+    }
     try {
       resizeObserver.disconnect();
     } catch (e) {

@@ -1,4 +1,8 @@
 import { cn } from "@/lib/utils";
+import {
+  FOREST_BACKDROP_NAMES,
+  forestBackdrops,
+} from "@/assets/mindgym/forest/manifest";
 
 type Variant = "full" | "faded";
 
@@ -7,14 +11,13 @@ interface ForestBackdropProps {
   className?: string;
 }
 
-const IMAGE_COUNT = 8;
-
 // Chosen once per page load, not per mount — navigating hub → section → back
 // keeps the same photo instead of flashing a new one on every remount.
-const SESSION_IMG_INDEX = Math.floor(Math.random() * IMAGE_COUNT) + 1;
+const SESSION_IMG_NAME =
+  FOREST_BACKDROP_NAMES[Math.floor(Math.random() * FOREST_BACKDROP_NAMES.length)];
 
 export default function ForestBackdrop({ variant = "full", className }: ForestBackdropProps) {
-  const imgIndex = SESSION_IMG_INDEX;
+  const art = forestBackdrops[SESSION_IMG_NAME];
 
   const mask =
     variant === "faded"
@@ -27,14 +30,30 @@ export default function ForestBackdrop({ variant = "full", className }: ForestBa
       className={cn("pointer-events-none fixed inset-0 z-0 overflow-hidden", className)}
       style={mask ? { WebkitMaskImage: mask, maskImage: mask } : undefined}
     >
-      {/* Photo background — subtle ken-burns drift for a living scene */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url(/mindgym/forest/${imgIndex}.jpg)`,
-          transform: "scale(1.04)",
-        }}
-      />
+      {/*
+        Photo background — subtle ken-burns drift for a living scene.
+
+        A <picture> rather than a background-image so the browser can negotiate
+        AVIF/WebP and pick a width. The source art is 8000px camera-original
+        JPEG, up to 7.5 MB; at 960px AVIF the same backdrop is ~45 KB, and the
+        decode drops from ~180 MB of bitmap to something a low-end Android can
+        hold. Nothing here is meant to be looked at closely — it sits under a
+        cream wash, a sunbeam gradient and a vignette. See
+        scripts/optimize-forest-backdrops.mjs.
+      */}
+      <picture style={{ display: "contents" }}>
+        <source type="image/avif" srcSet={art.avif} sizes="100vw" />
+        <source type="image/webp" srcSet={art.webp} sizes="100vw" />
+        <img
+          src={art.fallback}
+          alt=""
+          width={art.width}
+          height={art.height}
+          decoding="async"
+          className="absolute inset-0 size-full object-cover object-center"
+          style={{ transform: "scale(1.04)" }}
+        />
+      </picture>
 
       {/* Warm cream wash to soften contrast */}
       <div className="absolute inset-0 bg-[#f3ead9]/35 mix-blend-multiply" />

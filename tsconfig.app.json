@@ -27,5 +27,8 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests are not part of the app compile: they import a runner (vitest) that
+  // is not an app dependency. Give them their own config if a runner is wired.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

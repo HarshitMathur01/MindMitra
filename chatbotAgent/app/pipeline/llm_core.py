@@ -313,12 +313,49 @@ async def _try_azure(messages, *, max_tokens, temperature, trace_id: str | None 
         stream = await guarded_call("azure", lambda: client.chat.completions.create(**create_kwargs), timeout_s=8.0)
         return await _consume_stream(stream, on_chunk=on_chunk, llm_used="gpt-5-nano", trace_id=trace_id)
     except Exception as exc:  # noqa: BLE001
+        if _azure_self_harm_filtered(exc):
+            # Azure's own classifier flagged self-harm in the PROMPT. If we are
+            # here, the turn was not routed to the crisis path — urgency never
+            # reached 3 — so this is very likely a crisis the pipeline missed.
+            # It is not wired to an escalation yet (that changes the response
+            # contract and wants its own change set); logged loudly so it is
+            # alertable and countable in the meantime.
+            logger.warning(
+                "AZURE SELF-HARM FILTER on a turn the pipeline did not treat as crisis",
+                extra=log_context(
+                    trace_id=trace_id,
+                    exception_type=type(exc).__name__,
+                    signal="azure_content_filter_self_harm",
+                    likely_missed_crisis=True,
+                ),
+            )
         logger.warning(
             "Azure call failed",
             extra=log_context(trace_id=trace_id, exception_type=type(exc).__name__, reason=str(exc), fallback="next_provider"),
         )
         return _error_result(str(exc), "gpt-5-nano")
 
+
+
+def _azure_self_harm_filtered(exc: Exception) -> bool:
+    """True when Azure refused the prompt specifically for self-harm content.
+
+    Azure returns 400 ``content_filter`` with an inner
+    ``content_filter_result`` naming each category, e.g.
+    ``'self_harm': {'filtered': True, 'severity': 'high'}``. On 2026-08-30 this
+    was the ONLY component that recognised an explicit suicidal message while
+    signal extraction was down — worth its own signal rather than being folded
+    into the generic "Azure call failed" line.
+    """
+    text = str(exc)
+    if "content_filter" not in text and "ResponsibleAIPolicyViolation" not in text:
+        return False
+    if "self_harm" not in text:
+        return False
+    # Bound to the self_harm object itself: a fixed-width window runs on into
+    # the next category and reports a hit when only `violence` was filtered.
+    tail = text.split("self_harm", 1)[1].split("}", 1)[0].lower()
+    return "'filtered': true" in tail or '"filtered": true' in tail
 
 async def _try_glm(messages, *, max_tokens, temperature, trace_id: str | None = None, on_chunk: OnChunk) -> LLMResult:
     client = get_glm()

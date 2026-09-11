@@ -32,10 +32,19 @@ every data access.
 
 ## System invariants (do not break)
 
-1. **Crisis path stays bypass-resistant.** Lexical + Groq-LLM confirmer in
-   `app/pipeline/crisis_bypass.py`; tests in
-   `chatbotAgent/tests/unit/pipeline/test_crisis_bypass.py`. Never bypass these
-   checks in prod without equivalent coverage. The Anam avatar runs in turnkey
+1. **Crisis path stays bypass-resistant.** Know where detection actually
+   lives: `crisis_bypass.py` performs **no detection at all** — it selects the
+   clinician template and returns `None` unless `urgency_score == 3`. Urgency
+   comes from `signal_extraction.extract_signals()` (Groq), so **Groq is a
+   single point of failure for the crisis path**. On 2026-08-30 Groq
+   decommissioned the configured llama models, `_fallback_raw` degraded urgency
+   to 0, and explicit suicidal messages were answered with ordinary small talk
+   on both `/chat` and `/anam/crisis-check`. The `_CRISIS_LEXICAL_PATTERNS`
+   floor in `signal_extraction.py` now forces urgency 3 on explicit intent
+   **when and only when extraction has degraded**; tests in
+   `tests/unit/pipeline/test_lexical_crisis_floor.py` and
+   `tests/unit/pipeline/test_crisis_bypass.py`. Never bypass these checks in
+   prod without equivalent coverage. The Anam avatar runs in turnkey
    mode (Anam's LLM writes the replies), so `crisis_bypass` is not inline there
    — `POST /anam/crisis-check` re-adds it out-of-band and the frontend must call
    it on every user utterance. Do not ship the avatar without that interceptor.
@@ -78,7 +87,7 @@ the only gates**; run them before you claim done.
 | Live Supabase/Qdrant smoke | `make test-health-full` | needs services + `RUN_INTEGRATION=1` |
 | Episodic retrieval IR metrics | `make memory-bench` | writes JSON to `chatbotAgent/evaluations/` |
 | Frontend build | `npm run build` | green, ~34s |
-| ESLint | `npm run lint` | 0 errors, 81 warnings — gate is **0 errors** |
+| ESLint | `npm run lint` | 0 errors, 87 warnings — gate is **0 errors** |
 | Copy guard | `npm run lint:copy` | **exits 1** — 4 pre-existing hits |
 | Type-check | `npx tsc -p tsconfig.app.json --noEmit` | **16 pre-existing errors** |
 
@@ -146,6 +155,14 @@ POST /chat → resolve authenticated user               — JWT
 
 ## Common pitfalls
 
+- **Groq model swaps need budget-checking.** `signal_extraction` calls Groq
+  with `max_tokens=256` and `safety_gate` with `200`, both in JSON mode.
+  Reasoning models (`openai/gpt-oss-*`) spend that budget on reasoning tokens
+  and fail with `json_validate_failed` and an empty generation — they need
+  `max_tokens>=1024` plus `reasoning_effort="low"`. `qwen/qwen3.8-27b` needs
+  neither. Verify any replacement against **both** budgets before shipping, and
+  remember the model name is defaulted in three places: `config.yaml`,
+  `app/core/config.py` and `app/core/env.py`.
 - **Boot failure** — `SUPABASE_JWT_SECRET` missing. The lifespan log prints
   `SUPABASE_JWT_SECRET ❌ Missing`; authenticated chat fails unless `SKIP_AUTH`
   is on for local dev.

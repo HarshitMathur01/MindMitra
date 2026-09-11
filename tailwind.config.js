@@ -163,12 +163,9 @@ export default {
 				"nr-border": "var(--nr-border)",
 				"nr-muted": "var(--nr-muted-fg)",
 				"nr-mood": "var(--nr-mood)",
-				// Hero-only foreground. The hero sits on a photograph that
-				// changes with the hour, so its copy can't inherit `nr-fg` —
-				// see the measured contrast table in river.css.
-				"nr-hero-fg": "var(--nr-hero-fg)",
-				"nr-hero-muted": "var(--nr-hero-muted)",
-				"nr-hero-border": "var(--nr-hero-border)",
+				// The greeting's quiet voice — handwritten lines and the
+				// "suggested for today" marker. Lighter on ink in dark.
+				"nr-sage": "var(--nr-sage)",
 			},
 			borderRadius: {
 				lg: "var(--radius)",

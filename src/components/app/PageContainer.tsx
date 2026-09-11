@@ -25,9 +25,11 @@ interface PageContainerProps extends React.HTMLAttributes<HTMLElement> {
  */
 const PageContainer = React.forwardRef<HTMLElement, PageContainerProps>(
   ({ as: Tag = "main", width = "content", className, children, ...props }, ref) => {
+    // See Section.tsx: one HTMLElement ref cannot satisfy every branch of
+    // the `as` union without widening the tag.
+    const Component = Tag as React.ElementType;
     return (
-      // @ts-expect-error — polymorphic ref
-      <Tag
+      <Component
         ref={ref}
         className={cn(
           "mx-auto w-full px-4 sm:px-6 lg:px-8",
@@ -37,7 +39,7 @@ const PageContainer = React.forwardRef<HTMLElement, PageContainerProps>(
         {...props}
       >
         {children}
-      </Tag>
+      </Component>
     );
   }
 );

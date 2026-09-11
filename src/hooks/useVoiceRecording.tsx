@@ -1,5 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { BACKEND_BASE } from '@/lib/backendUrl';
+// `toast` rather than `useToast()`: this hook only ever needed the function.
+// useToast() subscribes the caller to the toast store, so every component
+// using it re-rendered on every toast anywhere in the app — and this one sits
+// high enough in the tree to drag a lot down with it. The function is the same
+// module-level `toast` useToast() hands back.
+import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAzureSpeech, type VoiceMetrics } from '@/hooks/useAzureSpeech';
 
@@ -176,7 +182,6 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
   const audioChunksRef = useRef<Blob[]>([]);
   const micStreamRef = useRef<MediaStream | null>(null);
 
-  const { toast } = useToast();
 
   // Clear all timers
   const clearTimers = useCallback(() => {
@@ -279,8 +284,8 @@ export const useVoiceRecording = (sttLocale: string = 'en-IN') => {
   // WebSocket does.
   // ═══════════════════════════════════════════════════════════
   const transcribeWithWhisper = useCallback(async (audioData: string): Promise<string> => {
-    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim()
-      || (typeof window !== 'undefined' ? window.location.origin.replace(/\/$/, '') : '');
+    const backendUrl = BACKEND_BASE
+      || (typeof window !== 'undefined' ? window.location.origin.replace(/\/+$/, '') : '');
     if (!backendUrl) {
       console.warn('⚠️ [WHISPER] VITE_BACKEND_URL not configured — Whisper fallback unavailable');
       return '';

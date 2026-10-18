@@ -105,7 +105,9 @@ _CRISIS_LEXICAL_PATTERNS = (
     r"\bsuicid(?:e|al)\b",
     r"\b(?:want|wanna|going) to die\b",
     r"\bbetter off dead\b",
-    r"\bdon'?t want to (?:live|be alive)\b",
+    # ’ is iOS smart punctuation. Deliberately absent from _CRISIS_NEGATION:
+    # recognising it there would suppress messages that fire today.
+    r"\bdon['’]?t want to (?:live|be alive|be here)\b",
     r"\bno reason to live\b",
     # English - means
     r"\bhang my ?self\b",
@@ -128,10 +130,55 @@ _CRISIS_LEXICAL_PATTERNS = (
 
 # Cheap guard against the commonest false positive - a student saying the
 # thought is *gone*. Anything subtler is left to the LLM on the healthy path.
+#
+# A negation only counts when it governs the matched phrase: everything
+# between the two must be a scope word below. Without that, a negation in an
+# earlier clause muted the floor - "I am not okay, I want to die" and, as
+# students actually type it, "im not okay i want to die".
+#
+# Only ever narrows the original guard (within 24 characters, no sentence
+# break), so the floor fires on a superset of what it fired on before. Hindi
+# negation after the keyword ("khudkushi nahi karunga") and "mat" are not
+# negation here - suppressing on them would loosen the floor.
+#
+# Each language's negation takes only its own scope words. Hindi puts "not"
+# after the verb, so a "nahi" *ahead* of the phrase only negates it in the
+# inverted "nahi chahta X" / "nahi sochta X" order - it needs at least one
+# scope word. Otherwise it is a bare "No," ("nahi want to die").
 _CRISIS_NEGATION = re.compile(
-    r"\b(?:don'?t|dont|never|no longer|nahi|nhi|not)\b[^.!?]{0,24}$",
+    r"\b(?:(?P<en>don'?t|dont|never|no longer|not)|(?P<hi>nahi|nhi))\b",
     re.IGNORECASE,
 )
+_CRISIS_NEGATION_WINDOW = 24
+_CRISIS_NEGATION_SCOPE_WORDS_EN = (
+    "really", "ever", "even", "actually", "at", "all", "any", "anymore", "once",
+    "am", "be", "been", "being", "feel", "feeling", "felt",
+    "have", "having", "had", "want", "wanna", "wanted", "to",
+    "going", "gonna", "plan", "planning", "intend", "intending",
+    "try", "trying", "tried", "would", "will",
+    "think", "thinking", "thought", "about", "of", "on",
+)
+_CRISIS_NEGATION_SCOPE_WORDS_HI = (
+    "chahta", "chahti", "chahte", "sochta", "sochti", "sochte",
+)
+
+
+def _scope(words: tuple[str, ...], repeat: str) -> re.Pattern[str]:
+    return re.compile(r"(?:\s+(?:" + "|".join(words) + r"))" + repeat + r"\s*", re.IGNORECASE)
+
+
+_CRISIS_NEGATION_SCOPE_EN = _scope(_CRISIS_NEGATION_SCOPE_WORDS_EN, "*")
+_CRISIS_NEGATION_SCOPE_HI = _scope(_CRISIS_NEGATION_SCOPE_WORDS_HI, "+")
+
+
+def _negation_governs(prefix: str) -> bool:
+    """True when a negation in ``prefix`` scopes over whatever follows it."""
+    for negation in _CRISIS_NEGATION.finditer(prefix):
+        gap = prefix[negation.end():]
+        scope = _CRISIS_NEGATION_SCOPE_HI if negation.group("hi") else _CRISIS_NEGATION_SCOPE_EN
+        if len(gap) <= _CRISIS_NEGATION_WINDOW and scope.fullmatch(gap):
+            return True
+    return False
 
 
 def _lexical_crisis_hit(message: str) -> Optional[str]:
@@ -140,15 +187,15 @@ def _lexical_crisis_hit(message: str) -> Optional[str]:
     Used only once signal extraction has already failed. Returns the pattern
     itself rather than the matched text, so the caller can log *why* it fired
     without writing the student's own words into the log.
+
+    Every occurrence is checked, so "I'm not suicidal but I am suicidal"
+    cannot hide behind its first, negated mention.
     """
     text = (message or "").lower()
     for pattern in _CRISIS_LEXICAL_PATTERNS:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if not match:
-            continue
-        if _CRISIS_NEGATION.search(text[: match.start()]):
-            continue
-        return pattern
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            if not _negation_governs(text[: match.start()]):
+                return pattern
     return None
 
 

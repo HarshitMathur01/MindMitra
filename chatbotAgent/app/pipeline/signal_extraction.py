@@ -103,11 +103,11 @@ _CRISIS_LEXICAL_PATTERNS = (
     r"\bend(?:ing)? my life\b",
     r"\btake my own life\b",
     r"\bsuicid(?:e|al)\b",
-    r"\b(?:want|wanna|going) to die\b",
+    r"\b(?:(?:want|wanna|going) to|wanna) die\b",
     r"\bbetter off dead\b",
     # ’ is iOS smart punctuation. Deliberately absent from _CRISIS_NEGATION:
     # recognising it there would suppress messages that fire today.
-    r"\bdon['’]?t want to (?:live|be alive|be here)\b",
+    r"\b(?:don['’]?t|do not) want to (?:live|be alive|be here)\b",
     r"\bno reason to live\b",
     # English - means
     r"\bhang my ?self\b",
@@ -181,6 +181,16 @@ def _negation_governs(prefix: str) -> bool:
     return False
 
 
+# A contrast word anywhere after a negated match reverses the negation: the
+# risk is in what follows ("I don't want to kill myself but I will"). Accepted
+# cost: "I'm not suicidal but stressed" escalates too - the floor only runs
+# while extraction is down, and there the stricter result wins.
+_CRISIS_CONTRAST = re.compile(
+    r"\b(?:but|however|lekin|par|magar|phir ?bhi)\b",
+    re.IGNORECASE,
+)
+
+
 def _lexical_crisis_hit(message: str) -> Optional[str]:
     """Return the matched pattern when a message states explicit crisis intent.
 
@@ -194,7 +204,10 @@ def _lexical_crisis_hit(message: str) -> Optional[str]:
     text = (message or "").lower()
     for pattern in _CRISIS_LEXICAL_PATTERNS:
         for match in re.finditer(pattern, text, re.IGNORECASE):
-            if not _negation_governs(text[: match.start()]):
+            suppressed = _negation_governs(text[: match.start()]) and not _CRISIS_CONTRAST.search(
+                text[match.end():]
+            )
+            if not suppressed:
                 return pattern
     return None
 

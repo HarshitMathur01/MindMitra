@@ -126,6 +126,38 @@ LATER_UNNEGATED_MENTION = [
     "i said i would never kill myself. i want to kill myself",
 ]
 
+# The negation really does govern the match - the risk is in what follows.
+CONTRAST_AFTER_A_NEGATED_MATCH = [
+    "I don't want to kill myself but I will",
+    "I have never been suicidal before but now I am",
+    "I would never kill myself, however some days I think about it",
+    "main nahi chahti khudkushi karna lekin roz sochti hoon",
+    "nhi sochta suicide ke baare mein par neend nahi aati",
+    "main nahi chahta mar jaun magar ab sehen nahi hota",
+    "I'm not going to kill myself, phir bhi roz yahi khayal aata hai",
+    # Accepted cost: the floor is fallback-only, so stricter wins.
+    "I'm not suicidal but stressed",
+]
+
+# Contrast only reverses a negation it *follows*. Here it introduces the
+# negated clause, so the message still ends on "not suicidal".
+CONTRAST_BEFORE_THE_NEGATION = [
+    "I was stressed but I'm not suicidal",
+]
+
+PATTERN_GAPS = [
+    "i wanna die",
+    "honestly i just wanna die",
+    "i do not want to live",
+    "I do not want to be here anymore",
+    "I do not want to be alive",
+]
+
+NEGATED_PATTERN_GAPS = [
+    "I dont wanna die",
+    "I do not want to die",
+]
+
 
 @pytest.mark.unit
 @pytest.mark.parametrize("message", NEGATION_IN_ANOTHER_CLAUSE)
@@ -163,6 +195,30 @@ def test_a_later_unnegated_mention_still_escalates(message: str) -> None:
     assert signal_extraction._lexical_crisis_hit(message) is not None
 
 
+@pytest.mark.unit
+@pytest.mark.parametrize("message", CONTRAST_AFTER_A_NEGATED_MATCH)
+def test_contrast_after_a_negated_match_escalates(message: str) -> None:
+    assert signal_extraction._lexical_crisis_hit(message) is not None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("message", CONTRAST_BEFORE_THE_NEGATION)
+def test_contrast_before_the_negation_does_not_reverse_it(message: str) -> None:
+    assert signal_extraction._lexical_crisis_hit(message) is None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("message", PATTERN_GAPS)
+def test_pattern_gaps_escalate(message: str) -> None:
+    assert signal_extraction._lexical_crisis_hit(message) is not None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("message", NEGATED_PATTERN_GAPS)
+def test_negated_pattern_gaps_are_still_suppressed(message: str) -> None:
+    assert signal_extraction._lexical_crisis_hit(message) is None
+
+
 # The guard exactly as it shipped after the 2026-08-30 fix, kept as an oracle.
 # Run over the current patterns, it isolates the guard: the floor may fire on
 # more messages than this, never fewer.
@@ -190,6 +246,10 @@ def _original_guard_hit(message: str) -> bool:
     + HINDI_NEGATION_AFTER_THE_KEYWORD
     + NEGATION_THAT_GOVERNS_THE_PHRASE
     + LATER_UNNEGATED_MENTION
+    + CONTRAST_AFTER_A_NEGATED_MATCH
+    + CONTRAST_BEFORE_THE_NEGATION
+    + PATTERN_GAPS
+    + NEGATED_PATTERN_GAPS
     + [
         "I want to kill myself tonight, I have the pills ready",
         "I don't want to kill myself anymore, that phase passed",

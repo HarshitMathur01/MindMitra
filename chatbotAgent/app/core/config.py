@@ -70,7 +70,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "chain": "azure,groq",
         "azure_openai": {
             "endpoint": "",
-            "deployment_name": "gpt-5-mini",
+            "deployment_name": "gpt-5-nano",
             "api_version": "2025-01-01-preview",
             "timeout_s": 12.0,
             "model_family": "",

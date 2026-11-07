@@ -15,7 +15,7 @@ app, not a diagnostic tool, not a mood tracker with streaks.
 - **Conversational agent** (the core): Hindi / English / Hinglish, 5 modes
   (Companion, Active Listener, Psychoeducation, Skill Coach, Referral Bridge)
   selected per turn from affect signals; EMA-based tone convergence; episodic
-  memory across sessions. Azure OpenAI (`gpt-5-mini`, see
+  memory across sessions. Azure OpenAI (`gpt-5-nano`, see
   `AZURE_OPENAI_DEPLOYMENT_NAME`) → Groq → GLM-4 → static template.
 - **Avatar** — lipsync avatar speaks responses aloud.
 - **Therapist Bridge** — referral to verified therapists, positioned as an
@@ -129,7 +129,7 @@ POST /chat → resolve authenticated user               — JWT
    → pipeline.orchestrator.run_orchestrator()         — pure Python (mode, tone, gates)
    → pipeline.memory_retrieval.retrieve_memory()      — Qdrant dual-channel
    → pipeline.prompt_builder.build_full_prompt()      — 7-block, tiktoken trim
-   → pipeline.llm_core.generate_response()            — Azure OpenAI (gpt-5-mini) stream + fallback chain
+   → pipeline.llm_core.generate_response()            — Azure OpenAI (gpt-5-nano) stream + fallback chain
    → pipeline.safety_gate.run_safety_gate()           — 5 checks, retry/replace/static fallback
    → HTTP response: confirmed | replace | crisis text
    → asyncio: audit_log, session persist, session-end worker on idle/timeout

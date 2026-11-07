@@ -110,7 +110,10 @@ def test_yaml_values_populate_v3_env(temp_config_path: Path) -> None:
     assert e.supabase_url == "https://yaml-project.supabase.co"
     assert e.qdrant_episodic_collection == "yaml_episodic"
     assert e.azure_endpoint == "https://yaml-azure.openai.azure.com"
-    assert e.azure_model_family == "classic"
+    # yaml says gpt-4o, but the deployment is temporarily hardcoded to
+    # gpt-5-nano, so the family follows the hardcoded name.
+    assert e.azure_deployment == "gpt-5-nano"
+    assert e.azure_model_family == "gpt5_reasoning"
     assert e.llm_provider_chain == "groq"
     assert e.log_level == "WARNING"
     assert e.log_format == "json"
@@ -131,7 +134,8 @@ def test_env_overrides_yaml_values(temp_config_path: Path, monkeypatch: pytest.M
     e = env_mod.reload_env()
 
     assert e.chat_daily_limit == 99
-    assert e.azure_deployment == "gpt-5-mini"
+    # Deployment is temporarily hardcoded; the env override is ignored.
+    assert e.azure_deployment == env_mod.AZURE_DEPLOYMENT_HARDCODED == "gpt-5-nano"
     assert e.azure_model_family == "gpt5_reasoning"
     assert e.log_level == "ERROR"
 

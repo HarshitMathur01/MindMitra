@@ -118,7 +118,9 @@ async def test_explicit_provider_chain_can_skip_broken_azure(monkeypatch: pytest
     ("deployment", "override", "expected_family"),
     [
         ("gpt-5-mini", None, "gpt5_reasoning"),
-        ("gpt-4o", None, "classic"),
+        # Deployment is temporarily hardcoded to gpt-5-nano, so an env value
+        # of gpt-4o no longer changes the auto-detected family.
+        ("gpt-4o", None, "gpt5_reasoning"),
         ("gpt-5-mini", "classic", "classic"),
     ],
 )

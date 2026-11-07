@@ -43,16 +43,35 @@ def _default_chat_daily_limit() -> int:
     return config.get_int("session.daily_chat_limit", 40)
 
 
+# TEMPORARY HARDCODE (2026-11-07). The Azure resource only has a `gpt-5-nano`
+# deployment. Production was asking for `gpt-5-mini` (404 DeploymentNotFound
+# on every turn), so every reply fell through to the Groq fallback and came
+# back canned or truncated. Until host env vars are cleaned up, the deployment
+# name is pinned here and AZURE_OPENAI_DEPLOYMENT_NAME / config.yaml are
+# ignored. To undo: restore the config.get_str(...) lookup in _azure_deployment().
+AZURE_DEPLOYMENT_HARDCODED = "gpt-5-nano"
+
+
+def _azure_deployment() -> str:
+    requested = config.get_str(
+        "providers.azure_openai.deployment_name",
+        AZURE_DEPLOYMENT_HARDCODED,
+        env="AZURE_OPENAI_DEPLOYMENT_NAME",
+    ).strip()
+    if requested and requested != AZURE_DEPLOYMENT_HARDCODED:
+        logger.warning(
+            "AZURE_OPENAI_DEPLOYMENT_NAME=%s ignored — deployment is hardcoded to %s",
+            requested,
+            AZURE_DEPLOYMENT_HARDCODED,
+        )
+    return AZURE_DEPLOYMENT_HARDCODED
+
+
 def _azure_model_family() -> str:
     explicit = config.get_str("providers.azure_openai.model_family", "", env="AZURE_MODEL_FAMILY").lower()
     if explicit:
         return explicit
-    deployment = config.get_str(
-        "providers.azure_openai.deployment_name",
-        "gpt-5-mini",
-        env="AZURE_OPENAI_DEPLOYMENT_NAME",
-    ).lower()
-    return "gpt5_reasoning" if "gpt-5" in deployment else "classic"
+    return "gpt5_reasoning" if "gpt-5" in AZURE_DEPLOYMENT_HARDCODED.lower() else "classic"
 
 
 @dataclass(frozen=True)
@@ -130,13 +149,8 @@ class V3Env:
         default_factory=lambda: config.get_str("providers.azure_openai.endpoint", "", env="AZURE_OPENAI_ENDPOINT")
     )
     azure_api_key: str = field(default_factory=lambda: _secret("AZURE_OPENAI_API_KEY", "AZURE_API_KEY"))
-    azure_deployment: str = field(
-        default_factory=lambda: config.get_str(
-            "providers.azure_openai.deployment_name",
-            "gpt-5-mini",
-            env="AZURE_OPENAI_DEPLOYMENT_NAME",
-        )
-    )
+    # Hardcoded for now — see AZURE_DEPLOYMENT_HARDCODED above.
+    azure_deployment: str = field(default_factory=_azure_deployment)
     # GPT-5 and future reasoning models require api-version >= 2025-01-01-preview
     azure_api_version: str = field(
         default_factory=lambda: config.get_str(

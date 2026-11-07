@@ -63,7 +63,10 @@ providers:
 
   azure_openai:
     endpoint: ""
-    deployment_name: "gpt-5-mini"
+    # Must match a deployment that exists on the Azure resource. The resource
+    # only has gpt-5-nano; "gpt-5-mini" 404s (DeploymentNotFound) and every
+    # turn silently falls through to the Groq fallback.
+    deployment_name: "gpt-5-nano"
     api_version: "2025-01-01-preview"
     timeout_s: 15.0
     # Leave blank to auto-detect from deployment name.

@@ -4,7 +4,7 @@ Emits LLM token deltas through ``on_chunk`` so the HTTP adapter can collect
 or forward them. Fallback chain (configurable via env):
 
   Default (production):
-    1. Azure gpt-5-mini  (primary — reasoning model, requires GPT-5 params)
+    1. Azure gpt-5-nano  (primary — reasoning model, requires GPT-5 params)
     2. Groq Llama-70B    (fast fallback, always available)
     3. GLM-4-Flash       (third fallback)
     4. Static fallback template (handled by safety gate caller)

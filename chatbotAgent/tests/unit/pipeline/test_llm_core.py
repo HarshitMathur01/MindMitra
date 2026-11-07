@@ -238,3 +238,108 @@ async def test_classic_azure_call_uses_classic_chat_parameters(monkeypatch: pyte
     assert "max_completion_tokens" not in captured_kwargs
     assert "reasoning_effort" not in captured_kwargs
     assert captured_kwargs.get("stream_options") == {"include_usage": True}
+
+
+# ── Truncation: token-limit replies never ship half a sentence ───────────
+def _fake_stream(pieces: list[str], finish: str):
+    chunks = []
+    for text in pieces:
+        c = MagicMock()
+        c.choices = [MagicMock(delta=MagicMock(content=text), finish_reason=None)]
+        c.usage = None
+        chunks.append(c)
+    done = MagicMock()
+    done.choices = [MagicMock(delta=MagicMock(content=None), finish_reason=finish)]
+    done.usage = MagicMock(prompt_tokens=10, completion_tokens=150)
+    chunks.append(done)
+
+    class FakeStream:
+        async def __aiter__(self):
+            for chunk in chunks:
+                yield chunk
+
+    return FakeStream()
+
+
+@pytest.mark.unit
+def test_trim_to_last_sentence_drops_dangling_clause() -> None:
+    # Verbatim prod reply that was cut mid-sentence (2026-11-07).
+    prod = (
+        "I'm Mitra – think of me as a friendly ear who's here whenever you need "
+        "someone to listen and reflect back what you're feeling. I'm not a therapist "
+        "or a medical professional, just"
+    )
+    assert llm_core._trim_to_last_sentence(prod).endswith("what you're feeling.")
+    assert llm_core._trim_to_last_sentence("Main yahin hoon। Bas yahan tumhari") == "Main yahin hoon।"
+    assert llm_core._trim_to_last_sentence('She said "okay." and then') == 'She said "okay."'
+    assert llm_core._trim_to_last_sentence("no sentence end at all") == ""
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_length_finish_is_trimmed_to_complete_sentence() -> None:
+    result = await llm_core._consume_stream(
+        _fake_stream(["I hear you. ", "That sounds heavy. ", "Whenever you"], "length"),
+        on_chunk=None,
+        llm_used="groq_llama70b",
+    )
+    assert result.raw_response == "I hear you. That sounds heavy."
+    assert result.finish_reason == "length"
+    assert llm_core._is_success(result)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_length_finish_without_full_sentence_is_a_failure() -> None:
+    result = await llm_core._consume_stream(
+        _fake_stream(["I'm Mitra, a friendly ear who is"], "length"),
+        on_chunk=None,
+        llm_used="groq_llama70b",
+    )
+    assert result.finish_reason == "error"
+    assert not llm_core._is_success(result)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stop_finish_is_left_untouched() -> None:
+    result = await llm_core._consume_stream(
+        _fake_stream(["No full stop but complete"], "stop"),
+        on_chunk=None,
+        llm_used="gpt-5-nano",
+    )
+    assert result.raw_response == "No full stop but complete"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("model", "expect_tokens", "expect_effort"),
+    [
+        ("openai/gpt-oss-120b", llm_core.GROQ_REASONING_MIN_TOKENS, "low"),
+        ("qwen/qwen3.8-27b", 80, None),
+    ],
+)
+async def test_groq_reasoning_model_gets_real_token_budget(
+    monkeypatch: pytest.MonkeyPatch, model: str, expect_tokens: int, expect_effort: str | None
+) -> None:
+    from app.core import env as env_mod
+
+    monkeypatch.setenv("GROQ_FALLBACK_MODEL", model)
+    env_mod.reload_env()
+    captured: dict = {}
+
+    async def fake_create(**kwargs):
+        captured.update(kwargs)
+        return _fake_stream(["Hi there."], "stop")
+
+    client = MagicMock()
+    client.chat.completions.create = fake_create
+    with patch("app.pipeline.llm_core.get_groq", return_value=client):
+        result = await llm_core._try_groq(
+            [{"role": "user", "content": "who are you"}], max_tokens=80, temperature=0.7, on_chunk=None
+        )
+
+    assert result.raw_response == "Hi there."
+    assert captured["max_tokens"] == expect_tokens
+    assert captured.get("reasoning_effort") == expect_effort

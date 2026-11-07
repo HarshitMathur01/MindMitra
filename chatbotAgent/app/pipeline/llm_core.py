@@ -25,6 +25,7 @@ metadata, ``finish_reason``, and the ``fallback_chain`` actually exercised.
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from typing import Any, Awaitable, Callable, List, Optional
 
@@ -36,6 +37,17 @@ from ..models.signals import LLMResult, OrchestratorOutput, PromptBundle
 logger = get_logger(__name__)
 
 OnChunk = Optional[Callable[[str], Awaitable[None] | None]]
+
+# Groq reasoning models (openai/gpt-oss-*) count hidden reasoning tokens against
+# max_tokens. With the orchestrator's 80-150 token reply caps they spent ~100
+# tokens reasoning and returned empty or mid-sentence text. Give them a real
+# budget and keep reasoning short; reply length is still steered by the prompt
+# and trimmed by the safety gate's length check.
+GROQ_REASONING_MIN_TOKENS = 1024
+
+# Last sentence-ending punctuation (incl. Devanagari danda and CJK full stops),
+# plus any closing quote/bracket right after it.
+_SENTENCE_END_RE = re.compile(r"[.!?…।॥。！？]+[\"'’”)\]]*")
 
 
 async def generate_response(
@@ -389,17 +401,24 @@ async def _try_groq(messages, *, max_tokens, temperature, trace_id: str | None =
         logger.warning("Groq client unavailable", extra=log_context(trace_id=trace_id, consequence="try_next_provider", reason="missing_env_or_init_failed"))
         return _error_result("groq_unavailable", "groq_llama70b")
     e = env()
-    logger.debug("Groq fallback request prepared", extra=log_context(trace_id=trace_id, model=e.groq_fallback_model, max_tokens=max_tokens))
+    create_kwargs: dict = {
+        "model": e.groq_fallback_model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "stream": True,
+    }
+    if _is_groq_reasoning_model(e.groq_fallback_model):
+        create_kwargs["max_tokens"] = max(max_tokens, GROQ_REASONING_MIN_TOKENS)
+        create_kwargs["reasoning_effort"] = "low"
+    logger.debug(
+        "Groq fallback request prepared",
+        extra=log_context(trace_id=trace_id, model=e.groq_fallback_model, max_tokens=create_kwargs["max_tokens"]),
+    )
     try:
         stream = await guarded_call(
             "groq",
-            lambda: client.chat.completions.create(
-                model=e.groq_fallback_model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                stream=True,
-            ),
+            lambda: client.chat.completions.create(**create_kwargs),
             timeout_s=5.0,
         )
         return await _consume_stream(stream, on_chunk=on_chunk, llm_used="groq_llama70b", trace_id=trace_id)
@@ -454,6 +473,25 @@ async def _consume_stream(stream: Any, *, on_chunk: OnChunk, llm_used: str, trac
 
     text = "".join(pieces).strip()
     total_ms = (time.perf_counter() - started) * 1000.0
+    if finish == "length":
+        # The provider hit its token limit mid-reply. Never ship half a
+        # sentence: keep only complete sentences, or treat it as a failure so
+        # the caller moves on to the next provider / keeps the previous reply.
+        trimmed = _trim_to_last_sentence(text)
+        logger.warning(
+            "provider hit token limit — reply trimmed to last complete sentence",
+            extra=log_context(
+                trace_id=trace_id,
+                llm=llm_used,
+                completion_tokens=completion_tokens,
+                chars_before=len(text),
+                chars_after=len(trimmed),
+                outcome="trimmed" if trimmed else "discarded",
+            ),
+        )
+        if not trimmed:
+            return _error_result("truncated_without_complete_sentence", llm_used)
+        text = trimmed
     if finish == "content_filter":
         logger.warning(
             "content_filter from provider — static fallback will be used",
@@ -482,6 +520,21 @@ async def _consume_stream(stream: Any, *, on_chunk: OnChunk, llm_used: str, trac
         llm_used=llm_used,
         latency_ms=0.0,
     )
+
+
+def _is_groq_reasoning_model(model: str) -> bool:
+    # Only gpt-oss takes reasoning_effort="low"; qwen3 rejects that value.
+    return "gpt-oss" in (model or "").lower()
+
+
+def _trim_to_last_sentence(text: str) -> str:
+    """Cut ``text`` back to its last complete sentence ("" if there is none)."""
+    last_end = None
+    for match in _SENTENCE_END_RE.finditer(text):
+        last_end = match.end()
+    if last_end is None:
+        return ""
+    return text[:last_end].strip()
 
 
 async def _maybe_await(value: Any) -> None:
